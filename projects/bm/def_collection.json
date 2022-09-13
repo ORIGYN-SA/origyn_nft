@@ -1,0 +1,680 @@
+{
+    "meta": {
+        "metadata": {
+            "Class": [
+                { "name": "id", "value": { "Text": "" }, "immutable": true },
+                {
+                    "name": "primary_asset",
+                    "value": { "Text": "com.bm.brain.1.primary" },
+                    "immutable": true
+                },
+                {
+                    "name": "preview_asset",
+                    "value": { "Text": "com.bm.brain.1.primary" },
+                    "immutable": true
+                },
+                {
+                    "name": "experience_asset",
+                    "value": { "Text": "com.bm.brain.1.html" },
+                    "immutable": true
+                },
+                {
+                    "name": "hidden_asset",
+                    "value": { "Text": "com.bm.brain.hidden" },
+                    "immutable": true
+                },
+                {
+                    "name": "library",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": {
+                                                "Text": "com.bm.brain.hidden"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "Random-brain" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/com.bm.brain.XXXXXX.hidden"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "image/gif" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": { "Nat": 9990000 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": { "Text": "ledger" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "NFT ledger" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/ledger"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "text/html" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": {
+                                                "Text": "dapp_ledger_hash"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": {
+                                                "Nat": dapp_ledger_size
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": { "Text": "wallet" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "Wallet" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/wallet"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "text/html" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": {
+                                                "Text": "dapp_wallet_hash"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": {
+                                                "Nat": dapp_wallet_size
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": { "Text": "dapp_library" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "Library dApp" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/library"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "text/html" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": {
+                                                "Text": "dapp_library_hash"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": {
+                                                "Nat": dapp_library_size
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": { "Text": "data" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "Data dApp" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/-/bm-01/-/data"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "text/html" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": {
+                                                "Text": "dapp_nftdata_hash"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": {
+                                                "Nat": dapp_nftdata_size
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "library_id",
+                                            "value": { "Text": "marketplace" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "title",
+                                            "value": { "Text": "Marketplace" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location_type",
+                                            "value": { "Text": "canister" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "location",
+                                            "value": {
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/marketplace"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_type",
+                                            "value": { "Text": "text/html" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "content_hash",
+                                            "value": {
+                                                "Text": "dapp_marketplace_hash"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "size",
+                                            "value": {
+                                                "Nat": dapp_marketplace_size
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "sort",
+                                            "value": { "Text": "1" },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": false
+                },
+                {
+                    "name": "default_royalty_primary",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": false
+                },
+                {
+                    "name": "default_royalty_secondary",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.originator"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.custom"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": false
+                },
+                {
+                    "name": "__apps",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "app_id",
+                                            "value": {
+                                                "Text": "collectionData"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "read",
+                                            "value": { "Text": "public" },
+                                            "immutable": false
+                                        },
+                                        {
+                                            "name": "write",
+                                            "value": {
+                                                "Class": [
+                                                    {
+                                                        "name": "type",
+                                                        "value": {
+                                                            "Text": "allow"
+                                                        },
+                                                        "immutable": false
+                                                    },
+                                                    {
+                                                        "name": "list",
+                                                        "value": {
+                                                            "Array": {
+                                                                "thawed": [
+                                                                    {
+                                                                        "Principal": "APP-ID"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "immutable": false
+                                                    }
+                                                ]
+                                            },
+                                            "immutable": false
+                                        },
+                                        {
+                                            "name": "permissions",
+                                            "value": {
+                                                "Class": [
+                                                    {
+                                                        "name": "type",
+                                                        "value": {
+                                                            "Text": "allow"
+                                                        },
+                                                        "immutable": false
+                                                    },
+                                                    {
+                                                        "name": "list",
+                                                        "value": {
+                                                            "Array": {
+                                                                "thawed": [
+                                                                    {
+                                                                        "Principal": "APP-ID"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "immutable": false
+                                                    }
+                                                ]
+                                            },
+                                            "immutable": false
+                                        },
+                                        {
+                                            "name": "data",
+                                            "value": {
+                                                "Class": [
+                                                    {
+                                                        "name": "name",
+                                                        "value": {
+                                                            "Text": "Collection Name"
+                                                        },
+                                                        "immutable": false
+                                                    },
+                                                    {
+                                                        "name": "description",
+                                                        "value": {
+                                                            "Text": "NFTs and/or collection description"
+                                                        },
+                                                        "immutable": false
+                                                    },
+                                                    {
+                                                        "name": "com.bm.sample.app.creator_name",
+                                                        "value": {
+                                                            "Text": "bm"
+                                                        },
+                                                        "immutable": false
+                                                    },
+                                                    {
+                                                        "name": "com.bm.sample.app.creator_principal",
+                                                        "value": {
+                                                            "Principal": "CREATOR-PRINCIPAL-ID"
+                                                        },
+                                                        "immutable": false
+                                                    }
+                                                ]
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": true
+                },
+                {
+                    "name": "owner",
+                    "value": { "Principal": "CANISTER-ID" },
+                    "immutable": false
+                },
+                {
+                    "name": "is_soulbound",
+                    "value": { "Bool": false },
+                    "immutable": false
+                }
+            ]
+        }
+    },
+    "library": [
+        {
+            "library_id": "com.bm.brain.hidden",
+            "library_file": "./projects/bm/mystery-bm.gif"
+        },
+        {
+            "library_id": "ledger",
+            "library_file": "./dapps-latest-build/dist/ledger.html"
+        },
+        {
+            "library_id": "data",
+            "library_file": "./dapps-latest-build/dist/nftData.html"
+        },
+        {
+            "library_id": "wallet",
+            "library_file": "./dapps-latest-build/dist/wallet.html"
+        },
+        {
+            "library_id": "dapp_library",
+            "library_file": "./dapps-latest-build/dist/library.html"
+        },
+        {
+            "library_id": "marketplace",
+            "library_file": "./dapps-latest-build/dist/marketplace.html"
+        }
+    ]
+}

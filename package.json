@@ -1,0 +1,36 @@
+{
+    "name": "origyn_nft_reference",
+    "version": "0.1.0",
+    "description": "Origyn NFT Reference",
+    "license": "APACHE 2.0",
+    "keywords": [
+        "Internet Computer",
+        "Motoko",
+        "Canister",
+        "NodeJS"
+    ],
+    "scripts": {
+        
+    },
+    "type": "module",
+    "devDependencies": {
+        "@dfinity/agent": "^0.12.1",
+        "@dfinity/identity": "^0.12.1",
+        "@dfinity/principal": "^0.12.1",
+        "@peculiar/webcrypto": "^1.4.0",
+        "@types/node-fetch": "^2.6.2",
+        "bip39": "^3.0.4",
+        "fs-extra": "^10.1.0",
+        "hdkey": "^2.0.1",
+        "mime-types": "^2.1.35",
+        "minimist": "^1.2.6",
+        "node-fetch": "^3.2.9",
+        "watch": "^1.0.2"
+    },
+    "prettier": {
+        "trailingComma": "es5",
+        "tabWidth": 4,
+        "semi": true,
+        "singleQuote": true
+    }
+}
