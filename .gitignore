@@ -98,15 +98,4 @@ projects/bm/def_collection_loaded.json
 projects/bm/def_loaded_1.json
 projects/bm/def_loaded_2.json
 projects/bm/def_loaded.json
-src/origyn_nft_reference_mo/data.mo
-src/origyn_nft_reference_mo/dfxtypes.mo
-src/origyn_nft_reference_mo/http.mo
-src/origyn_nft_reference_mo/main.mo
-src/origyn_nft_reference_mo/mint.mo
-src/origyn_nft_reference_mo/utils.mo
-src/origyn_nft_reference_mo/migrations/lib.mo
-src/origyn_nft_reference_mo/migrations/types.mo
-src/origyn_nft_reference_mo/migrations/v000_000_000/lib.mo
-src/origyn_nft_reference_mo/migrations/v000_000_000/types.mo
-src/origyn_nft_reference_mo/migrations/v000_001_000/lib.mo
-src/origyn_nft_reference_mo/migrations/v000_001_000/types.mo
+
