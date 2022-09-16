@@ -8,20 +8,20 @@ ADMIN_ACCOUNTID=$(dfx ledger account-id)
 
 echo $ADMIN_PRINCIPAL
 echo $ADMIN_ACCOUNTID
-
-dfx canister create test_runner
-dfx canister create test_runner_nft
-dfx canister create test_runner_nft_2
-dfx canister create test_runner_instant_transfer
-dfx canister create test_runner_data
-dfx canister create test_runner_utils
-dfx canister create test_runner_collection
-dfx canister create test_runner_storage
-dfx canister create test_runner_sale
-dfx canister create dfxledger
-dfx canister create dfxledger2
-dfx canister create test_canister_factory
-dfx canister create test_storage_factory
+python3 run_cached_build.py
+# dfx canister create test_runner
+# dfx canister create test_runner_nft
+# dfx canister create test_runner_nft_2
+# dfx canister create test_runner_instant_transfer
+# dfx canister create test_runner_data
+# dfx canister create test_runner_utils
+# dfx canister create test_runner_collection
+# dfx canister create test_runner_storage
+# dfx canister create test_runner_sale
+# dfx canister create dfxledger
+# dfx canister create dfxledger2
+# dfx canister create test_canister_factory
+# dfx canister create test_storage_factory
 
 DFX_LEDGER_CANISTER_ID=$(dfx canister id dfxledger)
 DFX_LEDGER_ACCOUNT_ID=$(python3 principal_to_accountid.py $DFX_LEDGER_CANISTER_ID)
@@ -60,31 +60,31 @@ TEST_RUNNER_COLLECTION_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNN
 TEST_CANISTER_FACTORY_ID=$(dfx canister id test_canister_factory)
 TEST_STORAGE_FACTORY_ID=$(dfx canister id test_storage_factory)
 
-dfx build test_runner_collection
-dfx build test_runner
-dfx build test_runner_nft
-dfx build test_runner_nft_2
-dfx build test_runner_instant_transfer
-dfx build test_runner_data
-dfx build test_runner_utils
-dfx build test_runner_storage
-dfx build test_runner_sale
-dfx build test_canister_factory
-dfx build test_storage_factory
-dfx build dfxledger
-dfx build dfxledger2
+# dfx build test_runner_collection
+# dfx build test_runner
+# dfx build test_runner_nft
+# dfx build test_runner_nft_2
+# dfx build test_runner_instant_transfer
+# dfx build test_runner_data
+# dfx build test_runner_utils
+# dfx build test_runner_storage
+# dfx build test_runner_sale
+# dfx build test_canister_factory
+# dfx build test_storage_factory
+# dfx build dfxledger
+# dfx build dfxledger2
 
-gzip ./.dfx/local/canisters/test_runner_collection/test_runner_collection.wasm -f
-gzip ./.dfx/local/canisters/test_runner/test_runner.wasm -f
-gzip ./.dfx/local/canisters/test_runner_nft/test_runner_nft.wasm -f
-gzip ./.dfx/local/canisters/test_runner_nft_2/test_runner_nft_2.wasm -f
-gzip ./.dfx/local/canisters/test_runner_instant_transfer/test_runner_instant_transfer.wasm -f
-gzip ./.dfx/local/canisters/test_runner_data/test_runner_data.wasm -f
-gzip ./.dfx/local/canisters/test_runner_utils/test_runner_utils.wasm -f
-gzip ./.dfx/local/canisters/test_runner_storage/test_runner_storage.wasm -f
-gzip ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm -f
-gzip ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm -f
-gzip ./.dfx/local/canisters/test_runner_sale/test_runner_sale.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_collection/test_runner_collection.wasm -f
+# gzip ./.dfx/local/canisters/test_runner/test_runner.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_nft/test_runner_nft.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_nft_2/test_runner_nft_2.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_instant_transfer/test_runner_instant_transfer.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_data/test_runner_data.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_utils/test_runner_utils.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_storage/test_runner_storage.wasm -f
+# gzip ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm -f
+# gzip ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm -f
+# gzip ./.dfx/local/canisters/test_runner_sale/test_runner_sale.wasm -f
 
 
 dfx canister install test_canister_factory --mode=reinstall --wasm ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm.gz

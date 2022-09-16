@@ -19,7 +19,7 @@ jobs:
 
       - uses: aviate-labs/setup-dfx@v0.2.3
         with:
-          dfx-version: 0.10.0
+          dfx-version: 0.11.1
           vessel-version: 0.6.3
 
       - name: configure identity
