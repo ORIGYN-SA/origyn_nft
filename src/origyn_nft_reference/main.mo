@@ -1,37 +1,39 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Current "migrations/v000_001_000/types";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
-import DIP721 "DIP721";
-import EXT "mo:ext/Core";
-import EXTCommon "mo:ext/Common";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
+import Nat8 "mo:base/Nat8";
+import Option "mo:base/Option";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import Text "mo:base/Text";
+import Time "mo:base/Time";
+import TrieMap "mo:base/TrieMap";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import EXT "mo:ext/Core";
+import EXTCommon "mo:ext/Common";
 import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
+import Workspace "mo:candy_0_1_10/workspace";
+
+import Current "migrations/v000_001_000/types";
+import DIP721 "DIP721";
+import Governance "governance";
 import Market "market";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Migrations "./migrations";
 import Mint "mint";
 import NFTUtils "utils";
-import Nat "mo:base/Nat";
-import Nat32 "mo:base/Nat32";
-import Nat8 "mo:base/Nat8";
-import Option "mo:base/Option";
 import Owner "owner";
-import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
-import Result "mo:base/Result";
-import Text "mo:base/Text";
-import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 import Types "./types";
-import Governance "governance";
-import Workspace "mo:candy_0_1_10/workspace";
 import data "data";
 import http "http";
 
@@ -337,6 +339,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return Owner.share_wallet_nft_origyn(get_state(), request, msg.caller);
     };
 
+
+    //used by the network to perform governance actions that have bee voted on by OGY token holders
+    //for non OGY NFTs you will need to call this function from the principal set as your 'network'
     public shared (msg) func governance_nft_origyn(request : Types.GovernanceRequest) : async Result.Result<Types.GovernanceResponse,Types.OrigynError> {
          NFTUtils.add_log(get_state(), {
             event = "governance_nft_origyn";
@@ -348,7 +353,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return Governance.governance_nft_origyn(get_state(), request, msg.caller);
     };
 
-    //dip721 transferFrom
+    //dip721 transferFrom - must have a valid escrow
     public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
         NFTUtils.add_log(get_state(), {
             event = "transferFromDip721";
@@ -364,7 +369,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return await Owner.transferDip721(get_state(),from, to, tokenAsNat, msg.caller);
     };
 
-    //dip721 transfer
+    //dip721 transfer - must have a valid escrow
     public shared (msg) func transferDip721(to: Principal, tokenAsNat: Nat) : async DIP721.Result{
         NFTUtils.add_log(get_state(), {
             event = "transferDip721";
@@ -377,7 +382,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return await Owner.transferDip721(get_state(),msg.caller, to, tokenAsNat, msg.caller);
     };
 
-    //dip721 transferFrom "v2" downgrade
+    //dip721 transferFrom "v2" downgrade - must have a valid escrow
     public shared (msg) func transferFrom(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
         NFTUtils.add_log(get_state(), {
             event = "transferFrom";
@@ -394,7 +399,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
 
-    //EXT transferFrom
+    //EXT transferFrom - must have a valid escrow
     public shared (msg) func transferEXT(request: EXT.TransferRequest) : async EXT.TransferResponse{
         NFTUtils.add_log(get_state(), {
             event = "transferEXT";
@@ -407,7 +412,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return await Owner.transferExt(get_state(), request, msg.caller);
     };
 
-    //EXT transferFrom legacy
+    //EXT transferFrom legacy - must have a valid escrow
     public shared (msg) func transfer(request: EXT.TransferRequest) : async EXT.TransferResponse{
         NFTUtils.add_log(get_state(), {
             event = "transfer";
@@ -433,9 +438,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         return switch(request.sales_config.pricing){
             case(#instant(item)){
+                //instant transfers involve the movement of tokens on remote servers so the call must be async
                 return await Market.market_transfer_nft_origyn_async(get_state(), request, msg.caller);
             };
             case(_){
+                //handles #auction types
                 return Market.market_transfer_nft_origyn(get_state(), request, msg.caller);
             }
         };
@@ -733,6 +740,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     
 
     //[Text, ?Nat, ?Nat] for pagination
+    //returns information about the collection
     public query (msg) func collection_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
         //warning: this functiondoes not use msg.caller, if you add it you need to fix the secure query
                         debug if(debug_channel.function_announce) D.print("in collection_nft_origyn");
@@ -779,7 +787,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return await collection_nft_origyn(fields);
     };
 
-    //allows users to see token information
+    //allows users to see token information - ledger and history
     public query (msg) func history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
         //warning: this func does not use msg.caller. If you decide to use it, fix the secure caller
                         debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
@@ -897,6 +905,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return _getEXTTokenIdentifier(token_id);
     };
     
+    //builds the balance object showing what resources an account holds on the server.
     private func _balance_of_nft_origyn(account: Types.Account, caller: Principal) : Result.Result<Types.BalanceResponse, Types.OrigynError> {
 
 
@@ -1461,7 +1470,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       accepted;
     };
 
-
     system func preupgrade() {
         
         
@@ -1483,38 +1491,5 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     system func postupgrade() {
         nft_library_stable := [];
         access_tokens_stable := [];
-
-
-   /* 
-
-        state_current.collection_data := state.collection_data;
-        state_current.buckets := state.buckets;
-        state_current.allocations := state.allocations;
-        state_current.canister_availible_space := state.canister_availible_space;
-        state_current.canister_allocated_storage := state.canister_allocated_storage;
-        state_current.log := state.log;
-        state_current.log_history := state.log_history;
-        state_current.log_harvester := state.log_harvester;
-        state_current.offers := MigrationTypes.Current.Map.new<Principal,Principal>();
- */
-
-        /* for(this_buyer in escrow_balances.entries()){
-            
-            for(this_tokenID in this_buyer.1.entries()){
-                
-
-                for(this_ledger in this_tokenID.1.entries()){
-                    
-                    for(thisBalance in this_ledger.1.entries()){
-                        let #principal(seller) = thisBalance.1.seller;
-                        let #principal(buyer) = thisBalance.1.buyer; 
-                        state_current.offers := Map.set<Principal, Principal>(state_current.offers, Map.phash, seller, buyer);
-                    };
-                   
-                };
-               
-            };
-            
-        }; */
     };
 };

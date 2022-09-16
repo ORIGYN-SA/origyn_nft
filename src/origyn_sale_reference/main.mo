@@ -1,14 +1,10 @@
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
-import CandyTypes "mo:candy_0_1_10/types";
 import D "mo:base/Debug";
 import Deque "mo:base/Deque";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
-import Map "mo:map_6_0_0/Map";
-import NFTTypes "../origyn_nft_reference/types";
-import NFTUtils "../origyn_nft_reference/utils";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
@@ -18,6 +14,12 @@ import RBU "mo:base/RBTree";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Map "mo:map_6_0_0/Map";
+
+import NFTTypes "../origyn_nft_reference/types";
+import NFTUtils "../origyn_nft_reference/utils";
 import Types "types";
 
 

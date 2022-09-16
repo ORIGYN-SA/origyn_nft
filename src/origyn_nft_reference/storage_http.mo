@@ -1,27 +1,29 @@
-import http "mo:http/Http";
-import httpparser "mo:httpparser/lib";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversion "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
-import Principal "mo:base/Principal";
-import D "mo:base/Debug";
-import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Char "mo:base/Char";
+import D "mo:base/Debug";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
+import Nat "mo:base/Nat";
 import Option "mo:base/Option";
+import Principal "mo:base/Principal";
+import Random "mo:base/Random";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Random "mo:base/Random";
-import Types "types";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversion "mo:candy_0_1_10/conversion";
+import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
+import http "mo:http/Http";
+import httpparser "mo:httpparser/lib";
+
 import Metadata "metadata";
 import NFTUtils "utils";
-import Map "mo:map_6_0_0/Map";
+import Types "types";
 
 
 //this is a virtual copy of http.mo except that we use Types.StorageState

@@ -1,32 +1,34 @@
-import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Current "migrations/v000_001_000/types";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
-import Ledger_Interface "ledger_interface";
+import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
+import Option "mo:base/Option";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import Text "mo:base/Text";
+import Time "mo:base/Time";
+
+import AccountIdentifier "mo:principalmo/AccountIdentifier";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
 import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
+import SHA256 "mo:crypto/SHA/SHA256";
+
+import Current "migrations/v000_001_000/types";
+import Ledger_Interface "ledger_interface";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Migrations "migrations/types";
 import Mint "mint";
 import NFTUtils "utils";
-import Nat "mo:base/Nat";
-import Nat32 "mo:base/Nat32";
-import Option "mo:base/Option";
-import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
-import Result "mo:base/Result";
-import SHA256 "mo:crypto/SHA/SHA256";
-import Text "mo:base/Text";
-import Time "mo:base/Time";
 import Types "types";
 
 

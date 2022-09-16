@@ -1,31 +1,33 @@
 
-import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Prelude "mo:base/Prelude";
-import Workspace "mo:candy_0_1_10/workspace";
-import Conversions "mo:candy_0_1_10/conversion";
+import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import D "mo:base/Debug";
-import Nat32 "mo:base/Nat32";
-import Nat "mo:base/Nat";
-import Iter "mo:base/Iter";
 import Hash "mo:base/Hash";
+import Iter "mo:base/Iter";
 import List "mo:base/List";
+import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
+import Order "mo:base/Order";
+import Prelude "mo:base/Prelude";
 import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
-import Order "mo:base/Order";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Types "types";
-import Char "mo:base/Char";
-import Buffer "mo:base/Buffer";
+
+import AccountIdentifier "mo:principalmo/AccountIdentifier";
+import Candy "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import Properties "mo:candy_0_1_10/properties";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
+import Workspace "mo:candy_0_1_10/workspace";
+
+import Types "types";
 
 
 module {

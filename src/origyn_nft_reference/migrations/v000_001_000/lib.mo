@@ -1,10 +1,12 @@
-import MigrationTypes "../types";
-import v0_1_0 "types";
-import v0_0_0 "../v000_000_000/types";
-import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
-import Map_lib "mo:map_6_0_0/Map"; 
-import CandyTypes_lib "mo:candy_0_1_10/types"; 
 import D "mo:base/Debug";
+
+import CandyTypes_lib "mo:candy_0_1_10/types"; 
+import Map_lib "mo:map_6_0_0/Map"; 
+import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
+
+import MigrationTypes "../types";
+import v0_0_0 "../v000_000_000/types";
+import v0_1_0 "types";
 
 module {
   public func upgrade(prev_migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {

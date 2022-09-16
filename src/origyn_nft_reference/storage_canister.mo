@@ -1,33 +1,35 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
-import DIP721 "DIP721";
-import EXT "mo:ext/Core";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
-import Metadata "metadata";
-import Mint "mint";
-import NFTUtils "utils";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat8 "mo:base/Nat8";
 import Principal "mo:base/Principal";
-import Map "mo:map_6_0_0/Map";
 import Result "mo:base/Result";
-import Storage_Store "storage_store";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Types "./types";
+
+import Candy "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import EXT "mo:ext/Core";
+import Map "mo:map_6_0_0/Map";
 import Workspace "mo:candy_0_1_10/workspace";
-import http "storage_http";
-import Migrations "./migrations_storage";
+
+import DIP721 "DIP721";
+import Metadata "metadata";
 import MigrationTypes "./migrations_storage/types";
+import Migrations "./migrations_storage";
+import Mint "mint";
+import NFTUtils "utils";
+import Storage_Store "storage_store";
+import Types "./types";
+import http "storage_http";
 
 
 shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArgs) = this {

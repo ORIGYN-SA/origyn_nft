@@ -1,11 +1,13 @@
 import Buffer "mo:base/Buffer";
-import Conversions "mo:candy_0_1_10/conversion";
 import D "mo:base/Debug";
+import Option "mo:base/Option";
+import Result "mo:base/Result";
+
+import Conversions "mo:candy_0_1_10/conversion";
+import Properties "mo:candy_0_1_10/properties";
+
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
-import Option "mo:base/Option";
-import Properties "mo:candy_0_1_10/properties";
-import Result "mo:base/Result";
 import Types "types";
 
 module {

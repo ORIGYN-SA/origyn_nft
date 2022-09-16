@@ -1,17 +1,19 @@
-import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Buffer "mo:base/Buffer";
+import Deque "mo:base/Deque";
+import Iter "mo:base/Iter";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import StableBuffer "mo:base/Buffer";
+
+import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import CandyTypes "mo:candy_0_1_10/types";
 import EXT "mo:ext/Core";
-import Iter "mo:base/Iter";
-import Deque "mo:base/Deque";
-import NFTTypes "../origyn_nft_reference/types";
-import Principal "mo:base/Principal";
 import Map "mo:map_6_0_0/Map";
-import Result "mo:base/Result";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
-import StableBuffer "mo:base/Buffer";
-// import DIP20_Interface "dip20_interface";
-// import DIP20_Interface "../origyn_nft_reference/dip20_interface"
+
+import DIP20_Interface "../origyn_nft_reference/dip20_interface"
+import DIP20_Interface "dip20_interface";
+import NFTTypes "../origyn_nft_reference/types";
 module {
 
     public type OrigynError = {number : Nat32; text: Text; error: Errors; flag_point: Text;};

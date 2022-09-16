@@ -66,8 +66,6 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal,test_runner_nft:
           //M.attempt(greeting, M.equals(T.text("Hello, Christoph!")))
           return result;
         });
-
-
         await it.runAll()
         // await it.run()
     }

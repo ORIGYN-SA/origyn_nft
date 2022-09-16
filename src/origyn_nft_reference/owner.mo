@@ -1,23 +1,25 @@
-import Types "types";
-import Result "mo:base/Result";
-import CandyTypes "mo:candy_0_1_10/types";
+import Buffer "mo:base/Buffer";
+import D "mo:base/Debug";
 import Iter "mo:base/Iter";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
+import Result "mo:base/Result";
 import Text "mo:base/Text";
+import Time "mo:base/Time";
+import TrieMap "mo:base/TrieMap";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import EXT "mo:ext/Core";
 import Properties "mo:candy_0_1_10/properties";
 import Workspace "mo:candy_0_1_10/workspace";
-import Metadata "metadata";
-import Market "market";
-import TrieMap "mo:base/TrieMap";
-import Conversions "mo:candy_0_1_10/conversion";
-import D "mo:base/Debug";
-import Buffer "mo:base/Buffer";
-import Time "mo:base/Time";
-import NFTUtils "utils";
+
 import DIP721 "DIP721";
-import EXT "mo:ext/Core";
+import Market "market";
+import Metadata "metadata";
 import MigrationTypes "./migrations/types";
+import NFTUtils "utils";
+import Types "types";
 
 
 module {

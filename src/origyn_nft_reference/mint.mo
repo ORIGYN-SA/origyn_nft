@@ -1,23 +1,26 @@
-import Types "types";
-import Result "mo:base/Result";
-import CandyTypes "mo:candy_0_1_10/types";
-import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
+import Buffer "mo:base/Buffer";
+import D "mo:base/Debug";
+import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
+import Result "mo:base/Result";
 import Text "mo:base/Text";
-import Properties "mo:candy_0_1_10/properties";
-import Workspace "mo:candy_0_1_10/workspace";
-import Metadata "metadata";
-import TrieMap "mo:base/TrieMap";
-import Conversions "mo:candy_0_1_10/conversion";
-import D "mo:base/Debug";
-import Nat "mo:base/Nat";
-import Buffer "mo:base/Buffer";
 import Time "mo:base/Time";
-import NFTUtils "utils";
+import TrieMap "mo:base/TrieMap";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
 import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import Workspace "mo:candy_0_1_10/workspace";
+
+import Metadata "metadata";
+import NFTUtils "utils";
+import Types "types";
+
 
 module {
 
@@ -63,6 +66,7 @@ module {
 
                                                     debug if(debug_channel.library) D.print("handling " # debug_show(library_id, library_size, library_type));
 
+                                    //this item is stored on this canister
                                     if(library_type == "canister"){
                                         //find our current bucket
                                                             debug if(debug_channel.library) D.print("in a canister branch");
@@ -110,6 +114,8 @@ module {
                                                     //need a new active bucket
                                                     var b_found = false;
                                                     var newItem = a_bucket;
+
+                                                    //search for an available bucket where this library will fit
                                                     label find for(this_item in Map.entries<Principal, Types.BucketData>(state.state.buckets)){
                                                        //D.print("testing bucket " # debug_show(this_item));
                                                         if(this_item.1.available_space >= library_size){
@@ -125,7 +131,7 @@ module {
                                                                         debug if(debug_channel.library) D.print("found a bucket" # debug_show(newItem));
                                                         newItem;
                                                     } else {
-                                                                            debug if(debug_channel.library) D.print("erroring because " # debug_show((a_bucket.available_space, library_size)));
+                                                                        debug if(debug_channel.library) D.print("erroring because " # debug_show((a_bucket.available_space, library_size)));
                                                         //make sure that size isn't bigger than biggest possible size
                                                         return #err(Types.errors(#not_enough_storage, "stage_nft_origyn - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
                                                     };
@@ -137,8 +143,6 @@ module {
 
 
                                         //make sure that there is space or create a new bucket
-                                        
-
                                         let allocation = switch(Map.get<(Text,Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, library_id))){
                                             case(null){
                                                 //there is no allocation for this library yet, lets create it
@@ -279,6 +283,19 @@ module {
     };
 
     //stages the metadata of an nft
+    //
+    // Only owners, managers, or networks can stage
+    //
+    // Required Fields:
+    // id - the id of the nft - a text field. We highly suggest a human readable token id in the form com.your_org.your_project.version or similar
+    //
+    // Suggested Fields:
+    // primary_asset - a pointer to a library_id that is the default asset you would like to show when a user navigates to you nft
+    // preview_asset - a pointer to a library_id that is the asset you would like gallaries, wallets, and marketplaces to show in a list.  For performance reasons you should keep this file small
+    // experience_asset
+    //
+    // Illegal fields
+    // __system - only the canister itself can manipulate the __system data node. An attempt to inject this should throw
     public func stage_nft_origyn(
         state : Types.State,
         metadata : CandyTypes.CandyValue, 
@@ -318,7 +335,7 @@ module {
             case(null){
                //D.print("Does not exist yet");
                 //does not exist yet;
-                 //add status "staged"
+                //add status "staged"
                 found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = "__system"; mode=#Set(#Class([{name="status"; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
                     case(#err(errType)){
                         return #err(Types.errors(#update_class_error, "stage_nft_origyn - set staged status", ?caller));
@@ -330,7 +347,7 @@ module {
                                 debug if(debug_channel.stage) D.print("we should have status now");
                                 debug if(debug_channel.stage) D.print(debug_show(found_metadata));
                 
-
+                //adds and allocaates all the libray items
                 switch(handle_library(state, id_val ,found_metadata, caller)){
                     case(#err(err)){
                         return #err(err);
@@ -340,7 +357,6 @@ module {
 
                 Map.set(state.state.nft_metadata, Map.thash, id_val, found_metadata);
             };
-
             case(?this_metadata){
                 //exists
                                 debug if(debug_channel.stage) D.print("exists");
@@ -359,20 +375,17 @@ module {
 
                 //nyi: limit to immutable items after mint
                 if(Metadata.is_minted(this_metadata) == false){
-                //if(1 == 1){
-                    //todo
+                    //this replaces the existing metadata with the new data.  It is not incremental
+    
                     //pull __system vars
                                     debug if(debug_channel.stage) D.print("dealing with 1==1");
                     switch(Properties.getClassProperty(this_metadata, "__system")){
                         case(null){
                             //this branch may be an error
-                            
                             return #err(Types.errors(#improper_interface, "stage_nft_origyn - __system node not found", ?caller));
-                                
-
                         };
                         case(?found){
-                            //inject __system vars into new metadata
+                            //injects the existing __system vars into new metadata
                                             debug if(debug_channel.stage) D.print("updating metadata to include system");
                             found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = "__system"; mode=#Set(found.value)}])){
                                 case(#err(errType)){

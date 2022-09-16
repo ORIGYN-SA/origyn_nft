@@ -2,24 +2,26 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import CandyType "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
-import Map "mo:map_6_0_0/Map";
-import MigrationTypes "./migrations/types";
-import NFTUtils "utils";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
 import Result "mo:base/Result";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Types "types";
+
+import CandyType "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
+import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import Workspace "mo:candy_0_1_10/workspace";
+
+import MigrationTypes "./migrations/types";
+import NFTUtils "utils";
+import Types "types";
 
 module {
 

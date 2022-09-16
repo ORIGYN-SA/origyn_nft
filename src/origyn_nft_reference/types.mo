@@ -1,28 +1,30 @@
 
-import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
 import D "mo:base/Debug";
-import DIP721 "DIP721";
-import EXT "mo:ext/Core";
-import Nat32 "mo:base/Nat32";
-import EXTCommon "mo:ext/Common";
 import Iter "mo:base/Iter";
-import Map "mo:map_6_0_0/Map";
-import MigrationTypes "./migrations/types";
-import NFTUtils "mo:map_6_0_0/utils";
+import Nat32 "mo:base/Nat32";
 import Order "mo:base/Order";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
-import StorageMigrationTypes "./migrations_storage/types";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import hex "mo:encoding/Hex";
 import TrieMap "mo:base/TrieMap";
+
+import AccountIdentifier "mo:principalmo/AccountIdentifier";
+import Candy "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
+import EXT "mo:ext/Core";
+import EXTCommon "mo:ext/Common";
+import Map "mo:map_6_0_0/Map";
+import NFTUtils "mo:map_6_0_0/utils";
+import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import hex "mo:encoding/Hex";
+
+import DIP721 "DIP721";
+import MigrationTypes "./migrations/types";
+import StorageMigrationTypes "./migrations_storage/types";
 
 module {
     
