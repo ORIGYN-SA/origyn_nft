@@ -1,0 +1,111 @@
+name: NFT Reference - run tests
+
+on:
+  push
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: aviate-labs/setup-dfx@v0.2.3
+        with:
+          dfx-version: 0.10.0
+          vessel-version: 0.6.3
+
+      - name: configure identity
+        run: |
+          npm install
+          dfx start --background
+          ./scripts/configure_identity.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_auction
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_auction.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_auction_quick
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_auction_quick.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_collection
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_collection.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_instant
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_instant.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_nft_2
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_nft_2.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_nft_2_quick
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_nft_2_quick.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_sale
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_sale.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_sale_quick
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_sale_quick.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
+
+      - name: run test_runner_storage
+        if: always()
+        run: |
+          dfx start --background
+          ./runners/test_runner_storage.sh 2>&1 | tee -a outfile.log
+          dfx stop
+          ./scripts/alert.sh
