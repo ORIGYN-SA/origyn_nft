@@ -1,27 +1,29 @@
-import http "mo:http/Http";
-import httpparser "mo:httpparser/lib";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversion "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
-import Principal "mo:base/Principal";
-import Time "mo:base/Time";
-import D "mo:base/Debug";
-import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Char "mo:base/Char";
+import D "mo:base/Debug";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
+import Nat "mo:base/Nat";
 import Option "mo:base/Option";
+import Principal "mo:base/Principal";
+import Random "mo:base/Random";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
+import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Random "mo:base/Random";
-import Types "types";
-import NFTUtils "utils";
-import Metadata "metadata";
+
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversion "mo:candy_0_1_10/conversion";
 import Map "mo:map_6_0_0/Map";
+import Properties "mo:candy_0_1_10/properties";
+import http "mo:http/Http";
+import httpparser "mo:httpparser/lib";
+
+import Metadata "metadata";
+import NFTUtils "utils";
+import Types "types";
 
 module {
 
@@ -1360,7 +1362,10 @@ module {
                     };
                     if(path_size == 3){
                         if(path_array[2] == "ex"){
-                            let aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
+                            var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
+                            if(aResponse.status_code==404){
+                                aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
+                            };
                             if(is_minted == false and aResponse.status_code==404){
                                 return renderSmartRoute(state ,req, metadata, token_id, Types.metadata.hidden_asset);
                             };
@@ -1370,7 +1375,11 @@ module {
                             if(is_minted == false){
                                 return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
                             };
-                            return renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                            var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                            if(aResponse.status_code==404){
+                                aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
+                            };
+                            return aResponse;
                         };
                         if(path_array[2] == "hidden"){
                             return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
@@ -1471,15 +1480,20 @@ module {
                     };
                     if(path_array[1] == "ex"){
                                             debug if(debug_channel.request) D.print("render ex "  # token_id );
-                        let aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
+                        var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
                         if(aResponse.status_code==404){
-                            return renderSmartRoute(state ,req, metadata, token_id, Types.metadata.hidden_asset);
+                            aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
                         };
                         return aResponse;
                     };
                     if(path_array[1] == "preview"){
                                             debug if(debug_channel.request) D.print("render perview "  # token_id );
-                        return renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                                           
+                        var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                        if(aResponse.status_code==404){
+                            aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
+                        };
+                        return aResponse;
                     };
                     if(path_array[1] == "hidden"){
                                             debug if(debug_channel.request) D.print("render hidden "  # token_id );
