@@ -1,6 +1,6 @@
 set -ex
 
-dfx identity new test_nft_ref || true
+dfx identity new test_nft_ref --disable-encryption|| true
 dfx identity use test_nft_ref
 
 ADMIN_PRINCIPAL=$(dfx identity get-principal)
