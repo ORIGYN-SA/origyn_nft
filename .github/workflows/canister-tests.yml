@@ -1,0 +1,91 @@
+name: NFT Reference - run tests
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: aviate-labs/setup-dfx@v0.2.3
+        with:
+          dfx-version: 0.11.1
+          vessel-version: 0.6.3
+
+      - name: Run dfx && configure identity
+        run: |
+          npm install
+          dfx start --background
+          ./scripts/configure_identity.sh
+
+      - name: run test_runner
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_auction
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_auction.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_auction_quick
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_auction_quick.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_collection
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_collection.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_instant
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_instant.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_nft_2
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_nft_2.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_nft_2_quick
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_nft_2_quick.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_sale
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_sale.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_sale_quick
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_sale_quick.sh |& tee -a outfile.log
+          ./scripts/alert.sh
+
+      - name: run test_runner_storage
+        if: always()
+        run: |
+          yes "yes" | bash ./runners/test_runner_storage.sh |& tee -a outfile.log
+          ./scripts/alert.sh
