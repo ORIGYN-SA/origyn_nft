@@ -6,7 +6,7 @@
 
 You will need the proper version of yes for your OS. (npm install -g yes)
 
-yes yes | ./runners/test_runner.sh
+yes yes | ./runners/test_runner.sh. Tests in github actions run by default.
 
 ### Produce an idetity for deploying locally
 
