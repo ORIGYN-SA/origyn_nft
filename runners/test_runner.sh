@@ -9,6 +9,11 @@ ADMIN_ACCOUNTID=$(dfx ledger account-id)
 echo $ADMIN_PRINCIPAL
 echo $ADMIN_ACCOUNTID
 python3 run_cached_build.py
+dfx canister create dfxledger
+dfx canister create dfxledger2
+dfx build dfxledger
+dfx build dfxledger2
+
 # dfx canister create test_runner
 # dfx canister create test_runner_nft
 # dfx canister create test_runner_nft_2
@@ -18,8 +23,7 @@ python3 run_cached_build.py
 # dfx canister create test_runner_collection
 # dfx canister create test_runner_storage
 # dfx canister create test_runner_sale
-# dfx canister create dfxledger
-# dfx canister create dfxledger2
+
 # dfx canister create test_canister_factory
 # dfx canister create test_storage_factory
 

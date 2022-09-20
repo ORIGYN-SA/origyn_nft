@@ -2,6 +2,8 @@ name: NFT Reference - run tests
 
 on:
   push
+runs-on:
+  [self-hosted]
 
 jobs:
   run_tests:
@@ -26,7 +28,7 @@ jobs:
         run: |
           npm install
           dfx start --background
-          bash scripts/configure_identity.sh 2>&1 | tee -a outfile.log
+          yes yes | bash scripts/configure_identity.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -34,7 +36,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -42,7 +44,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_auction.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_auction.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -50,7 +52,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_auction_quick.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_auction_quick.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -58,7 +60,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_collection.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_collection.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -66,7 +68,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_instant.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_instant.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -74,7 +76,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_nft_2.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_nft_2.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -82,7 +84,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_nft_2_quick.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_nft_2_quick.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -90,7 +92,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_sale.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_sale.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -98,7 +100,7 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_sale_quick.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_sale_quick.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
 
@@ -106,6 +108,6 @@ jobs:
         if: always()
         run: |
           dfx start --background
-          bash runners/test_runner_storage.sh 2>&1 | tee -a outfile.log
+          yes yes | bash runners/test_runner_storage.sh 2>&1 | tee -a outfile.log
           dfx stop
           ./scripts/alert.sh
