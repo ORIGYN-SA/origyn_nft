@@ -18,53 +18,17 @@ jobs:
         run: |
           yes yes | bash scripts/configure_identity.sh 2>&1 | tee -a outfile.log
           ./scripts/alert.sh
-
-      - name: run test_runner
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_auction
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner_auction.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
+          
       - name: run test_runner_auction_quick
         if: always()
         run: |
           yes yes | bash runners/test_runner_auction_quick.sh 2>&1 | tee -a outfile.log
           ./scripts/alert.sh
 
-      - name: run test_runner_collection
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner_collection.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_instant
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner_instant.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_nft_2
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner_nft_2.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
       - name: run test_runner_nft_2_quick
         if: always()
         run: |
           yes yes | bash runners/test_runner_nft_2_quick.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_sale
-        if: always()
-        run: |
-          yes yes | bash runners/test_runner_sale.sh 2>&1 | tee -a outfile.log
           ./scripts/alert.sh
 
       - name: run test_runner_sale_quick
