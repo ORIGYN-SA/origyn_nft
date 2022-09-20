@@ -2,12 +2,11 @@ name: NFT Reference - run tests
 
 on:
   push
-runs-on:
-  [self-hosted]
+
 
 jobs:
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         node: [16.x]
