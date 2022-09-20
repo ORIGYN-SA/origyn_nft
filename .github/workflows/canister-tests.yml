@@ -22,23 +22,5 @@ jobs:
       - name: run test_runner_auction_quick
         if: always()
         run: |
-          yes "yes" | bash runners/test_runner_auction_quick.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_nft_2_quick
-        if: always()
-        run: |
-          yes "yes" | bash runners/test_runner_nft_2_quick.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_sale_quick
-        if: always()
-        run: |
-          yes "yes" | bash runners/test_runner_sale_quick.sh 2>&1 | tee -a outfile.log
-          ./scripts/alert.sh
-
-      - name: run test_runner_storage
-        if: always()
-        run: |
-          yes "yes" | bash runners/test_runner_storage.sh 2>&1 | tee -a outfile.log
+          yes "yes" | bash runners/test_runner.sh 2>&1 | tee -a outfile.log
           ./scripts/alert.sh

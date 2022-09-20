@@ -95,6 +95,9 @@ dfx canister install test_canister_factory --mode=reinstall --wasm ./.dfx/local/
 
 dfx canister install test_storage_factory --mode=reinstall  --wasm ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm.gz
 
+dfx canister install dfxledger --wasm ./.dfx/local/canisters/dfxledger/dfxledger.wasm.gz --mode=reinstall --argument "(record { minting_account = \"$ADMIN_ACCOUNTID\"; initial_values = vec { record { \"$TEST_RUNNER_ACCOUNT_ID\"; record { e8s = 18446744073709551615: nat64 } } }; max_message_size_bytes = null; transaction_window = null; archive_options = opt record { trigger_threshold = 2000: nat64; num_blocks_to_archive = 1000: nat64; node_max_memory_size_bytes = null; max_message_size_bytes = null; controller_id = principal \"$TEST_RUNNER_CANISTER_ID\"  }; send_whitelist = vec {};standard_whitelist = vec {};transfer_fee = null; token_symbol = null; token_name = null;admin = principal \"$TEST_RUNNER_CANISTER_ID\"})"
+
+dfx canister install dfxledger2 --wasm ./.dfx/local/canisters/dfxledger2/dfxledger2.wasm.gz --mode=reinstall --argument "(record { minting_account = \"$ADMIN_ACCOUNTID\"; initial_values = vec { record { \"$TEST_RUNNER_ACCOUNT_ID\"; record { e8s = 18446744073709551615: nat64 } } }; max_message_size_bytes = null; transaction_window = null; archive_options = opt record { trigger_threshold = 2000: nat64; num_blocks_to_archive = 1000: nat64; node_max_memory_size_bytes = null; max_message_size_bytes = null; controller_id = principal \"$TEST_RUNNER_CANISTER_ID\"  }; send_whitelist = vec {};standard_whitelist = vec {};transfer_fee = null; token_symbol = null; token_name = null;admin = principal \"$TEST_RUNNER_CANISTER_ID\"})"
 
 dfx canister install test_runner_collection --mode=reinstall --wasm ./.dfx/local/canisters/test_runner_collection/test_runner_collection.wasm.gz  --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
 
@@ -114,9 +117,6 @@ dfx canister install test_runner_data --mode=reinstall --wasm ./.dfx/local/canis
 
 dfx canister install test_runner_instant_transfer --mode=reinstall --wasm ./.dfx/local/canisters/test_runner_instant_transfer/test_runner_instant_transfer.wasm.gz --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
 
-dfx canister install dfxledger --mode=reinstall --argument "(record { minting_account = \"$ADMIN_ACCOUNTID\"; initial_values = vec { record { \"$TEST_RUNNER_ACCOUNT_ID\"; record { e8s = 18446744073709551615: nat64 } } }; max_message_size_bytes = null; transaction_window = null; archive_options = opt record { trigger_threshold = 2000: nat64; num_blocks_to_archive = 1000: nat64; node_max_memory_size_bytes = null; max_message_size_bytes = null; controller_id = principal \"$TEST_RUNNER_CANISTER_ID\"  }; send_whitelist = vec {};standard_whitelist = vec {};transfer_fee = null; token_symbol = null; token_name = null;admin = principal \"$TEST_RUNNER_CANISTER_ID\"})"
-
-dfx canister install dfxledger2 --mode=reinstall --argument "(record { minting_account = \"$ADMIN_ACCOUNTID\"; initial_values = vec { record { \"$TEST_RUNNER_ACCOUNT_ID\"; record { e8s = 18446744073709551615: nat64 } } }; max_message_size_bytes = null; transaction_window = null; archive_options = opt record { trigger_threshold = 2000: nat64; num_blocks_to_archive = 1000: nat64; node_max_memory_size_bytes = null; max_message_size_bytes = null; controller_id = principal \"$TEST_RUNNER_CANISTER_ID\"  }; send_whitelist = vec {};standard_whitelist = vec {};transfer_fee = null; token_symbol = null; token_name = null;admin = principal \"$TEST_RUNNER_CANISTER_ID\"})"
 
 
 TEST_RUNNER_ID=$(dfx canister id test_runner)
