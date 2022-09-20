@@ -87,8 +87,8 @@ TEST_STORAGE_FACTORY_ID=$(dfx canister id test_storage_factory)
 # gzip ./.dfx/local/canisters/test_runner_utils/test_runner_utils.wasm -f
 # gzip ./.dfx/local/canisters/test_runner_storage/test_runner_storage.wasm -f
 # gzip ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm -f
-# gzip ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm -f
-# gzip ./.dfx/local/canisters/test_runner_sale/test_runner_sale.wasm -f
+gzip ./.dfx/local/canisters/dfxledger/dfxledger.wasm -f
+gzip ./.dfx/local/canisters/dfxledger2/dfxledger2.wasm -f
 
 
 dfx canister install test_canister_factory --mode=reinstall --wasm ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm.gz
