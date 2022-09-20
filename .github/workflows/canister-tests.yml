@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - feature/test-scritps-fixing
 
 jobs:
   run_tests:
