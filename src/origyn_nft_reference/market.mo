@@ -58,6 +58,8 @@ module {
 
     let SB = MigrationTypes.Current.SB;
 
+
+    // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
     public func find_escrow_reciept(
         state: StateAccess,
         buyer : Types.Account,
@@ -70,7 +72,8 @@ module {
         var found_asset_list : ?MigrationTypes.Current.EscrowLedgerTrie = null;
                         debug if(debug_channel.verify_escrow) D.print("found asset " # debug_show(found_asset));
 
-        let verified = switch(Map.get(state.state.escrow_balances, account_handler,buyer)){
+        //find buyer's escrows
+        let verified = switch(Map.get(state.state.escrow_balances, account_handler, buyer)){
             case(null){
                                     debug if(debug_channel.verify_escrow) D.print("didnt find asset");
                 return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow buyer not found ", null));
@@ -78,12 +81,14 @@ module {
             case(?to_list){
                 
                                     debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
+                //find sellers deposits
                 switch(Map.get(to_list, account_handler, seller)){
                     case(null){
                                             debug if(debug_channel.verify_escrow) D.print("no escrow seller");
                         return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow seller not found ", null));};
                     case(?token_list){
                                             debug if(debug_channel.verify_escrow) D.print("looking for to list");
+                        //find tokens deposited for both "" and provided token_id
                         let asset_list = switch(Map.get(token_list, Map.thash, token_id), Map.get(token_list, Map.thash, "")){
                             case(null, null){
                                 return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow token_id not found ", null));
@@ -111,10 +116,6 @@ module {
                  return #err(Types.errors(#no_escrow_found, "find_escrow_reciept", null));
             };
         };
-
-           
-
-
     };
 
     //verifies that an escrow reciept exists in this NF

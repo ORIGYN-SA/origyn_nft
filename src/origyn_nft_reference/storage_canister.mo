@@ -346,6 +346,14 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         Cycles.balance()
     };
 
+    //lets the storage canister accept cycles
+    public func wallet_receive() : async  Nat  {
+      let amount = Cycles.available();
+      let accepted = amount;
+      let deposit = Cycles.accept(accepted);
+      accepted;
+    };
+
     system func preupgrade() {
 
 

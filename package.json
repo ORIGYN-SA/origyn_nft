@@ -9,9 +9,7 @@
         "Canister",
         "NodeJS"
     ],
-    "scripts": {
-        
-    },
+    "scripts": {},
     "type": "module",
     "devDependencies": {
         "@dfinity/agent": "^0.12.1",
@@ -25,6 +23,8 @@
         "mime-types": "^2.1.35",
         "minimist": "^1.2.6",
         "node-fetch": "^3.2.9",
+        "prettier": "^2.7.1",
+        "prettier-plugin-motoko": "^0.1.8",
         "watch": "^1.0.2"
     },
     "prettier": {

@@ -37,6 +37,7 @@ import Types "./types";
 import data "data";
 import http "http";
 
+
 shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     //lets user turn debug messages on and off for local replica
@@ -85,10 +86,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // if you use one previus states in place of #v0_1_0 it will run downgrade methods instead
     migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
 
-    
-
-
-                        
       /* 
     example migration
 
@@ -98,9 +95,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         case(_){};
     };
-
+    
      */
-
     // do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_0(#data(state_current)) = migration_state;
                         
@@ -1469,6 +1465,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       let deposit = Cycles.accept(accepted);
       accepted;
     };
+
 
     system func preupgrade() {
         

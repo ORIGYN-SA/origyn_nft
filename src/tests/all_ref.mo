@@ -2,13 +2,13 @@
 import C "mo:matchers/Canister";
 import M "mo:matchers/Matchers";
 import T "mo:matchers/Testable";
+import Array "mo:base/Array";
 import D "mo:base/Debug";
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import SalesCanister "../origyn_sale_reference/main";
 import TestRunner "test_runner";
-
 
 import CollectionTestCanisterDef "test_runner_collection";
 import DataTestCanisterDef "test_runner_data";
@@ -21,13 +21,13 @@ import UtilTestCanisterDef "test_runner_utils";
 
 import Wallet "test_wallet";
 
+
 import CanisterFactoryDef "canister_creator";
 import StorageFactory "storage_creator";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Migrations "../origyn_nft_reference/migrations";
 import StorageMigrations "../origyn_nft_reference/migrations_storage";
-
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal,test_runner_nft: Principal) = this {
 
@@ -44,7 +44,6 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal,test_runner_nft:
 
       //this is annoying, but it is gets around the "not defined bug";
       let NFTTestCanister : test_runner_nft_service = actor(Principal.toText(test_runner_nft));
-
 
         it.should("run nft tests", func () : async C.TestResult = async {
           //send testrunnner some dfx tokens

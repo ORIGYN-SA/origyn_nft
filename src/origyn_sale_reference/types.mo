@@ -11,10 +11,10 @@ import EXT "mo:ext/Core";
 import Map "mo:map_6_0_0/Map";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 
-import DIP20_Interface "../origyn_nft_reference/dip20_interface"
-import DIP20_Interface "dip20_interface";
 import NFTTypes "../origyn_nft_reference/types";
+
 module {
+
 
     public type OrigynError = {number : Nat32; text: Text; error: Errors; flag_point: Text;};
 

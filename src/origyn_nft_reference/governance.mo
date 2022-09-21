@@ -21,14 +21,17 @@ module {
         governance = false;
     };
 
+    //allows the network to govern the NFT via decentralized concensus.
     public func governance_nft_origyn(state: Types.State, request : Types.GovernanceRequest, caller : Principal) : Result.Result<Types.GovernanceResponse, Types.OrigynError> {
 
+      //only the network can enact goverance
       if(state.state.collection_data.network != ?caller){
         return return #err(Types.errors(#unauthorized_access, "governance_nft_origyn - unauthorized access - only network can govern", ?caller))
       };
 
       switch(request){
         case(#clear_shared_wallets(token_id)){
+          //clears shared wallets from an NFT leaving only the last assigned owner in control of the NFT
           var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
               case(#err(err)){
                   return #err(Types.errors(#token_not_found, "share_nft_origyn token not found" # err.flag_point, ?caller));

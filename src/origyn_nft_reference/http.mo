@@ -433,8 +433,9 @@ module {
 
                         debug if(debug_channel.library) D.print("found allocation" # debug_show((allocation.canister, state.canister())));
         
-
+       
         if(allocation.canister != state.canister()){
+             //this library is held in a storage canister
                                 debug if(debug_channel.library)  D.print("item is not on this server redir to " # Principal.toText(allocation.canister));
             let location = switch(Metadata.get_nft_text_property(library_meta, "location")){
                 case(#err(err)){return _not_found("location not found" # token_id # " " # library_id);};
@@ -458,13 +459,16 @@ module {
                 Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")),
                 Metadata.get_primary_protocol(state, use_token_id, Principal.fromBlob("\04"))){
                     case(#ok(host), #ok(port), #ok(protocol)){
+                        //branch is used for local testing
                         protocol # "://" # host # (if(port=="443" or port == "80"){""}else{":" # port}) # "/" # path # "?canisterId=" # Principal.toText(allocation.canister)
                     };
-                    //todo: the below may be broken...you may need to add the defaults
+                    
                     case(_,_,_){
                       if(Text.startsWith(location, #text("http")) == true){
+                        //if the location is a full http address
                         location
                       } else {
+                        //for relative paths
                         "https://" # Principal.toText(allocation.canister) # ".ic0.app/" # location
                       };
                       
@@ -531,6 +535,7 @@ module {
                     for(this_header in req.headers.original.vals()){
 
                         if(this_header.0 == "range" or this_header.0 == "Range"){
+                            //handle range headers
                             b_foundRange := true;
                             split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
                             split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
@@ -1364,6 +1369,7 @@ module {
                         if(path_array[2] == "ex"){
                             var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
                             if(aResponse.status_code==404){
+                                //default to the primary asset
                                 aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
                             };
                             if(is_minted == false and aResponse.status_code==404){
@@ -1377,6 +1383,7 @@ module {
                             };
                             var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
                             if(aResponse.status_code==404){
+                                //default to primary asset
                                 aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
                             };
                             return aResponse;

@@ -33,7 +33,7 @@ module {
     };
 
     public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
-        //nyi: this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
+        //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
         //should be moved along with the the token
 
         //nyi: transfers from one accountid to another must be from the same principal.Array
@@ -165,11 +165,10 @@ module {
 
 
     public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async DIP721.Result{
-        //nyi: this should be refactored to use market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
+        //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
         //if the escrow doesn't exist then we should fail
         
         
-        //warning: Do not use this to transfer from one owner to another, you will eventually lose valuble assets. use market_transfer_nft_origyn
         //nyi: determine if this is a marketable NFT and take proper action
         //marketable NFT may not be transfered between owner wallets execpt through share_nft_origyn
         let token_id = NFTUtils.get_nat_as_token_id(tokenAsNat);
@@ -217,8 +216,8 @@ module {
     };
 
     public func transferExt(state: StateAccess, request: EXT.TransferRequest, caller : Principal) : async EXT.TransferResponse {
-        //todo: this should be refactored to use market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
-        //if the escrow doesn't exist then we should fail
+      //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
+      //if the escrow doesn't exist then we should fail
 
         if(Types.account_eq(#principal(caller), switch(request.from){
                                 case(#principal(data)){

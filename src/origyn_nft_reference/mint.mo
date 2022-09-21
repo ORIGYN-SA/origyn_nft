@@ -288,11 +288,12 @@ module {
     //
     // Required Fields:
     // id - the id of the nft - a text field. We highly suggest a human readable token id in the form com.your_org.your_project.version or similar
+    // primary_asset - a pointer to a library_id that is the default asset you would like to show when a user navigates to you nft
     //
     // Suggested Fields:
-    // primary_asset - a pointer to a library_id that is the default asset you would like to show when a user navigates to you nft
-    // preview_asset - a pointer to a library_id that is the asset you would like gallaries, wallets, and marketplaces to show in a list.  For performance reasons you should keep this file small
-    // experience_asset
+    // preview_asset - a pointer to a library_id that is the asset you would like gallaries, wallets, and marketplaces to show in a list.  For performance reasons you should keep this file small - defaults to the primary asset
+    // experience_asset - a pointer to a library_id that is the asset you would like for the user to navigate to to best experience your NFT.usually an html page - defaults to the primary asset
+    // hidden_asset - a pointer to a library_id that is the asset you want shown to non-owners before the item is minted = ie a radomizer gif.
     //
     // Illegal fields
     // __system - only the canister itself can manipulate the __system data node. An attempt to inject this should throw
@@ -419,7 +420,9 @@ module {
     };
 
     
-
+    //stages a chunk of a library
+    // limited to 2MB in size.
+    // 
     public func stage_library_nft_origyn(
         state : Types.State,
         chunk : Types.StageChunkArg,
@@ -451,12 +454,12 @@ module {
         switch(chunk.filedata){
             case(#Class(val)){
                                     debug if(debug_channel.stage) D.print("checking filedata" # debug_show(chunk.filedata));
-                //add it
+                //update this library's metadata
                 //confirm library_id
                 let library_id = switch(Properties.getClassProperty(chunk.filedata, Types.metadata.library_id)){
                     case(null){
                                             debug if(debug_channel.stage) D.print("library not found");
-                        return #err(Types.errors(#library_not_found, "stage_nft_origyn - provided filedata must be a claass with library_id attribute", ?caller));
+                        return #err(Types.errors(#library_not_found, "stage_nft_origyn - provided filedata must be a class with library_id attribute", ?caller));
                             
                     };
                     case(?id){
@@ -484,6 +487,7 @@ module {
 
                 let library = switch(Metadata.get_nft_library(metadata, ?caller)){
                     case(#err(err)){
+                        //nyi: add libraries after minting
                         return #err(Types.errors(#library_not_found, "stage_library_nft_origyn - cannot find library"  # err.flag_point, ?caller));
                             
                     };
@@ -529,29 +533,9 @@ module {
 
                 var found_metadata = #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.library; mode=#Set(#Array(#thawed(new_library.toArray())))}])){
                     case(#err(errType)){
-                        
                         switch(errType){
-                            /* 
-                            //info: This is an upgrade for mintpass.  remove once deployed - don't mark something immutable that you don't want immutable
-                            case(#Immutable){
-                                var newMetadata = Buffer.Buffer<CandyTypes.Property>(1);
-                                for(thisCurrentItem in Conversions.valueToProperties(metadata).vals()){
-                                    if(thisCurrentItem.name == Types.metadata.library){
-                                        newMetadata.add({
-                                            name=Types.metadata.library;
-                                            value = #Array(#thawed(new_library.toArray()));
-                                            immutable = false;
-                                        });
-                                    } else {
-                                        newMetadata.add(thisCurrentItem);
-                                    };
-                                };
-
-                                newMetadata.toArray();
-                            }; */
                             case(_){
                                 return #err(Types.errors(#update_class_error, "stage_library_nft_origyn - cannot update" # debug_show(errType), ?caller));
- 
                             };
                         };
                     };
@@ -561,9 +545,6 @@ module {
                 });
 
                                 debug if(debug_channel.stage) D.print("new metadata is " # debug_show(found_metadata));
-                    
-                
-
 
                 metadata := found_metadata;
 
@@ -597,7 +578,7 @@ module {
         };
 
         if(chunk.content.size() > 0){
-            //make sure we have an allocation for space for this chunk
+            //make sure we have an allocation space for this chunk
             let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
                 case(null){return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
                 case(?val)(val);
@@ -680,7 +661,7 @@ module {
 
                                 debug if(debug_channel.stage) D.print("do we have chunks");
                 if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
-                    //this chunk already exists in the allocatioin
+                    //this chunk already exists in the allocation
                     //see what size it is
                                     debug if(debug_channel.stage) D.print("branch a");
                     let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
