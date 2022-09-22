@@ -8,7 +8,7 @@ You will need the proper version of yes for your OS. (npm install -g yes)
 
 yes yes | ./runners/test_runner.sh
 
-### Produce an idetity for deploying locally
+### Produce an identity for deploying locally
 
 1. You need to have an identity.pem and a seed.txt in your root directory. You can follow the instructions at https://forum.dfinity.org/t/using-dfinity-agent-in-node-js/6169/50 to produce these file. You should add these files to your git.ignore.
 

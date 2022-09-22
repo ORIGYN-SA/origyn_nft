@@ -70,7 +70,7 @@ module {
         return false;
     };
 
-     public func add_log(state: Types.State, entry : Types.LogEntry){
+    public func add_log(state: Types.State, entry : Types.LogEntry){
         if(SB.size(state.state.log) >= 1000){
             SB.add<[Types.LogEntry]>(state.state.log_history, SB.toArray(state.state.log));
             state.state.log := SB.initPresized<Types.LogEntry>(1000);

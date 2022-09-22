@@ -14,7 +14,6 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-
 import CandyTypes "mo:candy_0_1_10/types";
 import Conversions "mo:candy_0_1_10/conversion";
 import EXT "mo:ext/Core";
@@ -22,7 +21,6 @@ import EXTCommon "mo:ext/Common";
 import Map "mo:map_6_0_0/Map";
 import Properties "mo:candy_0_1_10/properties";
 import Workspace "mo:candy_0_1_10/workspace";
-
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
@@ -49,7 +47,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         streaming = false;
     };
 
-                            debug if(debug_channel.instantiation) D.print("creating a canister");
+                        debug if(debug_channel.instantiation) D.print("creating a canister");
                             
     //a standard file chunck size.  The IC limits intercanister messages to ~2MB+ so we set that here
     stable var SIZE_CHUNK = 2048000; //max message size
@@ -131,7 +129,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
     };
 
-    //lets us access state and pass it to other modulas
+    //lets us access state and pass it to other modules
     let get_state : () -> Types.State  = func (){
         {
             state = state_current;
@@ -1359,6 +1357,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             }));
     };
 
+    // *************************
+    // ********** LOGS *********
+    // *************************
+
+    public shared (msg) func create_log () : async () {
+         NFTUtils.add_log(get_state(), {
+            event = "create_log_nft_origyn";
+            timestamp = get_time();
+            data = #Empty;
+            caller = ?msg.caller;
+        });
+    };
 
     // set the `log_harvester`
     public shared (msg) func set_log_harvester_id(_id: Principal): async () {
@@ -1403,6 +1413,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
          state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
     };
 
+    public shared(msg) func get_log_history() : async [Types.LogEntry] {
+        let state = get_state();
+        return SB.get( state.state.log_history, 0);
+    };
+
     //log info
     public query(msg) func log_history_size() : async Nat{
         let state = get_state();
@@ -1445,6 +1460,10 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         return SB.toArray(state.state.log);
     };
+
+    // *************************
+    // ******** END LOGS *******
+    // *************************
 
     //announces support of interfaces
     public query func __supports() : async [(Text,Text)]{
