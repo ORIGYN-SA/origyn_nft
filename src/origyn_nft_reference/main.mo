@@ -1363,6 +1363,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // ********** LOGS *********
     // *************************
 
+
+    // Create a log - this is just for testing
     public shared (msg) func create_log () : async () {
          NFTUtils.add_log(get_state(), {
             event = "create_log_nft_origyn";
