@@ -39,11 +39,11 @@ type BalanceResult = {
     bearer_secure_nft_origyn(token_id: Text) -> Result<Account, OrigynError>
     bearer_batch_secure_nft_origyn(token_id: Text) -> Result<Account, OrigynError> 
 ```
-returns the owner of the NFT indicated by token_id
+Returns the owner of the NFT indicated by token_id.
 
-* alternative mappings
+* Alternative mappings
     * query ownerOfDip721(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id
-    * query ownerOf(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id //for questinable "v2" upgrade where the standard is now compatable with fewer web 3 tools
+    * query ownerOf(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id //for questionable "v2" upgrade where the standard is now compatable with fewer web 3 tools
     * query bearerEXT(token: TokenIdentifier) -> Result<EXTAccountIdentifier, EXTCommonError>; bearer() also exists for legacy native ext support
     * query bearer(token: TokenIdentifier) -> Result<EXTAccountIdentifier, EXTCommonError>; bearer() also exists for legacy native ext support //for legacy support
     
@@ -54,7 +54,7 @@ The origyn NFT supports two types of transfers. Owner Transfers and Market Trans
 
 Owner transfers are meant as a management function for the owners of NFT who needs to move their NFT from one wallet to another.  The NFT enforces this policy by transferring not only the NFT, but other Origyn based assets associated with NFT to the new address. Both addresses maintain rights over the nft for a configured time. You should not use this unless you are transfering to a wallet that you own and do not share with anyone.
 
-Market transfers are the standard way to transact with Origyn NFTs. To help establish true market prices and to protect human ingenuity, reward value creators/originators all transfers of marketable NFTs must go through a public market cycle that ensures that true value is being paid for the asset. As the value flows through the NFT, the NFT implements the revenue sharing built into the NFT.
+Market transfers are the standard way to transact with Origyn NFTs. To help establish true market prices and to protect human ingenuity, creators/originators are rewarded with all transfers of marketable NFTs, which must go through a public market cycle that ensures true value is being paid for the asset. As the value flows through the NFT, the NFT implements the revenue sharing built into the NFT.
 
 ### Owner Transfers
 
@@ -170,7 +170,7 @@ Instant transfers are used to sell an unminted NFT or a direct sale of a minted 
 
 An auction allows users to bid on an NFT until it closes. The winner can then claim the NFT. Bidders must post an escrow for their bids.
 
-Note: For alternative mappings the existance of an escrow is the approval for the transfer.  They use the #instant transfer method under the hood and look up an existing escrow. They use the first escrow they find that matches the to, from, token_id pair.
+Note: For alternative mappings the existence of an escrow is the approval for the transfer.  They use the #instant transfer method under the hood and look up an existing escrow. They use the first escrow they find that matches the to/from token_id pair.
 
 * alternative mappings
     * transferFromDip721(from: principal, to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.  
@@ -183,7 +183,7 @@ Note: For alternative mappings the existance of an escrow is the approval for th
 ## Minting
 
 
-Stages meta data for an NFT
+Stages metadata for an NFT
 
 ```
 stage_nft_origyn({metadata: CandyValue #Class}); - Stages the metadata
@@ -220,10 +220,10 @@ query nft_batch_secure_origyn(id: [Text]) query -> [NFTInfo]
 
 ```
 
-returns data about the nft.  
+Returns data about the nft.  
 
-metatdata - nfts are a class of CandyValues(see below section)
-currentSale - if the NFT is for sale it will returne info about the current sale
+metatdata - NFTs are a class of CandyValues(see below section).
+currentSale - If the NFT is for sale, it will return info about the current sale.
 
 ```
     {
@@ -343,7 +343,7 @@ query chunk_nft_origyn(ChunkRequest = {
     }, OrigynError>
 ```
 
-returns chunk of bytes for a resource. #eof will be returned for the last chunk
+Returns a chunk of bytes for a resource. #eof will be returned for the last chunk.
 
 * alternative mappings
     * DIP721 doesn't seem to currently support pulling chunks
@@ -389,7 +389,7 @@ http_access_key -> Result.Result<Text, Types.OrigynError>
 
 ```
 
-The returned token can be appened to a url request with the ?access=TOKEN format to see restricted information
+The returned token can be appended to a URL request with the ?access=TOKEN format to see restricted information.
 
 **NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
 
@@ -398,7 +398,7 @@ The returned token can be appened to a url request with the ?access=TOKEN format
 
 ## Ledger
 
-Transactions for each NFT are held in an NFT history ledger. The collection ledger is held at the token_id ""(empty string).
+Transactions for each NFT are held in an NFT history ledger. The collection ledger is held at the token_id "" (empty string).
 
 ```
 
@@ -510,7 +510,7 @@ public type TransactionRecord = {
 
 Sales are created using the market_transfer_nft_origyn function.
 
-Sales are managed through the sale_nft_origyn function and information can be retrieved via query using the  sale_info_nft_origyn function.  Both methods have a _batch method for multiple requests and the sale_info query has a secure endpoint as well.
+Sales are managed through the sale_nft_origyn function and information can be retrieved via query using the sale_info_nft_origyn function. Both methods have a _batch method for multiple requests and the sale_info query has a secure endpoint as well.
 
 
 ```
@@ -560,11 +560,11 @@ Sales are managed through the sale_nft_origyn function and information can be re
 
 ### Escrow
 
-All transactions currently require an escrow from the recieving party.  Appraised transfers will be supported in the future where node providers can pay the royalties and collect the out of band.
+All transactions currently require an escrow from the receiving party.  Appraised transfers will be supported in the future where node providers can pay the royalties and collect the out of band.
 
 ```
 
-To make a deposit the user must ask for the depoisit info first(like an invoice).  If the Account is null then the info is returned for the caller.  Enough tokens must be sent to cover the deposit + 1 transaction fee;
+To make a deposit the user must ask for the deposit info first (like an invoice). If the Account is null then the info is returned for the caller. Enough tokens must be sent to cover the deposit + 1 transaction fee.
 
     public type SubAccountInfo = {
         principal : Principal;
@@ -583,7 +583,7 @@ Once the tokens are sent to the subaccount on the NFT canister the following is 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
         deposit : DepositDetail;
-        lock_to_date: ?Int; //timestamp to lock escrow until.
+        lock_to_date: ?Int; //timestamp to lock escrow until
     };
 
     public type DepositDetail = {
@@ -607,7 +607,7 @@ Once the tokens are sent to the subaccount on the NFT canister the following is 
 
     public type EscrowResponse = {
         receipt: EscrowReceipt;
-        balance: Nat; //total balance if an existing escrow was added to
+        balance: Nat; //total balance if added to an existing escrow
         transaction: TransactionRecord;
     };
 
@@ -633,7 +633,7 @@ During auctions, a user can bid on the NFT using the #bid command.
     
 ```
 
-### Withdrawls
+### Withdrawals
 
 Allows a user to withdraw their escrowed funds from either an Escrow account or a Sales Receipt, or reject an offer and withdraw the funds back to an offerer.
 
@@ -688,7 +688,7 @@ Refreshing Offers - the offers collection can become stale. The following functi
 
 ## Collection Info
 
-Passing null to the following function will get you the current in formation about the collection.  Individual Field requets and pagination will be added in a futur Release
+Passing null to the following function will get you the current information about the collection.  Individual field requests and pagination will be added in a future release.
 
 ```
     collection_nft_origyn : (fields : ?[(Text, ?Nat, ?Nat)]) -> async Result.Result<CollectionInfo, OrigynError>
@@ -713,7 +713,7 @@ Passing null to the following function will get you the current in formation abo
 
 ```
 
-Collection updates are handled witht collection_update_nft_origyn
+Collection updates are handled with collection_update_nft_origyn:
 
 
 ```
@@ -746,7 +746,7 @@ manage_storage_nft_origyn : shared ManageStorageRequest -> async Result.Result<M
 
 ```
 
-Storage info can be pulled with the below
+Storage info can be pulled with the code below:
 
 ```
 
@@ -1851,13 +1851,13 @@ Features:
 ```
 
 
-### Http NFT Information
+### HTTP NFT Information
 
 exos.host/_/canister_id/_/token_id - Returns the primary asset
 
 exos.host/_/canister_id/_/token_id/preview - Returns the preview asset
 
-exos.host/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT(Authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
+exos.host/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
 
 exos.host/_/canister_id/_/token_id/_/library_id - Returns the asset in the library
 

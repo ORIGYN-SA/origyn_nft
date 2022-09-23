@@ -13,17 +13,17 @@ Collection Manager - Collection Managers are granted certain rights over a colle
     - manage sales
 
 
-Collection Owner - A collection can have one owner. An owner has specific and broad rights over a collection except for a few instances(changing immutable data being the most prominent)
+Collection Owner - A collection can have one owner. An owner has specific and broad rights over a collection except for a few instances(changing immutable data being the most prominent).
 
-Escrow - All NFT sales require an escrow.  The tokens must be deposited in the canister and registered before a bid or peer-to-peer sale can take place
+Escrow - All NFT sales require an escrow.  The tokens must be deposited in the canister and registered before a bid or peer-to-peer sale can take place.
 
-Experience Asset - An asset that the creator of an NFT can specify as the canonical experience of an nft. Usually an HTML page.
+Experience Asset - An asset that the creator of an NFT can specify as the canonical experience of an NFT, usually an HTML page.
 
 Gateway Canister - The gateway canister is the "main" canister for your NFT collection.  All metadata resides on the gateway canister and thus you are limited to about 2GB of metadata + history at the moment.
 
 Hidden Asset - An asset that is shown if a user tries to look at an NFT before it is minted.
 
-Network - Each NFT Collection has a network that it pays network fees to when an NFT is transacted.  This network can also make governance changes to the NFT and can change immutable data.  Users should only set the network to decentralized DAOs such as the ORIGYN Network as the network has "god mode" over your collection
+Network - Each NFT Collection has a network that it pays network fees to when an NFT is transacted.  This network can also make governance changes to the NFT and can change immutable data.  Users should only set the network to decentralized DAOs such as the ORIGYN Network as the network has "god mode" over your collection.
 
 Preview Asset - A smaller asset in the NFT that is good for showing in lists.
 
@@ -31,7 +31,7 @@ Primary Asset - Each NFT can assign a "primary" asset. The NFT expects this to b
 
 Storage Canister - A storage canister holds library files.  The gateway canister is in charge of distributing those files to the swarm of storage canisters.
 
-Token-id - Each token in your collection has a unique textbase namespace id.
+Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
@@ -70,14 +70,14 @@ v0.1.0
 * Minting - Remote Storage Integration
 * Minting - Free transfer
 * DIP721 - TokenIDs are reversibly converted to a large NAT for Compatability
-* DIP721 - bearer, owner, metadata functionality
+* DIP721 - Bearer, owner, metadata functionality
 * EXT - TokenIDs are converted to an ext style principal id.
-* EXT - bearer, owner, metadata functionality
+* EXT - Bearer, owner, metadata functionality
 * Metadata - Report balances for escrow, sales, NFTs, offers
 * Security - Secure queries provided for when consensus is required for query values
-* Logging - basic logging
-* Media - streaming callback for large files
-* Media - video streaming for safari/ios via ICxProxy
+* Logging - Basic logging
+* Media - Streaming callback for large files
+* Media - Video streaming for safari/ios via ICxProxy
 * Media - Handle nft specific media
 * Media - Handle collection media
 * Media - Handle web-based media with a redirect
@@ -85,7 +85,7 @@ v0.1.0
 
 
 Future
-* Marketplace - archive sale data
+* Marketplace - Archive sale data
 * Marketplace - Auctions - wait for quiet.
 * Marketplace - Auctions - Percentage Increase
 * Marketplace - Auctions - Dutch Auction
@@ -102,7 +102,7 @@ Future
 * Data - Add Data Dapp Nodes
 * Data - Storage Economics
 * Data - blocklists(maybe...Sybil may make this useless)
-* Data - role-based security(collection_owner, nft_owner,nft_of_collection_owner, former_nft_owner, former_nft_of_collection_owner)
+* Data - Role-based security(collection_owner, nft_owner,nft_of_collection_owner, former_nft_owner, former_nft_of_collection_owner)
 * Storage - Automatic storage canister distribution and creation
 * Storage - Erase an existing library item if mutable
 * Storage - Immutable Library Items
@@ -125,7 +125,7 @@ Future
 * Ledger - Data Updates in Ledger
 * Ledger - Archive and Query Blocks
 * Logging - Canister Geek integration
-* HTTP - handling new location types
+* HTTP - Handling new location types
 * Dapps - Default Dapp Routes
 * Dapps - Playground Dapp
 * Dapps - Library writer
