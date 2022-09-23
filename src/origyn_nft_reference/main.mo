@@ -403,7 +403,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             data = #Empty;
             caller = ?msg.caller;
         });
-                        debug if(debug_channel.function_announce) D.print("in transfer ext");
+        debug if(debug_channel.function_announce) D.print("in transfer ext");
         // Existing escrow is approval
         return await Owner.transferExt(get_state(), request, msg.caller);
     };
@@ -1041,7 +1041,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to bearer
     public shared (msg) func bearer_secure_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError>{
-                        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
+        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
         
         return _bearer_of_nft_origyn(token_id, msg.caller);
     };
@@ -1253,7 +1253,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Registers a principal with a access key so a user can use that key to make http queries
     public shared(msg) func http_access_key(): async Result.Result<Text, Types.OrigynError> {
-                            debug if(debug_channel.function_announce) D.print("in http_access_key");
+        debug if(debug_channel.function_announce) D.print("in http_access_key");
         
         // nyi: spam prevention
         if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
