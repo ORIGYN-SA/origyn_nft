@@ -319,7 +319,7 @@ module {
     };
   };
 
-  //gets a libary item
+  //gets a library item
   public func get_library_item_from_store(store : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>, token_id: Text,library_id: Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError>{
     switch(store.get(token_id)){
       case(null){
@@ -331,7 +331,7 @@ module {
         D.print("looking for token" # debug_show(Iter.toArray<Text>(token.keys())));
         switch(token.get(library_id)){
           case(null){
-            //no libaray exists
+            //no library exists
             return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find library_id in library store", null));
           };
           case(?item){
@@ -570,7 +570,7 @@ module {
     };
   };
 
-  //cleans metadat according to permissions
+  //cleans metadata according to permissions
   public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue{
 
     let owner : ?Types.Account = switch(get_nft_owner(metadata)){
@@ -661,13 +661,13 @@ module {
                   let cleaned_node = clean_node(data_node.value, owner, caller);
                   switch(cleaned_node){
                     case(#Empty){
-                      //D.print("recieved a cleaned node that was empty");
+                      //D.print("received a cleaned node that was empty");
                       //D.print(debug_show(data_node.value));
                       //D.print(debug_show(caller));
                       return #Empty;
                     };
                     case(_){
-                      //D.print("recieved a cleaned node that was not empty");
+                      //D.print("received a cleaned node that was not empty");
                       //D.print(debug_show(cleaned_node));
                       //D.print(debug_show(caller));
                       switch(permissions_node){
@@ -702,13 +702,13 @@ module {
                         let cleaned_node = clean_node(data_node.value, ?owner, caller);
                         switch(cleaned_node){
                           case(#Empty){
-                            //D.print("recieved a cleaned node that was empty");
+                            //D.print("received a cleaned node that was empty");
                             //D.print(debug_show(data_node.value));
                             //D.print(debug_show(caller));
                             return #Empty;
                           };
                           case(_){
-                            //D.print("recieved a cleaned node that was not empty");
+                            //D.print("received a cleaned node that was not empty");
                             //D.print(debug_show(cleaned_node));
                             //D.print(debug_show(caller));
                             switch(permissions_node){
@@ -758,13 +758,13 @@ module {
                                   let cleaned_node = clean_node(data_node.value, owner, caller);
                                   switch(cleaned_node){
                                     case(#Empty){
-                                      //D.print("recieved a cleaned node that was empty");
+                                      //D.print("received a cleaned node that was empty");
                                       //D.print(debug_show(data_node.value));
                                       //D.print(debug_show(caller));
                                       return #Empty;
                                     };
                                     case(_){
-                                      //D.print("recieved a cleaned node that was not ");
+                                      //D.print("received a cleaned node that was not ");
                                       //D.print(debug_show(cleaned_node));
                                       //D.print(debug_show(caller));
                                       switch(permissions_node){
@@ -793,8 +793,8 @@ module {
                                   
                                 };
                               };
-                              //we didnt find the principal
-                              //D.print("returning empty because we didnt find the principal");
+                              //we didn't find the principal
+                              //D.print("returning empty because we didn't find the principal");
                               return #Empty;
                             };
                             case(null){
@@ -864,8 +864,8 @@ module {
                                   return a_class;
                                 };
                               };
-                              //we didnt find the principal
-                              //D.print("returning empty because we didnt find the principal");
+                              //we didn't find the principal
+                              //D.print("returning empty because we didn't find the principal");
                               return #Empty;
                             };
                             case(null){
@@ -907,13 +907,13 @@ module {
                   let cleaned_node = clean_node(data_node.value, owner, caller);
                   switch(cleaned_node){
                     case(#Empty){
-                      //D.print("recieved a cleaned node that was empty");
+                      //D.print("received a cleaned node that was empty");
                       //D.print(debug_show(data_node.value));
                       //D.print(debug_show(caller));
                       return #Empty;
                     };
                     case(_){
-                      //D.print("recieved a cleaned node that was not ");
+                      //D.print("received a cleaned node that was not ");
                       //D.print(debug_show(cleaned_node));
                       //D.print(debug_show(caller));
                       switch(permissions_node){
@@ -955,13 +955,13 @@ module {
                                   let cleaned_node = clean_node(data_node.value, owner, caller);
                                   switch(cleaned_node){
                                     case(#Empty){
-                                      //D.print("recieved a cleaned node that was empty");
+                                      //D.print("received a cleaned node that was empty");
                                       //D.print(debug_show(data_node.value));
                                       //D.print(debug_show(caller));
                                       return #Empty;
                                     };
                                     case(_){
-                                      //D.print("recieved a cleaned node that was not ");
+                                      //D.print("received a cleaned node that was not ");
                                       //D.print(debug_show(cleaned_node));
                                       //D.print(debug_show(caller));
                                       switch(permissions_node){
@@ -988,7 +988,7 @@ module {
                                   
                                 };
                               };
-                              //we didnt find the principal
+                              //we didn't find the principal
                               return #Empty;
                             };
                             case(null){
@@ -1215,7 +1215,7 @@ module {
 
     let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash,NFTUtils.library_equal), (use_token_id, request.library_id))){
       case(null){
-        return #err(Types.errors(#library_not_found, "chunk_nft_origyn - allocatio for token, library - " # use_token_id # " " # request.library_id, caller));
+        return #err(Types.errors(#library_not_found, "chunk_nft_origyn - allocation for token, library - " # use_token_id # " " # request.library_id, caller));
       };
       case(?val){val};
     };
@@ -1405,7 +1405,7 @@ module {
         
       };
       case(#UpdateManagers(data)){
-        //D.print("updateing manager" # debug_show(data));
+        //D.print("updating manager" # debug_show(data));
         NFTUtils.add_log(state, {
           event = "collection_update_nft_origyn.updateManagers";
           timestamp = state.get_time();

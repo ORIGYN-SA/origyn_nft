@@ -58,7 +58,7 @@ class Ledger_Interface() {
             //D.print(debug_show(Blob.fromArray(AccountIdentifier.fromPrincipal(host, null))));
 
             if( transfer.to != Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, null)))){
-               //D.print("Host didnt match");
+               //D.print("Host didn't match");
                 return #err(Types.errors(#validate_trx_wrong_host, "ledger_interface - validate deposit - bad host" # debug_show(deposit) # " should be " # Principal.toText(host), ?caller));
             };
 
@@ -71,12 +71,12 @@ class Ledger_Interface() {
             //D.print(debug_show(#account_id(Opt.get(Text.decodeUtf8(Blob.fromArray(transfer.from)),""))));
            //D.print(debug_show(deposit.buyer));
             if(Types.account_eq(#account_id(Hex.encode(Blob.toArray(transfer.from))), deposit.buyer) == false){
-               //D.print("from and buyer didnt match " # debug_show(transfer.from) # " " # debug_show(deposit.buyer));
+               //D.print("from and buyer didn't match " # debug_show(transfer.from) # " " # debug_show(deposit.buyer));
                 return #err(Types.errors(#validate_deposit_wrong_buyer, "ledger_interface - validate deposit - bad buyer" # debug_show(deposit), ?caller));
             };
 
             if(Nat64.toNat(transfer.amount.e8s) != deposit.amount){
-               //D.print("amount didnt match");
+               //D.print("amount didn't match");
                 return #err(Types.errors(#validate_deposit_wrong_amount, "ledger_interface - validate deposit - bad amount" # debug_show(deposit), ?caller));
             };
         } catch (e){
@@ -92,7 +92,7 @@ class Ledger_Interface() {
                         debug if(debug_channel.deposit) D.print(Principal.toText(host));
                         debug if(debug_channel.deposit) D.print(debug_show(escrow));
 
-       //nyi: extra safety make sure the caller is the buyer(or the network?)
+       //nyi: extra safety make sure the caller is the buyer (or the network?)
        let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info({
                 amount = escrow.deposit.amount;
                 buyer = escrow.deposit.buyer;
@@ -118,8 +118,8 @@ class Ledger_Interface() {
             let result = await transfer({
                 ledger = ledger.canister;
                 to = host;
-                //do not subract the fee...you need the full amount in the account. User needs to send in the fee as extra.
-                //in the future we may want to actualluy add the fee if the buyer is going to pay all fees.
+                //do not subtract the fee...you need the full amount in the account. User needs to send in the fee as extra.
+                //in the future we may want to actually add the fee if the buyer is going to pay all fees.
                 amount = Nat64.fromNat(escrow.deposit.amount);
                 fee = Nat64.fromNat(ledger.fee);
                 memo = Nat64.fromNat(Nat32.toNat(Text.hash("com.origyn.nft.escrow_from_deposit" # debug_show(escrow))));
@@ -145,7 +145,7 @@ class Ledger_Interface() {
     };
 
     //allows a user to withdraw money from a sale
-    public func transfer_sale(host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+    public func transfer_sale(host: Principal, escrow : Types.EscrowReciept,  token_id : Text, caller: Principal) : async Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
                         debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
                         debug if(debug_channel.sale) D.print(Principal.toText(host));
                         debug if(debug_channel.sale) D.print(debug_show(escrow));
@@ -200,7 +200,7 @@ class Ledger_Interface() {
 
             let result_block = switch(result){
                 case(#ok(val)){
-                                         debug if(debug_channel.sale) D.print("sending to sale account was succesful" # debug_show(val));
+                                         debug if(debug_channel.sale) D.print("sending to sale account was successful" # debug_show(val));
                     val;
                 };
                 case(#err(err)){
@@ -237,7 +237,7 @@ class Ledger_Interface() {
         let to_account = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(request.to, switch(request.to_subaccount){case(null){null}; case(?val){?Blob.toArray(val)}}));
         
 
-                            debug if(debug_channel.transfer) D.print("transfering");
+                            debug if(debug_channel.transfer) D.print("transferring");
                             debug if(debug_channel.transfer) D.print("from account" # debug_show(request.from_subaccount));
                             debug if(debug_channel.transfer) D.print("to account" # debug_show(Blob.fromArray(to_account)));
         try{
@@ -282,7 +282,7 @@ class Ledger_Interface() {
                 }};
                 case(#principal(val)){AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(val ,null))};
                 case(#account(val)){AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(val.owner ,switch(val.sub_account){case(null){null;}; case(?val){ ?Blob.toArray(val);}}))};
-                case(_){return #err(Types.errors(#nyi, "ledger_interface - send payment - bad acount" # debug_show(account), ?caller));}
+                case(_){return #err(Types.errors(#nyi, "ledger_interface - send payment - bad account" # debug_show(account), ?caller));}
             };
 
                         debug if(debug_channel.transfer) D.print("account_id" # debug_show( Blob.fromArray(account_id)));

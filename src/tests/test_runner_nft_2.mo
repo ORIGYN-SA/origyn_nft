@@ -560,7 +560,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //start an auction by owner
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "1";
             sales_config = {
-                escrow_receipt = null;
+                escrow_reciept = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(10 * 10 ** 8);

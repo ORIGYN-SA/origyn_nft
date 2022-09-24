@@ -37,7 +37,7 @@ module {
     //reserved space that can have flexible permissions.  The apps can make it so 
     //that only they can read the data and/or only they can write the data. They 
     //can also grant write permissions to certain other principals via an allow list.  
-    //Currnelty the implementation is more like a structured notepad where you have to 
+    //Currently the implementation is more like a structured notepad where you have to 
     //write out the enter note each time.  Future versions will add granular access to 
     //data per app.
     public func update_app_nft_origyn(request: Types.NFTUpdateRequest, state: Types.State, caller: Principal): Result.Result<Types.NFTUpdateResponse, Types.OrigynError>{
@@ -45,7 +45,7 @@ module {
         let (token_id, app_id) = switch(request){
             case(#replace(details)){
                 //D.print(debug_show(details.data));
-                //(details.token_id, Option.getMapped<CandyTypes.Property, Text>(Properties.getClassProperty(details.data, "app_id"), propertyToText, return #err(Types.errors(#app_id_not_found, "update_app_nft_origyn - cannnot find app id ", ? caller)) ))};
+                //(details.token_id, Option.getMapped<CandyTypes.Property, Text>(Properties.getClassProperty(details.data, "app_id"), propertyToText, return #err(Types.errors(#app_id_not_found, "update_app_nft_origyn - cannot find app id ", ? caller)) ))};
                 let app_id = switch(_get_text_attribute_from_class(details.data, Types.metadata.__apps_app_id)){
                   case(null){
                      return #err(Types.errors(#token_not_found, "update_app_nft_origyn - cannnot find app_id", ? caller)); 
@@ -80,7 +80,7 @@ module {
                         let found_array = Conversions.valueToValueArray(found.value);
                         let new_list = Buffer.Buffer<CandyTypes.CandyValue>(found_array.size());
 
-                        //this is currently a very ineffcient way of doing this. Once candy adds dicitionaries we should switch to that
+                        //this is currently a very inefficient  way of doing this. Once candy adds dictionaries  we should switch to that
                         //currently we are rewriting the entire __apps section each time.
                         for(this_item in found_array.vals()){
                             if(?app_id == _get_text_attribute_from_class(this_item, Types.metadata.__apps_app_id)){
@@ -123,11 +123,11 @@ module {
                                                                 //D.print("have write type");
                                                                 switch(write_type.value){
                                                                     case(#Text(write_type_detail)){
-                                                                        //D.print("have write type detial");
+                                                                        //D.print("have write type detail");
                                                                         if(write_type_detail == "allow"){
                                                                             switch(Properties.getClassProperty(write_node.value,"list")){
                                                                                 case(?allow_list){
-                                                                                    //D.print("have allow llist");
+                                                                                    //D.print("have allow list");
                                                                                     //D.print(debug_show(Conversion.valueToValueArray(allow_list.value)));
                                                                                     var b_found = false;
                                                                                     label search for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){

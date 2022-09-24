@@ -78,7 +78,7 @@ module {
         Text.replace(rand, #text("\""), "");
     };
 
-    //handels stream content with chunk requests
+    //handles stream content with chunk requests
     public func handle_stream_content(
         state : Types.State,
         token_id         : Text,
@@ -371,7 +371,7 @@ module {
         {body = result.payload; token = result.callback}; 
     };
 
-    //determines how a library item should be rendere in an http request
+    //determines how a library item should be rendered in an http request
     public func renderLibrary(
         state : Types.State,
         req : httpparser.ParsedHttpRequest,
@@ -592,7 +592,7 @@ module {
                                                 debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
-                            //only one chunck
+                            //only one chunk
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
@@ -1246,8 +1246,8 @@ module {
         return queries.toArray();
     };
 
-    //checks that a access token holder is the collection owner
-    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
+    //checks that an access token holder is the collection owner
+    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible (though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {
@@ -1277,7 +1277,7 @@ module {
     };
 
     //checks that a access token holder is an owner of an NFT
-    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
+    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible (though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_nft_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {

@@ -362,11 +362,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("about to try registration"# debug_show(a_wallet_try_escrow_general_valid));
         //register escrow for one NFT
 
-        let a_wallet_try_register_for_one = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet); max_desired = 1; escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_register_for_one = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet); max_desired = 1; escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
                 
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 10 * 10 ** 8; //one icp for one
@@ -390,11 +390,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         D.print("about to register b" # debug_show(b_wallet_try_escrow_general_valid));
-        let b_wallet_try_register_for_two = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(b_wallet); max_desired = 2; escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
+        let b_wallet_try_register_for_two = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(b_wallet); max_desired = 2; escrow_reciept = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
                 
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 20 * 10 ** 8; //20 icp for two
@@ -411,11 +411,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
-        let d_wallet_try_register_for_two= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_receipt = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
+        let d_wallet_try_register_for_two= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_reciept = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
                 
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 20 * 10 ** 8; //40 icp for four but shold only get two
@@ -453,10 +453,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 10 * 10 ** 8; //one icp for one
@@ -472,10 +472,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let b_wallet_try_redeem_for_one = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
+        let b_wallet_try_redeem_for_one = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -494,10 +494,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let a_wallet_try_redeem_for_third = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_third = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 10 * 10 ** 8; //one icp for one
@@ -520,10 +520,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let c_wallet_try_redeem_for_one = await c_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
+        let c_wallet_try_redeem_for_one = await c_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -1006,10 +1006,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 10 * 10 ** 8; //one icp for one
@@ -1037,10 +1037,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let b_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
+        let b_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -1064,10 +1064,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let d_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
+        let d_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -1104,10 +1104,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let a_wallet_try_redeem_for_one_more = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_one_more = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 10 * 10 ** 8; //one icp for one
@@ -1123,10 +1123,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let b_wallet_try_redeem_for_one = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
+        let b_wallet_try_redeem_for_one = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -1145,10 +1145,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let a_wallet_try_redeem_for_third = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_third = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 10 * 10 ** 8; //one icp for one
@@ -1171,10 +1171,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             token = ?dfx_token_spec;
         });
 
-        let c_wallet_try_redeem_for_one = await c_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
+        let c_wallet_try_redeem_for_one = await c_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
         {
-            buyer = val.receipt.buyer;
-            seller = val.receipt.seller;
+            buyer = val.reciept.buyer;
+            seller = val.reciept.seller;
             token = dfx_token_spec;
             token_id = "";
             amount = 20 * 10 ** 8; //one icp for one
@@ -1572,7 +1572,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
 
         //register before open
-         let f_wallet_try_registration_before_open = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(a_wallet); max_desired =1; escrow_receipt =  
+         let f_wallet_try_registration_before_open = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(a_wallet); max_desired =1; escrow_reciept =  
             ?{
                 buyer = #principal(Principal.fromActor(a_wallet));
                 seller = #principal(Principal.fromActor(canister));
@@ -1585,7 +1585,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
 
         //register with fake escrow
-         let a_wallet_try_registration_no_escrow = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired =1; escrow_receipt =  
+         let a_wallet_try_registration_no_escrow = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired =1; escrow_reciept =  
             ?{
                 buyer = #principal(Principal.fromActor(a_wallet));
                 seller = #principal(Principal.fromActor(canister));
@@ -1602,7 +1602,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //register escrow with no lock past mint date
 
-        let a_wallet_try_registration_bad_lock = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 1; escrow_receipt = switch(a_wallet_try_escrow_general_no_lock){case(#ok(val)){?val.receipt};case(#err(err)){throw(Error.reject("THROW ----------------- failed to get escrow for a payment in testRedeem for bad lock"))}}});
+        let a_wallet_try_registration_bad_lock = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 1; escrow_reciept = switch(a_wallet_try_escrow_general_no_lock){case(#ok(val)){?val.reciept};case(#err(err)){throw(Error.reject("THROW ----------------- failed to get escrow for a payment in testRedeem for bad lock"))}}});
 
         //create a new payment with lock
 
@@ -1615,10 +1615,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("escrow general valid a" # debug_show(a_wallet_try_escrow_general_valid) );
         //register escrow with not enough payment for at least 1 NFT
 
-        let a_wallet_try_registration_low_amount = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(a_wallet);max_desired=1; escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_registration_low_amount = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(a_wallet);max_desired=1; escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 9 * 10 ** 8; //one token short
@@ -1630,10 +1630,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //register escrow for one NFT
 
-        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 1; escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 1; escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
            ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 10 * 10 ** 8; //one icp for one
@@ -1651,10 +1651,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //redeem escrow for the two more of the NFTs
 
-        let a_wallet_try_register_for_two = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 2; escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_register_for_two = await a_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(a_wallet);max_desired = 2; escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 20 * 10 ** 8; //20 icp for two
@@ -1670,10 +1670,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
-        let b_wallet_try_register_for_four = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(b_wallet);max_desired = 2; escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
+        let b_wallet_try_register_for_four = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(b_wallet);max_desired = 2; escrow_reciept = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 40 * 10 ** 8; //20 icp for two
@@ -1690,10 +1690,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
-        let d_wallet_try_register_for_four= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_receipt = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
+        let d_wallet_try_register_for_four= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_reciept = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 40 * 10 ** 8; //40 icp for four but shold only get two
@@ -1710,10 +1710,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let e_wallet_try_escrow_general_valid = await e_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(eRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
-        let e_wallet_try_register_for_two = await e_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(e_wallet);max_desired = 2; escrow_receipt = switch(e_wallet_try_escrow_general_valid){case(#ok(val)){
+        let e_wallet_try_register_for_two = await e_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(e_wallet);max_desired = 2; escrow_reciept = switch(e_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 20 * 10 ** 8; //40 icp for four but shold only get two
@@ -1801,10 +1801,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
 
 
-         let c_wallet_try_register_after_sale_date = await c_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(c_wallet);max_desired = 1; escrow_receipt = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
+         let c_wallet_try_register_after_sale_date = await c_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(c_wallet);max_desired = 1; escrow_reciept = switch(c_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 10 * 10 ** 8; //20 icp for two
@@ -2164,13 +2164,13 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let b_wallet_try_escrow_general = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 10 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
-        let b_wallet_allocation_attempt = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(b_wallet_try_escrow_general){case(#ok(val)){val.receipt};case(#err(err)){throw(Error.reject("THROW ----------------- failed to get escrow for b payment in testRedeem"))}}});
+        let b_wallet_allocation_attempt = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(b_wallet_try_escrow_general){case(#ok(val)){val.reciept};case(#err(err)){throw(Error.reject("THROW ----------------- failed to get escrow for b payment in testRedeem"))}}});
 
         //have a redeem thier allocation
         D.print("fake escrow");
 
         //redeem with fake escrow
-         let a_wallet_try_redeem_no_escrow = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt =  {
+         let a_wallet_try_redeem_no_escrow = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept =  {
                 buyer = #principal(Principal.fromActor(a_wallet));
                 seller = #principal(Principal.fromActor(canister));
                 token = dfx_token_spec;
@@ -2192,10 +2192,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //redeem escrow with not enough payment for at least 1 NFT
 
-        let a_wallet_try_redeem_low_amount = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_low_amount = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             {
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 9 * 10 ** 8; //one token short
@@ -2209,10 +2209,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //redeem escrow for one NFT
 
-        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_one = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             {
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 10 * 10 ** 8; //one icp for one
@@ -2237,10 +2237,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //redeem escrow for the two more of the NFTs
 
-        let a_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_two = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             {
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 20 * 10 ** 8; //20 icp for two
@@ -2267,10 +2267,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("a_wallet_balance_after_three" # debug_show(a_wallet_balance_after_three));
 
 
-         let a_wallet_try_redeem_for_ten = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+         let a_wallet_try_redeem_for_ten = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             {
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 100 * 10 ** 8; //10 icp for ten
@@ -2325,10 +2325,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //try to redeem escrow for expired allocation
 
-        let a_wallet_try_redeem_for_expired = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
+        let a_wallet_try_redeem_for_expired = await a_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_reciept = switch(a_wallet_try_escrow_general_valid){case(#ok(val)){
             {
-                buyer = val.receipt.buyer;
-                seller = val.receipt.seller;
+                buyer = val.reciept.buyer;
+                seller = val.reciept.seller;
                 token = dfx_token_spec;
                 token_id = "";
                 amount = 10 * 10 ** 8; 

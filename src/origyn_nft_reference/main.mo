@@ -109,7 +109,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     stable var nft_library_stable : [(Text,[(Text,CandyTypes.AddressedChunkArray)])] = [];
     stable var access_tokens_stable : [(Text, Types.HttpAccess)] = [];
     
-    // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
+    // Stores data for a library - unstable because it uses Candy Workspaces to hold active and malleable bits of data that can be manipulated in real time
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
     
     // Store access tokens for owner assets to owner specific data
@@ -507,7 +507,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 
             };
             case(#withdraw(val)){
-                D.print("in withdrawl");
+                D.print("in withdrawal");
                 return switch(await Market.withdraw_nft_origyn(get_state(), val, msg.caller)){
                     case(#ok(val)){#ok(#withdraw(val))};
                     case(#err(err)){#err(err)};
@@ -1071,14 +1071,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return results.toArray();
     };
 
-    // Conversts a token id to a Nat for use in dip721
+    // Converts a token id to a Nat for use in dip721
     public query(msg) func get_token_id_as_nat_origyn(token_id : Text) : async Nat {
         debug if(debug_channel.function_announce) D.print("in get_token_id_as_nat_origyn");
         
         return NFTUtils.get_token_id_as_nat(token_id);
     };
 
-    // Converts a nat to an token_id for Nat
+    // Converts a nat to a token_id for Nat
     public query(msg) func get_nat_as_token_id_origyn(tokenAsNat : Nat) : async Text {
         debug if(debug_channel.function_announce) D.print("in get_nat_as_token_id_origyn");
         

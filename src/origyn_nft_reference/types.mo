@@ -168,7 +168,7 @@ module {
     };
 
     public type SalesConfig = {
-        escrow_receipt : ?EscrowReceipt;
+        escrow_reciept : ?EscrowReciept;
         broker_id : ?Principal;
         pricing: PricingConfig;
     };
@@ -191,7 +191,7 @@ module {
         };
     };
 
-    public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
+    public type EscrowReciept = MigrationTypes.Current.EscrowReciept;
 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
@@ -215,13 +215,13 @@ module {
     public type TransactionID = MigrationTypes.Current.TransactionID;
 
     public type EscrowResponse = {
-        receipt: EscrowReceipt;
+        reciept: EscrowReciept;
         balance: Nat;
         transaction: TransactionRecord;
     };
 
     public type BidRequest = {
-        escrow_receipt: EscrowReceipt;
+        escrow_reciept: EscrowReciept;
         sale_id: Text;
         broker_id: ?Principal;
     };
@@ -258,7 +258,7 @@ module {
                 current_broker_id: ?Principal;
                 end_date: Int;
                 min_next_bid: Nat;
-                current_escrow: ?EscrowReceipt;
+                current_escrow: ?EscrowReciept;
                 wait_for_quiet_count: ?Nat;
                 allow_list: ?[(Principal,Bool)]; // user, tree
                 participants: [(Principal,Int)]; //user, timestamp of last access
@@ -426,7 +426,7 @@ module {
     };
 
     public type ManageSaleResponse = {
-        #end_sale : EndSaleResponse; //trx record if succesful
+        #end_sale : EndSaleResponse; //trx record if successful
         #open_sale: Bool; //true if opened, false if not;
         #escrow_deposit: EscrowResponse;
         #refresh_offers: [EscrowRecord];
@@ -607,7 +607,7 @@ module {
         #out_of_range;
         #owner_not_found;
         #property_not_found;
-        #receipt_data_mismatch;
+        #reciept_data_mismatch;
         #sale_not_found;
         #sale_not_over;
         #sale_id_does_not_match;
@@ -888,7 +888,7 @@ module {
             case(#escrow_cannot_be_removed){
                 return {
                     number = 3008; 
-                    text = "escrow  cannot be removed";
+                    text = "escrow cannot be removed";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;}
@@ -929,10 +929,10 @@ module {
                     flag_point = flag_point;
                     caller = caller;}
             };
-            case(#receipt_data_mismatch){
+            case(#reciept_data_mismatch){
                 return {
                     number = 4001; 
-                    text = "receipt_data_mismatch";
+                    text = "reciept_data_mismatch";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;}

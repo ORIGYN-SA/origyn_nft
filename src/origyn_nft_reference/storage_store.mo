@@ -42,7 +42,7 @@ module {
         //make sure we have an allocation for space for this chunk
         let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations,( NFTUtils.library_hash,  NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
             case(null){
-                                        debug if(debug_channel.stage) D.print("no allocation yet, so lets add it");
+                                        debug if(debug_channel.stage) D.print("no allocation yet, so let's add it");
                 
                     
                     let allocation = {
@@ -77,7 +77,7 @@ module {
                     //chunk doesn't exist;
                                     debug if(debug_channel.stage) D.print("does not exist");
                     let new_workspace = Workspace.initWorkspace(2);
-                                    debug if(debug_channel.stage) D.print("puting Zone");
+                                    debug if(debug_channel.stage) D.print("putting Zone");
                                     debug if(debug_channel.stage) D.print(debug_show(chunk.filedata));
                     
                     
@@ -96,8 +96,8 @@ module {
                     switch(library.get(chunk.library_id)){
                         case(null){
                                             debug if(debug_channel.stage) D.print("nft exists but not file");
-                            //nft exists but this file librry entry doesnt exist
-                            //nftdoesn't exist;
+                            //nft exists but this file library entry doesn't exist
+                            //nft doesn't exist;
                             let new_workspace = Workspace.initWorkspace(2);
 
                             new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
@@ -137,7 +137,7 @@ module {
 
 
         if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
-            //this chunk already exists in the allocatioin
+            //this chunk already exists in the allocation
             //see what size it is
             let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
             if(chunk.content.size() > current_size){

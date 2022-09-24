@@ -81,7 +81,7 @@ module {
         Text.replace(rand, #text("\""), "");
     };
 
-    //handels stream content with chunk requests
+    //handles stream content with chunk requests
     public func handle_stream_content(
         state : Types.StorageState,
         token_id         : Text,
@@ -377,7 +377,7 @@ module {
         };
     };
 
-    //determines how a library item should be rendere in an http request
+    //determines how a library item should be rendered in an http request
     public func renderLibrary(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
@@ -519,7 +519,7 @@ module {
                             return result;
 
                     } else {
-                                            debug if(debug_channel.library)D.print("Not a range requst");
+                                            debug if(debug_channel.library)D.print("Not a range request");
 
                         /*
                         remove this comment to get a dump of the actual headers that made it through.
@@ -543,7 +543,7 @@ module {
                                                 debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
-                            //only one chunck
+                            //only one chunk
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
@@ -649,7 +649,7 @@ module {
                                                     debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
-                            //only one chunck
+                            //only one chunk
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
@@ -909,7 +909,7 @@ module {
             };
 
         } else {
-            //handle static assests if we have them
+            //handle static assets if we have them
         };
         return {
             body  = Blob.fromArray([]);
@@ -1007,7 +1007,7 @@ module {
         return #ok(List.reverse(queries));
     };
 
-    //gets prroperties from deep in a structure
+    //gets properties from deep in a structure
     public func get_deep_properties(metadata: CandyTypes.CandyValue, qs: List.List<sQuery>): {#ok: CandyTypes.CandyValue; #err: (); #back: ()} {
         if(List.isNil(qs)) {
             return #back();
@@ -1118,7 +1118,7 @@ module {
         };
     };
 
-    //converst a candu value to JSON
+    //converts a candy value to JSON
     public func value_to_json(val: CandyTypes.CandyValue): Text {
         switch(val){
             //nat
@@ -1196,7 +1196,7 @@ module {
         return queries.toArray();
     };
 
-    //checks that a access token holder is the collection owner
+    //checks that an access token holder is the collection owner
     public func http_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {

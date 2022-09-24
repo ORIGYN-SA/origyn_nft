@@ -121,7 +121,7 @@ module {
     //verifies that an escrow reciept exists in this NF
     public func verify_escrow_reciept(
         state: StateAccess,
-        escrow : Types.EscrowReceipt, 
+        escrow : Types.EscrowReciept, 
         owner: ?Types.Account, 
         sale_id: ?Text) : Result.Result<
         {
@@ -225,7 +225,7 @@ module {
     //verifies that a revenue reciept is in the NFT Canister
     public func verify_sales_reciept(
         state: StateAccess,
-        escrow : Types.EscrowReceipt) : Result.Result<
+        escrow : Types.EscrowReciept) : Result.Result<
         {
             found_asset : {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord};
             found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
@@ -669,7 +669,7 @@ module {
         }));
     };
 
-    //returns an invoice or details of where a user can send their depoits on a standard ledger
+    //returns an invoice or details of where a user can send their deposits on a standard ledger
     public func deposit_info_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
 
                             debug if(debug_channel.invoice) D.print("in deposit info nft origyn.");
@@ -684,7 +684,7 @@ module {
     };
     
 
-    //ends a sale if it is past the date or a buy it now has occured
+    //ends a sale if it is past the date or a buy it now has occurred
     public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
                             debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
         let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
@@ -762,7 +762,7 @@ module {
                         //return #err(Types.errors(#auction_ended, "end_sale_nft_origyn - auction already closed ", ?caller));
                     };
                     case(#not_started){
-                                            debug if(debug_channel.end_sale) D.print("wasnt started");
+                                            debug if(debug_channel.end_sale) D.print("wasn't started");
                 
                         if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
                             current_sale_state.status := #open;
@@ -1317,7 +1317,7 @@ module {
 
         switch(request.sales_config.pricing){
             case(#instant){
-                //the nft or staged nft is being instant transfered
+                //the nft or staged nft is being instant transferred
 
                 //if this is a marketable NFT, we need to create a waiver period
 
@@ -1326,7 +1326,7 @@ module {
                 //since this is a stage we need to call mint and it will do this for us
                 //set new owner
                                     debug if(debug_channel.market) D.print("in market transfer");
-                switch(request.sales_config.escrow_receipt){
+                switch(request.sales_config.escrow_reciept){
                     case(null){
                         //we can't insta transfer because no instructions are given
                         //D.print("no escrow set");
@@ -1482,7 +1482,7 @@ module {
                             };
                         };
 
-                                                debug if(debug_channel.market) D.print("transfered to account hash " # debug_show(account_hash));
+                                                debug if(debug_channel.market) D.print("transferred to account hash " # debug_show(account_hash));
 
                         var b_freshmint = false;
 
@@ -1712,7 +1712,7 @@ module {
         fee: Nat;
         account_hash: ?Blob;
         royalty: [CandyTypes.CandyValue];
-        escrow: Types.EscrowReceipt;
+        escrow: Types.EscrowReciept;
         broker_id: ?Principal;
         original_broker_id: ?Principal;
         sale_id: ?Text;
@@ -1933,7 +1933,7 @@ module {
             case(#auction(auction_details)){
                 //what does an escrow reciept do for an auction? Place a bid?
                 //for now ignore
-                switch(request.sales_config.escrow_receipt){
+                switch(request.sales_config.escrow_reciept){
                     case(?val){
                         return #err(Types.errors(#nyi, "market_transfer_nft_origyn - handling escrow for auctions NYI", ?caller))
                     };
@@ -1988,7 +1988,7 @@ module {
                 Map.set<Text,Types.SaleStatus>(state.state.nft_sales, Map.thash, sale_id, {
                     sale_id = sale_id;
                     original_broker_id = request.sales_config.broker_id;
-                    broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
+                    broker_id = null; //currently the broker id for an auction doesn't do much. perhaps it should split the broker reward?
                     token_id = request.token_id;
                     sale_type = #auction({
                         config = request.sales_config.pricing;
@@ -2239,7 +2239,7 @@ module {
             case(#err(err)){
                                 debug if(debug_channel.escrow) D.print("in a bad error");
                                 debug if(debug_channel.escrow) D.print(debug_show(err));
-                //nyi: this is really bad and will mess up certificatioin later so we should really throw
+                //nyi: this is really bad and will mess up certification later so we should really throw
                 return #err(Types.errors(#nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show(request), ?caller));
             };
             case(#ok(new_trx)){new_trx};
@@ -2248,7 +2248,7 @@ module {
                         debug if(debug_channel.escrow) D.print("have the trx");
                         debug if(debug_channel.escrow) D.print(debug_show(new_trx));
         return #ok({
-            receipt = {
+            reciept = {
                 seller = request.deposit.seller;
                 buyer = request.deposit.buyer;
                 token_id = request.token_id;
@@ -2310,7 +2310,7 @@ module {
                             try{
                                 switch(await checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)){
                                     case(#ok(val)){
-                                        //D.print("Got a val and it it is");
+                                        //D.print("Got a val and it is");
                                         ?val;
                                     };
                                     case(#err(err)){
@@ -2537,7 +2537,7 @@ module {
                                       try{
                                           switch(await checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?account_info.account.sub_account, caller)){
                                               case(#ok(val)){
-                                                  //D.print("Got a val and it it is");
+                                                  //D.print("Got a val and it is");
                                                   ?val;
                                               };
                                               case(#err(err)){
@@ -2768,7 +2768,7 @@ module {
                                       try{
                                           switch(await checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, a_ledger.account_hash, caller)){
                                               case(#ok(val)){
-                                                  //D.print("Got a val and it it is");
+                                                  //D.print("Got a val and it is");
                                                   ?val;
                                               };
                                               case(#err(err)){
@@ -2864,7 +2864,7 @@ module {
                           };
                       };
 
-                      //D.print("have a transactionid and will crate a transaction");
+                      //D.print("have a transactionid and will create a transaction");
                       switch(transaction_id){
                           case(null){
                               //really should have failed already
@@ -2915,7 +2915,7 @@ module {
               // rejects and offer and sends the tokens back to the source
                                   debug if(debug_channel.withdraw_reject) D.print("an escrow reject");
               if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network){
-                  //cant withdraw for someone else
+                  //can't withdraw for someone else
                                       debug if(debug_channel.withdraw_reject) D.print(debug_show((caller, state.canister(), details.seller, state.state.collection_data.network)));
                   return #err(Types.errors(#unauthorized_access, "withdraw_nft_origyn - reject - unauthorized" , ?caller));
               };
@@ -3027,7 +3027,7 @@ module {
                       //ok...so we should be good to withdraw
                       //first update the escrow
                       
-                      //deleteing the asset
+                      //deleting the asset
                       Map.delete(verified.found_asset_list, token_handler, details.token);
 
                       //send payment
@@ -3045,12 +3045,12 @@ module {
                                           
                                           switch(await checker.send_payment_minus_fee(details.buyer, token, verified.found_asset.escrow.amount, ?account_info.account.sub_account, caller)){
                                               case(#ok(val)){
-                                                  //D.print("Got a val and it it is");
+                                                  //D.print("Got a val and it is");
                                                   ?val;
                                               };
                                               case(#err(err)){
                                                   //put the escrow back
-                                                  //make sure things havent changed in the mean time
+                                                  //make sure things haven't changed in the mean time
                                                   //D.print("failed, putting back ledger");
                                                   switch(verify_escrow_reciept(state, a_ledger, null, null)){
                                                       case(#ok(reverify)){
@@ -3168,7 +3168,7 @@ module {
         return #err(Types.errors(#nyi, "withdraw_nft_origyn  - nyi - " , ?caller));
     };
 
-    //allows bids on auctons
+    //allows bids on auctions
     public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal) : async Result.Result<Types.BidResponse,Types.OrigynError> {
 
 
@@ -3226,7 +3226,7 @@ module {
         };
         
         
-        var metadata = switch(Metadata.get_metadata_for_token(state,request.escrow_receipt.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+        var metadata = switch(Metadata.get_metadata_for_token(state,request.escrow_reciept.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
                 return #err(Types.errors(#token_not_found, "bid_nft_origyn " # err.flag_point, ?caller));
             };
@@ -3247,38 +3247,38 @@ module {
        
 
         //make sure token ids match
-        if(current_sale.token_id != request.escrow_receipt.token_id){
-            return #err(Types.errors(#token_id_mismatch, "bid_nft_origyn - token id of sale does not match escrow receipt " # request.escrow_receipt.token_id, ?caller));
+        if(current_sale.token_id != request.escrow_reciept.token_id){
+            return #err(Types.errors(#token_id_mismatch, "bid_nft_origyn - token id of sale does not match escrow reciept " # request.escrow_reciept.token_id, ?caller));
         };
 
         //make sure assets match
-                            debug if(debug_channel.bid) D.print("checking asset sale type " # debug_show((_get_token_from_sales_status(current_sale), request.escrow_receipt.token)));
-        if(Types.token_eq(_get_token_from_sales_status(current_sale), request.escrow_receipt.token) == false){
-            return #err(Types.errors(#asset_mismatch, "bid_nft_origyn - asset in sale and escrow receipt do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+                            debug if(debug_channel.bid) D.print("checking asset sale type " # debug_show((_get_token_from_sales_status(current_sale), request.escrow_reciept.token)));
+        if(Types.token_eq(_get_token_from_sales_status(current_sale), request.escrow_reciept.token) == false){
+            return #err(Types.errors(#asset_mismatch, "bid_nft_origyn - asset in sale and escrow reciept do not match " # debug_show(request.escrow_reciept.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
         };
 
         //make sure owners match
-        if(Types.account_eq(owner, request.escrow_receipt.seller) == false){
-            return #err(Types.errors(#receipt_data_mismatch, "bid_nft_origyn - owner and seller do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+        if(Types.account_eq(owner, request.escrow_reciept.seller) == false){
+            return #err(Types.errors(#reciept_data_mismatch, "bid_nft_origyn - owner and seller do not match " # debug_show(request.escrow_reciept.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
         };
 
         //make sure buyers match
-        if(Types.account_eq(#principal(caller), request.escrow_receipt.buyer) == false){
-            return #err(Types.errors(#receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+        if(Types.account_eq(#principal(caller), request.escrow_reciept.buyer) == false){
+            return #err(Types.errors(#reciept_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show(request.escrow_reciept.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
         };
 
-        //make sure the receipt is valid
+        //make sure the reciept is valid
                             debug if(debug_channel.bid) D.print("verifying Escrow");
-        let verified = switch(verify_escrow_reciept(state, request.escrow_receipt, null, ?request.sale_id)){
+        let verified = switch(verify_escrow_reciept(state, request.escrow_reciept, null, ?request.sale_id)){
             case(#err(err)){return #err(Types.errors(err.error, "bid_nft_origyn verifying escrow " # err.flag_point, ?caller))};
             case(#ok(res)){
                 res;
             };
         };
 
-        if(verified.found_asset.escrow.amount < request.escrow_receipt.amount){
+        if(verified.found_asset.escrow.amount < request.escrow_reciept.amount){
             //D.print("in check amount");
-            return #err(Types.errors(#withdraw_too_large, "bid_nft_origyn - escrow - amount more than in escrow verified: " # Nat.toText(verified.found_asset.escrow.amount) # " request: " # Nat.toText(request.escrow_receipt.amount) , ?caller));
+            return #err(Types.errors(#withdraw_too_large, "bid_nft_origyn - escrow - amount more than in escrow verified: " # Nat.toText(verified.found_asset.escrow.amount) # " request: " # Nat.toText(request.escrow_reciept.amount) , ?caller));
             
         };
     
@@ -3300,11 +3300,11 @@ module {
                 let refund_id = service.sale_nft_origyn(#withdraw(
                     #escrow({
                         amount = verified.found_asset.escrow.amount; //return back the whole escrow
-                        buyer = request.escrow_receipt.buyer;
-                        seller = request.escrow_receipt.seller;
-                        token = request.escrow_receipt.token;
-                        token_id = request.escrow_receipt.token_id;
-                        withdraw_to = request.escrow_receipt.buyer;}
+                        buyer = request.escrow_reciept.buyer;
+                        seller = request.escrow_reciept.seller;
+                        token = request.escrow_reciept.token;
+                        token_id = request.escrow_reciept.token_id;
+                        withdraw_to = request.escrow_reciept.buyer;}
                     )));
                 //last_withdraw_result := ?refund_id;
 
@@ -3316,7 +3316,7 @@ module {
         };
 
         //make sure amount is high enough
-        if(request.escrow_receipt.amount < current_sale_state.min_next_bid){
+        if(request.escrow_reciept.amount < current_sale_state.min_next_bid){
             //if the bid is too low we should refund their escrow
                                 debug if(debug_channel.bid) D.print("refunding not high enough bid "  # debug_show(verified.found_asset.escrow.amount));
             let service : Types.Service = actor((Principal.toText(state.canister())));
@@ -3340,7 +3340,7 @@ module {
  
             case(null){false};
             case(?val){
-                if(val <= request.escrow_receipt.amount){
+                if(val <= request.escrow_reciept.amount){
                     true;
                 } else {
                     false;
@@ -3351,12 +3351,12 @@ module {
                             debug if(debug_channel.bid) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
 
         let new_trx = Metadata.add_transaction_record(state,{
-            token_id = request.escrow_receipt.token_id;
+            token_id = request.escrow_reciept.token_id;
             index = 0;
             txn_type = #auction_bid({
-                buyer = request.escrow_receipt.buyer;
-                amount = request.escrow_receipt.amount;
-                token = request.escrow_receipt.token;
+                buyer = request.escrow_reciept.buyer;
+                amount = request.escrow_reciept.amount;
+                token = request.escrow_reciept.token;
                 broker_id = request.broker_id;
                 sale_id = request.sale_id;
                 extensible = #Empty;
@@ -3379,12 +3379,12 @@ module {
                 let newMinBid = switch(current_pricing.min_increase){
                     case(#percentage(apercentage)){
 
-                        //request.escrow_receipt.amount * (1 + apercentage)
+                        //request.escrow_reciept.amount * (1 + apercentage)
                         return #err(Types.errors(#nyi, "bid_nft_origyn - percentage increase not implemented " , ?caller));
 
                     };
                     case(#amount(aamount)){
-                        request.escrow_receipt.amount + aamount;
+                        request.escrow_reciept.amount + aamount;
                     };
                 };
 
@@ -3396,18 +3396,18 @@ module {
 
                         //update state
                                             debug if(debug_channel.bid) D.print("updating the state" # debug_show(request));
-                        current_sale_state.current_bid_amount := request.escrow_receipt.amount;
+                        current_sale_state.current_bid_amount := request.escrow_reciept.amount;
                         current_sale_state.min_next_bid := newMinBid;
-                        current_sale_state.current_escrow := ?request.escrow_receipt;
+                        current_sale_state.current_escrow := ?request.escrow_reciept;
                         current_sale_state.current_broker_id := request.broker_id;
                     };
                     case(?val){
 
                         //update state
                                             debug if(debug_channel.bid) D.print("Before" # debug_show(val.amount) # debug_show(val));
-                        current_sale_state.current_bid_amount := request.escrow_receipt.amount;
+                        current_sale_state.current_bid_amount := request.escrow_reciept.amount;
                         current_sale_state.min_next_bid := newMinBid;
-                        current_sale_state.current_escrow := ?request.escrow_receipt;
+                        current_sale_state.current_escrow := ?request.escrow_reciept;
                         current_sale_state.current_broker_id := request.broker_id;
                                             debug if(debug_channel.bid) D.print("After" # debug_show(val.amount) # debug_show(val));
                         //refund the escrow
@@ -3439,7 +3439,7 @@ module {
 
                     let service : Types.Service = actor((Principal.toText(state.canister())));
                     
-                    let result = await service.sale_nft_origyn(#end_sale(request.escrow_receipt.token_id));
+                    let result = await service.sale_nft_origyn(#end_sale(request.escrow_reciept.token_id));
 
                     switch(result){
                         case(#ok(val)){
@@ -3457,7 +3457,7 @@ module {
                         };
                     };
 
-                    //call ourseves to close the auction
+                    //call ourselves to close the auction
                 };
                 return #ok(val);
             };

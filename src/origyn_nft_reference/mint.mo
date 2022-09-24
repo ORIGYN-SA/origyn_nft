@@ -100,7 +100,7 @@ module {
                                                     var version = (0,0,1);
                                                     var allocations  = Map.new<(Text,Text), Int>();
                                                 };
-                                               //D.print("original bucket set uup " # debug_show(a_bucket));
+                                               //D.print("original bucket set up " # debug_show(a_bucket));
                                                 Map.set<Principal, Types.BucketData>(state.state.buckets, Map.phash, state.canister(), a_bucket);
                                                 a_bucket;
                                             };
@@ -226,7 +226,7 @@ module {
         let result =  execute_mint(state, token_id, new_owner, null, caller);
 
         //notify library canisters of metadata
-        //warning: nyi: this needs to be moved to an async work flow as too many library canistes will overflow the cycle limit
+        //warning: nyi: this needs to be moved to an async work flow as too many library canisters will overflow the cycle limit
         
         
                      debug if(debug_channel.storage) D.print("mint done...handling library" # debug_show((result)));
@@ -245,15 +245,15 @@ module {
                                                 debug if(debug_channel.storage) D.print("processing a library" # debug_show((this_library, state.state.allocations)));
                             switch(Properties.getClassProperty(this_library, Types.metadata.library_id )){
                                 case(null){
-                                    //shouldnt be here
-                                    debug if(debug_channel.storage) D.print("shouldnt be here");
+                                    //shouldn't be here
+                                    debug if(debug_channel.storage) D.print("shouldn't be here");
                                 };
                                 case(?library_id){
                                                         debug if(debug_channel.storage) D.print(Conversions.valueToText(library_id.value));
                                     switch(Map.get(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, Conversions.valueToText(library_id.value)))){
                                         case(null){
                                             //shouldn't be here but won't fail
-                                                            debug if(debug_channel.storage) D.print("shouldnt be here null get");
+                                                            debug if(debug_channel.storage) D.print("shouldn't be here null get");
                                         };
                                         case(?val){
                                             if(val.canister != state.canister()){
@@ -264,7 +264,7 @@ module {
                                                     Map.set(found, Map.phash, val.canister, true);
                                                 };
                                             } else {
-                                                                debug if(debug_channel.storage) D.print("didnt update storage" # debug_show((val.canister, state.canister())));
+                                                                debug if(debug_channel.storage) D.print("didn't update storage" # debug_show((val.canister, state.canister())));
                                             };
                                         };
                                     };
@@ -292,7 +292,7 @@ module {
     //
     // Suggested Fields:
     // preview_asset - a pointer to a library_id that is the asset you would like gallaries, wallets, and marketplaces to show in a list.  For performance reasons you should keep this file small - defaults to the primary asset
-    // experience_asset - a pointer to a library_id that is the asset you would like for the user to navigate to to best experience your NFT.usually an html page - defaults to the primary asset
+    // experience_asset - a pointer to a library_id that is the asset you would like for the user to navigate to best experience your NFT.usually an html page - defaults to the primary asset
     // hidden_asset - a pointer to a library_id that is the asset you want shown to non-owners before the item is minted = ie a radomizer gif.
     //
     // Illegal fields
@@ -502,7 +502,7 @@ module {
                     switch(Properties.getClassProperty(this_item, Types.metadata.library_id)){
                         case(null){
                             //shouldn't be here
-                           //D.print("shouldnt be here");
+                           //D.print("shouldn't be here");
                         };
                         case(?id){
                                             debug if(debug_channel.stage) D.print(debug_show((id, library_id)));
@@ -596,7 +596,7 @@ module {
                             //chunk doesn't exist;
                                             debug if(debug_channel.stage) D.print("does not exist");
                             let new_workspace = Workspace.initWorkspace(2);
-                                            debug if(debug_channel.stage) D.print("puting Zone");
+                                            debug if(debug_channel.stage) D.print("putting Zone");
                                             debug if(debug_channel.stage) D.print(debug_show(chunk.filedata));
                             
                             if(chunk.content.size() > allocation.available_space){
@@ -618,7 +618,7 @@ module {
                             switch(library.get(chunk.library_id)){
                                 case(null){
                                                     debug if(debug_channel.stage) D.print("nft exists but not file");
-                                    //nft exists but this file librry entry doesnt exist
+                                    //nft exists but this file library entry doesnt exist
                                     //nftdoesn't exist;
                                     if(chunk.content.size() > allocation.available_space){
                                                             debug if(debug_channel.stage) D.print("not enough storage in allocation not null" # debug_show(chunk.token_id, chunk.library_id, chunk.content.size(),allocation.available_space));
@@ -711,7 +711,7 @@ module {
                            //D.print("index was chunk" # debug_show(this_index));
                             file_chunks.add(#Blob(chunk.content));
                         } else {
-                           //D.print("index wasnt chunk" # debug_show(this_index));
+                           //D.print("index wasn't chunk" # debug_show(this_index));
                             file_chunks.add(#Blob(Blob.fromArray([])));
                         }
                     };
@@ -801,7 +801,7 @@ module {
     };
 
     //executes the mint and gives owner ship to the specified user
-    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
+    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReciept, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
                         debug if(debug_channel.mint) D.print("in mint");
          var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){

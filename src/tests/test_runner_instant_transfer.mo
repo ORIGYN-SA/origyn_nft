@@ -116,7 +116,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         //Attempt to start the auction for minted NFT
         let start_auction_minted = await canister.market_transfer_nft_origyn({token_id = "first";
             sales_config = {
-                escrow_receipt = null;
+                escrow_reciept = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(1 * 10 ** 8);
@@ -156,7 +156,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         //Attempt to start the auction for the unminted NFT
         let start_auction_unminted = await canister.market_transfer_nft_origyn({token_id = "second";
             sales_config = {
-                escrow_receipt = null;
+                escrow_reciept = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = null;
@@ -229,7 +229,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "first";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(this_principal);
                     buyer = #principal(a_principal);
                     token_id = "first";
@@ -252,7 +252,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "second";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(canister_principal); //canister still owns second
                     buyer = #principal(a_principal);
                     token_id = "second";
@@ -283,7 +283,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "first";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(this_principal);
                     buyer = #principal(a_principal);
                     token_id = "first";
@@ -304,7 +304,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "second";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(this_principal);
                     buyer = #principal(a_principal);
                     token_id = "second";
@@ -335,7 +335,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "first";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(this_principal);
                     buyer = #principal(a_principal);
                     token_id = "second";
@@ -358,7 +358,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "second";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(canister_principal);
                     buyer = #principal(a_principal);
                     token_id = "";
@@ -443,7 +443,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             S.test("Escrow created succesfully (minted NFT)",         
                 switch(escrow_minted) {
                   case(#ok(info)) { 
-                      if (info.balance == 100_000_000 and info.receipt.buyer == #principal(a_principal) and info.receipt.seller == #principal(this_principal)) { "correct escrow data" }
+                      if (info.balance == 100_000_000 and info.reciept.buyer == #principal(a_principal) and info.reciept.seller == #principal(this_principal)) { "correct escrow data" }
                       else { "wrong escrow data: " # debug_show(escrow_minted) }; };
                   case(_) { "escrow should have passed: " # debug_show(escrow_minted) };},
                 M.equals<Text>(T.text("correct escrow data"))),
@@ -469,7 +469,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             S.test("Escrow created succesfully (unminted NFT)",         
                 switch(escrow_new_block) {
                   case(#ok(info)) { 
-                      if (info.balance == 100_000_000 and info.receipt.buyer == #principal(a_principal) ) { "correct escrow data" }
+                      if (info.balance == 100_000_000 and info.reciept.buyer == #principal(a_principal) ) { "correct escrow data" }
                       else { "wrong escrow data: " # debug_show(escrow_new_block) }; };
                   case(_) { "escrow should have passed: " # debug_show(escrow_new_block) };},
                 M.equals<Text>(T.text("correct escrow data"))),
@@ -662,7 +662,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         //Attempt to start the auction for soubound NFT
         let start_auction_soulbound = await canister.market_transfer_nft_origyn({token_id = "soulbound";
             sales_config = {
-                escrow_receipt = null;
+                escrow_reciept = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(1 * 10 ** 8);
@@ -686,7 +686,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             token_id = "soulbound";
             sales_config = 
               {
-                  escrow_receipt = ?{
+                  escrow_reciept = ?{
                     seller = #principal(canister_principal);
                     buyer = #principal(a_principal);
                     token_id = "";

@@ -1,7 +1,7 @@
 dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '( record {
     token_id="ogy.nftforgood_uffc.0";
     sales_config =  record {
-        escrow_receipt = null;
+        escrow_reciept = null;
         pricing = variant {
             auction = record{
                 reserve = opt(100000000000000:nat);
@@ -31,7 +31,7 @@ dfx canister --network ic call origyn_nft_reference end_sale_nft_origyn '("ogy.n
 dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '( record {
     token_id="ogy.nftforgood_uffc.0";
     sales_config =  record {
-        escrow_receipt = null;
+        escrow_reciept = null;
         pricing = variant {
             auction = record{
                 reserve = null;
@@ -57,7 +57,7 @@ dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '
 dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '( record {
     token_id="ogy.nftforgood_uffc.1";
     sales_config =  record {
-        escrow_receipt = null;
+        escrow_reciept = null;
         pricing = variant {
             auction = record{
                 reserve = null;
@@ -83,7 +83,7 @@ dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '
 dfx canister --network ic call origyn_nft_reference market_transfer_nft_origyn '( record {
     token_id="ogy.nftforgood_uffc.2";
     sales_config =  record {
-        escrow_receipt = null;
+        escrow_reciept = null;
         pricing = variant {
             auction = record{
                 reserve = null;

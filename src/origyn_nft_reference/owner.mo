@@ -34,9 +34,9 @@ module {
 
     public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
         //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
-        //should be moved along with the the token
+        //should be moved along with the token
 
-        //nyi: transfers from one accountid to another must be from the same principal.Array
+        //nyi: transfers from one accountId to another must be from the same principal.Array
         //to transfer from accountId they must be in the null subaccount
 
         var metadata = switch(Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
@@ -65,7 +65,7 @@ module {
         
 
         if(Types.account_eq(owner, #principal(caller)) == false){
-            //cant transfer something you dont own;
+            //cant transfer something you don't own;
             debug if(debug_channel.owner) D.print("should be returning item not owned");
             return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
         };
@@ -86,7 +86,7 @@ module {
                             debug if(debug_channel.owner) D.print(debug_show(owner));
                             debug if(debug_channel.owner) D.print(debug_show(request.from));
         if(Types.account_eq(owner, request.from) == false){
-            //cant transfer something you dont own;
+            //cant transfer something you don't own;
                                 debug if(debug_channel.owner) D.print("should be returning item not owned");
             return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
         };
@@ -170,7 +170,7 @@ module {
         
         
         //nyi: determine if this is a marketable NFT and take proper action
-        //marketable NFT may not be transfered between owner wallets execpt through share_nft_origyn
+        //marketable NFT may not be transferred between owner wallets except through share_nft_origyn
         let token_id = NFTUtils.get_nat_as_token_id(tokenAsNat);
         
         let escrows = switch(Market.find_escrow_reciept(state, #principal(to), #principal(from), token_id)){
@@ -195,7 +195,7 @@ module {
             token_id = token_id;
             sales_config = 
               {
-                  escrow_receipt = ?first_asset.1;
+                  escrow_reciept = ?first_asset.1;
                   pricing = #instant;
                   broker_id = null;
               };            
@@ -257,26 +257,26 @@ module {
                             }, data)){
                     case(#ok(val)){val};
                     case(#err(err)){
-                        return #err(#Other("escrow required for EXT transfer - failure of EXT tranfer " # err.flag_point));
+                        return #err(#Other("escrow required for EXT transfer - failure of EXT transfer " # err.flag_point));
                     };
                 };
 
                 if(Map.size(escrows) == 0 ){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer"));
+                    return #err(#Other("escrow required of EXT transfer transfer - failure of EXT tranfer"));
                 };
 
                 //dip721 is not discerning. If it finds a first asset it will use that for the transfer
                 let first_asset = Iter.toArray(Map.entries(escrows))[0];
 
                 if(first_asset.1.sale_id != null){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer due to sale_id in escrow reciept" # debug_show(first_asset)));
+                    return #err(#Other("escrow required of EXT transfer transfer - failure of EXT transfer due to sale_id in escrow reciept" # debug_show(first_asset)));
                 };
 
                 let result = await Market.market_transfer_nft_origyn_async(state, {
                     token_id = data;
                     sales_config = 
                     {
-                        escrow_receipt = ?first_asset.1;
+                        escrow_reciept = ?first_asset.1;
                         pricing = #instant;
                         broker_id = null;
                     };            
@@ -288,7 +288,7 @@ module {
                     };
                     case(#err(err)){
                         
-                        return #err(#Other("failure of EXT tranfer " # err.flag_point));
+                        return #err(#Other("failure of EXT transfer " # err.flag_point));
                         
                     };
                 };

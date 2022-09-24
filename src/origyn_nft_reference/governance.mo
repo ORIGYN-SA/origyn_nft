@@ -21,7 +21,7 @@ module {
         governance = false;
     };
 
-    //allows the network to govern the NFT via decentralized concensus.
+    //allows the network to govern the NFT via decentralized consensus.
     public func governance_nft_origyn(state: Types.State, request : Types.GovernanceRequest, caller : Principal) : Result.Result<Types.GovernanceResponse, Types.OrigynError> {
 
       //only the network can enact goverance

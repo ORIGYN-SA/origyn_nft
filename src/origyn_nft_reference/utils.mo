@@ -155,7 +155,7 @@ module {
     };
 
 
-    public func get_escrow_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
+    public func get_escrow_account_info(request : Types.EscrowReciept, host: Principal) : Types.SubAccountInfo{
         
         D.print("Getting escrow account");
         let h = SHA256.New();
@@ -190,7 +190,7 @@ module {
         return Conversions.valueToNat(#Bytes(#frozen(sub_hash)));
     };
 
-    public func get_sale_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
+    public func get_sale_account_info(request : Types.EscrowReciept, host: Principal) : Types.SubAccountInfo{
         
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
@@ -302,7 +302,7 @@ module {
                 };
             };
             case(#extensible(data)){
-                return Prelude.nyi(); //cant implement until candy has stable hash
+                return Prelude.nyi(); //can't implement until candy has stable hash
             }
         };
     };

@@ -147,7 +147,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //when meta data is updated on the gateway it will call this function to make sure the
-    //the storage contatiner has the same info
+    //the storage container has the same info
     public shared (msg) func refresh_metadata_nft_origyn(token_id: Text, metadata: CandyTypes.CandyValue) : async Result.Result<Bool, Types.OrigynError>{
 
                             debug if(debug_channel.refresh) D.print("in metadata refresh");

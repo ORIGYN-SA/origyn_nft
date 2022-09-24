@@ -283,7 +283,7 @@ module {
         };
     };
 
-    public type EscrowReceipt = {
+    public type EscrowReciept = {
         amount: Nat; //Nat to support cycles
         seller: Account;
         buyer: Account;
@@ -298,7 +298,7 @@ module {
                 var current_broker_id: ?Principal;
                 var end_date: Int;
                 var min_next_bid: Nat;
-                var current_escrow: ?EscrowReceipt;
+                var current_escrow: ?EscrowReciept;
                 var wait_for_quiet_count: ?Nat;
                 var allow_list: ?Map.Map<Principal,Bool>; //empty set means everyone
                 var participants: Map.Map<Principal,Int>;

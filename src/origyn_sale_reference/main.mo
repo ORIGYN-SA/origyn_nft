@@ -228,7 +228,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
        
 
         return #ok({
-            receipt = {
+            reciept = {
                 amount = 100_000_000; 
                 seller = #principal(alice_seller);
                 buyer = #principal(jess_buyer);
@@ -1161,7 +1161,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
 
     
-    // takeas an escrow receipt and attempts the instant transfer of the allocation
+    // takeas an escrow reciept and attempts the instant transfer of the allocation
     // creator will need to set a redeem_at_a_time variable that dictates the number of xcanister calls that can       
     // happen at once. Should use a batch market transfer function
    
@@ -1170,7 +1170,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         D.print("in redeem=");
          // ToDo:
          // Need to validate the allocation has not expired
-         // redeem_allocation is the actual sale, once that function has validated the allocation has not expired it should call market_transfer_nft_origyn on the nft canister with #instant and provide the escrow receipt.
+         // redeem_allocation is the actual sale, once that function has validated the allocation has not expired it should call market_transfer_nft_origyn on the nft canister with #instant and provide the escrow reciept.
         
         let found_allocation = switch(Map.get<Principal, Types.Allocation>(state.user_allocations, Map.phash, msg.caller)){
             case(null){
@@ -1208,7 +1208,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         let remove_specs = Array.filter<(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])>(user_info.prices, func(item){
             switch(item.0){
                 case(null){true};//free
-                case(?val){NFTTypes.token_eq(val, request.escrow_receipt.token)};
+                case(?val){NFTTypes.token_eq(val, request.escrow_reciept.token)};
             };
         });
 
@@ -1227,7 +1227,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         //prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])];
 
-        var balance_remaining = request.escrow_receipt.amount;
+        var balance_remaining = request.escrow_reciept.amount;
         D.print("balance_remaining" # debug_show(balance_remaining));
         let bought_list = Buffer.Buffer<(Text,Nat)>(1);
         var available_nfts = List.fromArray<Text>(found_allocation.nfts);
@@ -1287,19 +1287,19 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         if(bought_list.size() == 0){
             D.print("nothing int he list");
-            return #err(Types.errors(#improper_escrow, "redeem_allocation_sale_nft_origyn - improper_escrow - not large enough for one purchase " # debug_show(request.escrow_receipt), ?msg.caller));
+            return #err(Types.errors(#improper_escrow, "redeem_allocation_sale_nft_origyn - improper_escrow - not large enough for one purchase " # debug_show(request.escrow_reciept), ?msg.caller));
         };
 
         for(this_item in bought_list.vals()){
             transfers.add({
                 token_id = this_item.0;
                 sales_config = {
-                    escrow_receipt = ?{
+                    escrow_reciept = ?{
                         amount = this_item.1;
-                        seller = request.escrow_receipt.seller;
-                        buyer = request.escrow_receipt.buyer;
-                        token_id = request.escrow_receipt.token_id;
-                        token = request.escrow_receipt.token;
+                        seller = request.escrow_reciept.seller;
+                        buyer = request.escrow_reciept.buyer;
+                        token_id = request.escrow_reciept.token_id;
+                        token = request.escrow_reciept.token;
                     };
                     broker_id = null;
                     pricing = #instant;
@@ -1437,7 +1437,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         };
 
         
-        switch(request.escrow_receipt){
+        switch(request.escrow_reciept){
             case(null){};
             case(?val){
                 //validate the escrow
@@ -1456,7 +1456,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         D.print("script reciept validated " # debug_show(true));
 
 
-        let {user_info = user_info; allocation_size = allocation_size} = get_possible_purchases(msg.caller, switch(request.escrow_receipt){case(null){null;};case(?val){?val.token;}}, request.max_desired);
+        let {user_info = user_info; allocation_size = allocation_size} = get_possible_purchases(msg.caller, switch(request.escrow_reciept){case(null){null;};case(?val){?val.token;}}, request.max_desired);
        
         D.print("have usr info " # debug_show(user_info, allocation_size));
 
@@ -1465,7 +1465,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             return #err(Types.errors(#improper_allocation, "register_escrow_sale_nft_origyn - no valid allocation found " # debug_show(request), ?msg.caller));
         };
 
-        let current_reg = switch(request.escrow_receipt){
+        let current_reg = switch(request.escrow_reciept){
             case(null){
                 //only put in if the user qualifed for some free items
                 D.print("handling fee items " # debug_show(true));
@@ -1475,7 +1475,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                         let new_reg = {
                             principal = request.principal;
                             var max_desired= request.max_desired;
-                            var escrow_receipt = request.escrow_receipt;
+                            var escrow_reciept = request.escrow_reciept;
                             var allocation_size = allocation_size;
                             var allocation = Map.new<Text, Types.RegistrationClaim>();
                         };
@@ -1485,7 +1485,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     case(?val){
                         //this already exists
                         val.max_desired := request.max_desired;
-                        val.escrow_receipt := request.escrow_receipt;
+                        val.escrow_reciept := request.escrow_reciept;
                         val.allocation_size := allocation_size;
                         val;
                     }
@@ -1537,7 +1537,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                         let new_reg = {
                             principal = request.principal;
                             var max_desired= request.max_desired;
-                            var escrow_receipt = request.escrow_receipt;
+                            var escrow_reciept = request.escrow_reciept;
                             var allocation_size = allocation_size;
                             var allocation = Map.new<Text, Types.RegistrationClaim>();
                         };
@@ -1547,7 +1547,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     case(?val){
                         //this already exists
                         val.max_desired := request.max_desired;
-                        val.escrow_receipt := request.escrow_receipt;
+                        val.escrow_reciept := request.escrow_reciept;
                         val.allocation_size := allocation_size;
                         val;
                     }
@@ -1566,7 +1566,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             
             allocation = Iter.toArray<Types.RegisterEscrowAllocationDetail>(iter2);
             max_desired = current_reg.max_desired;
-            escrow_receipt = request.escrow_receipt;
+            escrow_reciept = request.escrow_reciept;
             allocation_size = current_reg.allocation_size;
             principal = current_reg.principal;
         }));
@@ -1810,7 +1810,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     
                     allocation = Iter.toArray<Types.RegisterEscrowAllocationDetail>(iter2);
                     max_desired = val.max_desired;
-                    escrow_receipt = val.escrow_receipt;
+                    escrow_reciept = val.escrow_reciept;
                     allocation_size = val.allocation_size;
                     principal = val.principal;
                 }));
@@ -1820,7 +1820,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     
                     allocation = [];
                     max_desired = 0;
-                    escrow_receipt = null;
+                    escrow_reciept = null;
                     allocation_size = 0;
                     principal = principal;
                 }));

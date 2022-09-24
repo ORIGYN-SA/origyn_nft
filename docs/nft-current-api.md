@@ -86,7 +86,7 @@ Owner Tranfers moves an NFT from one wallet of an owner to another owner of a wa
     };
 
     public type SalesConfig = {
-        escrow_receipt : ?EscrowReceipt;
+        escrow_reciept : ?EscrowReciept;
         broker_id : ?Principal;
         pricing: PricingConfig;
     };
@@ -162,7 +162,7 @@ Currently implemented pricing configs are:
 #instant
 ```
 
-Instant transfers are used to sell an unminted NFT or a direct sale of a minted NFT. They require an escrow to be on file with the canister.  The owner of an NFT must be given the escrow receipt and must submit the receipt with the transfer request.
+Instant transfers are used to sell an unminted NFT or a direct sale of a minted NFT. They require an escrow to be on file with the canister.  The owner of an NFT must be given the escrow reciept and must submit the reciept with the transfer request.
 
 ```
 #auction
@@ -596,7 +596,7 @@ Once the tokens are sent to the subaccount on the NFT canister the following is 
         trx_id : ?TransactionID; //null for account based ledgers
     };
 
-    public type EscrowReceipt = {
+    public type EscrowReciept = {
         amount: Nat; //Nat to support cycles
         seller: Account;
         buyer: Account;
@@ -606,7 +606,7 @@ Once the tokens are sent to the subaccount on the NFT canister the following is 
     };
 
     public type EscrowResponse = {
-        receipt: EscrowReceipt;
+        reciept: EscrowReciept;
         balance: Nat; //total balance if added to an existing escrow
         transaction: TransactionRecord;
     };
@@ -620,7 +620,7 @@ During auctions, a user can bid on the NFT using the #bid command.
 
 ```
     public type BidRequest = {
-        escrow_receipt: EscrowReceipt;//should be returned by the escrow_deposit
+        escrow_reciept: EscrowReciept;//should be returned by the escrow_deposit
         sale_id: Text;
         broker_id: ?Principal;
     };
@@ -628,14 +628,14 @@ During auctions, a user can bid on the NFT using the #bid command.
     public type BidResponse = TransactionRecord;
 
 
-    sale_nft_origyn(ManageSaleRequest(#bid(BidRequest))) -> Result<ManageSaleResponse(#bid(BidResponse)), OrigynError> - places a bid on an nft if the escrow receipt is valid. 
+    sale_nft_origyn(ManageSaleRequest(#bid(BidRequest))) -> Result<ManageSaleResponse(#bid(BidResponse)), OrigynError> - places a bid on an nft if the escrow reciept is valid. 
 
     
 ```
 
 ### Withdrawals
 
-Allows a user to withdraw their escrowed funds from either an Escrow account or a Sales Receipt, or reject an offer and withdraw the funds back to an offerer.
+Allows a user to withdraw their escrowed funds from either an Escrow account or a Sales Reciept, or reject an offer and withdraw the funds back to an offerer.
 
 ```
     public type WithdrawRequest = { 
@@ -1119,7 +1119,7 @@ Features:
         };
     };
 
-    public type EscrowReceipt = {
+    public type EscrowReciept = {
         amount: Nat; //Nat to support cycles
         seller: Account;
         buyer: Account;
@@ -1134,7 +1134,7 @@ Features:
                 var current_broker_id: ?Principal;
                 var end_date: Int;
                 var min_next_bid: Nat;
-                var current_escrow: ?EscrowReceipt;
+                var current_escrow: ?EscrowReciept;
                 var wait_for_quiet_count: ?Nat;
                 var allow_list: ?Map.Map<Principal,Bool>; //empty set means everyone
                 var participants: Map.Map<Principal,Int>;
@@ -1289,7 +1289,7 @@ Features:
     };
 
     public type SalesConfig = {
-        escrow_receipt : ?EscrowReceipt;
+        escrow_reciept : ?EscrowReciept;
         broker_id : ?Principal;
         pricing: PricingConfig;
     };
@@ -1312,7 +1312,7 @@ Features:
         };
     };
 
-    public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
+    public type EscrowReciept = MigrationTypes.Current.EscrowReciept;
 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
@@ -1333,13 +1333,13 @@ Features:
     public type TransactionID = MigrationTypes.Current.TransactionID;
 
     public type EscrowResponse = {
-        receipt: EscrowReceipt;
+        reciept: EscrowReciept;
         balance: Nat;
         transaction: TransactionRecord;
     };
 
     public type BidRequest = {
-        escrow_receipt: EscrowReceipt;
+        escrow_reciept: EscrowReciept;
         sale_id: Text;
         broker_id: ?Principal;
     };
@@ -1629,7 +1629,7 @@ Features:
         #out_of_range;
         #owner_not_found;
         #property_not_found;
-        #receipt_data_mismatch;
+        #reciept_data_mismatch;
         #sale_not_found;
         #sale_not_over;
         #sale_id_does_not_match;
@@ -1739,7 +1739,7 @@ Features:
         #Other;
     };
 
-    type TxReceipt ={
+    type TxReciept ={
         #Err: DIP721APIError;
         #Ok: nat;
     };
