@@ -168,7 +168,7 @@ module {
     };
 
     public type SalesConfig = {
-        escrow_reciept : ?EscrowReciept;
+        escrow_receipt : ?EscrowReceipt;
         broker_id : ?Principal;
         pricing: PricingConfig;
     };
@@ -191,7 +191,7 @@ module {
         };
     };
 
-    public type EscrowReciept = MigrationTypes.Current.EscrowReciept;
+    public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
@@ -215,13 +215,13 @@ module {
     public type TransactionID = MigrationTypes.Current.TransactionID;
 
     public type EscrowResponse = {
-        reciept: EscrowReciept;
+        receipt: EscrowReceipt;
         balance: Nat;
         transaction: TransactionRecord;
     };
 
     public type BidRequest = {
-        escrow_reciept: EscrowReciept;
+        escrow_receipt: EscrowReceipt;
         sale_id: Text;
         broker_id: ?Principal;
     };
@@ -258,7 +258,7 @@ module {
                 current_broker_id: ?Principal;
                 end_date: Int;
                 min_next_bid: Nat;
-                current_escrow: ?EscrowReciept;
+                current_escrow: ?EscrowReceipt;
                 wait_for_quiet_count: ?Nat;
                 allow_list: ?[(Principal,Bool)]; // user, tree
                 participants: [(Principal,Int)]; //user, timestamp of last access
@@ -607,7 +607,7 @@ module {
         #out_of_range;
         #owner_not_found;
         #property_not_found;
-        #reciept_data_mismatch;
+        #receipt_data_mismatch;
         #sale_not_found;
         #sale_not_over;
         #sale_id_does_not_match;
@@ -929,10 +929,10 @@ module {
                     flag_point = flag_point;
                     caller = caller;}
             };
-            case(#reciept_data_mismatch){
+            case(#receipt_data_mismatch){
                 return {
                     number = 4001; 
-                    text = "reciept_data_mismatch";
+                    text = "receipt_data_mismatch";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;}

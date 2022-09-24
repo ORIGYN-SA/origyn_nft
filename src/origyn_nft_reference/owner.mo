@@ -173,7 +173,7 @@ module {
         //marketable NFT may not be transferred between owner wallets except through share_nft_origyn
         let token_id = NFTUtils.get_nat_as_token_id(tokenAsNat);
         
-        let escrows = switch(Market.find_escrow_reciept(state, #principal(to), #principal(from), token_id)){
+        let escrows = switch(Market.find_escrow_receipt(state, #principal(to), #principal(from), token_id)){
             case(#ok(val)){val};
             case(#err(err)){
                 return #Err(#Other("escrow required for DIP721 transfer - failure of DIP721 transferFrom " # err.flag_point));
@@ -188,14 +188,14 @@ module {
         let first_asset = Iter.toArray(Map.entries(escrows))[0];
 
         if(first_asset.1.sale_id != null){
-            return #Err(#Other("escrow required for DIP721 transfer - failure of DIP721 transferFrom due to sale_id in escrow reciept" # debug_show(first_asset)));
+            return #Err(#Other("escrow required for DIP721 transfer - failure of DIP721 transferFrom due to sale_id in escrow receipt" # debug_show(first_asset)));
         };
 
         let result = await Market.market_transfer_nft_origyn_async(state, {
             token_id = token_id;
             sales_config = 
               {
-                  escrow_reciept = ?first_asset.1;
+                  escrow_receipt = ?first_asset.1;
                   pricing = #instant;
                   broker_id = null;
               };            
@@ -234,7 +234,7 @@ module {
         switch(getNFTForTokenIdentifier(state, request.token)){
             case(#ok(data)){
 
-                let escrows = switch(Market.find_escrow_reciept(state, switch(request.from){
+                let escrows = switch(Market.find_escrow_receipt(state, switch(request.from){
                                 case(#principal(data)){
                                     #principal(data);
                                 };
@@ -269,14 +269,14 @@ module {
                 let first_asset = Iter.toArray(Map.entries(escrows))[0];
 
                 if(first_asset.1.sale_id != null){
-                    return #err(#Other("escrow required of EXT transfer transfer - failure of EXT transfer due to sale_id in escrow reciept" # debug_show(first_asset)));
+                    return #err(#Other("escrow required of EXT transfer transfer - failure of EXT transfer due to sale_id in escrow receipt" # debug_show(first_asset)));
                 };
 
                 let result = await Market.market_transfer_nft_origyn_async(state, {
                     token_id = data;
                     sales_config = 
                     {
-                        escrow_reciept = ?first_asset.1;
+                        escrow_receipt = ?first_asset.1;
                         pricing = #instant;
                         broker_id = null;
                     };            

@@ -36,7 +36,7 @@ shared (deployer) actor class test_wallet() = this {
         #failed;
     };
 
-    public type TxReciept = {
+    public type TxReceipt = {
         #Ok: Nat;
         #Err: {
             #InsufficientAllowance;
@@ -73,10 +73,10 @@ shared (deployer) actor class test_wallet() = this {
 
     public type ledgerService = actor {
       account_balance : query (AccountBalanceArgs) -> async  Tokens;
-      transfer : (to: Principal, value: Nat) -> async TxReciept;
+      transfer : (to: Principal, value: Nat) -> async TxReceipt;
       getTransaction : (id: Nat) -> async TxRecord;
-      approve : (spender: Principal, value: Nat) -> async TxReciept;
-      transferFrom: (from: Principal, to: Principal, value: Nat) -> async TxReciept;
+      approve : (spender: Principal, value: Nat) -> async TxReceipt;
+      transferFrom: (from: Principal, to: Principal, value: Nat) -> async TxReceipt;
     };
 
     public shared func try_get_chunk(canister: Principal, token_id: Text, library_id: Text, chunk: Nat) : async Result.Result<Blob, Text> {
@@ -215,7 +215,7 @@ shared (deployer) actor class test_wallet() = this {
             token_id = "1";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(current_owner);
                     buyer = #principal(Principal.fromActor(this));
                     token_id = "1";
@@ -716,7 +716,7 @@ shared (deployer) actor class test_wallet() = this {
        //D.print("calling set data");
        let trystart = await acanister.market_transfer_nft_origyn({token_id = "1";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(100 * 10 ** 8);
@@ -756,7 +756,7 @@ shared (deployer) actor class test_wallet() = this {
        let trystart = await acanister.sale_nft_origyn(#bid({
             broker_id =  broker;
             sale_id = sale_id;
-            escrow_reciept = {
+            escrow_receipt = {
               seller= #principal(owner);
               buyer= #principal(Principal.fromActor(this));
               token_id = token_id;

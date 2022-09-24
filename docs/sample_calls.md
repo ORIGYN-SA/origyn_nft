@@ -5,7 +5,7 @@ Starting an auction. Be sure to update the end date.
 dfx canister call origyn_nft_reference market_transfer_nft_origyn '( record {
     token_id="bayc-0";
     sales_config =  record {
-        escrow_reciept = null;
+        escrow_receipt = null;
         pricing = variant {
             auction = record{
                 reserve = null;

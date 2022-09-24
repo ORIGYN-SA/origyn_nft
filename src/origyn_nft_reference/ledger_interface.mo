@@ -145,7 +145,7 @@ class Ledger_Interface() {
     };
 
     //allows a user to withdraw money from a sale
-    public func transfer_sale(host: Principal, escrow : Types.EscrowReciept,  token_id : Text, caller: Principal) : async Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+    public func transfer_sale(host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
                         debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
                         debug if(debug_channel.sale) D.print(Principal.toText(host));
                         debug if(debug_channel.sale) D.print(debug_show(escrow));

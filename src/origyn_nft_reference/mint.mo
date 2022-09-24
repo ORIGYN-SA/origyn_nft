@@ -801,7 +801,7 @@ module {
     };
 
     //executes the mint and gives owner ship to the specified user
-    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReciept, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
+    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
                         debug if(debug_channel.mint) D.print("in mint");
          var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){

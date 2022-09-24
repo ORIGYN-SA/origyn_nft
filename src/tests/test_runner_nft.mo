@@ -122,7 +122,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("starting sale");
         let sale_start = await canister.market_transfer_nft_origyn({token_id = "2";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = null;
@@ -427,7 +427,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "1";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "1";
@@ -523,7 +523,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "1";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "";
@@ -573,7 +573,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "2";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "";
@@ -652,7 +652,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "3";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(this));
                     buyer = #principal(Principal.fromActor(b_wallet));
                     token_id = "3";
@@ -754,8 +754,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};}, M.equals<Text>(T.text("correct number"))), //ESC0011
             S.test("can escrow for general unminted item", switch(a_wallet_try_escrow_general_staged){case(#ok(res)){
                 D.print("an amount for escrow");
-                D.print(debug_show(res.reciept));
-                if(res.reciept.amount == 1*10**8){
+                D.print(debug_show(res.receipt));
+                if(res.receipt.amount == 1*10**8){
                     "was escrowed"
                 } else {
                     "was not escrowed"
@@ -793,7 +793,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};case(#ok(res)){"unexpected success: " # debug_show(res)};},
                 M.equals<Text>(T.text("correct number"))),
              S.test("can escrow for specific item", switch(b_wallet_try_escrow_specific_staged){case(#ok(res)){
-                if(res.reciept.amount == 1*10**8){
+                if(res.receipt.amount == 1*10**8){
                     "was escrowed"
                 } else {
                     "was not escrowed"
@@ -961,7 +961,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "1";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "";
@@ -1012,7 +1012,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "2";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(this));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "2";
@@ -1066,7 +1066,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //start an auction by owner
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "3";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(1 * 10 ** 8);
@@ -1353,7 +1353,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //start an auction by owner
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "1";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(100 * 10 ** 8);
@@ -1397,7 +1397,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //try starting again//should fail MKT0018
         let start_auction_attempt_owner_already_started = await canister.market_transfer_nft_origyn({token_id = "1";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(100 * 10 ** 8);
@@ -1503,7 +1503,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //todo: write test
         let start_auction_attempt_owner_already_started_b = await canister.market_transfer_nft_origyn({token_id = "2";
             sales_config = {
-                escrow_reciept = null;
+                escrow_receipt = null;
                 broker_id = null;
                 pricing = #auction{
                     reserve = ?(100 * 10 ** 8);
@@ -2573,7 +2573,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "1";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "";
@@ -2622,7 +2622,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "2";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(canister));
                     buyer = #principal(Principal.fromActor(a_wallet));
                     token_id = "";
@@ -2702,7 +2702,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             token_id = "3";
             sales_config = 
               {
-                  escrow_reciept = ?{
+                  escrow_receipt = ?{
                     seller = #principal(Principal.fromActor(this));
                     buyer = #principal(Principal.fromActor(b_wallet));
                     token_id = "3";
@@ -2778,14 +2778,14 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};}, M.equals<Text>(T.text("correct number"))), //ESC0011
             S.test("can escrow for general unminted item", switch(a_wallet_try_escrow_general_staged){case(#ok(res)){
                 D.print("an amount for escrow");
-                D.print(debug_show(res.reciept));
-                if(res.reciept.amount == 1*10**8){
+                D.print(debug_show(res.receipt));
+                if(res.receipt.amount == 1*10**8){
                     "was escrowed"
                 } else {
                     "was not escrowed"
                 }};case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("was escrowed"))), //ESC0002
              S.test("can escrow for specific item", switch(b_wallet_try_escrow_specific_staged){case(#ok(res)){
-                if(res.reciept.amount == 1*10**8){
+                if(res.receipt.amount == 1*10**8){
                     "was escrowed"
                 } else {
                     "was not escrowed"

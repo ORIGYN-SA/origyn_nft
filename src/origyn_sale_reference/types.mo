@@ -181,7 +181,7 @@ module {
         allowed_amount: ?AllowedAmount;
     }];
     public type GetEscrowResponse = {
-        reciept: NFTTypes.EscrowReciept;
+        receipt: NFTTypes.EscrowReceipt;
         balance: Nat;
         transaction: NFTTypes.TransactionRecord;
     };
@@ -363,7 +363,7 @@ module {
     };
 
     public type RedeemAllocationRequest = {
-        escrow_reciept: NFTTypes.EscrowReciept; //creator can set a max
+        escrow_receipt: NFTTypes.EscrowReceipt; //creator can set a max
     };
 
     public type RedeemAllocationResponse = {
@@ -375,7 +375,7 @@ module {
     public type Registration = {
         principal: Principal;
         var max_desired: Nat;
-        var escrow_reciept: ?NFTTypes.EscrowReciept;
+        var escrow_receipt: ?NFTTypes.EscrowReceipt;
         var allocation_size : Nat;
         var allocation: Map.Map<Text,RegistrationClaim>;
     };
@@ -390,7 +390,7 @@ module {
     public type RegisterEscrowRequest = {
         principal: Principal;
         max_desired: Nat;
-        escrow_reciept: ?NFTTypes.EscrowReciept; //creator can set a max
+        escrow_receipt: ?NFTTypes.EscrowReceipt; //creator can set a max
     };
 
     public type RegisterEscrowAllocationDetail = {
@@ -410,7 +410,7 @@ module {
     public type RegisterEscrowResponse = {
         max_desired: Nat;
         principal: Principal;
-        escrow_reciept: ?NFTTypes.EscrowReciept; //creator can set a max
+        escrow_receipt: ?NFTTypes.EscrowReceipt; //creator can set a max
         allocation : [RegisterEscrowAllocationDetail];
         allocation_size: Nat;
     };

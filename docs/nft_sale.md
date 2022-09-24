@@ -75,13 +75,13 @@ public type InitArgs = {
 **Call redeem_allocation**
 
 ```
- dfx canister call origyn_sale_reference redeem_allocation '(record {escrow_reciept=record {token=variant {ic=record {fee=200000; decimals=8; canister=principal "dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe"; standard=variant {DIP20}; symbol="DIP20"}}; token_id="OG1"; seller=variant {"principal" = principal "u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae"}; buyer=variant {"principal" = principal "3j2qa-oveg3-2agc5-735se-zsxjj-4n65k-qmnse-byzkf-4xhw5-mzjxe-pae"}; amount=100000000}})'
+ dfx canister call origyn_sale_reference redeem_allocation '(record {escrow_receipt=record {token=variant {ic=record {fee=200000; decimals=8; canister=principal "dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe"; standard=variant {DIP20}; symbol="DIP20"}}; token_id="OG1"; seller=variant {"principal" = principal "u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae"}; buyer=variant {"principal" = principal "3j2qa-oveg3-2agc5-735se-zsxjj-4n65k-qmnse-byzkf-4xhw5-mzjxe-pae"}; amount=100000000}})'
 ```
 
 **Call register_escrow**
 
 ```
- dfx canister call origyn_sale_reference redeem_allocation '(record {escrow_reciept=record {token=variant {ic=record {fee=200000; decimals=8; canister=principal "dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe"; standard=variant {DIP20}; symbol="DIP20"}}; token_id="OG1"; seller=variant {"principal" = principal "u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae"}; buyer=variant {"principal" = principal "3j2qa-oveg3-2agc5-735se-zsxjj-4n65k-qmnse-byzkf-4xhw5-mzjxe-pae"}; amount=100000000}})'
+ dfx canister call origyn_sale_reference redeem_allocation '(record {escrow_receipt=record {token=variant {ic=record {fee=200000; decimals=8; canister=principal "dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe"; standard=variant {DIP20}; symbol="DIP20"}}; token_id="OG1"; seller=variant {"principal" = principal "u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae"}; buyer=variant {"principal" = principal "3j2qa-oveg3-2agc5-735se-zsxjj-4n65k-qmnse-byzkf-4xhw5-mzjxe-pae"}; amount=100000000}})'
 ```
 
 **Call add_inventory_item**
