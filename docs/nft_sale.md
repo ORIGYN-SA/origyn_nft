@@ -28,18 +28,18 @@
 
 - Register and review my escrow
 
-- See the groups I’m registered for the drop
+- See the groups I’m registered in for the drop
 
 ---
 
 #### Data workflow
 
-- Manage NFTs - calls ==> Add Inventory Item ( Adds NFTs to inventory )
-- Manage groups ( Allows the creator to create and manage groups. These groups can be allocated a certain number of NFTs )
-- Manage Reservation ( Allows a creator to associate a set of nfts with a particular group or address )
-- Get Groups ( Retrieves a list of groups for a particular user or address )
+- Manage NFTs - calls ==> Add Inventory Item ( Adds NFTs to inventory. )
+- Manage groups ( Allows the creator to create and manage groups. These groups can be allocated a certain number of NFTs. )
+- Manage Reservation ( Allows a creator to associate a set of nfts with a particular group or address. )
+- Get Groups ( Retrieves a list of groups for a particular user or address. )
 
-**To deploy ONLY the origyn_sale_reference run the following from the root directory :**
+**To deploy ONLY the origyn_sale_reference canister, run the following from the root directory :**
 
 ```
  yes yes | bash nft_sales_runner.sh
@@ -55,13 +55,13 @@ http://localhost:8000/?canisterId=ryjl3-tyaaa-aaaaa-aaaba-cai&id=rrkah-fqaaa-aaa
 
 ```
 public type InitArgs = {
-        owner: Principal;                    //owner of the canister
-        allocation_expiration: Int;          //amount of time to keep an allocation for 900000000000 = 15 minutes
-        nft_gateway: ?Principal;             //the nft gateway canister this sales canister will sell NFTs for
-        sale_open_date : ?Int;              //date that the NFTs in the registration shold be minted/allocated
-        registration_date: ?Int;              //date that registations open up
-        end_date: ?Int;                      //date that the canister closes its sale
-        required_lock_date: ?Int             //date that users must lock their tokens until to qualify for reservations
+  owner: Principal;                   //owner of the canister
+  allocation_expiration: Int;         //amount of time to keep an allocation for 900000000000 = 15 minutes
+  nft_gateway: ?Principal;            //the nft gateway canister this sales canister will sell NFTs for
+  sale_open_date : ?Int;              //date that the NFTs in the registration should be minted/allocated
+  registration_date: ?Int;            //date that registations open up
+  end_date: ?Int;                     //date that the canister closes its sale
+  required_lock_date: ?Int            //date that users must lock their tokens until (to qualify for reservations)
 };
 
 ```
