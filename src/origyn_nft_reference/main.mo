@@ -35,7 +35,6 @@ import Types "./types";
 import data "data";
 import http "http";
 
-
 shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Lets user turn debug messages on and off for local replica
@@ -47,42 +46,47 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         streaming = false;
     };
 
-    debug if(debug_channel.instantiation) D.print("creating a canister");
-                            
+    debug if (debug_channel.instantiation) D.print("creating a canister");
+
     // A standard file chunk size.  The IC limits intercanister messages to ~2MB+ so we set that here
-    stable var SIZE_CHUNK = 2048000; //max message size
+    stable var SIZE_CHUNK = 2048000;
+    //max message size
 
     // Canisters can support multiple storage nodes
     // If you have a small collection you don't need to use a storage collection
     // And can have this gateway canister act as your storage.
-    let initial_storage = switch(__initargs.storage_space){
-            case(null){
-                SIZE_CHUNK * 500; //default is 1GB
-            };
-            case(?val){
-                if(val > SIZE_CHUNK * 1000){ //only 2GB useable in a canister - hopefully this changes in the future
-                    assert(false);
-                };
-                val;
-            }
+    let initial_storage = switch (__initargs.storage_space) {
+        case (null) {
+            SIZE_CHUNK * 500;
+            //default is 1GB
         };
+        case (?val) {
+            if (val > SIZE_CHUNK * 1000) {
+                //only 2GB useable in a canister - hopefully this changes in the future
+                assert (false);
+            };
+            val;
+        };
+    };
 
-       
     ///for migration information and pattern see
     //https://github.com/ZhenyaUsenko/motoko-migrations
     let StateTypes = MigrationTypes.Current;
     let SB = StateTypes.SB;
 
-    debug if(debug_channel.instantiation) D.print("setting migration type to 0");
-                            
+    debug if (debug_channel.instantiation) D.print("setting migration type to 0");
 
-    stable var migration_state: MigrationTypes.State = #v0_0_0(#data);
+    stable var migration_state : MigrationTypes.State = #v0_0_0(#data);
 
-    debug if(debug_channel.instantiation) D.print("migrating");
+    debug if (debug_channel.instantiation) D.print("migrating");
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
-    migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
+    migration_state := Migrations.migrate(
+        migration_state,
+        #v0_1_0(#id),
+        { owner = __initargs.owner; storage_space = initial_storage },
+    );
 
     /* 
     example migration
@@ -98,39 +102,43 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_0(#data(state_current)) = migration_state;
-                        
-    debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
-    debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
-    
+
+    debug if (debug_channel.instantiation) D.print("done initing migration_state" # debug_show (state_current.collection_data.owner) # " " # debug_show (deployer.caller));
+    debug if (debug_channel.instantiation) D.print("initializing from " # debug_show ((deployer, __initargs)));
+
     // Used to get status of the canister and report it
-    stable var ic : Types.IC = actor("aaaaa-aa");
+    stable var ic : Types.IC = actor ("aaaaa-aa");
 
     // Upgrade storage for non-stable types
-    stable var nft_library_stable : [(Text,[(Text,CandyTypes.AddressedChunkArray)])] = [];
+    stable var nft_library_stable : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
     stable var access_tokens_stable : [(Text, Types.HttpAccess)] = [];
-    
+
     // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
-    
+
     // Store access tokens for owner assets to owner specific data
-    private var access_tokens : TrieMap.TrieMap<Text, Types.HttpAccess> = TrieMap.fromEntries<Text, Types.HttpAccess>(access_tokens_stable.vals(), Text.equal, Text.hash);
+    private var access_tokens : TrieMap.TrieMap<Text, Types.HttpAccess> = TrieMap.fromEntries<Text, Types.HttpAccess>(
+        access_tokens_stable.vals(),
+        Text.equal,
+        Text.hash,
+    );
 
     // Let us get the principal of the host gateway canister
     private var canister_principal : ?Principal = null;
-    private func get_canister(): Principal {
-        switch(canister_principal){
-            case(null){
+    private func get_canister() : Principal {
+        switch (canister_principal) {
+            case (null) {
                 canister_principal := ?Principal.fromActor(this);
                 Principal.fromActor(this);
             };
-            case(?val){
+            case (?val) {
                 val;
-            }
-        }
+            };
+        };
     };
 
     // Let us access state and pass it to other modules
-    let get_state : () -> Types.State  = func (){
+    let get_state : () -> Types.State = func() {
         {
             state = state_current;
             canister = get_canister;
@@ -142,59 +150,67 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Used for debugging
-    stable var __time_mode : {#test; #standard;} = #standard;
+    stable var __time_mode : { #test; #standard } = #standard;
     private var __test_time : Int = 0;
-    private func get_time() : Int{
-        switch(__time_mode){
-            case(#standard){return Time.now();};
-            case(#test){return __test_time;};
+    private func get_time() : Int {
+        switch (__time_mode) {
+            case (#standard) { return Time.now() };
+            case (#test) { return __test_time };
         };
 
     };
 
     // Data api - currently entire api nodes must be updated at one time
     // In future releases more granular updates will be possible
-    public shared (msg) func update_app_nft_origyn(request: Types.NFTUpdateRequest): async Result.Result<Types.NFTUpdateResponse, Types.OrigynError>{
-       
-        NFTUtils.add_log(get_state(), {
-            event = "update_app_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+    public shared (msg) func update_app_nft_origyn(request : Types.NFTUpdateRequest) : async Result.Result<Types.NFTUpdateResponse, Types.OrigynError> {
+
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "update_app_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
         return data.update_app_nft_origyn(request, get_state(), msg.caller);
     };
 
     // Stages metadata for an NFT
-    public shared (msg) func stage_nft_origyn({metadata : CandyTypes.CandyValue}): async Result.Result<Text, Types.OrigynError>{
+    public shared (msg) func stage_nft_origyn({ metadata : CandyTypes.CandyValue }) : async Result.Result<Text, Types.OrigynError> {
         //nyi:  if we run out of space, start putting data into child canisters
-        
-        NFTUtils.add_log(get_state(), {
-            event = "stage_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in stage");
+
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "stage_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in stage");
         return Mint.stage_nft_origyn(get_state(), metadata, msg.caller);
     };
 
     // Allows staging multiple NFTs at the same time
-    public shared (msg) func stage_batch_nft_origyn(request : [{metadata: CandyTypes.CandyValue}]): async [Result.Result<Text, Types.OrigynError>]{
-        NFTUtils.add_log(get_state(), {
-            event = "stage_batch_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in stage batch");
-        if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
+    public shared (msg) func stage_batch_nft_origyn(request : [{ metadata : CandyTypes.CandyValue }]) : async [Result.Result<Text, Types.OrigynError>] {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "stage_batch_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in stage batch");
+        if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false) {
             return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
         };
 
-
-        let results = Buffer.Buffer<Result.Result<Text,Types.OrigynError>>(request.size());
-        for(this_item in request.vals()){
+        let results = Buffer.Buffer<Result.Result<Text, Types.OrigynError>>(request.size());
+        for (this_item in request.vals()) {
             //nyi: should probably check for some spammy things and bail if too many errors
             results.add(Mint.stage_nft_origyn(get_state(), this_item.metadata, msg.caller));
         };
@@ -205,115 +221,132 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Stages a library. If the gateway is out of space a new bucket will be requested
     // And the remote stage call will be made to send the chunk to the proper canister.Array
     // Creators can also send library metadata to update library info without the data
-    public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg) : async Result.Result<Types.StageLibraryResponse,Types.OrigynError> {
-        NFTUtils.add_log(get_state(), {
-            event = "stage_library_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in stage library");
-        switch(Mint.stage_library_nft_origyn(
+    public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
+        NFTUtils.add_log(
             get_state(),
-            chunk,
-             msg.caller)){
-                 case(#ok(stage_result)){
-                    switch(stage_result){
-                        case(#staged(canister)){
-                            return #ok({canister = canister});
-                        };
-                        case(#stage_remote(data)){
-                            debug if(debug_channel.storage) D.print("minting remote");
-                            return await Mint.stage_library_nft_origyn_remote(
-                                get_state(),
-                                chunk,
-                                data.allocation,
-                                data.metadata,
-                                msg.caller);
-                        };
+            {
+                event = "stage_library_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in stage library");
+        switch (Mint.stage_library_nft_origyn(get_state(), chunk, msg.caller)) {
+            case (#ok(stage_result)) {
+                switch (stage_result) {
+                    case (#staged(canister)) {
+                        return #ok({ canister = canister });
                     };
-                 };
-                 case(#err(err)){
-                     return #err(err);
-                 };
+                    case (#stage_remote(data)) {
+                        debug if (debug_channel.storage) D.print("minting remote");
+                        return await Mint.stage_library_nft_origyn_remote(
+                            get_state(),
+                            chunk,
+                            data.allocation,
+                            data.metadata,
+                            msg.caller,
+                        );
+                    };
+                };
             };
+            case (#err(err)) {
+                return #err(err);
+            };
+        };
     };
 
     // Allows for batch library staging but this should only be used for collection or web based
     // libraries that do not have actual file data.  If a remote call is made then the cycle limit
     // will be hit after a few cross canister calls
-    public shared (msg) func stage_library_batch_nft_origyn(chunks : [Types.StageChunkArg]) : async [Result.Result<Types.StageLibraryResponse,Types.OrigynError>] {
+    public shared (msg) func stage_library_batch_nft_origyn(chunks : [Types.StageChunkArg]) : async [Result.Result<Types.StageLibraryResponse, Types.OrigynError>] {
         //nyi: this needs to be gated to make sure the chunks don't contain file data. This should only be used for collection asset adding
-        
-        NFTUtils.add_log(get_state(), {
-            event = "stage_library_batch_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in stage library batch");
-        let results = Buffer.Buffer<Result.Result<Types.StageLibraryResponse,Types.OrigynError>>(chunks.size());
-        for(this_item in chunks.vals()){
-            switch(Mint.stage_library_nft_origyn(
-                get_state(),
-                this_item,
-                msg.caller)){
-                    case(#ok(stage_result)){
-                        switch(stage_result){
-                            case(#staged(canister)){
-                                results.add( #ok({canister = canister}));
-                            };
-                            case(#stage_remote(data)){
-                                debug if(debug_channel.storage) D.print("minting remote from batch. You are going to run out of cycles");
-                                results.add( await Mint.stage_library_nft_origyn_remote(
+
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "stage_library_batch_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in stage library batch");
+        let results = Buffer.Buffer<Result.Result<Types.StageLibraryResponse, Types.OrigynError>>(chunks.size());
+        for (this_item in chunks.vals()) {
+            switch (Mint.stage_library_nft_origyn(get_state(), this_item, msg.caller)) {
+                case (#ok(stage_result)) {
+                    switch (stage_result) {
+                        case (#staged(canister)) {
+                            results.add(#ok({ canister = canister }));
+                        };
+                        case (#stage_remote(data)) {
+                            debug if (debug_channel.storage) D.print("minting remote from batch. You are going to run out of cycles");
+                            results.add(
+                                await Mint.stage_library_nft_origyn_remote(
                                     get_state(),
                                     this_item,
                                     data.allocation,
                                     data.metadata,
-                                    msg.caller)
-                                );
-                            };
+                                    msg.caller,
+                                ),
+                            );
                         };
                     };
-                    case(#err(err)){
-                        results.add(#err(err));
-                    };
                 };
+                case (#err(err)) {
+                    results.add(#err(err));
+                };
+            };
         };
 
         return results.toArray();
     };
 
     // Mints a NFT and assigns it to the new owner
-    public shared (msg) func mint_nft_origyn(token_id : Text, new_owner : Types.Account) : async Result.Result<Text,Types.OrigynError> {
-         NFTUtils.add_log(get_state(), {
-            event = "mint_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in mint");
-        return await Mint.mint_nft_origyn(get_state(), token_id, new_owner, msg.caller);
-        
+    public shared (msg) func mint_nft_origyn(
+        token_id : Text,
+        new_owner : Types.Account,
+    ) : async Result.Result<Text, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "mint_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in mint");
+        return await Mint.mint_nft_origyn(
+            get_state(),
+            token_id,
+            new_owner,
+            msg.caller,
+        );
+
     };
 
     // Allows minting of multiple items
-    public shared (msg) func mint_batch_nft_origyn(tokens: [(Text, Types.Account)]) : async [Result.Result<Text,Types.OrigynError>] {
+    public shared (msg) func mint_batch_nft_origyn(tokens : [(Text, Types.Account)]) : async [Result.Result<Text, Types.OrigynError>] {
         // This involves an inter canister call and will not work well for multi canister collections. Test to figure out how many you can mint at a time;
-         NFTUtils.add_log(get_state(), {
-            event = "mint__batch_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
-        return [#err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))]
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "mint__batch_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false) {
+            return [#err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))];
         };
-        debug if(debug_channel.function_announce) D.print("in mint batch");
-        let results = Buffer.Buffer<Result.Result<Text,Types.OrigynError>>(tokens.size());
+        debug if (debug_channel.function_announce) D.print("in mint batch");
+        let results = Buffer.Buffer<Result.Result<Text, Types.OrigynError>>(tokens.size());
 
-        label search for(thisitem in tokens.vals()){
-            results.add(await Mint.mint_nft_origyn(get_state(), thisitem.0, thisitem.1, msg.caller))
+        label search for (thisitem in tokens.vals()) {
+            results.add(await Mint.mint_nft_origyn(get_state(), thisitem.0, thisitem.1, msg.caller));
         };
 
         return results.toArray();
@@ -322,153 +355,214 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Allows an owner to transfer a NFT from one of their wallets to another
     // Warning: this feature will be updated in the future to give both wallets access to the NFT
     // for some set period of time including access to assets beyond just the NFT ownership. It should not
-    // be used with a wallet that you do not 100% trust to not take the NFT back. It is meant for 
+    // be used with a wallet that you do not 100% trust to not take the NFT back. It is meant for
     // internal accounting only. Use market_transfer_nft_origyn instead
-    public shared (msg) func share_wallet_nft_origyn(request : Types.ShareWalletRequest) : async Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
-         NFTUtils.add_log(get_state(), {
-            event = "share_wallet_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in share wallet");
+    public shared (msg) func share_wallet_nft_origyn(request : Types.ShareWalletRequest) : async Result.Result<Types.OwnerTransferResponse, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "share_wallet_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in share wallet");
         return Owner.share_wallet_nft_origyn(get_state(), request, msg.caller);
     };
 
-
     // Used by the network to perform governance actions that have been voted on by OGY token holders
     // For non OGY NFTs you will need to call this function from the principal set as your 'network'
-    public shared (msg) func governance_nft_origyn(request : Types.GovernanceRequest) : async Result.Result<Types.GovernanceResponse,Types.OrigynError> {
-         NFTUtils.add_log(get_state(), {
-            event = "governance_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in owner governance");
-        return Governance.governance_nft_origyn(get_state(), request, msg.caller);
+    public shared (msg) func governance_nft_origyn(request : Types.GovernanceRequest) : async Result.Result<Types.GovernanceResponse, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "governance_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in owner governance");
+        return Governance.governance_nft_origyn(
+            get_state(),
+            request,
+            msg.caller,
+        );
     };
 
     // Dip721 transferFrom - must have a valid escrow
-    public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        NFTUtils.add_log(get_state(), {
-            event = "transferFromDip721";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in transferFromDip721");
+    public shared (msg) func transferFromDip721(
+        from : Principal,
+        to : Principal,
+        tokenAsNat : Nat,
+    ) : async DIP721.Result {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "transferFromDip721";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in transferFromDip721");
         // Existing escrow acts as approval
-        if(msg.caller != to){
+        if (msg.caller != to) {
             return #Err(#UnauthorizedOperator);
         };
-        return await Owner.transferDip721(get_state(),from, to, tokenAsNat, msg.caller);
+        return await Owner.transferDip721(
+            get_state(),
+            from,
+            to,
+            tokenAsNat,
+            msg.caller,
+        );
     };
 
     // Dip721 transfer - must have a valid escrow
-    public shared (msg) func transferDip721(to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        NFTUtils.add_log(get_state(), {
-            event = "transferDip721";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in transferFromDip721");
+    public shared (msg) func transferDip721(to : Principal, tokenAsNat : Nat) : async DIP721.Result {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "transferDip721";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in transferFromDip721");
         // Existing escrow acts as approval
-        return await Owner.transferDip721(get_state(),msg.caller, to, tokenAsNat, msg.caller);
+        return await Owner.transferDip721(
+            get_state(),
+            msg.caller,
+            to,
+            tokenAsNat,
+            msg.caller,
+        );
     };
 
     // Dip721 transferFrom "v2" downgrade - must have a valid escrow
-    public shared (msg) func transferFrom(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        NFTUtils.add_log(get_state(), {
-            event = "transferFrom";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in transferFrom");
-        if(msg.caller != to){
+    public shared (msg) func transferFrom(
+        from : Principal,
+        to : Principal,
+        tokenAsNat : Nat,
+    ) : async DIP721.Result {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "transferFrom";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in transferFrom");
+        if (msg.caller != to) {
             return #Err(#UnauthorizedOperator);
         };
         // Existing escrow acts as approval
-        return await Owner.transferDip721(get_state(),from, to, tokenAsNat, msg.caller);
+        return await Owner.transferDip721(
+            get_state(),
+            from,
+            to,
+            tokenAsNat,
+            msg.caller,
+        );
     };
 
-
     // EXT transferFrom - must have a valid escrow
-    public shared (msg) func transferEXT(request: EXT.TransferRequest) : async EXT.TransferResponse{
-        NFTUtils.add_log(get_state(), {
-            event = "transferEXT";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in transfer ext");
+    public shared (msg) func transferEXT(request : EXT.TransferRequest) : async EXT.TransferResponse {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "transferEXT";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in transfer ext");
         // Existing escrow is approval
         return await Owner.transferExt(get_state(), request, msg.caller);
     };
 
     // EXT transferFrom legacy - must have a valid escrow
-    public shared (msg) func transfer(request: EXT.TransferRequest) : async EXT.TransferResponse{
-        NFTUtils.add_log(get_state(), {
-            event = "transfer";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in transfer");
+    public shared (msg) func transfer(request : EXT.TransferRequest) : async EXT.TransferResponse {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "transfer";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in transfer");
         // Existing escrow is approval
         return await Owner.transferExt(get_state(), request, msg.caller);
     };
 
-
     // Allows the market based transfer of NFTs
-    public shared (msg) func market_transfer_nft_origyn(request : Types.MarketTransferRequest) : async Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
-         NFTUtils.add_log(get_state(), {
-            event = "market_transfer_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        }); 
-        debug if(debug_channel.function_announce) D.print("in market transfer");
-        
-        return switch(request.sales_config.pricing){
-            case(#instant(item)){
+    public shared (msg) func market_transfer_nft_origyn(request : Types.MarketTransferRequest) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "market_transfer_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in market transfer");
+
+        return switch (request.sales_config.pricing) {
+            case (#instant(item)) {
                 //instant transfers involve the movement of tokens on remote servers so the call must be async
-                return await Market.market_transfer_nft_origyn_async(get_state(), request, msg.caller);
+                return await Market.market_transfer_nft_origyn_async(
+                    get_state(),
+                    request,
+                    msg.caller,
+                );
             };
-            case(_){
+            case (_) {
                 //handles #auction types
-                return Market.market_transfer_nft_origyn(get_state(), request, msg.caller);
-            }
+                return Market.market_transfer_nft_origyn(
+                    get_state(),
+                    request,
+                    msg.caller,
+                );
+            };
         };
     };
 
     // Start a large number of sales/market transfers. Currently limited to owners, managers, or the network
-    public shared (msg) func market_transfer_batch_nft_origyn(request : [Types.MarketTransferRequest]) : async [Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError>] {
+    public shared (msg) func market_transfer_batch_nft_origyn(request : [Types.MarketTransferRequest]) : async [Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError>] {
         // nyi: for now limit this to managers
-          NFTUtils.add_log(get_state(), {
-            event = "market_transfer_batch_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "market_transfer_batch_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
 
-        debug if(debug_channel.function_announce) D.print("in market transfer batch");
-        if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
+        debug if (debug_channel.function_announce) D.print("in market transfer batch");
+        if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false) {
             return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
         };
 
+        let results = Buffer.Buffer<Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError>>(request.size());
 
-        let results = Buffer.Buffer<Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError>>(request.size());
-        
-        for(this_item in request.vals()){
+        for (this_item in request.vals()) {
             // nyi: should probably check for some spammy things and bail if too many errors
-            switch(this_item.sales_config.pricing){
-                case(#instant(item)){
+            switch (this_item.sales_config.pricing) {
+                case (#instant(item)) {
                     results.add(await Market.market_transfer_nft_origyn_async(get_state(), this_item, msg.caller));
                 };
-                case(_){
+                case (_) {
                     results.add(Market.market_transfer_nft_origyn(get_state(), this_item, msg.caller));
                 };
             };
@@ -477,42 +571,50 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return results.toArray();
     };
 
-
     // Allows a user to do a number of functions around a NFT sale including ending a sale, opening a sale, depositing an escrow
     // refresh_offers, bidding in an auction, withdrawing funds from an escrow or sale
-    public shared (msg) func sale_nft_origyn(request: Types.ManageSaleRequest) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
-         NFTUtils.add_log(get_state(), {
-            event = "sale_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in sale_nft_origyn");
-        
-        return switch(request){
-            case(#end_sale(val)){await Market.end_sale_nft_origyn(get_state(), val, msg.caller)};
-            case(#open_sale(val)){Market.open_sale_nft_origyn(get_state(), val, msg.caller)};
-            case(#escrow_deposit(val)){return switch(await Market.escrow_nft_origyn(get_state(), val, msg.caller)){
-                case(#ok(val)){#ok(#escrow_deposit(val))};
-                case(#err(err)){#err(err)};
-            }};
-            case(#refresh_offers(val)){
+    public shared (msg) func sale_nft_origyn(request : Types.ManageSaleRequest) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "sale_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in sale_nft_origyn");
+
+        return switch (request) {
+            case (#end_sale(val)) {
+                await Market.end_sale_nft_origyn(get_state(), val, msg.caller);
+            };
+            case (#open_sale(val)) {
+                Market.open_sale_nft_origyn(get_state(), val, msg.caller);
+            };
+            case (#escrow_deposit(val)) {
+                return switch (await Market.escrow_nft_origyn(get_state(), val, msg.caller)) {
+                    case (#ok(val)) { #ok(#escrow_deposit(val)) };
+                    case (#err(err)) { #err(err) };
+                };
+            };
+            case (#refresh_offers(val)) {
                 Market.refresh_offers_nft_origyn(get_state(), val, msg.caller);
             };
-            case(#bid(val)){
-                return switch(await Market.bid_nft_origyn(get_state(), val, msg.caller)){
-                    case(#ok(val)){#ok(#bid(val))};
-                    case(#err(err)){#err(err)};
+            case (#bid(val)) {
+                return switch (await Market.bid_nft_origyn(get_state(), val, msg.caller)) {
+                    case (#ok(val)) { #ok(#bid(val)) };
+                    case (#err(err)) { #err(err) };
                 }
-                
+
             };
-            case(#withdraw(val)){
+            case (#withdraw(val)) {
                 D.print("in withdrawl");
-                return switch(await Market.withdraw_nft_origyn(get_state(), val, msg.caller)){
-                    case(#ok(val)){#ok(#withdraw(val))};
-                    case(#err(err)){#err(err)};
+                return switch (await Market.withdraw_nft_origyn(get_state(), val, msg.caller)) {
+                    case (#ok(val)) { #ok(#withdraw(val)) };
+                    case (#err(err)) { #err(err) };
                 }
-                
+
             };
         };
 
@@ -536,7 +638,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let result = Buffer.Buffer<Result.Result<Types.ManageSaleResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
             result.add(switch(this_item){
-                // NOTE: this causes a commit and could over run the cycle limit. We may need to refactor to
+                //NOTE: this causes a commit and could over run the cycle limit. We may need to refactor to
                 // an end and then distribute pattern...or collect needed transfers and batch them.
                 case(#end_sale(val)){await Market.end_sale_nft_origyn(get_state(), val, msg.caller)};
                 case(#open_sale(val)){Market.open_sale_nft_origyn(get_state(), val, msg.caller)};
@@ -568,41 +670,53 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     };
 
-
-    private func _sale_info_nft_origyn(request: Types.SaleInfoRequest, caller: Principal) : Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
-        return switch(request){
-            case(#status(val)){Market.sale_status_nft_origyn(get_state(), val, caller)};
-            case(#active(val)){Market.active_sales_nft_origyn(get_state(), val, caller)};
-            case(#history(val)){Market.history_sales_nft_origyn(get_state(), val, caller)};
-            case(#deposit_info(val)){Market.deposit_info_nft_origyn(get_state(), val, caller)};
+    private func _sale_info_nft_origyn(
+        request : Types.SaleInfoRequest,
+        caller : Principal,
+    ) : Result.Result<Types.SaleInfoResponse, Types.OrigynError> {
+        return switch (request) {
+            case (#status(val)) {
+                Market.sale_status_nft_origyn(get_state(), val, caller);
+            };
+            case (#active(val)) {
+                Market.active_sales_nft_origyn(get_state(), val, caller);
+            };
+            case (#history(val)) {
+                Market.history_sales_nft_origyn(get_state(), val, caller);
+            };
+            case (#deposit_info(val)) {
+                Market.deposit_info_nft_origyn(get_state(), val, caller);
+            };
         };
     };
 
-
     // Allows for the retrieving of sale info
-    public query (msg) func sale_info_nft_origyn(request: Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
-        debug if(debug_channel.function_announce)D.print("in sale_info_nft_origyn");
+    public query (msg) func sale_info_nft_origyn(request : Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in sale_info_nft_origyn");
         return _sale_info_nft_origyn(request, msg.caller);
-        
+
     };
 
     // Get sale info in a secure manner
-    public shared(msg) func sale_info_secure_nft_origyn(request: Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
-         NFTUtils.add_log(get_state(), {
-            event = "sale_nft_secure_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in sale info secure");
+    public shared (msg) func sale_info_secure_nft_origyn(request : Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "sale_nft_secure_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in sale info secure");
         return _sale_info_nft_origyn(request, msg.caller);
     };
 
     // Batch info
-    public query (msg) func sale_info_batch_nft_origyn(requests: [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in sale info batch");
+    public query (msg) func sale_info_batch_nft_origyn(requests : [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>] {
+        debug if (debug_channel.function_announce) D.print("in sale info batch");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
-        for(this_item in requests.vals()){
+        for (this_item in requests.vals()) {
             result.add(_sale_info_nft_origyn(this_item, msg.caller));
         };
         return result.toArray();
@@ -610,62 +724,73 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Batch info secure
-    public shared (msg) func sale_info_batch_secure_nft_origyn(requests: [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>]{
-         NFTUtils.add_log(get_state(), {
-            event = "sale_batch_secure_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in sale info batch secure");
+    public shared (msg) func sale_info_batch_secure_nft_origyn(requests : [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>] {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "sale_batch_secure_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in sale info batch secure");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
-        for(this_item in requests.vals()){
+        for (this_item in requests.vals()) {
             result.add(_sale_info_nft_origyn(this_item, msg.caller));
         };
         return result.toArray();
     };
 
     // Allows an owner to update information about a collection
-    public shared (msg) func collection_update_nft_origyn(request : Types.ManageCollectionCommand) : async Result.Result<Bool, Types.OrigynError>{
-        NFTUtils.add_log(get_state(), {
-            event = "collection_update_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in collection_update_nft_origyn");
-        return Metadata.collection_update_nft_origyn(get_state(), request, msg.caller);
+    public shared (msg) func collection_update_nft_origyn(request : Types.ManageCollectionCommand) : async Result.Result<Bool, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "collection_update_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in collection_update_nft_origyn");
+        return Metadata.collection_update_nft_origyn(
+            get_state(),
+            request,
+            msg.caller,
+        );
     };
 
-
     // Batch access
-    public shared (msg) func collection_update_batch_nft_origyn(requests : [Types.ManageCollectionCommand]) : async [Result.Result<Bool, Types.OrigynError>]{
-        NFTUtils.add_log(get_state(), {
-            event = "collection_update_batch_nft_";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
+    public shared (msg) func collection_update_batch_nft_origyn(requests : [Types.ManageCollectionCommand]) : async [Result.Result<Bool, Types.OrigynError>] {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "collection_update_batch_nft_";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+        debug if (debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
 
         // We do a first check of caller to avoid cycle drain
-        if(NFTUtils.is_owner_network(get_state(), msg.caller) == false){
+        if (NFTUtils.is_owner_network(get_state(), msg.caller) == false) {
             return [#err(Types.errors(#unauthorized_access, "collection_update_batch_nft_ - not a canister owner or network", ?msg.caller))];
         };
 
         let results = Buffer.Buffer<Result.Result<Bool, Types.OrigynError>>(requests.size());
-        for(this_item in requests.vals()){
+        for (this_item in requests.vals()) {
             results.add(Metadata.collection_update_nft_origyn(get_state(), this_item, msg.caller));
         };
 
         return results.toArray();
     };
 
-    
     // Debug function
-    public shared (msg) func __advance_time(new_time: Int) : async Int {
+    public shared (msg) func __advance_time(new_time : Int) : async Int {
         // nyi: Maybe only the network should be able to do this
-        if(msg.caller != state_current.collection_data.owner){
+        if (msg.caller != state_current.collection_data.owner) {
             throw Error.reject("not owner");
         };
         __test_time := new_time;
@@ -674,9 +799,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Debug function
-    public shared (msg) func __set_time_mode(newMode: {#test; #standard;}) : async Bool {
-         // nyi: Maybe only the network should be able to do this
-        if(msg.caller != state_current.collection_data.owner){
+    public shared (msg) func __set_time_mode(newMode : { #test; #standard }) : async Bool {
+        // nyi: Maybe only the network should be able to do this
+        if (msg.caller != state_current.collection_data.owner) {
             throw Error.reject("not owner");
         };
         __time_mode := newMode;
@@ -684,48 +809,55 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Allows the owner to manage the storage on their NFT
-    public shared (msg) func manage_storage_nft_origyn(request : Types.ManageStorageRequest) : async Result.Result<Types.ManageStorageResponse, Types.OrigynError>{
-        if(NFTUtils.is_owner_network(get_state(), msg.caller) == false){
+    public shared (msg) func manage_storage_nft_origyn(request : Types.ManageStorageRequest) : async Result.Result<Types.ManageStorageResponse, Types.OrigynError> {
+        if (NFTUtils.is_owner_network(get_state(), msg.caller) == false) {
             throw Error.reject("not owner or network");
         };
-        debug if(debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
-        NFTUtils.add_log(get_state(), {
-            event = "manage_storage_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+        debug if (debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "manage_storage_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
 
         let state = get_state();
 
-        switch(request){
-            case(#add_storage_canisters(request)){
-                for(this_item in request.vals()){
+        switch (request) {
+            case (#add_storage_canisters(request)) {
+                for (this_item in request.vals()) {
                     //make sure that if this exists we re allocate or error
-                    switch(Map.get(state.state.buckets, Map.phash, this_item.0)){
-                        case(null){};
-                        case(?val){
+                    switch (Map.get(state.state.buckets, Map.phash, this_item.0)) {
+                        case (null) {};
+                        case (?val) {
                             //eventually we can accomidate reallocation, but fail for now
-                            return #err(Types.errors(#storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show(this_item), ?msg.caller));
+                            return #err(Types.errors(#storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show (this_item), ?msg.caller));
 
                         };
                     };
 
-                    Map.set<Principal, Types.BucketData>(state.state.buckets, Map.phash, this_item.0, {
-                        principal = this_item.0;
-                        var allocated_space = this_item.1;
-                        var available_space = this_item.1;
-                        date_added = get_time();
-                        b_gateway = false;
-                        var version = this_item.2;
-                        var allocations = Map.new<(Text,Text), Int>();
+                    Map.set<Principal, Types.BucketData>(
+                        state.state.buckets,
+                        Map.phash,
+                        this_item.0,
+                        {
+                            principal = this_item.0;
+                            var allocated_space = this_item.1;
+                            var available_space = this_item.1;
+                            date_added = get_time();
+                            b_gateway = false;
+                            var version = this_item.2;
+                            var allocations = Map.new<(Text, Text), Int>();
 
-                    });
+                        },
+                    );
                     state.state.collection_data.allocated_storage += this_item.1;
                     state.state.collection_data.available_space += this_item.1;
                 };
-                return #ok(#add_storage_canisters(state.state.collection_data.allocated_storage,
-                     state.state.collection_data.available_space));
+                return #ok(#add_storage_canisters(state.state.collection_data.allocated_storage, state.state.collection_data.available_space));
             };
         };
 
@@ -733,20 +865,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     };
 
-    
-
     // [Text, ?Nat, ?Nat] for pagination
     // Returns information about the collection
-    public query (msg) func collection_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
+    public query (msg) func collection_nft_origyn(fields : ?[(Text, ?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError> {
         // Warning: this function does not use msg.caller, if you add it you need to fix the secure query
-        debug if(debug_channel.function_announce) D.print("in collection_nft_origyn");
-        
+        debug if (debug_channel.function_announce) D.print("in collection_nft_origyn");
+
         let state = get_state();
-        let keys = Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})); // Should always have the "" item and need to remove it
+        let keys = Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }));
+        // Should always have the "" item and need to remove it
         let multi_canister = Iter.toArray<Principal>(Map.keys<Principal, Types.BucketData>(state.state.buckets));
 
-        
-        return #ok({
+        return #ok(
+            {
                 fields = fields;
                 logo = state.state.collection_data.logo;
                 name = state.state.collection_data.name;
@@ -762,223 +893,264 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
                 allocated_storage = ?state.state.collection_data.allocated_storage;
                 available_space = ?state.state.collection_data.available_space;
-            }
+            },
         );
-
 
     };
 
     // Secure access to collection information
-    public shared (msg) func collection_secure_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
-        NFTUtils.add_log(get_state(), {
-            event = "collection_secure_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+    public shared (msg) func collection_secure_nft_origyn(fields : ?[(Text, ?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError> {
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "collection_secure_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
 
-       debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
-        
+        debug if (debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
+
         return await collection_nft_origyn(fields);
     };
 
     // Allows users to see token information - ledger and history
-    public query (msg) func history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
+    public query (msg) func history_nft_origyn(
+        token_id : Text,
+        start : ?Nat,
+        end : ?Nat,
+    ) : async Result.Result<[Types.TransactionRecord], Types.OrigynError> {
         // Warning: this func does not use msg.caller. If you decide to use it, fix the secure caller
-        debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
-        
-        
-        let ledger = switch(Map.get(state_current.nft_ledgers, Map.thash, token_id)){
-            case(null){
+        debug if (debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
+
+        let ledger = switch (Map.get(state_current.nft_ledgers, Map.thash, token_id)) {
+            case (null) {
                 return #ok([]);
             };
-            case(?val){
+            case (?val) {
                 var thisStart = 0;
-                var thisEnd = Nat.sub(SB.size(val),1);
-                switch(start, end){
-                    case(?start, ?end){
+                var thisEnd = Nat.sub(SB.size(val), 1);
+                switch (start, end) {
+                    case (?start, ?end) {
                         thisStart := start;
                         thisEnd := end;
                     };
-                    case(?start, null){
+                    case (?start, null) {
                         thisStart := start;
                     };
-                    case(null, ?end){
+                    case (null, ?end) {
                         thisEnd := end;
                     };
-                    case(null, null){};
+                    case (null, null) {};
                 };
 
-                if(thisEnd >= thisStart){
+                if (thisEnd >= thisStart) {
 
                     let result = Buffer.Buffer<Types.TransactionRecord>((thisEnd + 1) - thisStart);
-                    for(this_item in Iter.range(thisStart, thisEnd)){
-                        result.add(switch(SB.getOpt(val, this_item)){case(?item){item};case(null){
-                            return #err(Types.errors(#asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?msg.caller));
-
-                        }});
+                    for (this_item in Iter.range(thisStart, thisEnd)) {
+                        result.add(switch (SB.getOpt(val, this_item)) { case (?item) { item }; case (null) { return #err(Types.errors(#asset_mismatch, "history_nft_origyn - index out of range  " # debug_show (this_item) # " " # debug_show (SB.size(val)), ?msg.caller)) } });
                     };
 
                     return #ok(result.toArray());
                 } else {
                     // Enable revrange
-                    return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?msg.caller));
+                    return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show (thisStart) # " " # debug_show (thisEnd), ?msg.caller));
                 };
             };
         };
     };
 
     // Secure access to token history
-    public shared (msg) func history_secure_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
-       debug if(debug_channel.function_announce) D.print("in history_secure_nft_origyn");
-        NFTUtils.add_log(get_state(), {
-            event = "history_secure_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        
-        
-        return await history_nft_origyn(token_id, start,end);
+    public shared (msg) func history_secure_nft_origyn(
+        token_id : Text,
+        start : ?Nat,
+        end : ?Nat,
+    ) : async Result.Result<[Types.TransactionRecord], Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in history_secure_nft_origyn");
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "history_secure_nft_origyn";
+                timestamp = get_time();
+                data = #Empty;
+                caller = ?msg.caller;
+            },
+        );
+
+        return await history_nft_origyn(token_id, start, end);
     };
 
-
-
-    
     // Dip721 balance
-    public query(msg) func balanceOfDip721(user: Principal) : async Nat{
-       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
-       
+    public query (msg) func balanceOfDip721(user : Principal) : async Nat {
+        debug if (debug_channel.function_announce) D.print("in balanceOfDip721");
+
         return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
     };
 
     // Dip721 balance
-    public query(msg) func balance(request: EXT.BalanceRequest) : async EXT.BalanceResponse{ //legacy ext
-        debug if(debug_channel.function_announce) D.print("in balance");
-       
+    public query (msg) func balance(request : EXT.BalanceRequest) : async EXT.BalanceResponse {
+        //legacy ext
+        debug if (debug_channel.function_announce) D.print("in balance");
+
         return _getEXTBalance(request);
     };
 
     // Ext balance
-    public query(msg) func balanceEXT(request: EXT.BalanceRequest) : async EXT.BalanceResponse {
-        debug if(debug_channel.function_announce) D.print("in balanceEXT");
-       
-        return  _getEXTBalance(request);
+    public query (msg) func balanceEXT(request : EXT.BalanceRequest) : async EXT.BalanceResponse {
+        debug if (debug_channel.function_announce) D.print("in balanceEXT");
+
+        return _getEXTBalance(request);
     };
 
-    private func _getEXTBalance(request: EXT.BalanceRequest) : EXT.BalanceResponse{
-        let thisCollection = Metadata.get_NFTs_for_user(get_state(), switch(request.user){
-            case(#address(data)){
-                #account_id(data);
-            };
-            case(#principal(data)){
-                #principal(data);
-            };
-        }
+    private func _getEXTBalance(request : EXT.BalanceRequest) : EXT.BalanceResponse {
+        let thisCollection = Metadata.get_NFTs_for_user(
+            get_state(),
+            switch (request.user) {
+                case (#address(data)) {
+                    #account_id(data);
+                };
+                case (#principal(data)) {
+                    #principal(data);
+                };
+            },
         );
-        for(this_item in thisCollection.vals()){
-            if(_getEXTTokenIdentifier(this_item) == request.token){
-                return #ok(1: Nat);
-            }
+        for (this_item in thisCollection.vals()) {
+            if (_getEXTTokenIdentifier(this_item) == request.token) {
+                return #ok(1 : Nat);
+            };
         };
-        return #ok(0: Nat);
+        return #ok(0 : Nat);
     };
 
     // Converts a token id into a reversable ext token id
-    private func _getEXTTokenIdentifier(token_id: Text) : Text{
-        let tds : [Nat8] = [10, 116, 105, 100]; //b"\x0Atid"
+    private func _getEXTTokenIdentifier(token_id : Text) : Text {
+        let tds : [Nat8] = [10, 116, 105, 100];
+        //b"\x0Atid"
         let theID = Array.append<Nat8>(
-            Array.append<Nat8>(tds, Blob.toArray(Principal.toBlob(Principal.fromActor(this)))),
-            Conversions.valueToBytes(#Nat32(Text.hash(token_id))));
+            Array.append<Nat8>(
+                tds,
+                Blob.toArray(Principal.toBlob(Principal.fromActor(this))),
+            ),
+            Conversions.valueToBytes(#Nat32(Text.hash(token_id))),
+        );
 
         return Principal.toText(Principal.fromBlob(Blob.fromArray(theID)));
     };
 
     // Lets users query for a token id
-    public query(msg) func getEXTTokenIdentifier(token_id: Text) : async Text{
-       debug if(debug_channel.function_announce) D.print("in getEXTTokenIdentifier");
+    public query (msg) func getEXTTokenIdentifier(token_id : Text) : async Text {
+        debug if (debug_channel.function_announce) D.print("in getEXTTokenIdentifier");
         return _getEXTTokenIdentifier(token_id);
     };
-    
+
     // Builds the balance object showing what resources an account holds on the server.
-    private func _balance_of_nft_origyn(account: Types.Account, caller: Principal) : Result.Result<Types.BalanceResponse, Types.OrigynError> {
+    private func _balance_of_nft_origyn(
+        account : Types.Account,
+        caller : Principal,
+    ) : Result.Result<Types.BalanceResponse, Types.OrigynError> {
 
+        debug if (debug_channel.function_announce) D.print("in balance_of_nft_origyn");
 
-        debug if(debug_channel.function_announce) D.print("in balance_of_nft_origyn");
-        
         let state = get_state();
-        
+
         // Get escrows
-        let escrows = Map.get(state_current.escrow_balances, Types.account_handler, account);
+        let escrows = Map.get(
+            state_current.escrow_balances,
+            Types.account_handler,
+            account,
+        );
         let escrowResults = Buffer.Buffer<Types.EscrowRecord>(1);
 
-        let sales = Map.get(state_current.sales_balances, Types.account_handler, account);
+        let sales = Map.get(
+            state_current.sales_balances,
+            Types.account_handler,
+            account,
+        );
         let salesResults = Buffer.Buffer<Types.EscrowRecord>(1);
 
         let nft_results = Buffer.Buffer<Text>(1);
 
-        let offers = Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, Types.account_handler, account);
+        let offers = Map.get<Types.Account, Map.Map<Types.Account, Int>>(
+            state.state.offers,
+            Types.account_handler,
+            account,
+        );
         let offer_results = Buffer.Buffer<Types.EscrowRecord>(1);
 
         // nyi: check the mint status and compare to msg.caller
         // nyi: indexing of NFTs, Escrows, Sales, Offers if this is a performance drain
-        for(this_nft in Map.entries(state.state.nft_metadata)){
-            switch(Metadata.is_nft_owner(this_nft.1, account)){
-                case(#ok(val)){
-                    if(val == true and this_nft.0 != ""){
+        for (this_nft in Map.entries(state.state.nft_metadata)) {
+            switch (Metadata.is_nft_owner(this_nft.1, account)) {
+                case (#ok(val)) {
+                    if (val == true and this_nft.0 != "") {
                         nft_results.add(this_nft.0);
                     };
                 };
-                case(_){};
+                case (_) {};
             };
 
         };
 
-
-        switch(escrows)
-        {
-            case(null){};
-            case(?this_buyer){
-                Iter.iterate<MigrationTypes.Current.EscrowTokenIDTrie>(Map.vals(this_buyer), func(thisSeller, x){
-                    Iter.iterate<MigrationTypes.Current.EscrowLedgerTrie>(Map.vals(thisSeller), func(this_token_id, x){
-                        Iter.iterate<MigrationTypes.Current.EscrowRecord>(Map.vals(this_token_id), func(this_ledger, x){
-                            escrowResults.add(this_ledger);
-                        });
-                    });
-                });
+        switch (escrows) {
+            case (null) {};
+            case (?this_buyer) {
+                Iter.iterate<MigrationTypes.Current.EscrowTokenIDTrie>(
+                    Map.vals(this_buyer),
+                    func(thisSeller, x) {
+                        Iter.iterate<MigrationTypes.Current.EscrowLedgerTrie>(
+                            Map.vals(thisSeller),
+                            func(this_token_id, x) {
+                                Iter.iterate<MigrationTypes.Current.EscrowRecord>(
+                                    Map.vals(this_token_id),
+                                    func(this_ledger, x) {
+                                        escrowResults.add(this_ledger);
+                                    },
+                                );
+                            },
+                        );
+                    },
+                );
             };
         };
 
-        switch(sales)
-        {
-            case(null){};
-            case(?thisSeller){
-                Iter.iterate<MigrationTypes.Current.EscrowTokenIDTrie>(Map.vals(thisSeller), func(this_buyer, x){
-                    Iter.iterate<MigrationTypes.Current.EscrowLedgerTrie>(Map.vals(this_buyer), func(this_token_id, x){
-                        Iter.iterate<MigrationTypes.Current.EscrowRecord>(Map.vals(this_token_id), func(this_ledger, x){
-                            salesResults.add(this_ledger);
-                        });
-                    });
-                });
+        switch (sales) {
+            case (null) {};
+            case (?thisSeller) {
+                Iter.iterate<MigrationTypes.Current.EscrowTokenIDTrie>(
+                    Map.vals(thisSeller),
+                    func(this_buyer, x) {
+                        Iter.iterate<MigrationTypes.Current.EscrowLedgerTrie>(
+                            Map.vals(this_buyer),
+                            func(this_token_id, x) {
+                                Iter.iterate<MigrationTypes.Current.EscrowRecord>(
+                                    Map.vals(this_token_id),
+                                    func(this_ledger, x) {
+                                        salesResults.add(this_ledger);
+                                    },
+                                );
+                            },
+                        );
+                    },
+                );
             };
         };
 
-
-        switch(offers){
-            case(null){};
-            case(?found_offer){
-                for(this_buyer in Map.entries<Types.Account, Int>(found_offer)){
-                    switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state_current.escrow_balances, Types.account_handler, this_buyer.0)){
-                        case(null){};
-                        case(?found_buyer){
-                            switch(Map.get(found_buyer, Types.account_handler, account)){
-                                case(null){};
-                                case(?found_seller){
-                                     for(this_token in Map.entries(found_seller)){
-                                         for(this_ledger in Map.entries(this_token.1)){
-                                             offer_results.add(this_ledger.1);
-                                         };
-                                     };
+        switch (offers) {
+            case (null) {};
+            case (?found_offer) {
+                for (this_buyer in Map.entries<Types.Account, Int>(found_offer)) {
+                    switch (Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state_current.escrow_balances, Types.account_handler, this_buyer.0)) {
+                        case (null) {};
+                        case (?found_buyer) {
+                            switch (Map.get(found_buyer, Types.account_handler, account)) {
+                                case (null) {};
+                                case (?found_seller) {
+                                    for (this_token in Map.entries(found_seller)) {
+                                        for (this_ledger in Map.entries(this_token.1)) {
+                                            offer_results.add(this_ledger.1);
+                                        };
+                                    };
                                 };
                             };
                         };
@@ -987,8 +1159,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        return #ok{
-            multi_canister = null; //nyi
+        return #ok {
+            multi_canister = null;
+            //nyi
             nfts = nft_results.toArray();
             escrow = escrowResults.toArray();
             sales = salesResults.toArray();
@@ -997,158 +1170,156 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
     };
 
-
     // Lets a user query the balances for their nfts, escrows, sales, offers, and stakes
-    public query(msg) func balance_of_nft_origyn(account: Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError>{
+    public query (msg) func balance_of_nft_origyn(account : Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError> {
 
         return _balance_of_nft_origyn(account, msg.caller);
     };
-
-
 
     // Allows secure access to balance
-    public shared(msg) func balance_of_secure_nft_origyn(account: Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError>{
+    public shared (msg) func balance_of_secure_nft_origyn(account : Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError> {
         return _balance_of_nft_origyn(account, msg.caller);
     };
 
-
-    private func _bearer_of_nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.Account, Types.OrigynError>{
-         let foundVal = switch(
+    private func _bearer_of_nft_origyn(token_id : Text, caller : Principal) : Result.Result<Types.Account, Types.OrigynError> {
+        let foundVal = switch (
             Metadata.get_nft_owner(
-                switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
-                    case(#err(err)){
+                switch (Metadata.get_metadata_for_token(get_state(), token_id, caller, null, state_current.collection_data.owner)) {
+                    case (#err(err)) {
                         return #err(Types.errors(#token_not_found, "bearer_nft_origyn " # err.flag_point, ?caller));
                     };
-                    case(#ok(val)){
+                    case (#ok(val)) {
                         val;
                     };
-                })){
-                case(#err(err)){
-                    return #err(Types.errors(err.error, "bearer_nft_origyn " # err.flag_point, ?caller));
-                };
-                case(#ok(val)){
-                    return #ok(val);
-                };
+                },
+            ),
+        ) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "bearer_nft_origyn " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) {
+                return #ok(val);
+            };
         };
     };
 
     // Returns the owner of the NFT indicated by token_id
-    public query (msg) func bearer_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in bearer_nft_origyn");
+    public query (msg) func bearer_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in bearer_nft_origyn");
         return _bearer_of_nft_origyn(token_id, msg.caller);
-       
+
     };
 
     // Secure access to bearer
-    public shared (msg) func bearer_secure_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
-        
+    public shared (msg) func bearer_secure_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
+
         return _bearer_of_nft_origyn(token_id, msg.caller);
     };
 
     // Provides access to searching a large number of bearers at one time
     // nyi: could expose items not minted. add mint/owner check
-    public query (msg) func bearer_batch_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
-        
+    public query (msg) func bearer_batch_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>] {
+        debug if (debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
+
         let results = Buffer.Buffer<Result.Result<Types.Account, Types.OrigynError>>(tokens.size());
-        label search for(thisitem in tokens.vals()){
-            results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
-           
+        label search for (thisitem in tokens.vals()) {
+            results.add(_bearer_of_nft_origyn(thisitem, msg.caller));
+
         };
         return results.toArray();
     };
 
     // Secure access to bearer batch
-    public shared (msg) func bearer_batch_secure_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in bearer_batch_secure_nft_origyn");
-        
+    public shared (msg) func bearer_batch_secure_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>] {
+        debug if (debug_channel.function_announce) D.print("in bearer_batch_secure_nft_origyn");
+
         let results = Buffer.Buffer<Result.Result<Types.Account, Types.OrigynError>>(tokens.size());
-        label search for(thisitem in tokens.vals()){
-            results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
-           
+        label search for (thisitem in tokens.vals()) {
+            results.add(_bearer_of_nft_origyn(thisitem, msg.caller));
+
         };
         return results.toArray();
     };
 
     // Conversts a token id to a Nat for use in dip721
-    public query(msg) func get_token_id_as_nat_origyn(token_id : Text) : async Nat {
-        debug if(debug_channel.function_announce) D.print("in get_token_id_as_nat_origyn");
-        
+    public query (msg) func get_token_id_as_nat_origyn(token_id : Text) : async Nat {
+        debug if (debug_channel.function_announce) D.print("in get_token_id_as_nat_origyn");
+
         return NFTUtils.get_token_id_as_nat(token_id);
     };
 
     // Converts a nat to an token_id for Nat
-    public query(msg) func get_nat_as_token_id_origyn(tokenAsNat : Nat) : async Text {
-        debug if(debug_channel.function_announce) D.print("in get_nat_as_token_id_origyn");
-        
-       NFTUtils.get_nat_as_token_id(tokenAsNat)
+    public query (msg) func get_nat_as_token_id_origyn(tokenAsNat : Nat) : async Text {
+        debug if (debug_channel.function_announce) D.print("in get_nat_as_token_id_origyn");
+
+        NFTUtils.get_nat_as_token_id(tokenAsNat);
     };
 
-    private func _ownerOfDip721 (tokenAsNat: Nat, caller: Principal) :  DIP721.OwnerOfResponse{
-        let foundVal = switch(
+    private func _ownerOfDip721(tokenAsNat : Nat, caller : Principal) : DIP721.OwnerOfResponse {
+        let foundVal = switch (
             Metadata.get_nft_owner(
-                switch(Metadata.get_metadata_for_token(get_state(),
-                        NFTUtils.get_nat_as_token_id(tokenAsNat)
-                    , caller, null, state_current.collection_data.owner)){
-                    case(#err(err)){
+                switch (Metadata.get_metadata_for_token(get_state(), NFTUtils.get_nat_as_token_id(tokenAsNat), caller, null, state_current.collection_data.owner)) {
+                    case (#err(err)) {
                         return #Err(#TokenNotFound);
                     };
-                    case(#ok(val)){
+                    case (#ok(val)) {
                         val;
                     };
-                })){
-                case(#err(err)){
-                    return #Err(#Other("ownerOf " # err.flag_point));
+                },
+            ),
+        ) {
+            case (#err(err)) {
+                return #Err(#Other("ownerOf " # err.flag_point));
+            };
+            case (#ok(val)) {
+                switch (val) {
+                    case (#principal(data)) {
+                        return #Ok(?data);
+                    };
+                    case (_) {
+                        return #Err(#Other("ownerOf unsupported owner type by DIP721" # debug_show (val)));
+                    };
                 };
-                case(#ok(val)){
-                    switch(val){
-                        case(#principal(data)){
-                            return #Ok(?data);
-                        };
-                        case(_){
-                            return #Err(#Other("ownerOf unsupported owner type by DIP721" # debug_show(val)));
-                        }
-                    }
-                };
+            };
         };
     };
 
     // Owner of dip721
-    public query(msg) func ownerOfDIP721(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
-        debug if(debug_channel.function_announce) D.print("in ownerOfDIP721");
-        
+    public query (msg) func ownerOfDIP721(tokenAsNat : Nat) : async DIP721.OwnerOfResponse {
+        debug if (debug_channel.function_announce) D.print("in ownerOfDIP721");
+
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
     // For dip721 "v2" downgrade in usability
-    public query(msg) func ownerOf(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
-        debug if(debug_channel.function_announce) D.print("in ownerOf");
-        
+    public query (msg) func ownerOf(tokenAsNat : Nat) : async DIP721.OwnerOfResponse {
+        debug if (debug_channel.function_announce) D.print("in ownerOf");
+
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
     // Supports EXT Bearer
-    public query(msg) func bearerEXT(tokenIdentifier: EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
-        debug if(debug_channel.function_announce) D.print("in bearerEXT");
-        
+    public query (msg) func bearerEXT(tokenIdentifier : EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError> {
+        debug if (debug_channel.function_announce) D.print("in bearerEXT");
+
         return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
     };
 
     // Supports EXT Bearer legacy
-    public query(msg) func bearer(tokenIdentifier: EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
-        debug if(debug_channel.function_announce) D.print("in bearer");
-        
+    public query (msg) func bearer(tokenIdentifier : EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError> {
+        debug if (debug_channel.function_announce) D.print("in bearer");
+
         return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
     };
 
-    private func _nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.NFTInfoStable, Types.OrigynError>{
+    private func _nft_origyn(token_id : Text, caller : Principal) : Result.Result<Types.NFTInfoStable, Types.OrigynError> {
         //D.print("Calling NFT_Origyn");
-        var metadata = switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
-            case(#err(err)){
+        var metadata = switch (Metadata.get_metadata_for_token(get_state(), token_id, caller, null, state_current.collection_data.owner)) {
+            case (#err(err)) {
                 return #err(err);
             };
-            case(#ok(val)){
+            case (#ok(val)) {
                 val;
             };
         };
@@ -1156,252 +1327,259 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let final_object = Metadata.get_clean_metadata(metadata, caller);
 
         // Identify a current sale
-        let current_sale : ?Types.SaleStatusStable = switch(Metadata.get_current_sale_id(metadata)){
-            case(#Empty){null};
-            case(#Text(val)){
-                do ? {Types.SalesStatus_stabalize_for_xfer(Map.get(state_current.nft_sales, Map.thash,val)!)};
+        let current_sale : ?Types.SaleStatusStable = switch (Metadata.get_current_sale_id(metadata)) {
+            case (#Empty) { null };
+            case (#Text(val)) {
+                do ? {
+                    Types.SalesStatus_stabalize_for_xfer(Map.get(state_current.nft_sales, Map.thash, val)!);
+                };
             };
-            case(_){
+            case (_) {
                 //should be an error
-                null};
+                null;
+            };
         };
-        return(#ok({
-            current_sale = current_sale;
-            metadata= final_object;}
-        ));
+        return (#ok({ current_sale = current_sale; metadata = final_object }));
 
-        return #ok({current_sale= null; metadata = #Empty;});
-    };  
-
+        return #ok({ current_sale = null; metadata = #Empty });
+    };
 
     // Returns metadata about an NFT
-    public query (msg) func nft_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError>{
+    public query (msg) func nft_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError> {
 
-        debug if(debug_channel.function_announce) D.print("in nft_origyn");
-        
+        debug if (debug_channel.function_announce) D.print("in nft_origyn");
+
         return _nft_origyn(token_id, msg.caller);
     };
 
     // Secure access to nft_origyn
-    public shared (msg) func nft_secure_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in nft_secure_origyn");
-        
-       return _nft_origyn(token_id, msg.caller);
+    public shared (msg) func nft_secure_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in nft_secure_origyn");
+
+        return _nft_origyn(token_id, msg.caller);
     };
 
     // Batch access to nft metadata
-    public query (msg) func nft_batch_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in nft_batch_origyn");
-        
+    public query (msg) func nft_batch_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>] {
+        debug if (debug_channel.function_announce) D.print("in nft_batch_origyn");
+
         let results = Buffer.Buffer<Result.Result<Types.NFTInfoStable, Types.OrigynError>>(token_ids.size());
-        label search for(thisitem in token_ids.vals()){
-            
+        label search for (thisitem in token_ids.vals()) {
+
             results.add(_nft_origyn(thisitem, msg.caller));
         };
 
         return results.toArray();
     };
 
-    public shared (msg) func nft_batch_secure_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in nft_batch_secure_origyn");
-        
+    public shared (msg) func nft_batch_secure_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>] {
+        debug if (debug_channel.function_announce) D.print("in nft_batch_secure_origyn");
+
         let results = Buffer.Buffer<Result.Result<Types.NFTInfoStable, Types.OrigynError>>(token_ids.size());
-        label search for(thisitem in token_ids.vals()){
-            
-            results.add( _nft_origyn(thisitem, msg.caller));
+        label search for (thisitem in token_ids.vals()) {
+
+            results.add(_nft_origyn(thisitem, msg.caller));
         };
 
         return results.toArray();
     };
 
-
     // Pull a chunk of a nft library
     // The IC can only pull back ~2MB per request. This allows reading an entire library file by a user or canister
-    public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError>{
+    public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
         //D.print("looking for a chunk" # debug_show(request));
         //check mint property
-        debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");
-        
+        debug if (debug_channel.function_announce) D.print("in chunk_nft_origyn");
+
         return Metadata.chunk_nft_origyn(get_state(), request, ?msg.caller);
     };
 
     // Secure access to chunks
-    public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in chunk_secure_nft_origyn");
-        
+    public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in chunk_secure_nft_origyn");
+
         return Metadata.chunk_nft_origyn(get_state(), request, ?msg.caller);
     };
 
     // Cleans access keys
     private func clearAccessKeysExpired() {
         let max_size = 20000;
-        if(access_tokens.size() > max_size) {
-            Iter.iterate<Text>(access_tokens.keys(), func(key, _index) {
-                switch(access_tokens.get(key)){
-                  case(null){};
-                  case(?item){
-                    if(item.expires < get_time()){
-                        access_tokens.delete(key);
-                    }
-                  }
-                }
-            });
+        if (access_tokens.size() > max_size) {
+            Iter.iterate<Text>(
+                access_tokens.keys(),
+                func(key, _index) {
+                    switch (access_tokens.get(key)) {
+                        case (null) {};
+                        case (?item) {
+                            if (item.expires < get_time()) {
+                                access_tokens.delete(key);
+                            };
+                        };
+                    };
+                },
+            );
         };
     };
 
-    let access_expiration = (1000 * 360 * (1_000_000)); //360s
+    let access_expiration = (1000 * 360 * (1_000_000));
+    //360s
 
     // Registers a principal with a access key so a user can use that key to make http queries
-    public shared(msg) func http_access_key(): async Result.Result<Text, Types.OrigynError> {
-        debug if(debug_channel.function_announce) D.print("in http_access_key");
-        
+    public shared (msg) func http_access_key() : async Result.Result<Text, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in http_access_key");
+
         // nyi: spam prevention
-        if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
-                            
+        if (Principal.isAnonymous(msg.caller)) {
+            return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller));
+        };
+
         clearAccessKeysExpired();
 
-        let access_key = (await http.gen_access_key()) # Nat32.toText(Text.hash(debug_show(msg.caller, Time.now())));
+        let access_key = (await http.gen_access_key()) # Nat32.toText(Text.hash(debug_show (msg.caller, Time.now())));
 
-        access_tokens.put(access_key, {
-            identity = msg.caller;
-            expires = Time.now() + access_expiration; 
-        });
+        access_tokens.put(
+            access_key,
+            {
+                identity = msg.caller;
+                expires = Time.now() + access_expiration;
+            },
+        );
 
         #ok(access_key);
     };
 
     // Gets an access key for a user
-    public query(msg) func get_access_key(): async Result.Result<Text, Types.OrigynError> {
-        debug if(debug_channel.function_announce) D.print("in get_access_key");
+    public query (msg) func get_access_key() : async Result.Result<Text, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in get_access_key");
         //optimization: use a Map
-        for((key, info) in access_tokens.entries()){
-          if(Principal.equal(info.identity, msg.caller)) {
-            return #ok(key);
-          };
+        for ((key, info) in access_tokens.entries()) {
+            if (Principal.equal(info.identity, msg.caller)) {
+                return #ok(key);
+            };
         };
 
         #err(Types.errors(#property_not_found, "access key not found by caller", ?msg.caller));
     };
 
     // Handles http request
-    public query(msg) func http_request(rawReq: Types.HttpRequest): async (http.HTTPResponse) {
-        debug if(debug_channel.function_announce) D.print("in http_request");
-        
+    public query (msg) func http_request(rawReq : Types.HttpRequest) : async (http.HTTPResponse) {
+        debug if (debug_channel.function_announce) D.print("in http_request");
+
         return http.http_request(get_state(), rawReq, msg.caller);
     };
 
     // A streaming callback based on NFTs. Returns {[], null} if the token can not be found.
     // Expects a key of the following pattern: "nft/{key}".
     public query func nftStreamingCallback(tk : http.StreamingCallbackToken) : async http.StreamingCallbackResponse {
-       debug if(debug_channel.streaming) D.print("The nftstreamingCallback " # debug_show(debug_show(tk)));
-       debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");
-        
+        debug if (debug_channel.streaming) D.print("The nftstreamingCallback " # debug_show (debug_show (tk)));
+        debug if (debug_channel.function_announce) D.print("in chunk_nft_origyn");
 
         return http.nftStreamingCallback(tk, get_state());
     };
 
     // Handles streaming
     public query func http_request_streaming_callback(
-        tk : http.StreamingCallbackToken
+        tk : http.StreamingCallbackToken,
     ) : async http.StreamingCallbackResponse {
         return http.http_request_streaming_callback(tk, get_state());
     };
 
     // Lets a user see who they are
-    public query (msg) func whoami(): async (Principal) { msg.caller };
+    public query (msg) func whoami() : async (Principal) { msg.caller };
 
     // Returns the status of the gateway canister
-    public shared func canister_status(request: { canister_id: Types.canister_id }): async Types.canister_status {
-        await ic.canister_status(request)
+    public shared func canister_status(request : { canister_id : Types.canister_id }) : async Types.canister_status {
+        await ic.canister_status(request);
     };
 
     // Reports cylces
-    public query func cycles(): async Nat {
-        Cycles.balance()
+    public query func cycles() : async Nat {
+        Cycles.balance();
     };
 
     // Returns storage metrics for this server
-    public query func storage_info_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError>{
+    public query func storage_info_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
         // Warning: this func does not use msg.caller. If that changes, fix secure query
-        debug if(debug_channel.function_announce) D.print("in storage_info_nft_origyn");
-        
+        debug if (debug_channel.function_announce) D.print("in storage_info_nft_origyn");
+
         let state = get_state();
-        return #ok({
-            allocated_storage = state.state.canister_allocated_storage;
-            available_space = state.state.canister_availible_space;
-            allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state.state.allocations),Types.allocation_record_stabalize));
-        });
+        return #ok({ allocated_storage = state.state.canister_allocated_storage; available_space = state.state.canister_availible_space; allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord, Types.AllocationRecordStable>(Map.vals<(Text, Text), Types.AllocationRecord>(state.state.allocations), Types.allocation_record_stabalize)) });
     };
 
     // Secure access to storage info
-    public shared(msg) func storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in storage_info_secure_nft_origyn");
+    public shared (msg) func storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
+        debug if (debug_channel.function_announce) D.print("in storage_info_secure_nft_origyn");
         return await storage_info_nft_origyn();
     };
-     
 
     // Metadata for ext
-    public query func metadata(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
-        debug if(debug_channel.function_announce) D.print("in metadata");
-      
-        let token_id = switch(Owner.getNFTForTokenIdentifier(get_state(), token)){
-            case(#ok(data)){
-                 data
+    public query func metadata(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata, EXT.CommonError> {
+        debug if (debug_channel.function_announce) D.print("in metadata");
+
+        let token_id = switch (Owner.getNFTForTokenIdentifier(get_state(), token)) {
+            case (#ok(data)) {
+                data;
             };
-            case(#err(err)){
+            case (#err(err)) {
                 return #err(#InvalidToken(token));
             };
         };
 
-        return #ok(#nonfungible({
-                metadata = ?Text.encodeUtf8("https://exos.origyn.network/-/" # Principal.toText(get_canister()) # "/-/" # token_id)
-            }));
+        return #ok(#nonfungible({ metadata = ?Text.encodeUtf8("https://exos.origyn.network/-/" # Principal.toText(get_canister()) # "/-/" # token_id) }));
     };
-
 
     // *************************
     // ********** LOGS *********
     // *************************
 
-
     // Create a log - this is just for testing
-    public shared (msg) func create_log () : async () {
-         NFTUtils.add_log(get_state(), {
-            event = "create_log_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+    public shared (msg) func create_log() : async () {
+
+        
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "create_log_nft_origyn";
+                timestamp = get_time();
+                data = #Text("this is a text");
+                caller = ?msg.caller;
+            },
+        );
     };
 
     // set the `log_harvester`
-    public shared (msg) func set_log_harvester_id(_id: Principal): async () {
+    public shared (msg) func set_log_harvester_id(_id : Principal) : async () {
         let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
+        if (msg.caller != state.state.collection_data.owner) {
+            throw Error.reject("not owner");
+        };
 
-        NFTUtils.add_log(get_state(), {
-            event = "set_log_harvester_id";
-            timestamp = get_time();
-            data =  #Principal(_id);
-            caller = ?msg.caller;
-        });
-         state.state.log_harvester := _id;
+        NFTUtils.add_log(
+            get_state(),
+            {
+                event = "set_log_harvester_id";
+                timestamp = get_time();
+                data = #Principal(_id);
+                caller = ?msg.caller;
+            },
+        );
+        state.state.log_harvester := _id;
     };
 
     // get the last pages number of logs and burns them
-    public shared(msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]]{
-        assert(pages > 0);
+    public shared (msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]] {
+        assert (pages > 0);
         let state = get_state();
-        if(msg.caller !=  state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
+        if (msg.caller != state.state.log_harvester) {
+            throw Error.reject("not the log harvester");
         };
         let result = Buffer.Buffer<[Types.LogEntry]>(pages);
-        for(thisRound in Iter.range(0, pages-1)){
+        for (thisRound in Iter.range(0, pages -1)) {
             let chunk = SB.removeLast(state.state.log_history);
-            switch(chunk){
-                case(null){};
-                case(?v){
-                result.add(v);
+            switch (chunk) {
+                case (null) {};
+                case (?v) {
+                    result.add(v);
                 };
             };
         };
@@ -1409,57 +1587,64 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     //destroys the log
-    public shared(msg) func nuke_log() : async (){
+    public shared (msg) func nuke_log() : async () {
         let state = get_state();
-        if(msg.caller != state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
+        if (msg.caller != state.state.log_harvester) {
+            throw Error.reject("not the log harvester");
         };
-         state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
+        state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
     };
 
-    public shared(msg) func get_log_history() : async [Types.LogEntry] {
+    public shared (msg) func get_log_history() : async [Types.LogEntry] {
         let state = get_state();
-        return SB.get( state.state.log_history, 0);
+        return SB.get(state.state.log_history, 0);
     };
 
     //log info
-    public query(msg) func log_history_size() : async Nat{
+    public query (msg) func log_history_size() : async Nat {
         let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
+        if (msg.caller != state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
             throw Error.reject("no log rights");
         };
-        return SB.size( state.state.log_history);
+        return SB.size(state.state.log_history);
     };
 
     //look a specific page of log history
-    public query(msg) func log_history_page(i : Nat) : async [Types.LogEntry]{
+    public query (msg) func log_history_page(i : Nat) : async [Types.LogEntry] {
         let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
+        if (msg.caller != state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
             throw Error.reject("no log rights");
         };
-        return SB.get( state.state.log_history, i);
+        return SB.get(state.state.log_history, i);
     };
 
     //look a chunk by page if over 2MB
-    public query(msg) func log_history_page_chunk(i : Nat, start: Nat, end: Nat) : async [Types.LogEntry]{
+    public query (msg) func log_history_page_chunk(
+        i : Nat,
+        start : Nat,
+        end : Nat,
+    ) : async [Types.LogEntry] {
         let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
+        if (msg.caller != state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
             throw Error.reject("no log rights");
         };
         let thisChunk = SB.get(state.state.log_history, i);
         let result = Buffer.Buffer<Types.LogEntry>(end - start + 1);
-        Iter.iterate<Types.LogEntry>(thisChunk.vals(), func(a: Types.LogEntry, index: Nat){
-            if(index >= start and index <= end){
-            result.add(a);
-            };
-        });
+        Iter.iterate<Types.LogEntry>(
+            thisChunk.vals(),
+            func(a : Types.LogEntry, index : Nat) {
+                if (index >= start and index <= end) {
+                    result.add(a);
+                };
+            },
+        );
         return result.toArray();
     };
 
     //gets the current log page
-    public query(msg) func current_log() : async [Types.LogEntry]{
+    public query (msg) func current_log() : async [Types.LogEntry] {
         let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
+        if (msg.caller != state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
             throw Error.reject("no log rights");
         };
         return SB.toArray(state.state.log);
@@ -1470,36 +1655,34 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // *************************
 
     // Announces support of interfaces
-    public query func __supports() : async [(Text,Text)]{
+    public query func __supports() : async [(Text, Text)] {
         [
-            ("nft_origyn","v0.1.0"),
-            ("data_nft_origyn","v0.1.0"),
-            ("collection_nft_origyn","v0.1.0"),
-            ("mint_nft_origyn","v0.1.0"),
-            ("owner_nft_origyn","v0.1.0"),
-            ("market_nft_origyn","v0.1.0")
-        ]
+            ("nft_origyn", "v0.1.0"),
+            ("data_nft_origyn", "v0.1.0"),
+            ("collection_nft_origyn", "v0.1.0"),
+            ("mint_nft_origyn", "v0.1.0"),
+            ("owner_nft_origyn", "v0.1.0"),
+            ("market_nft_origyn", "v0.1.0"),
+        ];
     };
 
     // Lets the NFT accept cycles
-    public func wallet_receive() : async  Nat  {
-      let amount = Cycles.available();
-      let accepted = amount;
-      let deposit = Cycles.accept(accepted);
-      accepted;
+    public func wallet_receive() : async Nat {
+        let amount = Cycles.available();
+        let accepted = amount;
+        let deposit = Cycles.accept(accepted);
+        accepted;
     };
 
-
     system func preupgrade() {
-        
-        
+
         access_tokens_stable := Iter.toArray(access_tokens.entries());
 
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-        for(thisKey in nft_library.entries()){
-            let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-            for(this_item in thisKey.1.entries()){
-                this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+        for (thisKey in nft_library.entries()) {
+            let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1. size());
+            for (this_item in thisKey.1. entries()) {
+                this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)));
             };
             nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
         };
