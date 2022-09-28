@@ -1533,18 +1533,94 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // *************************
 
     // Create a log - this is just for testing
-    public shared (msg) func create_log() : async () {
-
+    public shared (msg) func create_log( t :  Text) : async () {
         
-        NFTUtils.add_log(
+        // NFTUtils.add_log(
+        //     get_state(),
+        //     {
+        //         event = t;
+        //         timestamp = get_time();
+        //         data = #Class([
+        //             {name = "library_id"; value=#Text("page"); immutable= true},
+        //             {name = "title"; value=#Text("page"); immutable= true},
+        //             {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
+        //             {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae"); immutable= true},
+        //             {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+        //             {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+        //             {name = "size"; value=#Nat(10); immutable= true},
+        //             {name = "sort"; value=#Nat(0); immutable= true},
+        //             {name = "read"; value=#Text("public"); immutable=false;},
+        //         ]);
+        //         caller = ?msg.caller;
+        //     },
+        // );
+
+         NFTUtils.add_log(
             get_state(),
             {
-                event = "create_log_nft_origyn";
+                event = t;
                 timestamp = get_time();
-                data = #Text("this is a text");
+                data = #Text("hello world");
                 caller = ?msg.caller;
             },
         );
+    };
+
+    public func get_log_event( e : Text, n : Nat ) : async [Types.LogEntry] {
+        let state = get_state();   
+        let result = Buffer.Buffer<Types.LogEntry>(0);
+        let r = Buffer.Buffer<Types.LogEntry>(0);   
+        for (index in Iter.range(0, SB.size(state.state.log) -1)) {
+            let log_item = SB.get(state.state.log, index);
+            if( log_item.event == e ){
+                // D.print("hello : " # debug_show(log_item));
+                result.add(log_item);
+            };
+        };
+        // D.print("result size : " # debug_show(result.size()));
+        // D.print("r size : " # debug_show(r.size()));
+        if( result.size() > n ) {
+            
+            var counter = 1;
+            let limit = result.size() - n;
+            for (this_item in result.vals()){               
+                
+                if ( counter > limit ){
+                    r.add(this_item);
+                };
+                counter += 1;              
+            };
+        };
+
+        if( r.size() == 0){
+             return result.toArray();
+        } else {
+            return r.toArray();
+        };        
+
+    };
+
+    public shared (msg) func harv_log() : async [Types.LogEntry] {
+        // assert (pages > 0);
+        let state = get_state();
+        // if (msg.caller != state.state.log_harvester) {
+        //     throw Error.reject("not the log harvester");
+        // };
+        
+        let result = Buffer.Buffer<Types.LogEntry>(0);
+        
+        let arr = SB.toArray(state.state.log);
+        let r = [];
+         
+         for(i in arr.vals()){
+            D.print("item : " # debug_show(i.event));
+            if( i.event == "alpha"){
+
+                result.add(i);
+            };
+         };
+
+        return result.toArray();
     };
 
     // set the `log_harvester`
@@ -1567,24 +1643,24 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // get the last pages number of logs and burns them
-    public shared (msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]] {
-        assert (pages > 0);
-        let state = get_state();
-        if (msg.caller != state.state.log_harvester) {
-            throw Error.reject("not the log harvester");
-        };
-        let result = Buffer.Buffer<[Types.LogEntry]>(pages);
-        for (thisRound in Iter.range(0, pages -1)) {
-            let chunk = SB.removeLast(state.state.log_history);
-            switch (chunk) {
-                case (null) {};
-                case (?v) {
-                    result.add(v);
-                };
-            };
-        };
-        return result.toArray();
-    };
+    // public shared (msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]] {
+    //     assert (pages > 0);
+    //     let state = get_state();
+    //     if (msg.caller != state.state.log_harvester) {
+    //         throw Error.reject("not the log harvester");
+    //     };
+    //     let result = Buffer.Buffer<[Types.LogEntry]>(pages);
+    //     for (thisRound in Iter.range(0, pages -1)) {
+    //         let chunk = SB.removeLast(state.state.log);
+    //         switch (chunk) {
+    //             case (null) {};
+    //             case (?v) {
+    //                 result.add(v);
+    //             };
+    //         };
+    //     };
+    //     return result.toArray();
+    // };
 
     //destroys the log
     public shared (msg) func nuke_log() : async () {
@@ -1592,7 +1668,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if (msg.caller != state.state.log_harvester) {
             throw Error.reject("not the log harvester");
         };
-        state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
     };
 
     public shared (msg) func get_log_history() : async [Types.LogEntry] {
