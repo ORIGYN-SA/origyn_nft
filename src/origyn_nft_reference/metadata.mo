@@ -72,6 +72,28 @@ module {
     };
   };  
 
+  //confirms if a token is a physical item
+  public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_physical);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
+    };
+  };
+
+  //confirms if a token is a physical item
+  public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_escrowed);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
+    };
+  };  
+
   //sets a system variable in the metadata
   public func set_system_var(metaData: CandyTypes.CandyValue, name: Text, value: CandyTypes.CandyValue) : CandyTypes.CandyValue {
     var this_metadata = metaData;
@@ -235,6 +257,24 @@ module {
          return #ok(
            switch(val.value){
              case(#Text(val)){return #ok(val)};
+             case(_){
+               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+             }
+           });
+      };
+    };
+  };
+
+  //gets a bool property out of the metadata
+  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
+    switch(Properties.getClassProperty(metadata, prop)){
+      case(null){
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+      };
+      case(?val){
+         return #ok(
+           switch(val.value){
+             case(#Bool(val)){return #ok(val)};
              case(_){
                return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
              }

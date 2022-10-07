@@ -1014,6 +1014,8 @@ module {
         __system_node : Text;
         __system_originator : Text;
         __system_wallet_shares : Text;
+        __system_physical : Text;
+        __system_escrowed : Text;
         __apps :Text;
         library : Text;
         library_id : Text;
@@ -1026,10 +1028,12 @@ module {
         experience_asset: Text;
         hidden_asset: Text;
         is_soulbound: Text;
+        physical: Text;
         primary_host: Text;
         primary_port: Text;
         primary_protcol: Text;
         primary_royalties_default : Text;
+        
         royalty_broker : Text;
         royalty_node : Text;
         royalty_originator : Text;
@@ -1046,6 +1050,8 @@ module {
         __system_node = "com.origyn.node";
         __system_originator = "com.origyn.originator";
         __system_wallet_shares = "com.origyn.wallet_shares";
+        __system_physical = "com.origyn.physical";
+        __system_escrowed = "com.origyn.escrow_node";
         __apps = "__apps";
         library = "library";
         library_id = "library_id";
@@ -1053,6 +1059,7 @@ module {
         library_location_type = "location_type";
         owner = "owner";
         id = "id";
+        physical = "com.origyn.physical";
         primary_asset = "primary_asset";
         preview_asset = "preview_asset";
         primary_royalties_default = "com.origyn.royalties.primary.default";

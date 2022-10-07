@@ -817,6 +817,22 @@ module {
         };
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_status, #Text("minted"));
 
+
+        //copy physical value to system
+        switch(Metadata.get_nft_bool_property(metadata, Types.metadata.physical)){
+          case(#err(err)){
+            //no physical value...do nothing
+          };
+          case(#ok(p)){
+            if(p == true){
+              //physical items cannot currently participate in markets unless they are escrowed with a node
+              metadata := Metadata.set_system_var(metadata, Types.metadata.__system_physical, #Bool(true));
+            } else{
+              //do nothing
+            };
+          };
+        };
+
         //get the royalties
         //nyi: should ask the network for the network royalty and node royalty
 

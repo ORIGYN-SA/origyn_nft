@@ -1884,6 +1884,14 @@ module {
             return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
         };
 
+
+        //can't start auction if token is a phisycal object unless in escrow with a node
+        if (Metadata.is_physical(metadata)) {
+          if (Metadata.is_in_physical_escrow(metadata) == false) {
+            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn physical token must be escrowed", ?caller));
+          };
+        };
+
         let owner = switch(
             Metadata.get_nft_owner(metadata)){
                 case(#err(err)){
