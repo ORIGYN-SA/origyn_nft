@@ -70,9 +70,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
    
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
 
-    let ledger_principal : Principal = Principal.fromText("dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe");
+    // let ledger_principal : Principal = Principal.fromText("dw5hj-fcc4h-22h5p-zdkx2-3byeo-f2vf3-jv5sa-gckmc-mtnss-zojch-oqe");
     
-    let alice_seller : Principal = Principal.fromText("u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae");
+    // let alice_seller : Principal = Principal.fromText("u74sm-wx4yh-capur-xnz4w-orbcn-l3jlc-m65rb-ue5ah-mqyvz-fmvvc-tae");
 
     let jess_buyer : Principal = Principal.fromText("3j2qa-oveg3-2agc5-735se-zsxjj-4n65k-qmnse-byzkf-4xhw5-mzjxe-pae");
 
@@ -194,78 +194,78 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     
     // Retrieves a list of groups for a particular user or address
-    public query(msg) func get_groups() : async Result.Result<Types.GetGroupResponse, Types.OrigynError>{
-       // ToDo:
-       // Are the amounts in cycles?   
-       return #ok([
-            {
-            namespace = "alpha";
-            pricing = ?[
-                #cost_per({
-                    amount = 100_000_000;
-                    token = #ic({
-                        canister = ledger_principal;
-                        fee = 200000;
-                        symbol =  "DIP";
-                        decimals = 8;
-                        standard = #DIP20;
-                        });
-                })
-            ];
-            allowed_amount = ?5;
-        }
-        ]);
-        // return #err(Types.errors(#nyi, "manage_nfts nyi", ?msg.caller));
-    };
+    // public query(msg) func get_groups() : async Result.Result<Types.GetGroupResponse, Types.OrigynError>{
+    //    // ToDo:
+    //    // Are the amounts in cycles?   
+    //    return #ok([
+    //         {
+    //         namespace = "alpha";
+    //         pricing = ?[
+    //             #cost_per({
+    //                 amount = 100_000_000;
+    //                 token = #ic({
+    //                     canister = ledger_principal;
+    //                     fee = 200000;
+    //                     symbol =  "DIP";
+    //                     decimals = 8;
+    //                     standard = #DIP20;
+    //                     });
+    //             })
+    //         ];
+    //         allowed_amount = ?5;
+    //     }
+    //     ]);
+    //     // return #err(Types.errors(#nyi, "manage_nfts nyi", ?msg.caller));
+    // };
 
     // We probably don't need this
-    public shared(msg) func get_escrow() : async Result.Result<Types.GetEscrowResponse, Types.OrigynError>{
-        // ToDo:
-        // Need to add more realistic data, the first goal was to spill the correct structure 
-        // Are we using the correct txn #escrow_deposit?
-        // Find out the how to hardcode candytype and uncomment from here and from types nft_reference
+    // public shared(msg) func get_escrow() : async Result.Result<Types.GetEscrowResponse, Types.OrigynError>{
+    //     // ToDo:
+    //     // Need to add more realistic data, the first goal was to spill the correct structure 
+    //     // Are we using the correct txn #escrow_deposit?
+    //     // Find out the how to hardcode candytype and uncomment from here and from types nft_reference
 
        
 
-        return #ok({
-            receipt = {
-                amount = 100_000_000; 
-                seller = #principal(alice_seller);
-                buyer = #principal(jess_buyer);
-                token_id = "OG1";
-                token = #ic({
-                        canister = ledger_principal;
-                        fee = 200000;
-                        symbol =  "DIP";
-                        decimals = 8;
-                        standard = #DIP20;
-                        });
+    //     return #ok({
+    //         receipt = {
+    //             amount = 100_000_000; 
+    //             seller = #principal(alice_seller);
+    //             buyer = #principal(jess_buyer);
+    //             token_id = "OG1";
+    //             token = #ic({
+    //                     canister = ledger_principal;
+    //                     fee = 200000;
+    //                     symbol =  "DIP";
+    //                     decimals = 8;
+    //                     standard = #DIP20;
+    //                     });
                 
-            };
-            balance = 100_000_000_000;
-            transaction = {
-                token_id = "OG1";
-                index = 2;
-                txn_type = #escrow_deposit({
-                seller = #principal(alice_seller);
-                buyer = #principal(jess_buyer);
-                token =  #ic({
-                        canister = ledger_principal;
-                        fee = 200000;
-                        symbol =  "DIP";
-                        decimals = 8;
-                        standard = #DIP20;
-                        });
-                token_id = "OG1";
-                amount = 100_000_000;
-                trx_id = #nat(10000000);
-                extensible = #Bool(false);
-            });
-            timestamp = timestamp;
-            };
-        });
-        // return #err(Types.errors(#nyi, "manage_nfts nyi", ?msg.caller));
-    };
+    //         };
+    //         balance = 100_000_000_000;
+    //         transaction = {
+    //             token_id = "OG1";
+    //             index = 2;
+    //             txn_type = #escrow_deposit({
+    //             seller = #principal(alice_seller);
+    //             buyer = #principal(jess_buyer);
+    //             token =  #ic({
+    //                     canister = ledger_principal;
+    //                     fee = 200000;
+    //                     symbol =  "DIP";
+    //                     decimals = 8;
+    //                     standard = #DIP20;
+    //                     });
+    //             token_id = "OG1";
+    //             amount = 100_000_000;
+    //             trx_id = #nat(10000000);
+    //             extensible = #Bool(false);
+    //         });
+    //         timestamp = timestamp;
+    //         };
+    //     });
+    //     // return #err(Types.errors(#nyi, "manage_nfts nyi", ?msg.caller));
+    // };
     
     // Allows the adding/removing of inventory items
     //made this a batch process so that adding NFT items doesn't take all day //need to test max add
