@@ -8,8 +8,6 @@
 
 [NFT Canister Sample Calls](./docs/audit.md)
 
-[Audit Doc](./docs/sample_calls.md)
-
 ## Sales Canister
 
 [Overview](./docs/nft_sale.md)
@@ -80,3 +78,7 @@ Location: _./projects/deploy.js_.
 Node script that stages and mints NFTs with the input of a JSON metadata file.
 
 See also: https://github.com/ORIGYN-SA/minting-starter
+
+### Audit
+
+[Audit Doc](./docs/sample_calls.md)
