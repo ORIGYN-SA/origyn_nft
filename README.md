@@ -6,7 +6,9 @@
 
 [NFT Canister API](./docs/nft-current-api.md)
 
-[NFT Canister Sample Calls](./docs/sample_calls.md)
+[NFT Canister Sample Calls](./docs/audit.md)
+
+[Audit Doc](./docs/sample_calls.md)
 
 ## Sales Canister
 
