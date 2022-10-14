@@ -1,3 +1,4 @@
+<img src="https://github.com/ferMartz/ic-firestarter/blob/main/frontend/assets/ic-firestarter.png" />
 # origyn_nft_reference
 
 ## NFT Canister
