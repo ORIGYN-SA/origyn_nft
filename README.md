@@ -76,3 +76,8 @@ Location: _./projects/deploy.js_.
 Node script that stages and mints NFTs with the input of a JSON metadata file.
 
 See also: https://github.com/ORIGYN-SA/minting-starter
+
+
+### Logs and metrics
+
+[Instructions](./docs/logs_and_metrics.md)
