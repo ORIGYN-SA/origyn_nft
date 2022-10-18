@@ -28,6 +28,7 @@ npm run start
 # If you get webpack-cli error run the following then do the npm run start
 npm install --save-dev webpack-cli
 ```
+- Open browser and paste the following url: `http://localhost:3001/`
 - Navigate to the settings tab
 - Click the example button to copy default settings
 - Under canisters replace the `canistedId` with the origyn_nft_reference id and change the name to Origyn NFT.
