@@ -1,10 +1,12 @@
 # origyn_nft_reference
 
+<img src="https://github.com/ORIGYN-SA/origyn_nft/blob/add-origyn-nft-pic/origyn_nft_pic.jpeg" />
+
 ## NFT Canister
 
 [NFT Canister API](./docs/nft-current-api.md)
 
-[NFT Canister Sample Calls](./docs/sample_calls.md)
+[NFT Canister Sample Calls](./docs/audit.md)
 
 ## Sales Canister
 
@@ -77,7 +79,6 @@ Node script that stages and mints NFTs with the input of a JSON metadata file.
 
 See also: https://github.com/ORIGYN-SA/minting-starter
 
+### Audit
 
-### Logs and metrics
-
-[Instructions](./docs/logs_and_metrics.md)
+[Audit Doc](./docs/sample_calls.md)
