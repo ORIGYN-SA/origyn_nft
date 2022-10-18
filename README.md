@@ -81,8 +81,8 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 
 ### Logs & Metrics
 
-[Logs and metrics instructions](./docs/logs_and_metrics.md)
+[Logs and metrics documentation](./docs/logs_and_metrics.md)
 
 ### Audit
 
-[Audit Doc](./docs/sample_calls.md)
+[Audit document](./docs/sample_calls.md)
