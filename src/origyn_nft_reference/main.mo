@@ -77,6 +77,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                             
 
     stable var migration_state: MigrationTypes.State = #v0_0_0(#data);
+    // For backups
+    stable var halt : Bool = false;
 
     debug if(debug_channel.instantiation) D.print("migrating");
 
@@ -150,6 +152,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             case(#test){return __test_time;};
         };
 
+    };
+
+    // set the `halt`
+    public shared (msg) func set_halt(bHalt: Bool): async () {
+        if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        throw Error.reject("not the admin");
+        };
+  
+        halt := bHalt;
+    };
+
+    public query (msg) func get_halt() : async Bool {
+        halt
     };
 
     // Data api - currently entire api nodes must be updated at one time
@@ -1444,6 +1459,20 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         return SB.toArray(state.state.log);
     };
+
+    // Backup
+    public query(msg) func back_up(page : Nat) : async Bool {
+        if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+            throw Error.reject("not the admin");
+        };
+
+        let state = get_state();
+
+        let nft_lib = state.nft_library;
+
+        return true;
+    };
+
 
     // Announces support of interfaces
     public query func __supports() : async [(Text,Text)]{

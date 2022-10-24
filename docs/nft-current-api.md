@@ -222,7 +222,7 @@ query nft_batch_secure_origyn(id: [Text]) query -> [NFTInfo]
 
 Returns data about the nft.  
 
-metatdata - NFTs are a class of CandyValues(see below section).
+metadata - NFTs are a class of CandyValues(see below section).
 currentSale - If the NFT is for sale, it will return info about the current sale.
 
 ```
