@@ -199,9 +199,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Allows staging multiple NFTs at the same time
     public shared (msg) func stage_batch_nft_origyn(request : [{metadata: CandyTypes.CandyValue}]): async [Result.Result<Text, Types.OrigynError>]{
-        
-        canistergeekLogger.logMessage("stage_batch_nft_origyn",request[0].metadata,?msg.caller);
-        canistergeekMonitor.collectMetrics();
+
         debug if(debug_channel.function_announce) D.print("in stage batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
             return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
@@ -210,9 +208,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         let results = Buffer.Buffer<Result.Result<Text,Types.OrigynError>>(request.size());
         for(this_item in request.vals()){
+            // Logs
+            canistergeekLogger.logMessage("stage_batch_nft_origyn",this_item.metadata,?msg.caller);
             //nyi: should probably check for some spammy things and bail if too many errors
             results.add(Mint.stage_nft_origyn(get_state(), this_item.metadata, msg.caller));
         };
+        canistergeekMonitor.collectMetrics();
         return results.toArray();
 
     };
@@ -258,12 +259,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func stage_library_batch_nft_origyn(chunks : [Types.StageChunkArg]) : async [Result.Result<Types.StageLibraryResponse,Types.OrigynError>] {
         //nyi: this needs to be gated to make sure the chunks don't contain file data. This should only be used for collection asset adding
         
-        let log_data : Text = "Chunk number : " # Nat.toText(chunks[0].chunk) # " - Library id : " # chunks[0].library_id ;
-        canistergeekLogger.logMessage("stage_library_batch_nft_origyn",#Text(log_data),?msg.caller);
-        canistergeekMonitor.collectMetrics();
+        
+       
         debug if(debug_channel.function_announce) D.print("in stage library batch");
         let results = Buffer.Buffer<Result.Result<Types.StageLibraryResponse,Types.OrigynError>>(chunks.size());
         for(this_item in chunks.vals()){
+            // Logs
+            var log_data : Text = "Chunk number : " # Nat.toText(this_item[0].chunk) # " - Library id : " # this_item[0].library_id ;
+            canistergeekLogger.logMessage("stage_library_batch_nft_origyn",#Text(log_data),?msg.caller);
             switch(Mint.stage_library_nft_origyn(
                 get_state(),
                 this_item,
@@ -290,6 +293,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                     };
                 };
         };
+        
+        canistergeekMonitor.collectMetrics();
 
         return results.toArray();
     };
@@ -325,9 +330,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func mint_batch_nft_origyn(tokens: [(Text, Types.Account)]) : async [Result.Result<Text,Types.OrigynError>] {
         // This involves an inter canister call and will not work well for multi canister collections. Test to figure out how many you can mint at a time;
 
-        let log_data = tokens[0];
-        canistergeekLogger.logMessage("mint_batch_nft_origyn",#Text(log_data.0),?msg.caller);
-        canistergeekMonitor.collectMetrics();
+        
+        
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
         return [#err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))]
         };
@@ -335,9 +339,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let results = Buffer.Buffer<Result.Result<Text,Types.OrigynError>>(tokens.size());
 
         label search for(thisitem in tokens.vals()){
+            // Logs
+            let log_data = thisitem[0];
+            canistergeekLogger.logMessage("mint_batch_nft_origyn",#Text(log_data.0),?msg.caller);
             results.add(await Mint.mint_nft_origyn(get_state(), thisitem.0, thisitem.1, msg.caller))
         };
-
+        canistergeekMonitor.collectMetrics();
         return results.toArray();
     };
 
@@ -473,27 +480,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func market_transfer_batch_nft_origyn(request : [Types.MarketTransferRequest]) : async [Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError>] {
         // nyi: for now limit this to managers
         
-        let first_item = request[0];
-        var log_data : Text = "Token : " # first_item.token_id;
-        switch(first_item.sales_config.pricing){
-            case(#instant){
-                log_data #= ", type : instant";
-            };
-            case(#flat(val)){
-                log_data #= ", type : flat, amount : " # Nat.toText(val.amount);
-            };
-            case(#auction(val)){
-                log_data #= ", type : auction, start price : " # Nat.toText(val.start_price);
-            };
-            case(#dutch(val)){
-                log_data #= ", type : dutch, start price : " # Nat.toText(val.start_price);
-            };
-            case(#extensible(val)){
-                log_data #= ", type : extensible";
-            };
-        };
-        canistergeekLogger.logMessage("market_transfer_batch_nft_origyn",#Text(log_data),?msg.caller);
-        canistergeekMonitor.collectMetrics();
+               
 
         debug if(debug_channel.function_announce) D.print("in market transfer batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
@@ -504,6 +491,27 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let results = Buffer.Buffer<Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError>>(request.size());
         
         for(this_item in request.vals()){
+            // Logs
+            // var first_item = request[0];
+            var log_data : Text = "Token : " # this_item.token_id;
+            switch(this_item.sales_config.pricing){
+                case(#instant){
+                    log_data #= ", type : instant";
+                };
+                case(#flat(val)){
+                    log_data #= ", type : flat, amount : " # Nat.toText(val.amount);
+                };
+                case(#auction(val)){
+                    log_data #= ", type : auction, start price : " # Nat.toText(val.start_price);
+                };
+                case(#dutch(val)){
+                    log_data #= ", type : dutch, start price : " # Nat.toText(val.start_price);
+                };
+                case(#extensible(val)){
+                    log_data #= ", type : extensible";
+                };
+            };
+            canistergeekLogger.logMessage("market_transfer_batch_nft_origyn",#Text(log_data),?msg.caller);
             // nyi: should probably check for some spammy things and bail if too many errors
             switch(this_item.sales_config.pricing){
                 case(#instant(item)){
@@ -515,6 +523,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
         //D.print("made it");
+        canistergeekMonitor.collectMetrics();
         return results.toArray();
     };
 
@@ -712,12 +721,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Batch info secure
     public shared (msg) func sale_info_batch_secure_nft_origyn(requests: [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>]{
-         NFTUtils.add_log(get_state(), {
-            event = "sale_batch_secure_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
+   
         debug if(debug_channel.function_announce) D.print("in sale info batch secure");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
