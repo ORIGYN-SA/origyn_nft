@@ -79,6 +79,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     stable var migration_state: MigrationTypes.State = #v0_0_0(#data);
     // For backups
     stable var halt : Bool = false;
+    stable var data_harvester_page_size : Nat = 100;
 
     debug if(debug_channel.instantiation) D.print("migrating");
 
@@ -152,6 +153,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             case(#test){return __test_time;};
         };
 
+    };
+
+    // set the `data_havester`
+    public shared (msg) func set_data_harvester(_page_size: Nat): async () {
+        if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        throw Error.reject("not the admin");
+        };
+
+        data_harvester_page_size := _page_size
     };
 
     // set the `halt`
@@ -1461,16 +1471,101 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Backup
-    public query(msg) func back_up(page : Nat) : async Bool {
+    public query(msg) func back_up(page : Nat) : async Types.BackupResponse {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
             throw Error.reject("not the admin");
         };
+        
+        // let targetStart = page * data_harvester_page_size;
+        // let targetEnd = targetStart + data_harvester_page_size;
+        // var globalTracker = 0;
 
         let state = get_state();
+        var access = Iter.toArray(access_tokens.entries());
+        let owner = state.state.collection_data.owner;
+        D.print( "\n\n" #
+        // "state " # debug_show(state.state) # "\n\n" #
+        // "allocations : " # debug_show(state.state.allocations) # "\n\n" #
+        "buckets : " # debug_show(state.state.buckets) # "\n\n" #
+        // "canister_allocated_storage : " # debug_show(state.state.canister_allocated_storage) # "\n\n" #
+        // "canister_availible_space : " # debug_show(state.state.canister_availible_space) # "\n\n" #
+        // "collection_data : " # debug_show(state.state.collection_data) # "\n\n" #
+        // "nft_metadata : " # debug_show(state.state.nft_metadata) # "\n\n" #
+        // "log : " # debug_show(state.state.log) # "\n\n" #
+        // "log_history : " # debug_show(state.state.log_history) # "\n\n" #
+        // "log_harvester : " # debug_show(state.state.log_harvester) # "\n\n" #
+        // "access : " # debug_show(access) # "\n\n" #
+        // "owner : " # debug_show(owner) # "\n\n" #
+        // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
+        // "access : " # debug_show(access) # "\n\n" #
+        "buckets size : " # debug_show(Map.size(state.state.buckets)) # "\n\n" #
+        "allocations size : " # debug_show(Map.size(state.state.allocations)) # "\n\n" #
+        "nft_metadata size : " # debug_show(Map.size(state.state.nft_metadata)) # "\n\n" #
+        "escrow_balances size : " # debug_show(Map.size(state.state.escrow_balances)) # "\n\n" 
+        // "nft_library : " # debug_show(state.nft_library) # "\n\n" 
+        );
 
-        let nft_lib = state.nft_library;
+        // NFT library Starts
+        let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
+        for(thisKey in nft_library.entries()){
+            let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+            for(this_item in thisKey.1.entries()){
+                this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+            };
+            nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
+        };
+        // NFT library Ends
 
-        return true;
+        // Buckets
+        var buckets : [(Principal, Types.BucketDat)] = [];
+        for ((key, value) in Map.entries(state.state.buckets)){
+             D.print("\n" # "bucket - allocations size : " # debug_show(Map.size(value.allocations)) # "\n");
+             var a : [((Text,Text), Int)] = [];
+             var b : ((Text,Text), Int) = (("",""),0);
+            for ((k,v) in Map.entries(value.allocations)){
+                D.print("\n" # "bucket k, v : " # debug_show(k,v) # "\n");
+                b := ((v.0.0, "world"), 1);
+                
+               
+            };
+            a := Array.append<((Text,Text), Int)>(a,[b]);
+            var val = {
+                principal = value.principal;
+                allocated_space = value.allocated_space;
+                available_space = value.available_space;
+                date_added = value.date_added;
+                b_gateway = value.b_gateway;
+                version = value.version;
+                allocations = a;
+            };
+            var e = (key, val);
+
+            buckets := Array.append<(Principal, Types.BucketDat)>(buckets,[e]);
+           
+        };
+         D.print("\n" # "bucket key, value : " # debug_show(buckets) # "\n");
+        // for (value in Map.vals(state.state.buckets)){
+        //     D.print("\n" # "bucket value : " # debug_show(value) # "\n");
+        // };
+
+        return  {
+            canister = state.canister();
+            access_tokens = access;
+            nft_library = nft_library_stable_buffer.toArray();
+            collection_data = {
+                logo = state.state.collection_data.logo;
+                name = state.state.collection_data.name;
+                symbol = state.state.collection_data.symbol;
+                metadata = state.state.collection_data.metadata;
+                owner  = state.state.collection_data.owner;
+                managers = state.state.collection_data.managers;
+                network = state.state.collection_data.network;
+                allocated_storage = state.state.collection_data.allocated_storage;
+                available_space  = state.state.collection_data.available_space;
+                active_bucket = state.state.collection_data.active_bucket;
+            };
+            buckets = buckets;
+        };
     };
 
 

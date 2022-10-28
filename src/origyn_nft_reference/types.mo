@@ -3,6 +3,7 @@ import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
+import Int "mo:base/Int";
 import Nat32 "mo:base/Nat32";
 import Order "mo:base/Order";
 import Principal "mo:base/Principal";
@@ -10,7 +11,7 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-
+import Map_lib "mo:map_6_0_0/Map"; 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
@@ -21,7 +22,7 @@ import Map "mo:map_6_0_0/Map";
 import NFTUtils "mo:map_6_0_0/utils";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import hex "mo:encoding/Hex";
-
+import CandyTypes_lib "mo:candy_0_1_10/types"; 
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
@@ -331,6 +332,45 @@ module {
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         access_tokens : TrieMap.TrieMap<Text, HttpAccess>;
         refresh_state: () -> State;
+    };
+
+    // public type BucketData = {  
+    //     principal : Principal;
+    //     allocated_space: Nat;
+    //     available_space: Nat;
+    //     date_added: Int;
+    //     b_gateway: Bool;
+    //     version: (Nat, Nat, Nat);
+    //     allocations: [[(Text,Text,Int)]]; 
+    // };
+    public type BucketDat = {
+        principal : Principal;
+        allocated_space: Nat;
+        available_space: Nat;
+        date_added: Int;
+        b_gateway: Bool;
+        version: (Nat, Nat, Nat);
+        allocations: [((Text, Text), Int)]
+        // allocations: Map.Map<(Text,Text), Int>;
+    };
+    public type BackupResponse = {
+        canister : Principal;
+        access_tokens : [(Text, HttpAccess)];
+        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])];
+        collection_data : {
+        logo: ?Text;
+        name: ?Text;
+        symbol: ?Text;
+        metadata: ?CandyTypes.CandyValue;
+        owner : Principal;
+        managers: [Principal];
+        network: ?Principal;
+        allocated_storage: Nat;
+        available_space : Nat;
+        active_bucket: ?Principal;
+        };
+        buckets : [(Principal, BucketDat)];
+
     };
 
     public type GatewayState = GatewayState_v0_1_0;
