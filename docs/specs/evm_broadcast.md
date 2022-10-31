@@ -168,3 +168,71 @@ Compliant Marketplace - A marketplace on an EVM chain that allows for the collec
 EVM - An Ethereum based virtual machine that can be interacted with via ecdsa signed transactions.
 
 Network ID - Each evm chain has an associated network ID that must be used in the signature.
+
+
+## FAQ:
+
+I think it would be helpful to start with a high-level overview of how/when the IC will integrate with Ethereum.
+What type of integration do we need? Just Ethereum addresses/signatures, or full EVM compatibility? If the latter, will this be implemented as separate subnets?
+
+1a. T-ecdsa - I've added a tech enablement section to the design doc
+
+Will this integration only work with Ethereum, or will it work with any EVM compatible blockchain?
+
+1b. Any evm chain
+
+How would we select the blockchain? Is it as simple as changing the Network ID?
+
+1c. Part of the signature construction in etherum includes a chain ID.  It has to do with how r,s,v are calculated and included in the signature.
+
+How far away is this integration?
+
+1d. The beta key exists on chain already.  Production has been slotted for November.
+
+Is the idea that a canister can have an Ethereum address (with ETH in it) and sign an Ethereum transaction to create a new smart contract?
+
+2. Yes. Each canister can have many ETH addresses to send transactions they need an eth balance to pay gas.
+
+When an NFT is sold on OpenSea, what will call the canister method to burn the NFT (market_transfer_nft_origyn/#chain_return)? Since Ethereum contracts can't make HTTP calls, are we depending on the exchanges to implement this especially for Origyn?
+
+3. We will wait for the new buyer to return the NFT to the ORIGYN network by calling #chainreturn.  The custom ERC721 will restrict transfer of the NFT beyond the purchaser's address so the user will be requred to return it to the ORIGYN chain and burn the evm based NFT before they could resell it.  Maybe there is a fancier way of doing this that only requires one transaction. We'll need to design that.
+
+
+If an NFT is burned on the Ethereum blockchain each time it is transferred, how does it appear in the purchaser's Ethereum wallet (OpenSea profile page)?
+
+4. It will not appear until they transfer it to the evm chain unless Opensea implements the origyn_nft standard and lets users track their IC wallets
+
+Is the intention to re-mint the same token id in an ERC721 contract each time it is listed? If it's "burned" by getting transferred to the burn address, doesn't the token id still exist?
+
+5. Yes...I think I understand the question.  Each time you want to list on the EVM chain then you'll need to mint back to the evm chain.  When you return the evm based NFT is burned...the custom contract will allow the contract admin address to reconstitute an NFT if was previously burned.
+
+What does this mean? Will there be a function named "H"?
+see: H("com.origyn.canister.evm_controller");
+
+6. Hash. sha-256 most likely
+
+Are users required to use gas tokens, instead of just burning ETH for gas? If so, will that integrate well with Ethereum marketplaces like OpenSea?
+
+7. The address sending the transactin will need eth in it to pay for gas(or matic or whatever the native evm token is).  Likely the transaction will need to contian a sig from the admin of the evm erc721 contract, so the origyn_nft contract will actually have to do two sigs. One to sign the authorization by the admin that can be included in the mint transactions by the submitter and the signature of the owner by the derivative key.
+
+What are some examples of addresses that would be in the whitelist other than marketplaces and sales contracts?
+
+8. I'm not sure I understand.  There will be a transferTo whitelist that will likely be marketplaces.  There will be transferFrom whitelist which will likely also be the marketplaces that are allowed to transfer from themselves to the winner of the sale.
+
+I'm not sure how centralized NFT exchanges work in regard to transferring addresses. Can we depend on marketplace addresses staying the same?
+
+9. We will likely not support centralized exchanges.
+
+Wherever variants require a network_id parameter, do you they also need a chain_id? https://besu.hyperledger.org/en/stable/public-networks/concepts/network-and-chain-id/
+
+10. network_id==chain_id - if that isn't the case then we'll need to handle both. I hadn't seen that setup in Avalanche...interesting.
+
+Note that the Avalanche EVM compatible C-Chain has different network and chain ids: https://docs.avax.network/apis/avalanchego/apis/c-chain
+It seems that we would need to generate metadata for the ERC721 tokenURI in the required format of target exchange and add the JSON as an asset in the NFT canister. The metadata would not support the rich features of the Origyn NFT, but the external_url could point to an experience page where users could get the full experience. Is that the idea or have I missed the bigger picture? https://docs.opensea.io/docs/metadata-standards#metadata-structure
+
+11. We should make it very easy to create these attributes in the metatdat so that when one calls http://prptil.io/-/collection_code/-/token_id/info they show in the json that is returned.  We will use this URL for the base url for the item in the erc721 contract.  the external_url would be a likely candidate for the experience page.
+
+
+What is the reason for using a single function with multiple variants, instead of creating multiple functions?
+
+12. Just trying to keep the api slim.
