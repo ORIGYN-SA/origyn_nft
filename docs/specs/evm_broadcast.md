@@ -10,7 +10,34 @@ The EVM broadcast functionality keeps this from occurring by enabling the ORIGYN
 
 By publishing on the ORIGYN platform NFT creators will be able to take advantage of highly popular EVM based marketplaces like OpenSea without fear that their royalties will not be honored.  This will attract a broader user base that wants to engage with NFTs that can be listed on these same popular marketplaces.
 
-## EVM Spec
+## Tech Enablement
+
+The EVM Broadcast feature is enabled by DFINITY's T-ecdsa functionality that allows a canister smart contract to ask a subnet to sign a payload with an ecdsa signature using an ethereal key that only exists via the threshold signature scheme.
+
+Each canister can produce a subset of ethereum addresses using the system functions on the IC system canister:
+
+```
+
+type IC = actor {
+    ecdsa_public_key : ({
+      canister_id : ?Principal;
+      derivation_path : [Blob];
+      key_id : { curve: { #secp256k1; } ; name: Text };
+    }) -> async ({ public_key : Blob; chain_code : Blob; });
+    sign_with_ecdsa : ({
+      message_hash : Blob;
+      derivation_path : [Blob];
+      key_id : { curve: { #secp256k1; } ; name: Text };
+    }) -> async ({ signature : Blob });
+  };
+
+  let ic : IC = actor("aaaaa-aa");
+
+```
+
+The payload can be any message the user wishes to sign including btc transactions, eth payment transactions, eth smartcontract calls, eth smart contract creation transactions, or other items.
+
+## EVM Broadcast Spec
 
 The canister should be able to deploy an ERC721 contract to an evm network that has the following unique properties:
 
