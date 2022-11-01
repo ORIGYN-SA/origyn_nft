@@ -34,6 +34,7 @@ import Owner "owner";
 import Types "./types";
 import data "data";
 import http "http";
+import Char "mo:base/Char";
 
 
 shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
@@ -1470,7 +1471,69 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return SB.toArray(state.state.log);
     };
 
-    // Backup
+    // *************************
+    // * CANDID SERIALIZATION **
+    // *************************
+
+    public func text_from_blob(blob : Blob) : async Text {
+        Text.join(",", Iter.map<Nat8, Text>(blob.vals(), Nat8.toText));
+    };
+  
+    public func blob_from_text(t : Text) : async Blob {
+        
+        // textToNat8
+        // turns "123" into 123
+        func textToNat8(txt : Text) : Nat8 {
+        var num : Nat32 = 0;
+        for (v in txt.chars()) {
+            // Debug.print(debug_show(v));
+            num := num * 10 + (Char.toNat32(v) - 48);  // 0 in ASCII is 48
+            // Debug.print(debug_show(num));
+        };
+        Nat8.fromNat(Nat32.toNat(num));
+        };
+
+        let ts = Text.split(t, #char(','));
+        let bytes = Array.map<Text, Nat8>(Iter.toArray(ts), textToNat8);
+        Blob.fromArray(bytes);
+    };
+   
+
+    public func test_candid_serialization() : async () {
+        let state = get_state();
+
+        // let u : Types.BackupBuckets = state.state.buckets;
+
+        // let u : Types.BackupCollectionData = {
+        //         logo = state.state.collection_data.logo;
+        //         name = state.state.collection_data.name;
+        //         symbol = state.state.collection_data.symbol;
+        //         metadata = state.state.collection_data.metadata;
+        //         owner  = state.state.collection_data.owner;
+        //         managers = state.state.collection_data.managers;
+        //         network = state.state.collection_data.network;
+        //         allocated_storage = state.state.collection_data.allocated_storage;
+        //         available_space  = state.state.collection_data.available_space;
+        //         active_bucket = state.state.collection_data.active_bucket;
+        // };
+        let u : Types.TestStable = Types.stabilize_test({hello = "hey"; var allocated_space = 1024;
+            var available_space =2048;});
+        // [Nat8] to text
+        var txt: Text = await text_from_blob(to_candid(u));
+        D.print("Txt : " # debug_show(txt)); 
+        // text to blob
+        let v : ?Types.TestStable = from_candid(await blob_from_text(txt));
+        D.print(debug_show(v)); 
+    };
+
+    // *************************
+    // **** END SERIALIZATION **
+    // *************************
+
+    // *************************
+    // ******** BACKUP *********
+    // *************************
+
     public query(msg) func back_up(page : Nat) : async Types.BackupResponse {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
             throw Error.reject("not the admin");
@@ -1505,7 +1568,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // "nft_library : " # debug_show(state.nft_library) # "\n\n" 
         );
 
-        // NFT library Starts
+        // *** NFT library ***
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){
             let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
@@ -1514,60 +1577,62 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
             nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
         };
-        // NFT library Ends
+        
 
-        // Buckets
-        var buckets : [(Principal, Types.BucketDat)] = [];
+        // *** Buckets ***
+        var buckets : [(Principal, Types.StableBucketData)] = [];
         for ((key, value) in Map.entries(state.state.buckets)){
              D.print("\n" # "bucket - allocations size : " # debug_show(Map.size(value.allocations)) # "\n");
-             var a : [((Text,Text), Int)] = [];
-             var b : ((Text,Text), Int) = (("",""),0);
-            for ((k,v) in Map.entries(value.allocations)){
-                D.print("\n" # "bucket k, v : " # debug_show(k,v) # "\n");
-                b := ((v.0.0, "world"), 1);
+            //  var a : [((Text,Text), Int)] = [];
+            //  var b : ((Text,Text), Int) = (("",""),0);
+            // for ((k,v) in Map.entries(value.allocations)){
+            //     D.print("\n" # "bucket k, v : " # debug_show(k,v) # "\n");
+            //     b := (("hello", "world"), 1);
                 
                
-            };
-            a := Array.append<((Text,Text), Int)>(a,[b]);
-            var val = {
-                principal = value.principal;
-                allocated_space = value.allocated_space;
-                available_space = value.available_space;
-                date_added = value.date_added;
-                b_gateway = value.b_gateway;
-                version = value.version;
-                allocations = a;
-            };
+            // };
+            // a := Array.append<((Text,Text), Int)>(a,[b]);
+            // var val = {
+            //     principal = value.principal;
+            //     allocated_space = value.allocated_space;
+            //     available_space = value.available_space;
+            //     date_added = value.date_added;
+            //     b_gateway = value.b_gateway;
+            //     version = value.version;
+            //     allocations = a;
+            // };
+            var val = Types.stabilize_bucket_data(value);
             var e = (key, val);
 
-            buckets := Array.append<(Principal, Types.BucketDat)>(buckets,[e]);
+            buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
            
         };
-         D.print("\n" # "bucket key, value : " # debug_show(buckets) # "\n");
-        // for (value in Map.vals(state.state.buckets)){
-        //     D.print("\n" # "bucket value : " # debug_show(value) # "\n");
-        // };
+
+        // *** Allocations ***
+        var allocations_key : (Text,Text) = ("","");
+        var allocations : [((Text,Text), Types.AllocationRecordStable)] = [];
+        for((key,value) in Map.entries(state.state.allocations)){
+
+            var val = Types.allocation_record_stabalize(value);
+            var e = (key, val);
+
+            allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+        };
+
 
         return  {
             canister = state.canister();
             access_tokens = access;
             nft_library = nft_library_stable_buffer.toArray();
-            collection_data = {
-                logo = state.state.collection_data.logo;
-                name = state.state.collection_data.name;
-                symbol = state.state.collection_data.symbol;
-                metadata = state.state.collection_data.metadata;
-                owner  = state.state.collection_data.owner;
-                managers = state.state.collection_data.managers;
-                network = state.state.collection_data.network;
-                allocated_storage = state.state.collection_data.allocated_storage;
-                available_space  = state.state.collection_data.available_space;
-                active_bucket = state.state.collection_data.active_bucket;
-            };
+            collection_data = Types.stabilize_collection_data(state.state.collection_data);
             buckets = buckets;
+            allocations = allocations;
         };
     };
 
+    // *************************
+    // ****** END BACKUP *******
+    // *************************
 
     // Announces support of interfaces
     public query func __supports() : async [(Text,Text)]{

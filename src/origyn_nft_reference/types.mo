@@ -11,7 +11,6 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-import Map_lib "mo:map_6_0_0/Map"; 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
@@ -200,9 +199,6 @@ module {
         lock_to_date: ?Int; //timestamp to lock escrow until.
     };
 
-    
-    
-
     public type DepositDetail = {
         token : TokenSpec;
         seller: Account;
@@ -248,8 +244,6 @@ module {
         current_sale : ?SaleStatusStable;
         metadata : CandyTypes.CandyValue;
     };
-
-    
 
     public type AuctionState = MigrationTypes.Current.AuctionState;
 
@@ -343,6 +337,26 @@ module {
     //     version: (Nat, Nat, Nat);
     //     allocations: [[(Text,Text,Int)]]; 
     // };
+    public type Test = {
+        hello: Text;
+        var allocated_space: Nat;
+        var available_space: Nat;
+    };
+    public type TestStable = {
+        hello: Text;       
+        allocated_space: Nat;
+        available_space: Nat;
+    };
+
+    public func stabilize_test (item : Test) : TestStable {
+        {
+            hello = item.hello;
+            allocated_space = item.allocated_space;
+            available_space = item.available_space;
+        }
+    }; 
+    
+
     public type BucketDat = {
         principal : Principal;
         allocated_space: Nat;
@@ -350,14 +364,11 @@ module {
         date_added: Int;
         b_gateway: Bool;
         version: (Nat, Nat, Nat);
-        allocations: [((Text, Text), Int)]
-        // allocations: Map.Map<(Text,Text), Int>;
+        // allocations: [((Text, Text), Int)]
+        allocations: Map.Map<(Text,Text), Int>;
     };
-    public type BackupResponse = {
-        canister : Principal;
-        access_tokens : [(Text, HttpAccess)];
-        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])];
-        collection_data : {
+
+    public type StableCollectionData = {
         logo: ?Text;
         name: ?Text;
         symbol: ?Text;
@@ -368,8 +379,52 @@ module {
         allocated_storage: Nat;
         available_space : Nat;
         active_bucket: ?Principal;
-        };
-        buckets : [(Principal, BucketDat)];
+    };
+
+    public func stabilize_collection_data (item : CollectionData) : StableCollectionData {
+        {
+            logo = item.logo;
+            name = item.name;
+            symbol = item.symbol;
+            metadata = item.metadata;
+            owner = item.owner;
+            managers = item.managers;
+            network = item.network;
+            allocated_storage = item.allocated_storage;
+            available_space = item.available_space;
+            active_bucket = item.active_bucket;
+        }
+    };
+    
+    public type StableBucketData = {
+        principal : Principal;
+        allocated_space: Nat;
+        available_space: Nat;
+        date_added: Int;
+        b_gateway: Bool;
+        version: (Nat, Nat, Nat);
+        allocations: [((Text,Text),Int)];
+    };
+    
+    public func stabilize_bucket_data (item : BucketData) : StableBucketData {
+        {
+            principal = item.principal;
+            allocated_space = item.allocated_space;
+            available_space = item.available_space;
+            date_added = item.date_added;
+            b_gateway = item.b_gateway;
+            version = item.version;
+            allocations = Iter.toArray(Map.entries<(Text,Text), Int>(item.allocations));
+        }
+    };
+
+    public type BackupResponse = {
+        canister : Principal; // done
+        access_tokens : [(Text, HttpAccess)]; // done
+        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])]; // done
+        collection_data : StableCollectionData;
+        buckets : [(Principal,StableBucketData)];
+        allocations: [((Text,Text), AllocationRecordStable)];
 
     };
 
