@@ -23,6 +23,7 @@ shared (deployer) actor class test_runner(tests : {
     test_runner_collection: ?Principal;
     test_runner_storage: ?Principal;
     test_runner_sale: ?Principal;
+    test_runner_http: ?Principal;
   }) = this {
 
 
@@ -90,6 +91,20 @@ shared (deployer) actor class test_runner(tests : {
             //M.attempt(greeting, M.equals(T.text("Hello, Christoph!")))
             return result;
           }); 
+        };
+      };
+
+      //this is annoying, but it is gets around the "not defined bug";
+      switch(tests.test_runner_http){
+        case(null){};
+        case(?test_runner_http){
+            D.print("running http tests");
+            let HttpTestCanister : test_runner_nft_service = actor(Principal.toText(test_runner_http));
+
+            it.should("run http tests", func () : async C.TestResult = async {
+                let result = await HttpTestCanister.test(tests.canister_factory, tests.storage_factory);
+                return result;
+            });
         };
       };
 

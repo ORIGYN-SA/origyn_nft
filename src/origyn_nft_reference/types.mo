@@ -26,11 +26,14 @@ import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 
+import MerkleTree "../utils/merkle_tree";
+
 module {
     
     public type InitArgs = {
         owner: Principal.Principal;
         storage_space: ?Nat;
+        event_system_canister: ?Principal;
     };
 
     public type StorageInitArgs = {
@@ -121,6 +124,18 @@ module {
 
     public type IC = actor {
         canister_status : { canister_id : canister_id } -> async canister_status;
+    };
+
+    public type SubscriptionOptions = [{
+        #stopped: Bool;
+        #skip: Nat8;
+    }];
+
+    public type EventSystem = actor {
+        subscribe : (eventName: Text, options: SubscriptionOptions) -> async ();
+        unsubscribe : (eventName: Text, options: SubscriptionOptions) -> async ();
+        publish : (eventName: Text, payload: Candy.CandyValue) -> async ();
+        confirmEventProcessed: (eventId: Nat) -> async ();
     };
 
     public type StageChunkArg = {
@@ -330,6 +345,7 @@ module {
         get_time: () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         access_tokens : TrieMap.TrieMap<Text, HttpAccess>;
+        certified_tree : MerkleTree.Tree;
         refresh_state: () -> State;
     };
 
@@ -1079,6 +1095,13 @@ module {
         __system_current_sale_id = "current_sale_id";
     };
 
+    public let handle_events :{
+       http_access_key : Text;
+       sender_identity : Text;
+    } = {
+       http_access_key = "http_access_key";
+       sender_identity = "sender_identity";
+    };
 
     public func account_eq(a : Account, b : Account) : Bool{
         switch(a){
@@ -1378,6 +1401,7 @@ module {
         get_token_id_as_nat : shared query Text -> async Nat;
         http_request : shared query HttpRequest -> async HTTPResponse;
         http_request_streaming_callback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
+        http_access_key : shared () -> async Result.Result<Text, OrigynError>;
         manage_storage_nft_origyn : shared ManageStorageRequest -> async Result.Result<ManageStorageResponse, OrigynError>;
         market_transfer_nft_origyn : shared MarketTransferRequest -> async Result.Result<MarketTransferRequestReponse,OrigynError>;
         market_transfer_batch_nft_origyn : shared [MarketTransferRequest] -> async [Result.Result<MarketTransferRequestReponse,OrigynError>];
@@ -1395,6 +1419,7 @@ module {
         stage_library_nft_origyn : shared StageChunkArg -> async Result.Result<StageLibraryResponse,OrigynError>;
         stage_nft_origyn : shared { metadata : CandyTypes.CandyValue } -> async Result.Result<Text, OrigynError>;
         storage_info_nft_origyn : shared query () -> async Result.Result<StorageMetrics, OrigynError>;
+        subscribe : shared query (event_name: Text, options: SubscriptionOptions) -> async ();
         transfer : shared EXT.TransferRequest -> async EXT.TransferResponse;
         transferEXT : shared EXT.TransferRequest -> async EXT.TransferResponse;
         transferFrom : shared (Principal, Principal, Nat) -> async DIP721.Result;

@@ -35,6 +35,8 @@ import Types "./types";
 import data "data";
 import http "http";
 
+import MerkleTree "../utils/merkle_tree";
+import CertifiedData "mo:base/CertifiedData";
 
 shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
@@ -105,6 +107,44 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Used to get status of the canister and report it
     stable var ic : Types.IC = actor("aaaaa-aa");
 
+    // Used to subscribe events
+    stable var es : ?Types.EventSystem = switch(__initargs.event_system_canister) {
+        case(?event_system_canister) {
+            ?actor(Principal.toText(event_system_canister));
+        };
+        case(_){null;};
+    };
+
+    public shared func handleEvent(eventId: Nat, publisherId: Principal, eventName: Text, payload: CandyTypes.CandyValue): async () {
+        if(es == null) {
+            debug if(debug_channel.function_announce) D.print("unused event system");
+            return;
+        };
+
+        if(eventName == Types.handle_events.http_access_key) {
+            let access_key = switch(Metadata.get_nft_text_property(payload, Types.handle_events.http_access_key)){
+                case(#err(err)){D.print("Error: access_key"); return ();};
+                case(#ok(val)){val};
+            };
+
+            let sender_identity = switch(Metadata.get_nft_text_property(payload, Types.handle_events.sender_identity)){
+                case(#err(err)){ D.print("Error: sender_identity"); return ();};
+                case(#ok(val)){val};
+            };
+
+            access_tokens.put(access_key, {
+                identity = Principal.fromText(sender_identity);
+                expires = Time.now() + (1000 * 15 * 1_000_000); //TODO: get from payload
+            });
+        };
+
+        switch(es) {
+            case(?event) {
+                await event.confirmEventProcessed(eventId);
+            };
+        };
+    };
+
     // Upgrade storage for non-stable types
     stable var nft_library_stable : [(Text,[(Text,CandyTypes.AddressedChunkArray)])] = [];
     stable var access_tokens_stable : [(Text, Types.HttpAccess)] = [];
@@ -114,6 +154,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     
     // Store access tokens for owner assets to owner specific data
     private var access_tokens : TrieMap.TrieMap<Text, Types.HttpAccess> = TrieMap.fromEntries<Text, Types.HttpAccess>(access_tokens_stable.vals(), Text.equal, Text.hash);
+
+    //Stores the merkle tree that can produce certified data
+    private var certified_tree = MerkleTree.empty();
 
     // Let us get the principal of the host gateway canister
     private var canister_principal : ?Principal = null;
@@ -138,6 +181,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             nft_library = nft_library;
             refresh_state = get_state;
             access_tokens = access_tokens;
+            certified_tree = certified_tree;
         };
     };
 
@@ -155,28 +199,58 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Data api - currently entire api nodes must be updated at one time
     // In future releases more granular updates will be possible
     public shared (msg) func update_app_nft_origyn(request: Types.NFTUpdateRequest): async Result.Result<Types.NFTUpdateResponse, Types.OrigynError>{
-       
-        NFTUtils.add_log(get_state(), {
+        let state = get_state();
+        NFTUtils.add_log(state, {
             event = "update_app_nft_origyn";
             timestamp = get_time();
             data = #Empty;
             caller = ?msg.caller;
         });
-        return data.update_app_nft_origyn(request, get_state(), msg.caller);
+        switch(data.update_app_nft_origyn(request, state, msg.caller)) {
+            case(#ok(data)) {
+                let (token_id) = switch(request){
+                    case(#replace(details)){(details.token_id)};
+                    case(#update(details)){(details.token_id)};
+                };
+
+                switch(Map.get(state.state.nft_metadata, Map.thash, token_id)){
+                    case(?metadata){
+                        switch(http.updated_certified_tree(state, token_id, metadata, msg.caller)){
+                            case(#ok(tree)) {
+                                certified_tree := tree;
+                            };
+                            case(#err(err)) {return #err(err)};
+                        };
+                    };
+                };
+
+                return #ok(data);
+            };
+            case(#err(err)) {return #err(err)};
+        };
     };
 
     // Stages metadata for an NFT
     public shared (msg) func stage_nft_origyn({metadata : CandyTypes.CandyValue}): async Result.Result<Text, Types.OrigynError>{
         //nyi:  if we run out of space, start putting data into child canisters
-        
-        NFTUtils.add_log(get_state(), {
-            event = "stage_nft_origyn";
-            timestamp = get_time();
-            data = #Empty;
-            caller = ?msg.caller;
-        });
-        debug if(debug_channel.function_announce) D.print("in stage");
-        return Mint.stage_nft_origyn(get_state(), metadata, msg.caller);
+        let state = get_state();
+        let token_id = switch(Mint.stage_nft_origyn(state, metadata, msg.caller)) {
+            case(#ok(val)) {val};
+            case(#err(err)) {return #err(err)};
+        };
+
+        switch(Map.get(state.state.nft_metadata, Map.thash, token_id)){
+            case(?metadata){
+                switch(http.updated_certified_tree(state, token_id, metadata, msg.caller)){
+                    case(#ok(tree)) {
+                        certified_tree := tree;
+                    };
+                    case(#err(err)) {return #err(err)};
+                };
+            };
+        };
+
+        #ok(token_id);
     };
 
     // Allows staging multiple NFTs at the same time
@@ -213,18 +287,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             caller = ?msg.caller;
         });
         debug if(debug_channel.function_announce) D.print("in stage library");
-        switch(Mint.stage_library_nft_origyn(
+        let response = switch(Mint.stage_library_nft_origyn(
             get_state(),
             chunk,
              msg.caller)){
                  case(#ok(stage_result)){
                     switch(stage_result){
                         case(#staged(canister)){
-                            return #ok({canister = canister});
+                            #ok({canister = canister});
                         };
                         case(#stage_remote(data)){
                             debug if(debug_channel.storage) D.print("minting remote");
-                            return await Mint.stage_library_nft_origyn_remote(
+                            await Mint.stage_library_nft_origyn_remote(
                                 get_state(),
                                 chunk,
                                 data.allocation,
@@ -236,7 +310,30 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                  case(#err(err)){
                      return #err(err);
                  };
+        };
+
+        switch(response) {
+            case(#ok(_)) {
+                //nyi: check whether location_type=collection and then add prefix "collection"
+                var MerkleKey = "/-/" # chunk.token_id # "/-/" # chunk.library_id;
+                if(chunk.chunk > 0) {
+                    MerkleKey :=  MerkleKey # "--" # Nat.toText(chunk.chunk);
+                };
+
+                certified_tree := MerkleTree.put(certified_tree, Text.encodeUtf8(MerkleKey), chunk.content);
+
+                CertifiedData.set(
+                    MerkleTree.withessHash(
+                        MerkleTree.treeUnderLabel(
+                            Text.encodeUtf8("http_assets"),
+                            certified_tree
+                        )
+                    )
+                );
             };
+        };
+
+        return response;
     };
 
     // Allows for batch library staging but this should only be used for collection or web based
@@ -1262,13 +1359,40 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         let access_key = (await http.gen_access_key()) # Nat32.toText(Text.hash(debug_show(msg.caller, Time.now())));
 
-        access_tokens.put(access_key, {
-            identity = msg.caller;
-            expires = Time.now() + access_expiration; 
-        });
+        switch(es) {
+            case(?event) {
+                await event.publish(Types.handle_events.http_access_key, #Class([
+                    {name = Types.handle_events.http_access_key; value=#Text(access_key); immutable= true},
+                    {name = Types.handle_events.sender_identity; value=#Text(Principal.toText(msg.caller)); immutable= true},
+                    // {name = "expires"; value=#Time(Time.now() + (1000 * 15 * (1_000_000))); immutable= true} // TODO: add new type to candy value
+                ]));
+            };
+            case(null) {
+                access_tokens.put(access_key, {
+                    identity = msg.caller;
+                    expires = Time.now() + access_expiration;
+                });
+            };
+        };
 
         #ok(access_key);
     };
+
+     public shared func subscribe(event_name: Text, options: Types.SubscriptionOptions) : async () {
+        switch(es) {
+           case(?event) {
+               await event.subscribe(event_name, options);
+           };
+        };
+     };
+
+     public shared func unsubscribe(event_name: Text, options: Types.SubscriptionOptions) : async () {
+        switch(es) {
+            case(?event) {
+                await event.unsubscribe(event_name, options);
+            };
+        };
+     };
 
     // Gets an access key for a user
     public query(msg) func get_access_key(): async Result.Result<Text, Types.OrigynError> {
