@@ -24,6 +24,11 @@
             "type": "motoko",
             "dependencies": []
         },
+        "test_runner_http": {
+            "main": "src/tests/test_runner_http.mo",
+            "type": "motoko",
+            "dependencies": []
+        },
         "test_runner_storage": {
             "main": "src/tests/test_runner_storage.mo",
             "type": "motoko",

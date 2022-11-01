@@ -11,7 +11,7 @@ import NFTCanisterDef "../origyn_nft_reference/main";
 
 shared (deployer) actor class canister_creator() = this {
 
-    public shared func create(data: {owner : Principal; storage_space: ?Nat}) : async Principal {
+    public shared func create(data: {owner : Principal; storage_space: ?Nat; event_system_canister: ?Principal}) : async Principal {
        D.print("in create nft");
        let a = await NFTCanisterDef.Nft_Canister(data);
        debug { D.print("should have it....returning" # debug_show(data)) };

@@ -25,6 +25,9 @@ import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
 
+import MerkleTree "../utils/merkle_tree";
+import CertifiedData "mo:base/CertifiedData";
+
 module {
 
     let debug_channel = {
@@ -55,6 +58,9 @@ module {
         content_encoding : Text;
         index            : Nat;
         key              : Text;
+        cert : Text;
+        tree : Text;
+        tree_path : Text;
     };
 
     public type StreamingCallbackResponse = {
@@ -95,29 +101,12 @@ module {
         let canister = actor (canister_id) : actor { nftStreamingCallback : shared () -> async () };
 
 
-                        debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
+                         if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
+
         var size : Nat = 0;
         //find the right data zone
-        for(this_item in data.vals()){
-            switch(this_item){
-                case(#Bytes(bytes)){
-                    switch(bytes){
-                        case(#thawed(aArray)){
-                            size := size + aArray.size();
-                        };
-                        case(#frozen(aArray)){
-                            size := size + aArray.size();
-                        };
-                    };
-                };
-                case(#Blob(bytes)){
-                    
-                    size := size + bytes.size();
-                        
-                };
-                case(_){};
-            };
-
+        for(chunk in data.vals()) {
+            size := size + Conversion.valueUnstableToBytesBuffer(chunk).size();
         };
 
         var rEnd = switch(end){
@@ -125,69 +114,43 @@ module {
             case(?v){v};
         };
 
-        let rStart = switch(start){
+        var rStart = switch(start){
             case(null){0;};
             case(?v){v};
         };
 
-                        debug if(debug_channel.streaming)D.print( Nat.toText(rStart) # " - " # Nat.toText(rEnd) # " / " #Nat.toText(size));
-
-        if(rEnd - rStart : Nat > __MAX_STREAM_CHUNK){
-            rEnd := rStart + __MAX_STREAM_CHUNK - 1;
+        var chunk_index = rStart / __MAX_STREAM_CHUNK;
+        if(chunk_index >= data.size()) {
+            let tailIndex: Nat = (data.size() - 1);
+            chunk_index := tailIndex;
         };
 
+        rStart := chunk_index * __MAX_STREAM_CHUNK;
+
         if(rEnd - rStart : Nat > __MAX_STREAM_CHUNK){
-                                debug if(debug_channel.streaming) D.print("handling big branch");
-            
-            let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
-
-                                debug if(debug_channel.streaming)D.print("The cbt: " # debug_show(cbt.callback));
-            {
-                //need to use streaming strategy
-                status_code        = 206;
-                headers            = [
-                    ("Content-Type", contentType),
-                    ("Accept-Ranges", "bytes"),
-                    //("Content-Range", "bytes 0-1/" # Nat.toText(size)),
-                    ("Content-Range", "bytes " # Nat.toText(rStart) # "-" # Nat.toText(rEnd) # "/" # Nat.toText(size)),
-                    //("Content-Range", "bytes 0-"#  Nat.toText(size-1) # "/" # Nat.toText(size)),
-                    ("Content-Length",  Nat.toText(cbt.payload.size())),
-                    ("Cache-Control","private"),
-                    ];
-                body               = cbt.payload;
-                streaming_strategy = switch (cbt.callback) {
-                    case (null) { null; };
-                    case (? tk) {
-                        ?#Callback({
-                            token    = tk;
-                            callback = canister.nftStreamingCallback;
-                        });
-                    };
-                };
-            };
-        } else  {
-            //just one chunk
-                                debug if(debug_channel.streaming) D.print("returning short array");
-
-            let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
-
-                               debug if(debug_channel.streaming) D.print("the size " # Nat.toText(cbt.payload.size()));
-            return {
-                status_code        = 206;
-                headers            = [
-                    ("Content-Type", contentType),
-                    ("Accept-Ranges", "bytes"),
-                    ("Content-Range", "bytes " # Nat.toText(rStart) # "-" # Nat.toText(rEnd) # "/" # Nat.toText(size)),
-                    //("Content-Range", "bytes 0-"#  Nat.toText(size-1) # "/" # Nat.toText(size)),
-                    ("Content-Length",  Nat.toText(cbt.payload.size())),
-                    ("Cache-Control","private")
-                ];
-                body               = cbt.payload;
-                streaming_strategy = null;
-            };
+            rEnd := rStart + __MAX_STREAM_CHUNK;
         };
 
+        var tree_key = "/-/" # token_id # "/-/" # library_id;
+        if(chunk_index > 0) {
+            tree_key := tree_key # "--" # Nat.toText(chunk_index);
+        };
 
+        return {
+            body = Conversion.valueUnstableToBlob(data.get(chunk_index));
+            headers = [
+                ("Content-Type", contentType),
+                ("Accept-Ranges", "bytes"),
+                ("Content-Range", "bytes " # Nat.toText(rStart) # "-" # Nat.toText(rEnd) # "/" # Nat.toText(size)),
+                ("Content-Length", Nat.toText(Conversion.valueUnstableToBytesBuffer(data.get(chunk_index)).size())),
+                ("Cache-Control","private"),
+                ("Tree-Key", tree_key),
+                ("chunk-index", Nat.toText(chunk_index)),
+                certification_header(state.certified_tree, tree_key),
+            ];
+            status_code = 206;
+            streaming_strategy = null;
+        };
     };
 
     //handles non-streaming large content
@@ -198,7 +161,7 @@ module {
         data        : CandyTypes.DataZone,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
-        let result = _stream_content(key, 0, data);
+        let result = _stream_content(state, key, 0, data);
 
                             debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
                            
@@ -216,6 +179,7 @@ module {
                 ("Content-Type", contentType),
                 ("accept-ranges", "bytes"),
                 ("Cache-Control","private"),
+                certification_header(state.certified_tree, req.url.path.original)
             ];
             body               = result.payload;
             streaming_strategy = switch (result.callback) {
@@ -231,100 +195,8 @@ module {
 
     };
 
-    public func _stream_media(
-        token_id : Text,
-        library_id :Text,
-        index : Nat,
-        data  : CandyTypes.DataZone,
-        rStart : Nat,
-        rEnd : Nat,
-        size : Nat,
-
-    ) : {
-        payload: Blob;                        // Payload based on the index.
-        callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
-    } {
-
-                            debug if(debug_channel.streaming) D.print("in _stream_media");
-                            debug if(debug_channel.streaming)D.print("token_id " # debug_show(token_id));
-                            debug if(debug_channel.streaming)D.print("library_id " # debug_show(library_id));
-                            debug if(debug_channel.streaming)D.print("index " # debug_show(index));
-                            debug if(debug_channel.streaming)D.print(debug_show(rEnd) # " " # debug_show(rStart) # " ");
-       
-        var tracker : Nat = 0;
-        let buf_size = if(Nat.sub(rEnd,index) >= __MAX_STREAM_CHUNK){
-            __MAX_STREAM_CHUNK;
-        } else {
-            rEnd - index + 1 : Nat;
-        };
-
-        
-                            debug if(debug_channel.streaming)D.print("buffer of size " # debug_show(buf_size));
-        let payload : Buffer.Buffer<Nat8> =  Buffer.Buffer<Nat8>(buf_size);
-        var blob_payload = Blob.fromArray([]);
-        
-        label getData for(this_item in data.vals()){
-
-                            debug if(debug_channel.streaming) D.print("zone processing" # debug_show(tracker) # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-            let chunk = Conversion.valueUnstableToBlob(this_item);
-            
-            let chunkSize = chunk.size();
-            if(chunkSize + tracker < index){
-                                debug if(debug_channel.streaming) D.print("skipping chunk");
-                tracker += chunkSize;
-                continue getData;
-            };
-
-                                debug if(debug_channel.streaming) D.print("current " # debug_show((rStart, rEnd, tracker, chunk.size())));
-
-            if( 
-                (tracker == rStart) and (tracker + chunk.size()  == rEnd + 1)
-            ){
-                                    debug if(debug_channel.streaming)D.print("matched rstart and rend on whole chunk");
-                blob_payload := chunk;
-                break getData;
-            };
-
-                                debug if(debug_channel.streaming)D.print("got past the chunk check" # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-                                debug if(debug_channel.streaming) D.print(debug_show(chunk.size()));
-            for(this_byte in chunk.vals()){
-                                    debug if(tracker % 1000000 == 0){
-                                        debug if(debug_channel.streaming) D.print(debug_show(tracker % 10000000) # " " # debug_show(tracker) # "  " # debug_show(index) # "  " # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-                                    };
-                if(tracker >= index){
-                    payload.add(this_byte);
-                };
-                tracker += 1;
-                if(tracker > rEnd or tracker > Nat.sub(index + __MAX_STREAM_CHUNK, 1)){
-                    //D.print("broke tracker at " # debug_show(tracker) # " nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-                    break getData;
-                }
-            };
-        };
-        //D.print("should have the buffer" # debug_show(payload.size()));
-        //D.print("tracker: " # Nat.toText(tracker));
-
-        if(blob_payload.size() == 0){
-            blob_payload := Blob.fromArray(payload.toArray());
-        };
-
-        let token = if(tracker >= size or tracker >= rEnd){
-                                debug if(debug_channel.streaming) D.print("found the end, returning null" # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-            null;
-        } else {
-                                debug if(debug_channel.streaming) D.print("_streaming returning the key " # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-            ?{
-                content_encoding = "gzip";
-                index            = tracker;
-                key              = "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size);
-                //key              = "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(tracker) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size);
-            }
-        };
-
-        {payload = blob_payload; callback =token};
-    };
-
     public func _stream_content(
+        state : Types.State,
         key   : Text,
         index : Nat,
         data  : CandyTypes.DataZone,
@@ -338,37 +210,45 @@ module {
         if (index + 1 == data.size()) return {payload = Conversion.valueUnstableToBlob(payload); callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
+
+        let cert = switch (CertifiedData.getCertificate()) {
+            case (?c) c;
+            case null {
+                // unfortunately, we cannot do
+                //   throw Error.reject("getCertificate failed. Call this as a query call!")
+                // here, because this function isn’t async, but we can’t make it async
+                // because it is called from a query (and it would do the wrong thing) :-(
+                //
+                // So just return erronous data instead
+                "getCertificate failed. Call this as a query call!" : Blob
+            }
+        };
+
+        var tree_key = "";
+        let path = Iter.toArray(Text.tokens(key, #text("/")));
+        if (path.size() == 2) {
+            let path2 = Iter.toArray(Text.tokens(path[1], #text("|")));
+            tree_key := "/-/" # path2[0] # "/-/" # path2[1];
+
+            if(index > 0) {
+                tree_key := tree_key # "--" # Nat.toText(index);
+            };
+        };
+
         {payload = Conversion.valueUnstableToBlob(payload);
         callback =  ?{
             content_encoding = "gzip";
             index            = index + 1;
             key              = key;
+            tree_path = tree_key;
+            cert = MerkleTree.base64(cert);
+            tree = MerkleTree.base64(MerkleTree.treeCBOR(
+                MerkleTree.witnessUnderLabel(
+                    Text.encodeUtf8("http_assets"),
+                    MerkleTree.reveal(state.certified_tree, Text.encodeUtf8(tree_key))
+                )
+            ));
         }};
-    };
-
-
-    public func stream_media(
-        token_id   : Text,
-        library_id : Text,
-        index : Nat,
-        data  : CandyTypes.DataZone,
-        rStart : Nat,
-        rEnd : Nat,
-        size : Nat
-    ) : StreamingCallbackResponse {
-        let result = _stream_media(
-            token_id,
-            library_id,
-            index,
-            data,
-            rStart,
-            rEnd,
-            size
-        );
-
-                        debug if(debug_channel.streaming)D.print("the media content");
-                        debug if(debug_channel.streaming)D.print(debug_show(result));
-        {body = result.payload; token = result.callback}; 
     };
 
     //determines how a library item should be rendere in an http request
@@ -550,12 +430,11 @@ module {
                     };
 
 
-                    if(b_foundRange == true){
-                        //range request
-                                            debug if(debug_channel.library)  D.print("dealing with a range request");
-                        let result = handle_stream_content(
+                    if(zone.size() > 1){
+                        if(Text.startsWith(content_type, #text("video/"))) {
+                            let result = handle_stream_content(
                                 state,
-                                token_id,
+                                use_token_id,
                                 library_id,
                                 start,
                                 end,
@@ -563,42 +442,31 @@ module {
                                 zone,
                                 req
                             );
-                                                debug if(debug_channel.library)D.print("returning with callback:");
-                                                debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                                                debug if(debug_channel.library) D.print("returning with callback:");
+                                                debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
-
-                    } else {
-                                            debug if(debug_channel.library)D.print("Not a range requst");
-
-                        /*
-                        remove this comment to get a dump of the actual headers that made it through.
-                        return {
-                                status_code        = 200;
-                                headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
-                                streaming_strategy = null;
-                            }; */
-                        //standard content request
-                        if(zone.size() > 1){
-                            //streaming required
+                        } else {
                             let result = handleLargeContent(
                                 state,
-                                "nft/" # token_id # "|" # library_id,
+                                "nft/" # use_token_id # "|" # library_id,
                                 content_type,
                                 zone,
                                 req
                             );
-                                                debug if(debug_channel.library)D.print("returning with callback");
-                                                debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                                                    debug if(debug_channel.library) D.print("returning with callback");
+                                                    debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
-                        } else {
-                            //only one chunck
-                            return {
-                                status_code        = 200;
-                                headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
-                                streaming_strategy = null;
-                            };
+                        };
+                    } else {
+                        //only one chunck
+                        return {
+                            status_code        = 200;
+                            headers            = [
+                                ("Content-Type", content_type),
+                                certification_header(state.certified_tree, req.url.path.original),
+                            ];
+                            body               = Conversion.valueUnstableToBlob(zone.get(0));
+                            streaming_strategy = null;
                         };
                     };
 
@@ -656,10 +524,9 @@ module {
                     };
 
 
-                    if(b_foundRange == true){
-                        //range request
-                                                debug if(debug_channel.library) D.print("dealing with a range request");
-                        let result = handle_stream_content(
+                    if(zone.size() > 1){
+                        if(Text.startsWith(content_type, #text("video/"))) {
+                            let result = handle_stream_content(
                                 state,
                                 use_token_id,
                                 library_id,
@@ -672,21 +539,7 @@ module {
                                                 debug if(debug_channel.library) D.print("returning with callback:");
                                                 debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
-
-                    } else {
-                                            debug if(debug_channel.library) D.print("Not a range requst");
-
-                        /*
-                        remove this comment to get a dump of the actual headers that made it through.
-                        return {
-                                status_code        = 200;
-                                headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
-                                streaming_strategy = null;
-                            }; */
-                        //standard content request
-                        if(zone.size() > 1){
-                            //streaming required
+                        } else {
                             let result = handleLargeContent(
                                 state,
                                 "nft/" # use_token_id # "|" # library_id,
@@ -697,14 +550,17 @@ module {
                                                     debug if(debug_channel.library) D.print("returning with callback");
                                                     debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
-                        } else {
-                            //only one chunck
-                            return {
-                                status_code        = 200;
-                                headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
-                                streaming_strategy = null;
-                            };
+                        };
+                    } else {
+                        //only one chunck
+                        return {
+                            status_code        = 200;
+                            headers            = [
+                                ("Content-Type", content_type),
+                                certification_header(state.certified_tree, req.url.path.original),
+                            ];
+                            body               = Conversion.valueUnstableToBlob(zone.get(0));
+                            streaming_strategy = null;
                         };
                     };
 
@@ -770,7 +626,7 @@ module {
                 ( path2[0], path2[1]);
             };
                             debug if(debug_channel.streaming) D.print(debug_show(path2));
-            
+
             let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
                 case(#err(err)){
                             debug if(debug_channel.streaming) D.print("an error" # debug_show(err));
@@ -780,7 +636,7 @@ module {
                                 }};
                 case(#ok(val)){val};
             };
-            
+
             switch(item.getOpt(1)){
                 case(null){
                     //nofiledata
@@ -791,6 +647,7 @@ module {
                 };
                 case(?zone){
                     return stream_content(
+                        state,
                         tk.key,
                         tk.index,
                         zone,
@@ -798,53 +655,6 @@ module {
                 };
             };
 
-
-        } else if(path.size() == 2 and path[0] == "nft-m"){
-            //have to get data differently
-                                debug if(debug_channel.streaming) D.print("in media pathway");
-            let path2 = Iter.toArray(Text.tokens(path[1], #text("|")));
-            //nyi: handle private nft
-            let (token_id, library_id, rStartText, rEndText, sizeText) = if(path2.size() == 1){
-                ("", path2[0], path2[1],  path2[2], path2[3]);
-            } else {
-                ( path2[0], path2[1], path2[2], path2[3], path2[4]);
-            };
-                                debug if(debug_channel.streaming) D.print(debug_show(path2));
-            let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
-                case(#err(err)){
-                                        debug if(debug_channel.streaming) D.print("no item");
-                    return {
-                                    body  = Blob.fromArray([]);
-                                    token = null;
-                                }};
-                case(#ok(val)){val};
-            };
-            switch(item.getOpt(1)){
-                case(null){
-                    //nofiledata
-                                        debug if(debug_channel.streaming) D.print("no file bytes found");
-                    return {
-                                body  = Blob.fromArray([]);
-                                token = null;
-                            };
-                };
-                case(?zone){
-                                        debug if(debug_channel.streaming) D.print("about to call stream media from the callback pathway");
-                    let rStart = Option.get(Conversion.textToNat(rStartText),0);
-                    let rEnd = Option.get(Conversion.textToNat(rEndText),0);
-                    let size = Option.get(Conversion.textToNat(sizeText),0);
-                                        debug if(debug_channel.streaming) D.print(debug_show(rStart, rEnd, size));
-                    return stream_media(
-                        token_id,
-                        library_id,
-                        tk.index,
-                        zone,
-                        rStart,
-                        rEnd,
-                        size
-                    );
-                };
-            };
 
         };
         {
@@ -854,11 +664,13 @@ module {
     };
 
     private func stream_content(
+        state: Types.State,
         key   : Text,
         index : Nat,
         data  : CandyTypes.DataZone,
     ) : StreamingCallbackResponse {
         let result = _stream_content(
+            state,
             key,
             index,
             data,
@@ -909,54 +721,13 @@ module {
                 case (null) { };
                 case (?zone)  {
                     return stream_content(
+                        state,
                         tk.key,
                         tk.index,
                         zone,
                     );
                 };
             };
-        } else if (Text.startsWith(tk.key, #text("nft-m/"))){
-            let path = Iter.toArray(Text.tokens(tk.key, #text("/")));
-
-            let path2 = Iter.toArray(Text.tokens(path[1], #text("|")));
-                                //nyi: handle private nft
-                                debug if(debug_channel.large_content) D.print(debug_show(path));
-                                debug if(debug_channel.large_content) D.print(debug_show(path2));
-
-            let (token_id, library_id, rStartText, rEndText, sizeText) = if(path2.size() == 1){
-                ("", path2[0], path2[1],  path2[2], path2[3]);
-            } else {
-                ( path2[0], path2[1], path2[2], path2[3], path2[4]);
-            };
-
-            let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
-                case(#err(err)){return {
-                        body  = Blob.fromArray([]);
-                        token = null;
-                    };
-                };
-                case(#ok(val)){val};
-            };
-
-                                debug if(debug_channel.large_content) //D.print("have item");
-
-            switch (item.getOpt(1)) {
-                case (null) { };
-                case (?zone)  {
-                    return stream_media(
-                        token_id,
-                        library_id,
-
-                        tk.index,
-                        zone,
-                        Option.get(Conversion.textToNat(rStartText),0),//rstart
-
-                        Option.get(Conversion.textToNat(rEndText),0),//rend
-                        Option.get(Conversion.textToNat(sizeText),0),//size
-                    );
-                };
-            };
-
         } else {
             //handle static assests if we have them
         };
@@ -967,7 +738,7 @@ module {
     };
 
     //pulls 
-    private func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
+    private func json(state: Types.State, req: httpparser.ParsedHttpRequest, message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
         let message_response = switch(_query) {
             case(null) {
                 message
@@ -1000,7 +771,11 @@ module {
 
         return {
             body = Text.encodeUtf8(value_to_json(message_response));
-            headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
+            headers = [
+                (("Content-Type", "application/json")),
+                (("Access-Control-Allow-Origin", "*")),
+                certification_header(state.certified_tree, req.url.path.original)
+            ];
             status_code = 200;
             streaming_strategy = null;
         };
@@ -1313,6 +1088,80 @@ module {
         #ok();
     };
 
+    func certification_header(certified_tree: MerkleTree.Tree, path: Text) : HeaderField {
+        let cert = switch (CertifiedData.getCertificate()) {
+            case (?c) c;
+            case null {
+                // unfortunately, we cannot do
+                //   throw Error.reject("getCertificate failed. Call this as a query call!")
+                // here, because this function isn’t async, but we can’t make it async
+                // because it is called from a query (and it would do the wrong thing) :-(
+                //
+                // So just return erronous data instead
+                "getCertificate failed. Call this as a query call!" : Blob
+            }
+        };
+
+        return
+        ("ic-certificate",
+            "certificate=:" # MerkleTree.base64(cert) # ":, " #
+            "tree=:" # MerkleTree.base64(MerkleTree.treeCBOR(
+                MerkleTree.witnessUnderLabel(
+                    Text.encodeUtf8("http_assets"),
+                    MerkleTree.reveal(certified_tree, Text.encodeUtf8(path))
+                )
+            ) ) # ":"
+        )
+    };
+
+    public func updated_certified_tree(state : Types.State, token_id: Text, metadata: CandyTypes.CandyValue, caller: Principal): Result.Result<MerkleTree.Tree, Types.OrigynError> {
+        var tree = MerkleTree.empty();
+        //--------------------------------- token /info
+        let MerkleKeyInfo = "/-/" # token_id # "/info";
+        let cleanMetadata = Metadata.get_clean_metadata(metadata, caller);
+
+        tree := MerkleTree.put(state.certified_tree, Text.encodeUtf8(MerkleKeyInfo), Text.encodeUtf8(value_to_json(cleanMetadata)));
+
+        //--------------------------------- /library
+        let MerkleKeyLib = "/-/" # token_id # "/library";
+        let lib = switch(Metadata.get_nft_library(cleanMetadata, ?caller)) {
+            case(#ok(val)){ val };
+            case(#err(err)) {return #err(err)};
+        };
+
+        tree := MerkleTree.put(tree, Text.encodeUtf8(MerkleKeyLib), Text.encodeUtf8(value_to_json(lib)));
+
+        //--------------------------------- lib /info
+         for(thisItem in Conversion.valueToValueArray(lib).vals()){
+            switch(Properties.getClassProperty(thisItem, Types.metadata.library_id)){
+                case(?id){
+                    let library_id = Conversion.valueToText(id.value);
+
+                    switch(Metadata.get_library_meta(cleanMetadata, library_id)){
+                        case(#ok(library_meta)){
+                            let MerkleKeyMeta = "/-/" # token_id # "/-/" # library_id # "/info";
+
+                            tree := MerkleTree.put(tree, Text.encodeUtf8(MerkleKeyMeta), Text.encodeUtf8(value_to_json(library_meta)));
+                        };
+                    };
+                };
+            };
+        };
+
+        //------------------------------------ save cert
+
+        CertifiedData.set(
+            MerkleTree.withessHash(
+                MerkleTree.treeUnderLabel(
+                    Text.encodeUtf8("http_assets"),
+                    tree
+                )
+            )
+        );
+
+        #ok(tree);
+    };
+
     //handles http requests
     public func http_request(
         state : Types.State,
@@ -1398,14 +1247,14 @@ module {
                             return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
                         };
                         if(path_array[2] == "info"){
-                            return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                            return json(state, req, Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                         };
                         if(path_array[2] == "library"){
                             let libraries = switch(Metadata.get_nft_library(Metadata.get_clean_metadata(metadata, caller), ?caller)){
                                 case(#err(err)){return _not_found("libraries not found");};
                                 case(#ok(val)){ val };
                             };
-                            return json(libraries, null);
+                            return json(state, req, libraries, null);
                         };
                     };
                     if(path_size > 3){
@@ -1429,7 +1278,7 @@ module {
                                         case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                         case(#ok(val)){val};
                                     };
-                                    return json(library_meta, queryObj.get("query"));
+                                    return json(state, req, library_meta, queryObj.get("query"));
                                 };
                             };
                         };
@@ -1479,7 +1328,7 @@ module {
                                         case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                         case(#ok(val)){val};
                                     };
-                                    return json(library_meta, queryObj.get("query"));
+                                    return json(state, req, library_meta, queryObj.get("query"));
                                 };
                             };
 
@@ -1512,7 +1361,7 @@ module {
                     };
                     if(path_array[1] == "info"){
                                             debug if(debug_channel.request) D.print("render info "  # token_id );
-                        return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                        return json(state, req, Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                     };
                     if(path_array[1] == "library"){
                                             debug if(debug_channel.request) D.print("render library "  # token_id );
@@ -1520,7 +1369,7 @@ module {
                             case(#err(err)){return _not_found("libraries not found");};
                             case(#ok(val)){ val };
                         };
-                        return json(libraries, null);
+                        return json(state, req, libraries, null);
                     };
                 };
             } else if(path_array[0] == "metrics"){
