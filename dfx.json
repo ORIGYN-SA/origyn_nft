@@ -12,61 +12,73 @@
         "test_runner": {
             "main": "src/tests/test_runner.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_nft": {
             "main": "src/tests/test_runner_nft.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_nft_2": {
             "main": "src/tests/test_runner_nft_2.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_storage": {
             "main": "src/tests/test_runner_storage.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_instant_transfer": {
             "main": "src/tests/test_runner_instant_transfer.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_data": {
             "main": "src/tests/test_runner_data.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_collection": {
             "main": "src/tests/test_runner_collection.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_utils": {
             "main": "src/tests/test_runner_utils.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_canister_factory": {
             "main": "src/tests/canister_creator.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_storage_factory": {
             "main": "src/tests/storage_creator.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "test_runner_sale": {
             "main": "src/tests/test_runner_sale.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "all_ref": {
             "main": "src/tests/all_ref.mo",
             "type": "motoko",
+            "args": "-v --compacting-gc -no-check-ir",
             "dependencies": []
         },
         "dfxledger": {

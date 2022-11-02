@@ -8,6 +8,7 @@ import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
+import Hex "mo:encoding/Hex";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -174,7 +175,7 @@ module {
                    
         return {
             principal = host;
-            account_id_text = AccountIdentifier.toText(to);
+            account_id_text = Hex.encode(to);
             account_id = Blob.fromArray(to);
             account = {
                 principal = host;
@@ -209,7 +210,7 @@ module {
 
         return {
             principal = host;
-            account_id_text = AccountIdentifier.toText(to);
+            account_id_text = Hex.encode(to);
             account_id = Blob.fromArray(to);
             account = {
                 principal = host;
@@ -235,7 +236,7 @@ module {
          
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -263,7 +264,7 @@ module {
          
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -293,7 +294,7 @@ module {
                     
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -306,13 +307,5 @@ module {
             }
         };
     };
-    
-
-    
-
-    
-
-    
-
 
 }
