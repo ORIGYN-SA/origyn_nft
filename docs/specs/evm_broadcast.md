@@ -4,7 +4,7 @@ The EVM broadcast functionality allows Origyn NFTs to move to evm based networks
 
 ## Justification
 
-The Ethereum landscape has recently been subject to a number of marketplace that routes around the royalties expressed by the creators.  This uncertainty causes creators to second guess publishing on the platform.
+The Ethereum landscape has recently been subject to a number of marketplaces that routes around the royalties expressed by the creators.  This uncertainty causes creators to second guess publishing on the platform.
 
 The EVM broadcast functionality keeps this from occurring by enabling the ORIGYN NFT to write a custom smart contract to a remote EVM that can 1. Only operate with compliant marketplaces and 2. Forces the NFT back to the native IC Chain after the marketplace transaction is over.
 
