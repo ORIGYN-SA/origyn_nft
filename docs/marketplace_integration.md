@@ -1,5 +1,7 @@
 # ORIGYN NFT Marketplace Integration
 
+Note: For full details of any of the apis in this document, please see [nft-current-api.md](nft-current-api.md).
+
 ## Summary
 
 The ORIGYN NFT comes with a marketplace built in.  Because the ORIGYN NFT is a sovereign digital object, only the NFT can transfer itself from one address to another.  This is done via the internal marketplace.  This protects creators from marketplaces that would not honor the royalty schedule that the intellectual property was released under.
