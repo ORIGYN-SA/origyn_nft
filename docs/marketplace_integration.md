@@ -12,7 +12,7 @@ The opportunity for marketplaces is further enhanced by the fact that, because o
 
 This document will describe how a marketplace can integrate with the ORIGYN NFT to provide creators with listing services and market making.
 
-## Broker Fees.
+## Broker Fees
 
 Creators of ORIGYN NFTs set a broker for their collection.  When their NFT is minted, this fee is written into the system storage of the NFT and cannot be changed by the creator without a network governance proposal.  The broker fee is just one of many royalties that an NFT owner can set.
 
@@ -139,7 +139,7 @@ Your canister can find the escrows by calling the balance_nft_origyn function fo
                     });
                     amount = 100_000_000;
                   };
-                  broker_id = null; //put your pincipal here to claim the broker royalty
+                  broker_id = null; //put your principal here to claim the broker royalty
                   pricing = #instant;
               };            
         });
@@ -172,7 +172,7 @@ This list stays fairly fresh and you may be able to just query balance_nft_origy
 
 Once you have an escrow that your user wants to accept you can call with the same format as a primary sale. Please remember to provide your broker_id principal to get the reward.
 
-Offers can also be rejected by using the #withdraw(#reject) vairant of sale_nft_origyn:
+Offers can also be rejected by using the #withdraw(#reject) variant of sale_nft_origyn:
 
 ```
 
@@ -220,7 +220,6 @@ Details:
 1. Start an auction - auctions currently support a minimum step, a buy it now price, and a reserve price.  You can start an auction calling the market_transfer_nft_origyn function as shown below:
 
 ```
-
           let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "1";
             sales_config = {
                 escrow_receipt = null; //not needed
@@ -318,9 +317,9 @@ let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
 
 ## Lost Deposits
 
-Sometimes a call to sale_nft_origyn(#escrow_deposit) will fail for an unexpected reason. Perhaps the canister went down after the payment was succesful, or perhaps your code did not add a transfer fee.
+Sometimes a call to sale_nft_origyn(#escrow_deposit) will fail for an unexpected reason. Perhaps the canister went down after the payment was successful, or perhaps your code did not add a transfer fee.
 
-User can always withdraw from their deposit account if something goes wrong.  You can check for an available balacnce at their invoice address, and if there is a balance, offer for them to recover it.  Recover these payments by calling the below function:
+User can always withdraw from their deposit account if something goes wrong.  You can check for an available balance at their invoice address, and if there is a balance, offer for them to recover it.  Recover these payments by calling the below function:
 
 ```
 
