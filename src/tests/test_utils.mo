@@ -46,6 +46,8 @@ module {
         let hiddenStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"hidden","hidden hello world"));
         //D.print("finished filestage3 in build standard");
         //D.print(debug_show(hiddenStage));
+
+        let immutableStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"immutable_item","immutable"));
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(previewStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(hiddenStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
     };
@@ -121,6 +123,18 @@ module {
                     {name = "size"; value=#Nat(file_size); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public");immutable=false;},
+                ]),
+                #Class([
+                    {name = "library_id"; value=#Text("immutable_item"); immutable= true},
+                    {name = "title"; value=#Text("immutable"); immutable= true},
+                    {name = "location_type"; value=#Text("canister"); immutable= true},
+                    {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId=" # Principal.toText(canister)); immutable= true},
+                    {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "size"; value=#Nat(file_size); immutable= true},
+                    {name = "sort"; value=#Nat(0); immutable= true},
+                    {name = "read"; value=#Text("public");immutable=false;},
+                    {name = "com.origyn.immutable_library"; value=#Bool(true);immutable=false;},
                 ])
             ])); immutable= false},
             {name="__apps"; value=#Array(#thawed([

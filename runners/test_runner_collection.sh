@@ -35,6 +35,8 @@ dfx build test_runner_collection
 dfx build test_runner
 dfx build test_canister_factory
 dfx build test_storage_factory
+dfx build dfxledger
+dfx build dfxledger2
 #dfx build test_runner_nft
 #dfx build test_runner_nft_2
 #dfx build test_runner_instant_transfer

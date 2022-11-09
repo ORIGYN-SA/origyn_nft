@@ -265,7 +265,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let results = Buffer.Buffer<Result.Result<Types.StageLibraryResponse,Types.OrigynError>>(chunks.size());
         for(this_item in chunks.vals()){
             // Logs
-            var log_data : Text = "Chunk number : " # Nat.toText(this_item[0].chunk) # " - Library id : " # this_item[0].library_id ;
+            var log_data : Text = "Chunk number : " # Nat.toText(this_item.chunk) # " - Library id : " # this_item.library_id ;
             canistergeekLogger.logMessage("stage_library_batch_nft_origyn",#Text(log_data),?msg.caller);
             switch(Mint.stage_library_nft_origyn(
                 get_state(),
@@ -340,7 +340,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         label search for(thisitem in tokens.vals()){
             // Logs
-            let log_data = thisitem[0];
+            let log_data = thisitem;
             canistergeekLogger.logMessage("mint_batch_nft_origyn",#Text(log_data.0),?msg.caller);
             results.add(await Mint.mint_nft_origyn(get_state(), thisitem.0, thisitem.1, msg.caller))
         };

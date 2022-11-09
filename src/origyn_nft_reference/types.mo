@@ -1028,6 +1028,7 @@ module {
         experience_asset: Text;
         hidden_asset: Text;
         is_soulbound: Text;
+        immutable_library: Text;
         physical: Text;
         primary_host: Text;
         primary_port: Text;
@@ -1059,6 +1060,7 @@ module {
         library_location_type = "location_type";
         owner = "owner";
         id = "id";
+        immutable_library = "com.origyn.immutable_library";
         physical = "com.origyn.physical";
         primary_asset = "primary_asset";
         preview_asset = "preview_asset";

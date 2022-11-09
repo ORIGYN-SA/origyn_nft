@@ -8,6 +8,7 @@ import Conversion "mo:candy_0_1_10/conversion";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
+import Blob "mo:base/Blob";
 import M "mo:matchers/Matchers";
 import NFTUtils "../origyn_nft_reference/utils";
 import Nat64 "mo:base/Nat64";
@@ -54,6 +55,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         
         let suite = S.suite("test nft", [
             S.test("testDataInterface", switch(await testDataInterface()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testImmutableLibrary", switch(await testImmutableLibrary()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             ]);
         S.run(suite);
 
@@ -352,6 +354,327 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         return #success;
         
           
+
+    };
+
+
+    public shared func testImmutableLibrary() : async {#success; #fail : Text} {
+        //D.print("running testDataInterface");
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        let b_wallet = await TestWalletDef.test_wallet();
+        
+
+        let newPrincipal = await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+
+        let canister : Types.Service =  actor(Principal.toText(newPrincipal));
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+
+        //attempt to change the metadata of a library before mint
+
+        let reStageLibrary = await canister.stage_library_nft_origyn(
+          {
+            token_id = "1";
+            library_id = "hidden-item";
+            filedata  = #Class([
+              {name = "library_id"; value=#Text("immutable_item"); immutable= true},
+              {name = "title"; value=#Text("immutable-updated"); immutable= true},
+              {name = "location_type"; value=#Text("canister"); immutable= true},
+              {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId="); immutable= true},
+              {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+              {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+              {name = "size"; value=#Nat(40); immutable= true},
+              {name = "sort"; value=#Nat(0); immutable= true},
+              {name = "read"; value=#Text("public");immutable=false;},
+              {name = "com.origyn.immutable_library"; value=#Bool(true);immutable=false;},
+            ]);
+            chunk = 0;
+            content = Blob.fromArray([]);// content = #Bytes(nat8array);
+          }
+        );
+        
+        D.print("reStageLibrary:" # debug_show(reStageLibrary));
+        
+
+        //D.print("Minting");
+        let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(a_wallet)));
+
+        //attempt to change the metadata of a library before mint
+        D.print("mint_attempt:" # debug_show(mint_attempt));
+
+        let reStageLibrary_after_mint = await canister.stage_library_nft_origyn(
+          {
+            token_id = "1";
+            library_id = "hidden-item";
+            filedata  = #Class([
+              {name = "library_id"; value=#Text("immutable_item"); immutable= true},
+              {name = "title"; value=#Text("immutable-updated-2"); immutable= true},
+              {name = "location_type"; value=#Text("canister"); immutable= true},
+              {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId="); immutable= true},
+              {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+              {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+              {name = "size"; value=#Nat(40); immutable= true},
+              {name = "sort"; value=#Nat(0); immutable= true},
+              {name = "read"; value=#Text("public");immutable=false;},
+              {name = "com.origyn.immutable_library"; value=#Bool(true);immutable=false;},
+            ]);
+            chunk = 0;
+            content = Blob.fromArray([]);// content = #Bytes(nat8array);
+          }
+        );
+
+        D.print("reStageLibrary_after_mint:" # debug_show(reStageLibrary_after_mint));
+
+        let getNFTAttempt = await b_wallet.try_get_nft(Principal.fromActor(canister),"1");
+        
+        D.print("getNFTAttempt:" # debug_show(getNFTAttempt));
+
+
+        
+        //D.print("have meta");
+        let suite = S.suite("testImmutable", [
+
+            S.test("reStageLibrary should succeed", switch(reStageLibrary){case(#ok(res)){
+                
+               "correct response";
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
+            S.test("fail if already minted", switch(reStageLibrary_after_mint){case(#ok(res)){"unexpected success " # debug_show(res)};case(#err(err)){
+                if(err.number == 1000){ //update class error
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))), //DATA0010
+            S.test("Data is correct", switch(getNFTAttempt){case(#ok(res)){
+                
+                switch(Properties.getClassProperty(res.metadata, Types.metadata.library)){
+                    case(?library){
+                        //D.print("have app");
+                        switch(library.value){
+                            case(#Array(val)){
+                                //D.print("have val");
+                                switch(val){
+                                    case(#thawed(classes)){
+                                        var b_found_immutable : Bool = false;
+                                        var b_found_updated : Bool = false;
+                                        //D.print("have classes");
+                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
+                                            //D.print("checking");
+                                            //D.print(debug_show(classes));
+                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
+                                            //D.print("have a_app");
+                                            //D.print(debug_show(a_app));
+                                            //DATA0001
+                                            if(Conversion.valueToText(a_app.value) == "immutable_item"){
+                                                b_found_immutable := true;
+                                                //try to find val3 which should be hidden
+                                                //D.print("looking for val3");
+                                                let title_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item,"title"), {immutable = false; name="title"; value =#Text("")});
+                                                
+                                                if(Conversion.valueToText(title_data.value) == "immutable-updated"){
+                                                  b_found_updated := true;
+                                                };
+                                                
+                                            };
+                                           
+                                        };
+
+                                    
+                                        switch(b_found_immutable, b_found_updated){
+                                            case(true, true){
+                                                "correct response";
+                                            };
+                                            case(_,_){
+                                                "something missing or something extra";
+                                            };
+                                        };
+
+                                    };
+                                    case(_){
+                                        "wrong type of arrray";
+                                    };
+                                };
+                            };
+                            case(_){
+                                "not an array";
+                            };
+                        
+                        };
+                    };
+                    case(null){
+                        "can't find library";
+                    };
+                };
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //DATA0012
+            
+            
+        ]);
+
+        S.run(suite);
+
+        return #success;
+
+    };
+
+
+    public shared func testDeleteLibrary() : async {#success; #fail : Text} {
+        //D.print("running testDataInterface");
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        let b_wallet = await TestWalletDef.test_wallet();
+        
+
+        let newPrincipal = await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+
+        let canister : Types.Service =  actor(Principal.toText(newPrincipal));
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+
+        //attempt to delete page before minting
+
+        let deletePage = await canister.stage_library_nft_origyn(
+          {
+            token_id = "1";
+            library_id = "page";
+            filedata  = #Bool(false);
+            chunk = 0;
+            content = Blob.fromArray([]);// content = #Bytes(nat8array);
+          }
+        );
+        
+        D.print("deletePage:" # debug_show(deletePage));
+        
+
+        //D.print("Minting");
+        let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(a_wallet)));
+
+        //attempt to delete preview after mint
+        D.print("mint_attempt:" # debug_show(mint_attempt));
+
+        let deletePreview = await canister.stage_library_nft_origyn(
+          {
+            token_id = "1";
+            library_id = "preview";
+            filedata  = #Bool(false);
+            chunk = 0;
+            content = Blob.fromArray([]);// content = #Bytes(nat8array);
+          }
+        );
+
+
+
+        D.print("deletePreview:" # debug_show(deletePreview));
+
+
+        
+
+        let deleteImmutable = await canister.stage_library_nft_origyn(
+          {
+            token_id = "1";
+            library_id = "immutable_item";
+            filedata  = #Bool(false);
+            chunk = 0;
+            content = Blob.fromArray([]);// content = #Bytes(nat8array);
+          }
+        );
+
+        //attempt to delete preview after mint
+        D.print("deleteImmutable:" # debug_show(deleteImmutable));
+
+
+        let getNFTAttempt = await b_wallet.try_get_nft(Principal.fromActor(canister),"1");
+        
+        D.print("getNFTAttempt:" # debug_show(getNFTAttempt));
+
+
+        
+        //D.print("have meta");
+        let suite = S.suite("testImmutable", [
+
+            S.test("delete page succeed", switch(deletePage){case(#ok(res)){
+                
+               "correct response";
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
+            S.test("delete preview succeed", switch(deletePreview){case(#ok(res)){
+                
+               "correct response";
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
+            S.test("deleteImmutable should fail", switch(deleteImmutable){case(#ok(res)){"unexpected success " # debug_show(res)};case(#err(err)){
+                if(err.number == 1000){ //update class error
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))), //DATA0010
+            S.test("Data is correct", switch(getNFTAttempt){case(#ok(res)){
+                
+                switch(Properties.getClassProperty(res.metadata, Types.metadata.library)){
+                    case(?library){
+                        //D.print("have app");
+                        switch(library.value){
+                            case(#Array(val)){
+                                //D.print("have val");
+                                switch(val){
+                                    case(#thawed(classes)){
+                                        var b_found_page : Bool = false;
+                                        var b_found_preview : Bool = false;
+                                        var b_found_immutable : Bool = false;
+                                        //D.print("have classes");
+                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
+                                            
+                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
+
+                                            if(Conversion.valueToText(a_app.value) == "immutable_item"){
+                                                b_found_immutable := true;
+                                            };
+                                            if(Conversion.valueToText(a_app.value) == "page"){
+                                                b_found_page := true;
+                                            };
+                                            if(Conversion.valueToText(a_app.value) == "preview"){
+                                                b_found_preview := true;
+                                            };
+                                           
+                                        };
+
+                                    
+                                        switch(b_found_immutable, b_found_page, b_found_preview){
+                                            case(true, false, false){
+                                                "correct response";
+                                            };
+                                            case(_,_,_){
+                                                "something missing or something extra " # debug_show((b_found_immutable, b_found_page, b_found_preview));
+                                            };
+                                        };
+
+                                    };
+                                    case(_){
+                                        "wrong type of arrray";
+                                    };
+                                };
+                            };
+                            case(_){
+                                "not an array";
+                            };
+                        
+                        };
+                    };
+                    case(null){
+                        "can't find library";
+                    };
+                };
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //DATA0012
+            
+            
+        ]);
+
+        S.run(suite);
+
+        return #success;
 
     };
 

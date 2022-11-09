@@ -10,13 +10,12 @@ echo $ADMIN_PRINCIPAL
 echo $ADMIN_ACCOUNTID
 
 
-dfx canister create test_runner_instant_transfer
+dfx canister create test_runner_data
 dfx canister create dfxledger
 dfx canister create dfxledger2
 dfx canister create test_canister_factory
 dfx canister create test_storage_factory
 dfx canister create test_runner
-dfx canister create test_runner_nft_2
 
 DFX_LEDGER_CANISTER_ID=$(dfx canister id dfxledger)
 DFX_LEDGER_ACCOUNT_ID=$(python3 principal_to_accountid.py $DFX_LEDGER_CANISTER_ID)
@@ -27,16 +26,14 @@ DFX_LEDGER_ACCOUNT2_ID=$(python3 principal_to_accountid.py $DFX_LEDGER_CANISTER2
 TEST_RUNNER_CANISTER_ID=$(dfx canister id test_runner)
 TEST_RUNNER_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_CANISTER_ID)
 
-TEST_RUNNER_NFT_CANISTER_2_ID=$(dfx canister id test_runner_nft_2)
-TEST_RUNNER__NFT_ACCOUNT_2_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_NFT_CANISTER_2_ID)
 
-TEST_RUNNER_INSTANT_CANISTER_ID=$(dfx canister id test_runner_instant_transfer)
-TEST_RUNNER_INSTANT_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_NFT_CANISTER_2_ID)
+TEST_RUNNER_DATA_CANISTER_ID=$(dfx canister id test_runner_data)
+TEST_RUNNER_DATA_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_DATA_CANISTER_ID)
 
 TEST_CANISTER_FACTORY_ID=$(dfx canister id test_canister_factory)
 TEST_STORAGE_FACTORY_ID=$(dfx canister id test_storage_factory)
 
-dfx build test_runner_instant_transfer
+dfx build test_runner_data
 dfx build test_runner
 dfx build test_canister_factory
 dfx build test_storage_factory
@@ -48,11 +45,10 @@ dfx build dfxledger2
 #dfx build test_runner_data
 #dfx build test_runner_utils
 
-
 gzip ./.dfx/local/canisters/test_runner/test_runner.wasm -f
 gzip ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm -f
 gzip ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm -f
-gzip ./.dfx/local/canisters/test_runner_instant_transfer/test_runner_instant_transfer.wasm -f
+gzip ./.dfx/local/canisters/test_runner_data/test_runner_data.wasm -f
 
 dfx canister install test_canister_factory --mode=reinstall --wasm ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm.gz
 
@@ -60,9 +56,9 @@ dfx canister install test_storage_factory --mode=reinstall  --wasm ./.dfx/local/
 
 
 
-dfx canister install test_runner_instant_transfer --mode=reinstall --wasm ./.dfx/local/canisters/test_runner_instant_transfer/test_runner_instant_transfer.wasm.gz --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
+dfx canister install test_runner_data --mode=reinstall --wasm ./.dfx/local/canisters/test_runner_data/test_runner_data.wasm.gz --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
 
-dfx canister install test_runner --mode=reinstall --wasm ./.dfx/local/canisters/test_runner/test_runner.wasm.gz --argument "(record { canister_factory = principal \"$TEST_CANISTER_FACTORY_ID\"; storage_factory = principal \"$TEST_STORAGE_FACTORY_ID\";dfx_ledger = opt principal \"$DFX_LEDGER_CANISTER_ID\";dfx_ledger2 = opt principal \"$DFX_LEDGER_CANISTER2_ID\"; test_runner_nft = null; test_runner_nft_2 = null; test_runner_instant = opt principal \"$TEST_RUNNER_INSTANT_CANISTER_ID\"; test_runner_data = null; test_runner_utils = null; test_runner_collection = null;})"
+dfx canister install test_runner --mode=reinstall --wasm ./.dfx/local/canisters/test_runner/test_runner.wasm.gz --argument "(record { canister_factory = principal \"$TEST_CANISTER_FACTORY_ID\"; storage_factory = principal \"$TEST_STORAGE_FACTORY_ID\";dfx_ledger = opt principal \"$DFX_LEDGER_CANISTER_ID\"; dfx_ledger2 = opt principal \"$DFX_LEDGER_CANISTER2_ID\";test_runner_data = opt principal \"$TEST_RUNNER_DATA_CANISTER_ID\";})"
 
 #dfx canister install test_runner_nft --mode=reinstall --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
 
