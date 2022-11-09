@@ -24,7 +24,7 @@ Communications of parties via a public blockchain is accomplished through standa
 
 ### Marking an item as physical
 
-Physical NFTs must be marked as "physical" in their metadata before they are minted.
+Physical NFTs must be marked as "physical" in their metadata before they are minted or have a collection level physical marker that will be inherited from the collection metadata.
 
 ```
 {name="com.origyn.physical"; value = #Bool(true); immutable=true)}
