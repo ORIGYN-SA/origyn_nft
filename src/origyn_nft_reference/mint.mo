@@ -29,7 +29,7 @@ module {
         function_announce = false;
         storage = false;
         library = false;
-        stage = true;
+        stage = false;
         mint = false;
         remote = false;
     };
@@ -337,7 +337,7 @@ module {
                //D.print("Does not exist yet");
                 //does not exist yet;
                 //add status "staged"
-                found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(#Class([{name=Types.metadata.__system; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
+                found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(#Class([{name=Types.metadata.__system_status; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
                     case(#err(errType)){
                         return #err(Types.errors(#update_class_error, "stage_nft_origyn - set staged status", ?caller));
                     };

@@ -2,6 +2,8 @@ import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Char "mo:base/Char";
+import Bool "mo:base/Bool";
+import Float "mo:base/Float";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
@@ -1224,6 +1226,10 @@ module {
             };
             //principal
             case(#Principal(val)){ "\"" # Principal.toText(val) # "\"";};
+            //bool	
+            case(#Bool(val)){ "\"" # Bool.toText(val) # "\"";};	
+            //float	
+            case(#Float(val)){ "\"" # Float.toText(val) # "\"";};
             case(_){"";};
         };
     };

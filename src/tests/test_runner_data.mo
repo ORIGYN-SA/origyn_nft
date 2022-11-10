@@ -56,6 +56,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let suite = S.suite("test nft", [
             S.test("testDataInterface", switch(await testDataInterface()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testImmutableLibrary", switch(await testImmutableLibrary()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testDeleteLibrary", switch(await testDeleteLibrary()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            
             ]);
         S.run(suite);
 
@@ -379,7 +381,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let reStageLibrary = await canister.stage_library_nft_origyn(
           {
             token_id = "1";
-            library_id = "hidden-item";
+            library_id = "immutable_item";
             filedata  = #Class([
               {name = "library_id"; value=#Text("immutable_item"); immutable= true},
               {name = "title"; value=#Text("immutable-updated"); immutable= true},
@@ -409,7 +411,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let reStageLibrary_after_mint = await canister.stage_library_nft_origyn(
           {
             token_id = "1";
-            library_id = "hidden-item";
+            library_id = "immutable_item";
             filedata  = #Class([
               {name = "library_id"; value=#Text("immutable_item"); immutable= true},
               {name = "title"; value=#Text("immutable-updated-2"); immutable= true},
