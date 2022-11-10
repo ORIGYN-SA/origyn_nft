@@ -85,4 +85,4 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 
 ### Audit
 
-[Audit document](./docs/sample_calls.md)
+[Audit document](./docs/audit.md)
