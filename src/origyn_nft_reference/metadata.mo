@@ -1015,7 +1015,7 @@ module {
               };
             };
           };
-          case(null, null, null, null, null,_){
+          case(null, null, null, null, _, _){
             //D.print("cleaning a non-permissioned node");
             let collection = Buffer.Buffer<CandyTypes.Property>(item.size());
             //D.print("processing" # debug_show(item.size()));
