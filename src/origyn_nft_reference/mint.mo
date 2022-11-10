@@ -470,10 +470,7 @@ module {
         
 
         let immutable_library_metadata = switch(Properties.getClassProperty(library_meta, Types.metadata.immutable_library)){
-            case(null){
-                                    false;
-                    
-            };
+            case(null){false;};
             case(?val){
                 switch(val.value){
                     case(#Bool(id)){

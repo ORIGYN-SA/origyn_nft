@@ -402,7 +402,6 @@ module {
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
             {name = "primary_protcol"; value=#Text("http"); immutable= false},
-            {name = "owner"; value=#Principal(canister); immutable= false}
         ])}
     };
 

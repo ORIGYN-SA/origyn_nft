@@ -324,6 +324,151 @@ currentSale - If the NFT is for sale, it will return info about the current sale
     }
 ```
 
+### Metadata info:
+
+id - required - Text - we suggest human readable IDs.  The empty string "" is the collection level metadata.
+
+primary_asset - suggested - Text - points to the library id you would like shown as the primary asset for the nft
+
+preview - suggested - Text - points to the library id you would lke shown as the preview asset in lists and marketplaces.
+
+experience - suggested - Text - points to the library id you would lke shown as the experience asset in lists and marketplaces - usually an html single page app.
+
+library - required - Array(thawed) - list of assets in the nft
+
+```
+#Class([
+  {name = "library_id"; value=#Text("collection_banner"); immutable= true},
+  {name = "title"; value=#Text("collection_banner"); immutable= true}, //required
+  {name = "location_type"; value=#Text("canister"); immutable= true}, // ipfs, arweave, portal, canister = on this canister, collection = at collection level
+  {name = "location"; value=#Text("collection/-/collection_banner"); immutable= true}, //relative or absolute path to resource
+  {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true}, //used by http server to send proper type to browsers
+  {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true}, //should be the content hash of your content.
+  {name = "size"; value=#Nat(file_size); immutable= true}, //needs to be the accurate size as it is used for allocation.
+  {name = "sort"; value=#Nat(0); immutable= true}, //can be used by dapps to list your assets in order.
+  {name = "read"; value=#Text("public"); immutable=false;}, //read is public by default.  other values NYI: "collection_owner", "nft_owner", "former_nft_owner", "collection_participant", "allow_list"
+  {name = "read_allow_list"; value=#Array(#thawed([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
+  name = "write"; value=#Text("collection_owner"); immutable=false;}, //NYI so far.write is collection_owner by default.  other values NYI: "collection_owner", "nft_owner", "former_nft_owner", "collection_participant", "allow_list"
+  {name = "write_allow_list"; value=#Array(#thawed([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
+
+    ])
+])); immutable= false},
+```
+
+__apps - optional - Array(thawed) - Data dapps added to the collection.  Permissioned data pages/document data
+
+Each data dapp is a Candy Class of values. Each node can have read(default to public), write(default to collection_owner), and permissions(default to collection_owner).
+
+```
+
+#Class([
+  {name = Types.metadata.__apps_app_id; value=#Text("com.test.__public"); immutable= true},
+  {name = "read"; value=#Text("public");
+      immutable=false;},
+  {name = "write"; value=#Class([
+      {name = "type"; value=#Text("allow"); immutable= false},
+      {name = "list"; value=#Array(#thawed([#Principal(app)]));
+      immutable=false;}]);
+      immutable=false;},
+  {name = "permissions"; value=#Class([
+      {name = "type"; value=#Text("allow"); immutable= false},
+      {name = "list"; value=#Array(#thawed([#Principal(app)]));
+      immutable=false;}]);
+  immutable=false;},
+  {name = "data"; value=#Class([
+      {name = "val1"; value=#Text("val1"); immutable= false},
+      {name = "val2"; value=#Text("val2"); immutable= false},
+      {name = "val3"; value=#Class([
+          {name = "data"; value=#Text("val3"); immutable= false},
+          {name = "read"; value=#Text("public");
+          immutable=false;},
+          {name = "write"; value=#Class([
+              {name = "type"; value=#Text("allow"); immutable= false},
+              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              immutable=false;}]);
+          immutable=false;}]);
+      immutable=false;},
+      {name = "val4"; value=#Class([
+          {name = "data"; value=#Text("val4"); immutable= false},
+          {name = "read"; value=#Class([
+              {name = "type"; value=#Text("allow"); immutable= false},
+              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              immutable=false;}]);
+          immutable=false;},
+          {name = "write"; value=#Class([
+              {name = "type"; value=#Text("allow"); immutable= false},
+              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              immutable=false;}]);
+          immutable=false;}]);
+      immutable=false;}]);
+  immutable=false;}
+  ]),
+
+```
+
+owner - required - principal - the owner of the NFT. 
+
+is_soulbound - optional - #Bool(true) if you don't want the NFT to change owners
+
+#### Collection Level Metadata
+
+com.origyn.node  - suggested - Node that endorses and authenticates NFTs minted from this collection - used for paying node royalties
+
+com.origyn.originator  - suggested - Originator of the collection - used for paying node royalties
+
+com.origyn.royalties.primary.default - Array(frozen) - List of Classes of rates used for primary sales.  These will be copied to NFTs in the collection during minting.
+
+```
+{name = "com.origyn.royalties.primary.default"; value=#Array(#frozen([
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
+                    {name = "rate"; value=#Float(0.06); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.node"); immutable= true},
+                    {name = "rate"; value=#Float(0.07777); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
+                    {name = "rate"; value=#Float(0.005); immutable= true}
+                ]),
+                
+            ])); immutable= false},
+```
+
+com.origyn.royalties.secondary.default - Array(frozen) - List of Classes of rates used for secondary sales.  These will be copied to NFTs in the collection during minting.
+
+```
+
+{name = "com.origyn.royalties.secondary.default"; value=#Array(#frozen([
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
+                    {name = "rate"; value=#Float(0.01); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.node"); immutable= true},
+                    {name = "rate"; value=#Float(0.02); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.originator"); immutable= true},
+                    {name = "rate"; value=#Float(0.03333333333); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.custom"); immutable= true},
+                    {name = "rate"; value=#Float(0.04); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
+                    {name = "rate"; value=#Float(0.04); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
+                    {name = "rate"; value=#Float(0.005); immutable= true}
+                ]),
+            ])); immutable= false},
+
+```
+
 * alternative mappings
     * getMetaDataDip721() -> DIP721MetadataResult query //nyi
     * metadataEXT(Text) -> ?Blob - supports metadata() for legacy support. - the collection properties should be converted to a blob standard that a client can decipher(cbor?/protobuf?); //will have to manage multi chunks //nyi
