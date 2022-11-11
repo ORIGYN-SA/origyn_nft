@@ -414,18 +414,41 @@ module {
             date_added = item.date_added;
             b_gateway = item.b_gateway;
             version = item.version;
-            allocations = Iter.toArray(Map.entries<(Text,Text), Int>(item.allocations));
+            allocations = Iter.toArray(Map.entries<(Text,Text), Int>(item.allocations)); 
         }
     };
 
+    public type StableEscrowBalances = [(Account,Account,Text,EscrowRecord)];
+    public type StableSalesBalances = [(Account,Account,Text,EscrowRecord)];
+    public type StableOffers = [(Account,Account,Int)];
+    public type StableNftLedger = [(Text,TransactionRecord)];
+    public type StableNftSales = [(Text,SaleStatusStable)];
+
     public type BackupResponse = {
-        canister : Principal; // done
-        access_tokens : [(Text, HttpAccess)]; // done
-        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])]; // done
+        canister : Principal; 
+        access_tokens : [(Text, HttpAccess)]; 
+        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])]; 
         collection_data : StableCollectionData;
         buckets : [(Principal,StableBucketData)];
         allocations: [((Text,Text), AllocationRecordStable)];
+        escrow_balances : StableEscrowBalances;
+        sales_balances : StableSalesBalances;
+        offers : StableOffers;
+        nft_ledgers : StableNftLedger;
+        nft_sales : [(Text,SaleStatusStable)]; 
 
+    };
+
+    public type StateSize = {
+        access_tokens: Nat;
+        nft_library: Nat;
+        buckets: Nat;
+        allocations: Nat;
+        escrow_balances: Nat;
+        sales_balances : Nat;
+        offers: Nat;
+        nft_ledgers: Nat;
+        nft_sales: Nat;
     };
 
     public type GatewayState = GatewayState_v0_1_0;
@@ -449,9 +472,7 @@ module {
         allocated_storage: Nat;
         available_space: Nat;
         allocations: [AllocationRecordStable];
-    };
-
-    
+    };    
 
     public type BucketData = {
         principal : Principal;

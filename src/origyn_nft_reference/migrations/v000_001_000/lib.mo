@@ -60,6 +60,7 @@ module {
                                         Map_lib.Map<v0_1_0.Account,
                                             Map_lib.Map<Text,
                                                 Map_lib.Map<v0_1_0.TokenSpec,v0_1_0.EscrowRecord>>>>();
+            
 
             //tracks offers made from one user to another
             var offers : Map_lib.Map<v0_1_0.Account, Map_lib.Map<v0_1_0.Account, Int>> = Map_lib.new<v0_1_0.Account, Map_lib.Map<v0_1_0.Account, Int>>();

@@ -1534,6 +1534,22 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // ******** BACKUP *********
     // *************************
 
+    public query(msg) func state_size() : async Types.StateSize {
+        let state = get_state();
+        
+        return {
+            access_tokens = access_tokens.size();
+            nft_library= nft_library.size();
+            buckets= Map.size(state.state.buckets);
+            allocations= Map.size(state.state.allocations);
+            escrow_balances= Map.size(state.state.escrow_balances);
+            sales_balances = Map.size(state.state.sales_balances);
+            offers= Map.size(state.state.offers);
+            nft_ledgers= Map.size(state.state.nft_ledgers);
+            nft_sales= Map.size(state.state.nft_sales);
+        }
+    };
+
     public query(msg) func back_up(page : Nat) : async Types.BackupResponse {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
             throw Error.reject("not the admin");
@@ -1541,83 +1557,145 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         // let targetStart = page * data_harvester_page_size;
         // let targetEnd = targetStart + data_harvester_page_size;
-        // var globalTracker = 0;
+        var globalTracker = 0;
 
         let state = get_state();
         var access = Iter.toArray(access_tokens.entries());
         let owner = state.state.collection_data.owner;
-        D.print( "\n\n" #
-        // "state " # debug_show(state.state) # "\n\n" #
-        // "allocations : " # debug_show(state.state.allocations) # "\n\n" #
-        "buckets : " # debug_show(state.state.buckets) # "\n\n" #
-        // "canister_allocated_storage : " # debug_show(state.state.canister_allocated_storage) # "\n\n" #
-        // "canister_availible_space : " # debug_show(state.state.canister_availible_space) # "\n\n" #
-        // "collection_data : " # debug_show(state.state.collection_data) # "\n\n" #
-        // "nft_metadata : " # debug_show(state.state.nft_metadata) # "\n\n" #
-        // "log : " # debug_show(state.state.log) # "\n\n" #
-        // "log_history : " # debug_show(state.state.log_history) # "\n\n" #
-        // "log_harvester : " # debug_show(state.state.log_harvester) # "\n\n" #
-        // "access : " # debug_show(access) # "\n\n" #
-        // "owner : " # debug_show(owner) # "\n\n" #
-        // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
-        // "access : " # debug_show(access) # "\n\n" #
-        "buckets size : " # debug_show(Map.size(state.state.buckets)) # "\n\n" #
-        "allocations size : " # debug_show(Map.size(state.state.allocations)) # "\n\n" #
-        "nft_metadata size : " # debug_show(Map.size(state.state.nft_metadata)) # "\n\n" #
-        "escrow_balances size : " # debug_show(Map.size(state.state.escrow_balances)) # "\n\n" 
-        // "nft_library : " # debug_show(state.nft_library) # "\n\n" 
-        );
+        // D.print( "\n\n" #
+        // // "state " # debug_show(state.state) # "\n\n" #
+        // // "allocations : " # debug_show(state.state.allocations) # "\n\n" #
+        // // "buckets : " # debug_show(state.state.buckets) # "\n\n" #
+        // // "canister_allocated_storage : " # debug_show(state.state.canister_allocated_storage) # "\n\n" #
+        // // "canister_availible_space : " # debug_show(state.state.canister_availible_space) # "\n\n" #
+        // // "collection_data : " # debug_show(state.state.collection_data) # "\n\n" #
+        // // "nft_metadata : " # debug_show(state.state.nft_metadata) # "\n\n" #
+        // // "log : " # debug_show(state.state.log) # "\n\n" #
+        // // "log_history : " # debug_show(state.state.log_history) # "\n\n" #
+        // // "log_harvester : " # debug_show(state.state.log_harvester) # "\n\n" #
+        // // "access : " # debug_show(access) # "\n\n" #
+        // // "owner : " # debug_show(owner) # "\n\n" #
+        // // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
+        // // "access : " # debug_show(access) # "\n\n" #
+        // // "buckets size : " # debug_show(Map.size(state.state.buckets)) # "\n\n" #
+        // // "allocations size : " # debug_show(Map.size(state.state.allocations)) # "\n\n" #
+        // // "nft_metadata size : " # debug_show(Map.size(state.state.nft_metadata)) # "\n\n" #
+        // // "escrow_balances : " # debug_show(state.state.escrow_balances) # "\n\n" #
+        // // "sales_balances : " # debug_show(state.state.sales_balances) # "\n\n" #
+        // // "offers : " # debug_show(state.state.offers) # "\n\n" #
+        // // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
+        // //  "nft_ledgers : " # debug_show(state.state.nft_ledgers) # "\n\n" 
+        // // "nft_library : " # debug_show(state.nft_library) # "\n\n" 
+        // );
 
         // *** NFT library ***
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){
-            let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-            for(this_item in thisKey.1.entries()){
-                this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+            if(globalTracker == page){
+                let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+                for(this_item in thisKey.1.entries()){
+                    this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+                };
+                nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
             };
-            nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
+            globalTracker += 1;            
         };
         
 
         // *** Buckets ***
+        globalTracker := 0;
         var buckets : [(Principal, Types.StableBucketData)] = [];
         for ((key, value) in Map.entries(state.state.buckets)){
-             D.print("\n" # "bucket - allocations size : " # debug_show(Map.size(value.allocations)) # "\n");
-            //  var a : [((Text,Text), Int)] = [];
-            //  var b : ((Text,Text), Int) = (("",""),0);
-            // for ((k,v) in Map.entries(value.allocations)){
-            //     D.print("\n" # "bucket k, v : " # debug_show(k,v) # "\n");
-            //     b := (("hello", "world"), 1);
-                
-               
-            // };
-            // a := Array.append<((Text,Text), Int)>(a,[b]);
-            // var val = {
-            //     principal = value.principal;
-            //     allocated_space = value.allocated_space;
-            //     available_space = value.available_space;
-            //     date_added = value.date_added;
-            //     b_gateway = value.b_gateway;
-            //     version = value.version;
-            //     allocations = a;
-            // };
+            if(globalTracker == page){
+            D.print("\n" # "bucket - allocations size : " # debug_show(Map.size(value.allocations)) # "\n");
+           
             var val = Types.stabilize_bucket_data(value);
             var e = (key, val);
-
             buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
-           
+            };
+             globalTracker += 1;
         };
 
         // *** Allocations ***
-        var allocations_key : (Text,Text) = ("","");
+        globalTracker := 0;
+        // var allocations_key : (Text,Text) = ("","");
         var allocations : [((Text,Text), Types.AllocationRecordStable)] = [];
         for((key,value) in Map.entries(state.state.allocations)){
-
-            var val = Types.allocation_record_stabalize(value);
-            var e = (key, val);
-
-            allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+            if(globalTracker == page){
+                var val = Types.allocation_record_stabalize(value);
+                var e = (key, val);
+                allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+            };
+            globalTracker += 1;            
         };
+
+        // *** Escrow Balances ***
+        globalTracker := 0;
+        var escrows : Types.StableEscrowBalances = [];
+        for((acc_top_key,acc_top_val) in Map.entries(state.state.escrow_balances)){
+            if(globalTracker == page){
+                for((acc_mid_key,acc_mid_val)in Map.entries(acc_top_val)){
+                    for((tok_id_key, tok_id_val) in Map.entries(acc_mid_val)){
+                        for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
+                            // Get escrow record
+                            escrows := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows, [(acc_top_key, acc_mid_key,tok_id_key,token_spec_val)]);
+                        };
+                    };
+                };
+            };
+            globalTracker += 1;
+        };
+
+        // *** Sales Balances ***
+        globalTracker := 0;
+        var sales : Types.StableSalesBalances = [];
+        for((acc_top_key,acc_top_val) in Map.entries(state.state.sales_balances)){
+            if(globalTracker == page){
+                for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
+                    for((tok_id_key,tok_id_val) in Map.entries(acc_mid_val)){
+                        for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
+                            // Get escrow record
+                            sales := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales, [(acc_top_key,acc_mid_key,tok_id_key,token_spec_val)]);
+                        };
+                    };
+                };
+            };
+            globalTracker += 1;
+        };
+
+       // *** Offers ***
+       globalTracker := 0;
+       var offers : Types.StableOffers = [];
+       for((acc_top_key,acc_top_val) in Map.entries(state.state.offers)){
+            if(globalTracker == page){
+                for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
+                    offers := Array.append<(Types.Account,Types.Account,Int)>(offers, [(acc_top_key,acc_mid_key,acc_mid_val)]);
+                };
+            };
+            globalTracker += 1;
+       };
+
+       // *** Offers ***
+       globalTracker := 0;
+       var nft_ledgers : Types.StableNftLedger = [];
+       for((tok_key,tok_val) in Map.entries(state.state.nft_ledgers)){
+            let recordsArr = SB.toArray(tok_val);
+            for(this_item in recordsArr.vals()){
+                nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+            };
+
+       };
+
+       // *** NFT Sales ***
+       globalTracker := 0;
+       var nft_sales : Types.StableNftSales = [];
+       for((key,val) in Map.entries(state.state.nft_sales)){
+            if(globalTracker == page){
+                let stableSale = Types.SalesStatus_stabalize_for_xfer(val);
+                nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+            };
+            globalTracker += 1;
+       };
 
 
         return  {
@@ -1627,6 +1705,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             collection_data = Types.stabilize_collection_data(state.state.collection_data);
             buckets = buckets;
             allocations = allocations;
+            escrow_balances = escrows;
+            sales_balances = sales;
+            offers = offers;
+            nft_ledgers = nft_ledgers;
+            nft_sales = nft_sales;
         };
     };
 

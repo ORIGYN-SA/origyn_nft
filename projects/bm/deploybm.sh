@@ -1,5 +1,7 @@
 set -ex
 
+source ../local-network-setup/settings/post-setup.sh
+
 npm install
 
 # dfx identity import dev --disable-encryption identity.pem || true
