@@ -905,6 +905,47 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return await collection_nft_origyn(fields);
     };
 
+    private func _history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : Result.Result<[Types.TransactionRecord],Types.OrigynError>{
+      let ledger = switch(Map.get(state_current.nft_ledgers, Map.thash, token_id)){
+        case(null){
+            return #ok([]);
+        };
+        case(?val){
+            var thisStart = 0;
+            var thisEnd = Nat.sub(SB.size(val),1);
+            switch(start, end){
+                case(?start, ?end){
+                    thisStart := start;
+                    thisEnd := end;
+                };
+                case(?start, null){
+                    thisStart := start;
+                };
+                case(null, ?end){
+                    thisEnd := end;
+                };
+                case(null, null){};
+            };
+
+            if(thisEnd >= thisStart){
+
+                let result = Buffer.Buffer<Types.TransactionRecord>((thisEnd + 1) - thisStart);
+                for(this_item in Iter.range(thisStart, thisEnd)){
+                    result.add(switch(SB.getOpt(val, this_item)){case(?item){item};case(null){
+                        return #err(Types.errors(#asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?msg.caller));
+
+                    }});
+                };
+
+                return #ok(result.toArray());
+            } else {
+                // Enable revrange
+                return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?msg.caller));
+            };
+        };
+      };
+    };
+
     // Allows users to see token information - ledger and history
     public query (msg) func history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
         // Warning: this func does not use msg.caller. If you decide to use it, fix the secure caller
@@ -962,6 +1003,30 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        debug if(debug_channel.function_announce) D.print("in history_secure_nft_origyn");
         
        return await history_nft_origyn(token_id, start,end);
+    };
+
+    // Provides access to searching a large number of histories
+    public query (msg) func history_batch_nft_origyn(tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) : async [Result.Result<[Types.TransactionRecord], Types.OrigynError>]{
+        debug if(debug_channel.function_announce) D.print("in history_batch_nft_origyn");
+        
+        let results = Buffer.Buffer<Result.Result<[Types.TransactionRecord], Types.OrigynError>>(tokens.size());
+        label search for(thisitem in tokens.vals()){
+            results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2));
+           
+        };
+        return results.toArray();
+    };
+
+    // Secure access to history batch
+    public shared (msg) func history_batch_secure_nft_origyn(tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) : async [Result.Result<[Types.TransactionRecord], Types.OrigynError>]{
+        debug if(debug_channel.function_announce) D.print("in history_batch_secure_nft_origyn");
+        
+        let results = Buffer.Buffer<Result.Result<[Types.TransactionRecord], Types.OrigynError>>(tokens.size());
+        label search for(thisitem in tokens.vals()){
+            results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2));
+           
+        };
+        return results.toArray();
     };
 
 
@@ -1513,7 +1578,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
 
         return #ok(#nonfungible({
-                metadata = ?Text.encodeUtf8("https://exos.origyn.network/-/" # Principal.toText(get_canister()) # "/-/" # token_id)
+                metadata = ?Text.encodeUtf8("https://prptl.io/-/" # Principal.toText(get_canister()) # "/-/" # token_id)
             }));
     };
 
