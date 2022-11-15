@@ -1368,10 +1368,8 @@ module {
         bearer_nft_origyn : shared query Text -> async Result.Result<Account, OrigynError>;
         bearer_batch_nft_origyn: shared query (tokens : [Text]) -> async [Result.Result<Account,OrigynError>];
         bearer_secure_nft_origyn: shared (token_id : Text) -> async Result.Result<Account, OrigynError>;
-        bearer_batch_nft_origyn : shared query [Text] -> async [Result.Result<Account, OrigynError>];
-        bearer_batch_secure_nft_origyn: shared (tokens : [Text]) -> async [Result.Result<Account, OrigynError>];
-        bearer_secure_nft_origyn : shared Text -> async Result.Result<Account, OrigynError>;
         bearer_batch_secure_nft_origyn : shared [Text] -> async [Result.Result<Account, OrigynError>];
+        
         canister_status : shared {
             canister_id : canister_id;
         } -> async canister_status;
@@ -1382,16 +1380,16 @@ module {
         collection_update_nft_origyn : (ManageCollectionCommand) -> async Result.Result<Bool, OrigynError>;
         collection_update_batch_nft_origyn : ([ManageCollectionCommand]) -> async [Result.Result<Bool, OrigynError>];
         cycles : shared query () -> async Nat;
-        get_access_key() : shared () -> async Result.Result<Text, OrigynError>;
+        get_access_key : shared () -> async Result.Result<Text, OrigynError>;
         getEXTTokenIdentifier : shared query Text -> async Text;
         get_nat_as_token_id : shared query Nat -> async Text;
         get_token_id_as_nat : shared query Text -> async Nat;
         governance_nft_origyn: shared (request : GovernanceRequest) -> async Result.Result<GovernanceResponse, OrigynError>;
         history_nft_origyn : shared query (Text, ?Nat, ?Nat) -> async Result.Result<[TransactionRecord],OrigynError>;
         history_batch_nft_origyn : shared query (tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) -> async [Result.Result<[TransactionRecord], OrigynError>];
-        history_batch_secure_nft_origyn : shared (tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) -> async [Result.Result<[TransactionRecord], .OrigynError>];
+        history_batch_secure_nft_origyn : shared (tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) -> async [Result.Result<[TransactionRecord], OrigynError>];
         history_secure_nft_origyn : shared (token_id : Text, start: ?Nat, end: ?Nat) -> async Result.Result<[TransactionRecord], OrigynError>;
-        http_access_key : async Result.Result<Text, Types.OrigynError>
+        http_access_key : shared () -> async Result.Result<Text, OrigynError>;
         http_request : shared query HttpRequest -> async HTTPResponse;
         http_request_streaming_callback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
         manage_storage_nft_origyn : shared ManageStorageRequest -> async Result.Result<ManageStorageResponse, OrigynError>;
@@ -1403,7 +1401,7 @@ module {
         
         nft_origyn : shared query Text -> async Result.Result<NFTInfoStable, OrigynError>;
         nft_batch_origyn: shared query (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
-        nft_batch_secure_origyn: shared (token_ids : [Text]) : async [Result.Result<NFTInfoStable, OrigynError>]
+        nft_batch_secure_origyn: shared (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
         nft_secure_origyn: shared (token_id : Text) -> async Result.Result<NFTInfoStable, OrigynError>;
         update_app_nft_origyn : shared NFTUpdateRequest -> async Result.Result<NFTUpdateResponse, OrigynError>;
         ownerOf : shared query Nat -> async DIP721.OwnerOfResponse;
