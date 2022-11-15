@@ -41,6 +41,10 @@ v0.1.2
 
 * Library - make a library mutable with a node "com.origyn.immutable_library" with a value of #Bool(true). (Defaults to false if not present).
 * Library - Delete a library using stage_library_nft_origyn with filedata set to #Bool(false).  This will not work for minted immutable libraries.
+* Soulbound - Souldbound now only takes effect after minting for sales.
+* Batch and Secure - added batch and secure methods for history.
+* Services - Updated Service definition in Types.mo
+* Docs - Changed api file to specification.md
 
 v0.1.0
 
