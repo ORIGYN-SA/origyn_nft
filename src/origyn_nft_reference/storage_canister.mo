@@ -131,7 +131,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     // get current network of the nft
-    public query func get_collection_network_nft_origynt(): async ?Principal.Principal {
+    public query func get_collection_network_nft_origyn(): async ?Principal.Principal {
         state_current.collection_data.network;
     };
 
