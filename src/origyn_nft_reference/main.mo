@@ -953,44 +953,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
         
         
-        let ledger = switch(Map.get(state_current.nft_ledgers, Map.thash, token_id)){
-            case(null){
-                return #ok([]);
-            };
-            case(?val){
-                var thisStart = 0;
-                var thisEnd = Nat.sub(SB.size(val),1);
-                switch(start, end){
-                    case(?start, ?end){
-                        thisStart := start;
-                        thisEnd := end;
-                    };
-                    case(?start, null){
-                        thisStart := start;
-                    };
-                    case(null, ?end){
-                        thisEnd := end;
-                    };
-                    case(null, null){};
-                };
-
-                if(thisEnd >= thisStart){
-
-                    let result = Buffer.Buffer<Types.TransactionRecord>((thisEnd + 1) - thisStart);
-                    for(this_item in Iter.range(thisStart, thisEnd)){
-                        result.add(switch(SB.getOpt(val, this_item)){case(?item){item};case(null){
-                            return #err(Types.errors(#asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?msg.caller));
-
-                        }});
-                    };
-
-                    return #ok(result.toArray());
-                } else {
-                    // Enable revrange
-                    return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?msg.caller));
-                };
-            };
-        };
+        return _history_nft_origyn(token_id, start, end);
     };
 
     // Secure access to token history
