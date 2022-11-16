@@ -1203,6 +1203,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Returns metadata about an NFT
     public query (msg) func nft_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError>{
 
+        D.print("nft origyn :" # debug_show(token_id));
+
         debug if(debug_channel.function_announce) D.print("in nft_origyn");
         
         return _nft_origyn(token_id, msg.caller);
@@ -1538,8 +1540,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let state = get_state();
         
         return {
-            access_tokens = access_tokens.size();
-            nft_library= nft_library.size();
             buckets= Map.size(state.state.buckets);
             allocations= Map.size(state.state.allocations);
             escrow_balances= Map.size(state.state.escrow_balances);
@@ -1550,17 +1550,17 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
     };
 
-    public query(msg) func back_up(page : Nat) : async Types.BackupResponse {
+    public query(msg) func back_up(page : Nat) : async {#eof : Types.NFTBackupChunk; #data : Types.NFTBackupChunk} {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
             throw Error.reject("not the admin");
         };
         
-        // let targetStart = page * data_harvester_page_size;
-        // let targetEnd = targetStart + data_harvester_page_size;
+        let targetStart = page * data_harvester_page_size;
+        let targetEnd = targetStart + data_harvester_page_size;
         var globalTracker = 0;
 
         let state = get_state();
-        var access = Iter.toArray(access_tokens.entries());
+        
         let owner = state.state.collection_data.owner;
         // D.print( "\n\n" #
         // // "state " # debug_show(state.state) # "\n\n" #
@@ -1589,119 +1589,165 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // );
 
         // *** NFT library ***
-        let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-        for(thisKey in nft_library.entries()){
-            if(globalTracker == page){
-                let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-                for(this_item in thisKey.1.entries()){
-                    this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
-                };
-                nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
-            };
-            globalTracker += 1;            
-        };
+        // let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
+        // for(thisKey in nft_library.entries()){
+        //     if(globalTracker == page){
+        //         let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+        //         for(this_item in thisKey.1.entries()){
+        //             this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+        //         };
+        //         nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
+        //     };
+        //     globalTracker += 1;            
+        // };
         
 
         // *** Buckets ***
-        globalTracker := 0;
         var buckets : [(Principal, Types.StableBucketData)] = [];
-        for ((key, value) in Map.entries(state.state.buckets)){
-            if(globalTracker == page){
-            D.print("\n" # "bucket - allocations size : " # debug_show(Map.size(value.allocations)) # "\n");
-           
-            var val = Types.stabilize_bucket_data(value);
-            var e = (key, val);
-            buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
+        let buckets_size = Map.size(state.state.buckets);
+        if(targetStart < globalTracker + buckets_size and targetEnd > globalTracker){
+             for ((key, value) in Map.entries(state.state.buckets)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                    var val = Types.stabilize_bucket_data(value);
+                    var e = (key, val);
+                    buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
+                };
+                globalTracker += 1;
             };
-             globalTracker += 1;
+        } else {
+            globalTracker += buckets_size;
         };
+       
 
         // *** Allocations ***
-        globalTracker := 0;
-        // var allocations_key : (Text,Text) = ("","");
         var allocations : [((Text,Text), Types.AllocationRecordStable)] = [];
-        for((key,value) in Map.entries(state.state.allocations)){
-            if(globalTracker == page){
-                var val = Types.allocation_record_stabalize(value);
-                var e = (key, val);
-                allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+        let allocations_size = Map.size(state.state.allocations);
+        if(targetStart < globalTracker + allocations_size and targetEnd > globalTracker){
+             for ((key, value) in Map.entries(state.state.allocations)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                   var val = Types.allocation_record_stabalize(value);
+                    var e = (key, val);
+                    allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+                };
+                globalTracker += 1;
             };
-            globalTracker += 1;            
+        } else {
+            globalTracker += allocations_size;
         };
+        
 
         // *** Escrow Balances ***
-        globalTracker := 0;
         var escrows : Types.StableEscrowBalances = [];
-        for((acc_top_key,acc_top_val) in Map.entries(state.state.escrow_balances)){
-            if(globalTracker == page){
-                for((acc_mid_key,acc_mid_val)in Map.entries(acc_top_val)){
-                    for((tok_id_key, tok_id_val) in Map.entries(acc_mid_val)){
-                        for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
-                            // Get escrow record
-                            escrows := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows, [(acc_top_key, acc_mid_key,tok_id_key,token_spec_val)]);
+        let escrows_size = Map.size(state.state.escrow_balances);
+        if(targetStart < globalTracker + escrows_size and targetEnd > globalTracker){
+            for((acc_top_key,acc_top_val) in Map.entries(state.state.escrow_balances)){
+                    if(globalTracker >= targetStart and targetEnd > globalTracker){
+                        for((acc_mid_key,acc_mid_val)in Map.entries(acc_top_val)){
+                            for((tok_id_key, tok_id_val) in Map.entries(acc_mid_val)){
+                                for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
+                                    // Get escrow record
+                                    escrows := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows, [(acc_top_key, acc_mid_key,tok_id_key,token_spec_val)]);
+                                };
+                            };
                         };
                     };
-                };
+                
+                globalTracker += 1;
             };
-            globalTracker += 1;
+        }else{
+            globalTracker += escrows_size;
         };
+        
 
         // *** Sales Balances ***
-        globalTracker := 0;
         var sales : Types.StableSalesBalances = [];
-        for((acc_top_key,acc_top_val) in Map.entries(state.state.sales_balances)){
-            if(globalTracker == page){
-                for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
-                    for((tok_id_key,tok_id_val) in Map.entries(acc_mid_val)){
-                        for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
-                            // Get escrow record
-                            sales := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales, [(acc_top_key,acc_mid_key,tok_id_key,token_spec_val)]);
+        let sales_size = Map.size(state.state.sales_balances);
+        if(targetStart < globalTracker + sales_size and targetEnd > globalTracker){
+            for((acc_top_key,acc_top_val) in Map.entries(state.state.sales_balances)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                    for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
+                        for((tok_id_key,tok_id_val) in Map.entries(acc_mid_val)){
+                            for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
+                                // Get escrow record
+                                sales := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales, [(acc_top_key,acc_mid_key,tok_id_key,token_spec_val)]);
+                            };
                         };
                     };
                 };
+                globalTracker += 1;
             };
-            globalTracker += 1;
+        } else { 
+            globalTracker += sales_size;
         };
+        
 
-       // *** Offers ***
-       globalTracker := 0;
+       // *** Offers ***       
        var offers : Types.StableOffers = [];
-       for((acc_top_key,acc_top_val) in Map.entries(state.state.offers)){
-            if(globalTracker == page){
-                for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
-                    offers := Array.append<(Types.Account,Types.Account,Int)>(offers, [(acc_top_key,acc_mid_key,acc_mid_val)]);
+       let offers_size = Map.size(state.state.offers);
+       if(targetStart < globalTracker + offers_size and targetEnd > globalTracker){
+            for((acc_top_key,acc_top_val) in Map.entries(state.state.offers)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                    for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
+                        offers := Array.append<(Types.Account,Types.Account,Int)>(offers, [(acc_top_key,acc_mid_key,acc_mid_val)]);
+                    };
                 };
+                globalTracker += 1;
             };
-            globalTracker += 1;
+       } else {
+             globalTracker += offers_size;
        };
+       
 
-       // *** Offers ***
-       globalTracker := 0;
+       // *** NFT ledgers ***
        var nft_ledgers : Types.StableNftLedger = [];
-       for((tok_key,tok_val) in Map.entries(state.state.nft_ledgers)){
-            let recordsArr = SB.toArray(tok_val);
-            for(this_item in recordsArr.vals()){
-                nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+       let nft_ledgers_size = Map.size(state.state.nft_ledgers);
+       if(targetStart < globalTracker + nft_ledgers_size and targetEnd > globalTracker){
+            for((tok_key,tok_val) in Map.entries(state.state.nft_ledgers)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                    let recordsArr = SB.toArray(tok_val);
+                    for(this_item in recordsArr.vals()){
+                        nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+                    };
+                };
+                globalTracker += 1;
             };
-
+       } else {
+            globalTracker +=nft_ledgers_size;
        };
+       
 
        // *** NFT Sales ***
-       globalTracker := 0;
        var nft_sales : Types.StableNftSales = [];
-       for((key,val) in Map.entries(state.state.nft_sales)){
-            if(globalTracker == page){
-                let stableSale = Types.SalesStatus_stabalize_for_xfer(val);
-                nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+       let nft_sales_size = Map.size(state.state.nft_sales);
+       if(targetStart < globalTracker + nft_sales_size and targetEnd > globalTracker){
+            for((key,val) in Map.entries(state.state.nft_sales)){
+                if(globalTracker >= targetStart and targetEnd > globalTracker){
+                    let stableSale = Types.SalesStatus_stabalize_for_xfer(val);
+                    nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+                };
+                globalTracker += 1;
             };
-            globalTracker += 1;
+       } else {
+            globalTracker +=nft_sales_size;
+       };
+       
+       if(globalTracker > targetStart and globalTracker <= targetEnd){
+            //we have reached the eof.
+            return  #eof({
+                canister = state.canister();
+                collection_data = Types.stabilize_collection_data(state.state.collection_data);
+                buckets = buckets;
+                allocations = allocations;
+                escrow_balances = escrows;
+                sales_balances = sales;
+                offers = offers;
+                nft_ledgers = nft_ledgers;
+                nft_sales = nft_sales;
+            });
        };
 
-
-        return  {
+        return  #data({
             canister = state.canister();
-            access_tokens = access;
-            nft_library = nft_library_stable_buffer.toArray();
             collection_data = Types.stabilize_collection_data(state.state.collection_data);
             buckets = buckets;
             allocations = allocations;
@@ -1710,7 +1756,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             offers = offers;
             nft_ledgers = nft_ledgers;
             nft_sales = nft_sales;
-        };
+        });
     };
 
     // *************************

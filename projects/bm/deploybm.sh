@@ -113,7 +113,7 @@ gzip .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm -f
 gzip .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm -f
 
 #Replace below with your test principal
-TEST_WALLET=$(echo "yir32-443c5-ekbjf-gaitq-pyfqj-g5lh5-dsqem-pgwol-5vsph-cgkhu-cae")
+TEST_WALLET=$(echo "6uagf-psym3-4ygsh-k5aim-h2w6b-4dqbp-gsbr6-rpudo-mlou7-5v5st-4ae")
 
 
 dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall --argument "(record {owner =principal  \"$ADMIN_PRINCIPAL\"; storage_space = null;})"

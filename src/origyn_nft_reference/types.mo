@@ -424,10 +424,8 @@ module {
     public type StableNftLedger = [(Text,TransactionRecord)];
     public type StableNftSales = [(Text,SaleStatusStable)];
 
-    public type BackupResponse = {
-        canister : Principal; 
-        access_tokens : [(Text, HttpAccess)]; 
-        nft_library : [(Text,[(Text,CandyTypes.AddressedChunkArray)])]; 
+    public type NFTBackupChunk = {
+        canister : Principal;
         collection_data : StableCollectionData;
         buckets : [(Principal,StableBucketData)];
         allocations: [((Text,Text), AllocationRecordStable)];
@@ -436,12 +434,9 @@ module {
         offers : StableOffers;
         nft_ledgers : StableNftLedger;
         nft_sales : [(Text,SaleStatusStable)]; 
-
     };
 
     public type StateSize = {
-        access_tokens: Nat;
-        nft_library: Nat;
         buckets: Nat;
         allocations: Nat;
         escrow_balances: Nat;
