@@ -72,6 +72,28 @@ module {
     };
   };  
 
+  //confirms if a token is a physical item
+  public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_physical);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
+    };
+  };
+
+  //confirms if a token is a physical item
+  public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_escrowed);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
+    };
+  };  
+
   //sets a system variable in the metadata
   public func set_system_var(metaData: CandyTypes.CandyValue, name: Text, value: CandyTypes.CandyValue) : CandyTypes.CandyValue {
     var this_metadata = metaData;
@@ -235,6 +257,24 @@ module {
          return #ok(
            switch(val.value){
              case(#Text(val)){return #ok(val)};
+             case(_){
+               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+             }
+           });
+      };
+    };
+  };
+
+  //gets a bool property out of the metadata
+  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
+    switch(Properties.getClassProperty(metadata, prop)){
+      case(null){
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+      };
+      case(?val){
+         return #ok(
+           switch(val.value){
+             case(#Bool(val)){return #ok(val)};
              case(_){
                return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
              }
@@ -548,7 +588,7 @@ module {
       case(#ok(val)){val};
     };
     //D.print("have meta protocol");
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protcol)){
+    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protocol)){
       case(null){
          D.print("have err1 protocol");
         return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
@@ -1015,7 +1055,7 @@ module {
               };
             };
           };
-          case(null, null, null, null, null,_){
+          case(null, null, null, null, _, _){
             //D.print("cleaning a non-permissioned node");
             let collection = Buffer.Buffer<CandyTypes.Property>(item.size());
             //D.print("processing" # debug_show(item.size()));

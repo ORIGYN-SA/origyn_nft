@@ -90,7 +90,13 @@ let additions =
   , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
   , version = "v6.0.0"
   , dependencies = [ "base"]
-  }] : List Package
+  },
+  { name = "canistergeek"
+  , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
+  , version = "v0.0.1"
+  , dependencies = ["base", "candy_0_1_10" ]
+  }
+  ] : List Package
 let
   {- This is where you can override existing packages in the package-set
 

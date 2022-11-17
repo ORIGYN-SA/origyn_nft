@@ -79,6 +79,10 @@ Node script that stages and mints NFTs with the input of a JSON metadata file.
 
 See also: https://github.com/ORIGYN-SA/minting-starter
 
+### Logs & Metrics
+
+[Logs and metrics documentation](./docs/logs_and_metrics.md)
+
 ### Audit
 
-[Audit Doc](./docs/sample_calls.md)
+[Audit document](./docs/audit.md)

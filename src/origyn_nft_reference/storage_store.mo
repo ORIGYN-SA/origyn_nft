@@ -39,9 +39,28 @@ module {
 
 
                         debug if(debug_channel.stage) D.print("in the remote canister");
+
+        let bDelete : Bool = switch(chunk.filedata){
+            case(#Bool(val)){
+              if(val == false){
+                true
+              } else {
+                false;
+              }
+            };
+            case(_){
+              false;
+            };
+        };
+
         //make sure we have an allocation for space for this chunk
         let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations,( NFTUtils.library_hash,  NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
             case(null){
+
+                    if(bDelete){
+                      //was never allocated
+                      return #ok({canister = state.canister()});
+                    };
                                         debug if(debug_channel.stage) D.print("no allocation yet, so lets add it");
                 
                     
@@ -65,7 +84,7 @@ module {
             case(?val)(val);
         };
 
-        if(chunk.chunk == 0){
+        if(chunk.chunk == 0 and bDelete == false){
             //the first chunk comes with the metadata
             Map.set<Text, CandyTypes.CandyValue>(state.state.nft_metadata, Map.thash, chunk.token_id, metadata);
         };
@@ -74,6 +93,10 @@ module {
         var found_workspace : CandyTypes.Workspace =
             switch(state.nft_library.get(chunk.token_id)){
                 case(null){
+                    if(bDelete){
+                      //was never allocated
+                      return #ok({canister = state.canister()});
+                    };
                     //chunk doesn't exist;
                                     debug if(debug_channel.stage) D.print("does not exist");
                     let new_workspace = Workspace.initWorkspace(2);
@@ -110,6 +133,9 @@ module {
                         };
                         case(?workspace){
                             //D.print("found workspace");
+                            if(bDelete == true){
+                                  library.delete(chunk.library_id);
+                                };
                             workspace;
                         };
                     };
@@ -117,65 +143,71 @@ module {
                 };
             };
 
-        //file the chunk
-        //D.print("filing the chunk");
-        let file_chunks = switch(found_workspace.getOpt(1)){
-            case(null){
-                if(found_workspace.size()==0){
-                    //todo: should be an error because no filedata
-                    found_workspace.add(Workspace.initDataZone(#Empty));
-                };
-                if(found_workspace.size()==1){
-                    found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
-                };
-                found_workspace.get(1);
-            };
-            case(?dz){
-                dz;
-            };
-        };
-
-
-        if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
-            //this chunk already exists in the allocatioin
-            //see what size it is
-            let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
-            if(chunk.content.size() > current_size){
-                //allocate more space
-                SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
-                allocation.available_space += (chunk.content.size() - current_size);
-            } else if (chunk.content.size() != current_size){
-                //give space back
-                SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
-                allocation.available_space -= (current_size - chunk.content.size());
-            } else {};
+        
+        if(bDelete == true){
+          state.state.canister_availible_space += allocation.allocated_space;
+          state.state.canister_allocated_storage -= allocation.allocated_space;
         } else {
-            for(this_index in Iter.range(SB.size<Nat>(allocation.chunks), chunk.chunk)){
-                if(this_index == chunk.chunk){
-                    SB.add<Nat>(allocation.chunks, chunk.content.size());
-                    allocation.available_space -= chunk.content.size();
-                } else {
-                    SB.add<Nat>(allocation.chunks, 0);
-                }
-            };
-        };
+          //file the chunk
+          //D.print("filing the chunk");
+          let file_chunks = switch(found_workspace.getOpt(1)){
+              case(null){
+                  if(found_workspace.size()==0){
+                      //todo: should be an error because no filedata
+                      found_workspace.add(Workspace.initDataZone(#Empty));
+                  };
+                  if(found_workspace.size()==1){
+                      found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                  };
+                  found_workspace.get(1);
+              };
+              case(?dz){
+                  dz;
+              };
+          };
 
-        //D.print("putting the chunk");
-        if(chunk.chunk + 1 <= file_chunks.size()){
-            file_chunks.put(chunk.chunk, #Blob(chunk.content));
-        } else {
-                                debug if(debug_channel.stage) D.print("in putting the chunk iter");
-                                debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
-                                debug if(debug_channel.stage) D.print(debug_show(file_chunks.size()));
 
-            for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
-                if(this_index == chunk.chunk){
-                    file_chunks.add(#Blob(chunk.content));
-                } else {
-                    file_chunks.add(#Blob(Blob.fromArray([])));
-                }
-            };
+          if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
+              //this chunk already exists in the allocatioin
+              //see what size it is
+              let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
+              if(chunk.content.size() > current_size){
+                  //allocate more space
+                  SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
+                  allocation.available_space += (chunk.content.size() - current_size);
+              } else if (chunk.content.size() != current_size){
+                  //give space back
+                  SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
+                  allocation.available_space -= (current_size - chunk.content.size());
+              } else {};
+          } else {
+              for(this_index in Iter.range(SB.size<Nat>(allocation.chunks), chunk.chunk)){
+                  if(this_index == chunk.chunk){
+                      SB.add<Nat>(allocation.chunks, chunk.content.size());
+                      allocation.available_space -= chunk.content.size();
+                  } else {
+                      SB.add<Nat>(allocation.chunks, 0);
+                  }
+              };
+          };
 
+          //D.print("putting the chunk");
+          if(chunk.chunk + 1 <= file_chunks.size()){
+              file_chunks.put(chunk.chunk, #Blob(chunk.content));
+          } else {
+                                  debug if(debug_channel.stage) D.print("in putting the chunk iter");
+                                  debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
+                                  debug if(debug_channel.stage) D.print(debug_show(file_chunks.size()));
+
+              for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
+                  if(this_index == chunk.chunk){
+                      file_chunks.add(#Blob(chunk.content));
+                  } else {
+                      file_chunks.add(#Blob(Blob.fromArray([])));
+                  }
+              };
+
+          };
         };
 
         //D.print("returning");
