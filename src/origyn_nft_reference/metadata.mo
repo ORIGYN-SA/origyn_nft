@@ -588,7 +588,7 @@ module {
       case(#ok(val)){val};
     };
     //D.print("have meta protocol");
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protcol)){
+    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protocol)){
       case(null){
          D.print("have err1 protocol");
         return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));

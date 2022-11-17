@@ -230,7 +230,7 @@ module {
                 immutable=false;},
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
-            {name = "primary_protcol"; value=#Text("http"); immutable= false},
+            {name = "primary_protocol"; value=#Text("http"); immutable= false},
            
             {name = "owner"; value=#Principal(canister); immutable= false},
             {name = "is_soulbound"; value=#Bool(is_soulbound); immutable = is_soulbound},
@@ -282,12 +282,10 @@ module {
                 ]),
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.custom"); immutable= true},
-                    {name = "rate"; value=#Float(0.04); immutable= true}
+                    {name = "rate"; value=#Float(0.04); immutable= true},
+                    {name = "account"; value=#Principal(originator); immutable= true}
                 ]),
-                #Class([
-                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
-                    {name = "rate"; value=#Float(0.04); immutable= true}
-                ]),
+                
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
                     {name = "rate"; value=#Float(0.005); immutable= true}
@@ -401,7 +399,7 @@ module {
             {name = "is_soulbound"; value=#Bool(false); immutable = false},
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
-            {name = "primary_protcol"; value=#Text("http"); immutable= false},
+            {name = "primary_protocol"; value=#Text("http"); immutable= false},
         ])}
     };
 

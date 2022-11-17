@@ -858,6 +858,8 @@ Passing null to the following function will get you the current information abou
 
 ```
 
+Note: token_ids will not appear until the item has a ledger entry(mint) and are therefore hidden from public view until the items have been minted.
+
 Collection updates are handled with collection_update_nft_origyn:
 
 

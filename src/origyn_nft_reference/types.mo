@@ -1032,7 +1032,7 @@ module {
         physical: Text;
         primary_host: Text;
         primary_port: Text;
-        primary_protcol: Text;
+        primary_protocol: Text;
         primary_royalties_default : Text;
         
         royalty_broker : Text;
@@ -1070,7 +1070,7 @@ module {
         is_soulbound = "is_soulbound";
         primary_host = "primary_host";
         primary_port = "primary_port";
-        primary_protcol = "primary_protcol";
+        primary_protocol = "primary_protocol";
         royalty_broker = "com.origyn.royalty.broker";
         royalty_node = "com.origyn.royalty.node";
         royalty_originator = "com.origyn.royalty.originator";
