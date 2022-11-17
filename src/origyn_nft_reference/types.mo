@@ -3,6 +3,7 @@ import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
+import Int "mo:base/Int";
 import Nat32 "mo:base/Nat32";
 import Order "mo:base/Order";
 import Principal "mo:base/Principal";
@@ -10,7 +11,6 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
@@ -21,7 +21,7 @@ import Map "mo:map_6_0_0/Map";
 import NFTUtils "mo:map_6_0_0/utils";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import hex "mo:encoding/Hex";
-
+import CandyTypes_lib "mo:candy_0_1_10/types"; 
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
@@ -199,9 +199,6 @@ module {
         lock_to_date: ?Int; //timestamp to lock escrow until.
     };
 
-    
-    
-
     public type DepositDetail = {
         token : TokenSpec;
         seller: Account;
@@ -247,8 +244,6 @@ module {
         current_sale : ?SaleStatusStable;
         metadata : CandyTypes.CandyValue;
     };
-
-    
 
     public type AuctionState = MigrationTypes.Current.AuctionState;
 
@@ -333,6 +328,95 @@ module {
         refresh_state: () -> State;
     };
 
+    public type BucketDat = {
+        principal : Principal;
+        allocated_space: Nat;
+        available_space: Nat;
+        date_added: Int;
+        b_gateway: Bool;
+        version: (Nat, Nat, Nat);
+        // allocations: [((Text, Text), Int)]
+        allocations: Map.Map<(Text,Text), Int>;
+    };
+
+    public type StableCollectionData = {
+        logo: ?Text;
+        name: ?Text;
+        symbol: ?Text;
+        metadata: ?CandyTypes.CandyValue;
+        owner : Principal;
+        managers: [Principal];
+        network: ?Principal;
+        allocated_storage: Nat;
+        available_space : Nat;
+        active_bucket: ?Principal;
+    };
+
+    public func stabilize_collection_data (item : CollectionData) : StableCollectionData {
+        {
+            logo = item.logo;
+            name = item.name;
+            symbol = item.symbol;
+            metadata = item.metadata;
+            owner = item.owner;
+            managers = item.managers;
+            network = item.network;
+            allocated_storage = item.allocated_storage;
+            available_space = item.available_space;
+            active_bucket = item.active_bucket;
+        }
+    };
+    
+    public type StableBucketData = {
+        principal : Principal;
+        allocated_space: Nat;
+        available_space: Nat;
+        date_added: Int;
+        b_gateway: Bool;
+        version: (Nat, Nat, Nat);
+        allocations: [((Text,Text),Int)];
+    };
+    
+    public func stabilize_bucket_data (item : BucketData) : StableBucketData {
+        {
+            principal = item.principal;
+            allocated_space = item.allocated_space;
+            available_space = item.available_space;
+            date_added = item.date_added;
+            b_gateway = item.b_gateway;
+            version = item.version;
+            allocations = Iter.toArray(Map.entries<(Text,Text), Int>(item.allocations)); 
+        }
+    };
+
+    public type StableEscrowBalances = [(Account,Account,Text,EscrowRecord)];
+    public type StableSalesBalances = [(Account,Account,Text,EscrowRecord)];
+    public type StableOffers = [(Account,Account,Int)];
+    public type StableNftLedger = [(Text,TransactionRecord)];
+    public type StableNftSales = [(Text,SaleStatusStable)];
+
+    public type NFTBackupChunk = {
+        canister : Principal;
+        collection_data : StableCollectionData;
+        buckets : [(Principal,StableBucketData)];
+        allocations: [((Text,Text), AllocationRecordStable)];
+        escrow_balances : StableEscrowBalances;
+        sales_balances : StableSalesBalances;
+        offers : StableOffers;
+        nft_ledgers : StableNftLedger;
+        nft_sales : [(Text,SaleStatusStable)]; 
+    };
+
+    public type StateSize = {
+        buckets: Nat;
+        allocations: Nat;
+        escrow_balances: Nat;
+        sales_balances : Nat;
+        offers: Nat;
+        nft_ledgers: Nat;
+        nft_sales: Nat;
+    };
+
     public type GatewayState = GatewayState_v0_1_0;
 
     public type GatewayState_v0_1_0 = MigrationTypes.Current.State;
@@ -354,9 +438,7 @@ module {
         allocated_storage: Nat;
         available_space: Nat;
         allocations: [AllocationRecordStable];
-    };
-
-    
+    };    
 
     public type BucketData = {
         principal : Principal;

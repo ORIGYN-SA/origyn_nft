@@ -9,6 +9,26 @@
             "main": "src/origyn_sale_reference/main.mo",
             "type": "motoko"
         },
+        "storage_canister_1": {
+            "main": "src/origyn_storage_reference/storage_canister.mo",
+            "type": "motoko"
+        },
+        "storage_canister_2": {
+            "main": "src/origyn_storage_reference/storage_canister.mo",
+            "type": "motoko"
+        },
+        "storage_canister_3": {
+            "main": "src/origyn_storage_reference/storage_canister.mo",
+            "type": "motoko"
+        },
+        "storage_canister_4": {
+            "main": "src/origyn_storage_reference/storage_canister.mo",
+            "type": "motoko"
+        },
+        "storage_canister_5": {
+            "main": "src/origyn_storage_reference/storage_canister.mo",
+            "type": "motoko"
+        },
         "test_runner": {
             "main": "src/tests/test_runner.mo",
             "type": "motoko",

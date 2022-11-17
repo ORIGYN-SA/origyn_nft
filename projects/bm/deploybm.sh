@@ -1,8 +1,13 @@
 set -ex
 
+source ../local-network-setup/settings/post-setup.sh
+
 npm install
 
+
 dfx identity import dev --disable-encryption identity.pem || true
+
+
 dfx identity use dev
 
 ADMIN_PRINCIPAL=$(dfx identity get-principal)
@@ -111,7 +116,8 @@ gzip .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm -f
 gzip .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm -f
 
 #Replace below with your test principal
-TEST_WALLET=$(echo "biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae")
+
+TEST_WALLET=$(echo "coapo-5z5t4-5azo7-idouv-jsvee-vzf6k-33ror-oncap-be2yg-6cavw-pqe")
 
 
 dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall --argument "(record {owner =principal  \"$ADMIN_PRINCIPAL\"; storage_space = null;})"

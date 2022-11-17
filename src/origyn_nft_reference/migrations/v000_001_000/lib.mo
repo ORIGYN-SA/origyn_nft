@@ -31,7 +31,7 @@ module {
                     var available_space = args.storage_space; //space remaning in the collection
                 };
 
-            //tracks strage buckets where library files can be stored
+            //tracks storage buckets where library files can be stored
             var buckets : Map_lib.Map<Principal, v0_1_0.BucketData> = Map_lib.new<Principal, v0_1_0.BucketData>();
             
             //tracks token-id, library-id allocations and information about where the asset resides
@@ -60,6 +60,7 @@ module {
                                         Map_lib.Map<v0_1_0.Account,
                                             Map_lib.Map<Text,
                                                 Map_lib.Map<v0_1_0.TokenSpec,v0_1_0.EscrowRecord>>>>();
+            
 
             //tracks offers made from one user to another
             var offers : Map_lib.Map<v0_1_0.Account, Map_lib.Map<v0_1_0.Account, Int>> = Map_lib.new<v0_1_0.Account, Map_lib.Map<v0_1_0.Account, Int>>();
