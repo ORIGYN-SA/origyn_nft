@@ -703,7 +703,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     private func _sale_info_nft_origyn(request: Types.SaleInfoRequest, caller: Principal) : Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
 
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         return switch(request){
             case(#status(val)){Market.sale_status_nft_origyn(get_state(), val, caller)};
             case(#active(val)){Market.active_sales_nft_origyn(get_state(), val, caller)};
@@ -1241,8 +1240,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
 
     private func _bearer_of_nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.Account, Types.OrigynError>{
-
-         if(halt == true){throw Error.reject("canister is in maintenance mode");};
          let foundVal = switch(
             Metadata.get_nft_owner(
                 switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
@@ -1386,7 +1383,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     private func _nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.NFTInfoStable, Types.OrigynError>{
         //D.print("Calling NFT_Origyn");
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+
         var metadata = switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
             case(#err(err)){
                 return #err(err);
