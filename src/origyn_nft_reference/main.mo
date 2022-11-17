@@ -197,7 +197,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Data api - currently entire api nodes must be updated at one time
     // In future releases more granular updates will be possible
     public shared (msg) func update_app_nft_origyn(request: Types.NFTUpdateRequest): async Result.Result<Types.NFTUpdateResponse, Types.OrigynError>{
-       
+         if(halt == true){throw Error.reject("canister is in maintenance mode");};
          switch(request){
             case(#replace(val)){
              var log_data = val.data;
@@ -217,7 +217,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Stages metadata for an NFT
     public shared (msg) func stage_nft_origyn({metadata : CandyTypes.CandyValue}): async Result.Result<Text, Types.OrigynError>{
         //nyi:  if we run out of space, start putting data into child canisters
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         canistergeekLogger.logMessage("stage_nft_origyn",metadata,?msg.caller);
         canistergeekMonitor.collectMetrics();
         debug if(debug_channel.function_announce) D.print("in stage");
@@ -226,7 +226,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Allows staging multiple NFTs at the same time
     public shared (msg) func stage_batch_nft_origyn(request : [{metadata: CandyTypes.CandyValue}]): async [Result.Result<Text, Types.OrigynError>]{
-
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in stage batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
             return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
@@ -249,7 +249,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // And the remote stage call will be made to send the chunk to the proper canister.Array
     // Creators can also send library metadata to update library info without the data
     public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg) : async Result.Result<Types.StageLibraryResponse,Types.OrigynError> {
-
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         let log_data : Text = "Chunk number : " # Nat.toText(chunk.chunk) # " - Library id : " # chunk.library_id ;
         canistergeekLogger.logMessage("stage_library_nft_origyn",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -287,7 +287,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         //nyi: this needs to be gated to make sure the chunks don't contain file data. This should only be used for collection asset adding
         
         
-       
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in stage library batch");
         let results = Buffer.Buffer<Result.Result<Types.StageLibraryResponse,Types.OrigynError>>(chunks.size());
         for(this_item in chunks.vals()){
@@ -328,7 +328,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Mints a NFT and assigns it to the new owner
     public shared (msg) func mint_nft_origyn(token_id : Text, new_owner : Types.Account) : async Result.Result<Text,Types.OrigynError> {
-         
+        if(halt == true){throw Error.reject("canister is in maintenance mode");}; 
         switch(new_owner){
             case(#account(val)){
                 let a = Principal.toText(val.owner);
@@ -358,7 +358,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // This involves an inter canister call and will not work well for multi canister collections. Test to figure out how many you can mint at a time;
 
         
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
         return [#err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))]
         };
@@ -381,7 +381,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // be used with a wallet that you do not 100% trust to not take the NFT back. It is meant for 
     // internal accounting only. Use market_transfer_nft_origyn instead
     public shared (msg) func share_wallet_nft_origyn(request : Types.ShareWalletRequest) : async Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         canistergeekLogger.logMessage("share_wallet_nft_origyn",#Text(request.token_id),?msg.caller);
         canistergeekMonitor.collectMetrics();
         debug if(debug_channel.function_announce) D.print("in share wallet");
@@ -392,7 +392,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Used by the network to perform governance actions that have been voted on by OGY token holders
     // For non OGY NFTs you will need to call this function from the principal set as your 'network'
     public shared (msg) func governance_nft_origyn(request : Types.GovernanceRequest) : async Result.Result<Types.GovernanceResponse,Types.OrigynError> {
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         switch (request){
             case(#clear_shared_wallets(val)){
                 canistergeekLogger.logMessage("governance_nft_origyn",#Text(val),?msg.caller);
@@ -405,7 +405,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Dip721 transferFrom - must have a valid escrow
     public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
         canistergeekLogger.logMessage("transferFromDip721",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -419,7 +419,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Dip721 transfer - must have a valid escrow
     public shared (msg) func transferDip721(to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-       
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         let log_data : Text = "To :" # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
         canistergeekLogger.logMessage("transferDip721",#Text("transferDip721"),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -430,7 +430,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Dip721 transferFrom "v2" downgrade - must have a valid escrow
     public shared (msg) func transferFrom(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
         canistergeekLogger.logMessage("transferFrom",#Text("transferFrom"),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -445,7 +445,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // EXT transferFrom - must have a valid escrow
     public shared (msg) func transferEXT(request: EXT.TransferRequest) : async EXT.TransferResponse{
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         canistergeekLogger.logMessage("transferEXT",#Text("transferEXT"),?msg.caller);
         canistergeekMonitor.collectMetrics();
         debug if(debug_channel.function_announce) D.print("in transfer ext");
@@ -455,7 +455,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // EXT transferFrom legacy - must have a valid escrow
     public shared (msg) func transfer(request: EXT.TransferRequest) : async EXT.TransferResponse{
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         canistergeekLogger.logMessage("transfer",#Text("transfer"),?msg.caller);
         canistergeekMonitor.collectMetrics();
         debug if(debug_channel.function_announce) D.print("in transfer");
@@ -467,7 +467,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Allows the market based transfer of NFTs
     public shared (msg) func market_transfer_nft_origyn(request : Types.MarketTransferRequest) : async Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
-
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         var log_data : Text = "Token : " # request.token_id;
         switch(request.sales_config.pricing){
             case(#instant){
@@ -508,7 +508,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // nyi: for now limit this to managers
         
                
-
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in market transfer batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
             return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
@@ -559,8 +559,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // refresh_offers, bidding in an auction, withdrawing funds from an escrow or sale
     public shared (msg) func sale_nft_origyn(request: Types.ManageSaleRequest) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
         
-        var log_data : Text = "";
-                
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        var log_data : Text = "";                
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in sale_nft_origyn");
 
@@ -627,12 +627,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Allows batch operations
     public shared (msg) func sale_batch_nft_origyn(requests: [Types.ManageSaleRequest]) : async [Result.Result<Types.ManageSaleResponse, Types.OrigynError>]{
 
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale_nft_origyn batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
             return [#err(Types.errors(#unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch not supported", ?msg.caller))];
         };        
-
-        
         
         let result = Buffer.Buffer<Result.Result<Types.ManageSaleResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
@@ -703,6 +702,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
 
     private func _sale_info_nft_origyn(request: Types.SaleInfoRequest, caller: Principal) : Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         return switch(request){
             case(#status(val)){Market.sale_status_nft_origyn(get_state(), val, caller)};
             case(#active(val)){Market.active_sales_nft_origyn(get_state(), val, caller)};
@@ -714,6 +715,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Allows for the retrieving of sale info
     public query (msg) func sale_info_nft_origyn(request: Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce)D.print("in sale_info_nft_origyn");
         return _sale_info_nft_origyn(request, msg.caller);
         
@@ -721,7 +723,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Get sale info in a secure manner
     public shared(msg) func sale_info_secure_nft_origyn(request: Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");}; 
         var log_data : Text = "";
         switch(request){
             case(#active(val)){ log_data #= "Type : active" };
@@ -737,6 +740,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Batch info
     public query (msg) func sale_info_batch_nft_origyn(requests: [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>]{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale info batch");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
@@ -748,7 +753,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Batch info secure
     public shared (msg) func sale_info_batch_secure_nft_origyn(requests: [Types.SaleInfoRequest]) : async [Result.Result<Types.SaleInfoResponse, Types.OrigynError>]{
-   
+        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale info batch secure");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
@@ -768,6 +774,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Allows an owner to update information about a collection
     public shared (msg) func collection_update_nft_origyn(request : Types.ManageCollectionCommand) : async Result.Result<Bool, Types.OrigynError>{
         
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         var log_data : Text = "";
         switch(request){
             case(#UpdateManagers(val)){ log_data #= "Type : UpdateManagers" };
@@ -788,8 +795,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Batch access
     public shared (msg) func collection_update_batch_nft_origyn(requests : [Types.ManageCollectionCommand]) : async [Result.Result<Bool, Types.OrigynError>]{
         
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
-
         // We do a first check of caller to avoid cycle drain
         if(NFTUtils.is_owner_network(get_state(), msg.caller) == false){
             return [#err(Types.errors(#unauthorized_access, "collection_update_batch_nft_ - not a canister owner or network", ?msg.caller))];
@@ -838,6 +845,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Allows the owner to manage the storage on their NFT
     public shared (msg) func manage_storage_nft_origyn(request : Types.ManageStorageRequest) : async Result.Result<Types.ManageStorageResponse, Types.OrigynError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         if(NFTUtils.is_owner_network(get_state(), msg.caller) == false){
             throw Error.reject("not owner or network");
         };
@@ -890,6 +899,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public query (msg) func collection_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
         // Warning: this function does not use msg.caller, if you add it you need to fix the secure query
         
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         canistergeekLogger.logMessage("collection_nft_origyn",#Text("collection_nft_origyn"),?msg.caller);
         canistergeekMonitor.collectMetrics();
 
@@ -925,6 +935,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Secure access to collection information
     public shared (msg) func collection_secure_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
         
+       if(halt == true){throw Error.reject("canister is in maintenance mode");};  
        canistergeekLogger.logMessage("collection_secure_nft_origyn",#Text("collection_secure_nft_origyn"),?msg.caller);
        canistergeekMonitor.collectMetrics();
        debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
@@ -977,15 +988,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public query (msg) func history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
         // Warning: this func does not use msg.caller. If you decide to use it, fix the secure caller
 
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
-        
-        
         return _history_nft_origyn(token_id, start, end, msg.caller);
     };
 
     // Secure access to token history
     public shared (msg) func history_secure_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
        
+       if(halt == true){throw Error.reject("canister is in maintenance mode");};
        var log_data : Text = "Token id : " # token_id;
        canistergeekLogger.logMessage("history_secure_nft_origyn",#Text(log_data),?msg.caller);
        canistergeekMonitor.collectMetrics();
@@ -997,8 +1008,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Provides access to searching a large number of histories
     public query (msg) func history_batch_nft_origyn(tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) : async [Result.Result<[Types.TransactionRecord], Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in history_batch_nft_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in history_batch_nft_origyn");        
         let results = Buffer.Buffer<Result.Result<[Types.TransactionRecord], Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
             results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2, msg.caller));
@@ -1009,8 +1021,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to history batch
     public shared (msg) func history_batch_secure_nft_origyn(tokens : [(token_id : Text, start: ?Nat, end: ?Nat)]) : async [Result.Result<[Types.TransactionRecord], Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in history_batch_secure_nft_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in history_batch_secure_nft_origyn");        
         let results = Buffer.Buffer<Result.Result<[Types.TransactionRecord], Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
             results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2,msg.caller));
@@ -1024,22 +1037,22 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     
     // Dip721 balance
     public query(msg) func balanceOfDip721(user: Principal) : async Nat{
-       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
        
-        return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
+       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
+       return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
     };
 
     // Dip721 balance
     public query(msg) func balance(request: EXT.BalanceRequest) : async EXT.BalanceResponse{ //legacy ext
+        
         debug if(debug_channel.function_announce) D.print("in balance");
-       
         return _getEXTBalance(request);
     };
 
     // Ext balance
     public query(msg) func balanceEXT(request: EXT.BalanceRequest) : async EXT.BalanceResponse {
+        
         debug if(debug_channel.function_announce) D.print("in balanceEXT");
-       
         return  _getEXTBalance(request);
     };
 
@@ -1080,9 +1093,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Builds the balance object showing what resources an account holds on the server.
     private func _balance_of_nft_origyn(account: Types.Account, caller: Principal) : Result.Result<Types.BalanceResponse, Types.OrigynError> {
 
-
-        debug if(debug_channel.function_announce) D.print("in balance_of_nft_origyn");
         
+        debug if(debug_channel.function_announce) D.print("in balance_of_nft_origyn");
         let state = get_state();
         
         // Get escrows
@@ -1178,6 +1190,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Lets a user query the balances for their nfts, escrows, sales, offers, and stakes
     public query(msg) func balance_of_nft_origyn(account: Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError>{
 
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         switch(account){
             case(#account(val)){
                 let a = Principal.toText(val.owner);
@@ -1204,6 +1217,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Allows secure access to balance
     public shared(msg) func balance_of_secure_nft_origyn(account: Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError>{
 
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         switch(account){
             case(#account(val)){
                 let a = Principal.toText(val.owner);
@@ -1227,6 +1241,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
 
     private func _bearer_of_nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.Account, Types.OrigynError>{
+
+         if(halt == true){throw Error.reject("canister is in maintenance mode");};
          let foundVal = switch(
             Metadata.get_nft_owner(
                 switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
@@ -1248,6 +1264,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Returns the owner of the NFT indicated by token_id
     public query (msg) func bearer_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in bearer_nft_origyn");
         return _bearer_of_nft_origyn(token_id, msg.caller);
        
@@ -1255,16 +1273,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to bearer
     public shared (msg) func bearer_secure_nft_origyn(token_id : Text) : async Result.Result<Types.Account, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");        
         return _bearer_of_nft_origyn(token_id, msg.caller);
     };
 
     // Provides access to searching a large number of bearers at one time
     // nyi: could expose items not minted. add mint/owner check
     public query (msg) func bearer_batch_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>]{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
-        
         let results = Buffer.Buffer<Result.Result<Types.Account, Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
             results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
@@ -1275,8 +1295,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to bearer batch
     public shared (msg) func bearer_batch_secure_nft_origyn(tokens : [Text]) : async [Result.Result<Types.Account, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in bearer_batch_secure_nft_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in bearer_batch_secure_nft_origyn");        
         let results = Buffer.Buffer<Result.Result<Types.Account, Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
             results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
@@ -1287,15 +1308,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Conversts a token id to a Nat for use in dip721
     public query(msg) func get_token_id_as_nat_origyn(token_id : Text) : async Nat {
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in get_token_id_as_nat_origyn");
-        
         return NFTUtils.get_token_id_as_nat(token_id);
     };
 
     // Converts a nat to an token_id for Nat
     public query(msg) func get_nat_as_token_id_origyn(tokenAsNat : Nat) : async Text {
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in get_nat_as_token_id_origyn");
-        
+       
        NFTUtils.get_nat_as_token_id(tokenAsNat)
     };
 
@@ -1330,34 +1354,39 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Owner of dip721
     public query(msg) func ownerOfDIP721(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
-        debug if(debug_channel.function_announce) D.print("in ownerOfDIP721");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in ownerOfDIP721");        
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
     // For dip721 "v2" downgrade in usability
     public query(msg) func ownerOf(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in ownerOf");
-        
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
     // Supports EXT Bearer
     public query(msg) func bearerEXT(tokenIdentifier: EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in bearerEXT");
-        
         return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
     };
 
     // Supports EXT Bearer legacy
     public query(msg) func bearer(tokenIdentifier: EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
-        debug if(debug_channel.function_announce) D.print("in bearer");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in bearer");        
         return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
     };
 
     private func _nft_origyn(token_id : Text, caller: Principal) : Result.Result<Types.NFTInfoStable, Types.OrigynError>{
         //D.print("Calling NFT_Origyn");
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         var metadata = switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
             case(#err(err)){
                 return #err(err);
@@ -1391,8 +1420,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Returns metadata about an NFT
     public query (msg) func nft_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError>{
 
-        D.print("nft origyn :" # debug_show(token_id));
-
+        // D.print("nft origyn :" # debug_show(token_id));
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in nft_origyn");
         
         return _nft_origyn(token_id, msg.caller);
@@ -1400,18 +1429,20 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to nft_origyn
     public shared (msg) func nft_secure_origyn(token_id : Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in nft_secure_origyn");
-        
-       return _nft_origyn(token_id, msg.caller);
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in nft_secure_origyn");        
+        return _nft_origyn(token_id, msg.caller);
     };
 
     // Batch access to nft metadata
     public query (msg) func nft_batch_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in nft_batch_origyn");
-        
+
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in nft_batch_origyn");        
         let results = Buffer.Buffer<Result.Result<Types.NFTInfoStable, Types.OrigynError>>(token_ids.size());
-        label search for(thisitem in token_ids.vals()){
-            
+        label search for(thisitem in token_ids.vals()){            
             results.add(_nft_origyn(thisitem, msg.caller));
         };
 
@@ -1419,11 +1450,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     public shared (msg) func nft_batch_secure_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>]{
-        debug if(debug_channel.function_announce) D.print("in nft_batch_secure_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in nft_batch_secure_origyn");        
         let results = Buffer.Buffer<Result.Result<Types.NFTInfoStable, Types.OrigynError>>(token_ids.size());
-        label search for(thisitem in token_ids.vals()){
-            
+        label search for(thisitem in token_ids.vals()){            
             results.add( _nft_origyn(thisitem, msg.caller));
         };
 
@@ -1436,15 +1467,16 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError>{
         //D.print("looking for a chunk" # debug_show(request));
         //check mint property
-        debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");
-        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");        
         return Metadata.chunk_nft_origyn(get_state(), request, ?msg.caller);
     };
 
     // Secure access to chunks
     public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError>{
-        debug if(debug_channel.function_announce) D.print("in chunk_secure_nft_origyn");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in chunk_secure_nft_origyn");        
         return Metadata.chunk_nft_origyn(get_state(), request, ?msg.caller);
     };
 
@@ -1469,8 +1501,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Registers a principal with a access key so a user can use that key to make http queries
     public shared(msg) func http_access_key(): async Result.Result<Text, Types.OrigynError> {
-        debug if(debug_channel.function_announce) D.print("in http_access_key");
-        
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in http_access_key");        
         // nyi: spam prevention
         if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
                             
@@ -1501,8 +1534,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Handles http request
     public query(msg) func http_request(rawReq: Types.HttpRequest): async (http.HTTPResponse) {
+
         debug if(debug_channel.function_announce) D.print("in http_request");
-        
         return http.http_request(get_state(), rawReq, msg.caller);
     };
 
@@ -1539,6 +1572,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Returns storage metrics for this server
     public query func storage_info_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError>{
         // Warning: this func does not use msg.caller. If that changes, fix secure query
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in storage_info_nft_origyn");
         
         let state = get_state();
@@ -1551,6 +1586,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Secure access to storage info
     public shared(msg) func storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in storage_info_secure_nft_origyn");
         return await storage_info_nft_origyn();
     };
@@ -1558,6 +1595,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Metadata for ext
     public query func metadata(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in metadata");
       
         let token_id = switch(Owner.getNFTForTokenIdentifier(get_state(), token)){
@@ -1577,6 +1616,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Set the `log_harvester`
     public shared (msg) func set_log_harvester_id(_id: Principal): async () {
+
+        
         let state = get_state();
         if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
 
