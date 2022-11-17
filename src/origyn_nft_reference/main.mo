@@ -1501,32 +1501,32 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
    
 
-    public func test_candid_serialization() : async () {
-        let state = get_state();
+    // public func test_candid_serialization() : async () {
+    //     let state = get_state();
 
-        // let u : Types.BackupBuckets = state.state.buckets;
+    //     // let u : Types.BackupBuckets = state.state.buckets;
 
-        // let u : Types.BackupCollectionData = {
-        //         logo = state.state.collection_data.logo;
-        //         name = state.state.collection_data.name;
-        //         symbol = state.state.collection_data.symbol;
-        //         metadata = state.state.collection_data.metadata;
-        //         owner  = state.state.collection_data.owner;
-        //         managers = state.state.collection_data.managers;
-        //         network = state.state.collection_data.network;
-        //         allocated_storage = state.state.collection_data.allocated_storage;
-        //         available_space  = state.state.collection_data.available_space;
-        //         active_bucket = state.state.collection_data.active_bucket;
-        // };
-        let u : Types.TestStable = Types.stabilize_test({hello = "hey"; var allocated_space = 1024;
-            var available_space =2048;});
-        // [Nat8] to text
-        var txt: Text = await text_from_blob(to_candid(u));
-        D.print("Txt : " # debug_show(txt)); 
-        // text to blob
-        let v : ?Types.TestStable = from_candid(await blob_from_text(txt));
-        D.print(debug_show(v)); 
-    };
+    //     // let u : Types.BackupCollectionData = {
+    //     //         logo = state.state.collection_data.logo;
+    //     //         name = state.state.collection_data.name;
+    //     //         symbol = state.state.collection_data.symbol;
+    //     //         metadata = state.state.collection_data.metadata;
+    //     //         owner  = state.state.collection_data.owner;
+    //     //         managers = state.state.collection_data.managers;
+    //     //         network = state.state.collection_data.network;
+    //     //         allocated_storage = state.state.collection_data.allocated_storage;
+    //     //         available_space  = state.state.collection_data.available_space;
+    //     //         active_bucket = state.state.collection_data.active_bucket;
+    //     // };
+    //     let u : Types.TestStable = Types.stabilize_test({hello = "hey"; var allocated_space = 1024;
+    //         var available_space =2048;});
+    //     // [Nat8] to text
+    //     var txt: Text = await text_from_blob(to_candid(u));
+    //     D.print("Txt : " # debug_show(txt)); 
+    //     // text to blob
+    //     let v : ?Types.TestStable = from_candid(await blob_from_text(txt));
+    //     D.print(debug_show(v)); 
+    // };
 
     // *************************
     // **** END SERIALIZATION **
@@ -1559,48 +1559,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let targetEnd = targetStart + data_harvester_page_size;
         var globalTracker = 0;
 
-        let state = get_state();
-        
+        let state = get_state();        
         let owner = state.state.collection_data.owner;
-        // D.print( "\n\n" #
-        // // "state " # debug_show(state.state) # "\n\n" #
-        // // "allocations : " # debug_show(state.state.allocations) # "\n\n" #
-        // // "buckets : " # debug_show(state.state.buckets) # "\n\n" #
-        // // "canister_allocated_storage : " # debug_show(state.state.canister_allocated_storage) # "\n\n" #
-        // // "canister_availible_space : " # debug_show(state.state.canister_availible_space) # "\n\n" #
-        // // "collection_data : " # debug_show(state.state.collection_data) # "\n\n" #
-        // // "nft_metadata : " # debug_show(state.state.nft_metadata) # "\n\n" #
-        // // "log : " # debug_show(state.state.log) # "\n\n" #
-        // // "log_history : " # debug_show(state.state.log_history) # "\n\n" #
-        // // "log_harvester : " # debug_show(state.state.log_harvester) # "\n\n" #
-        // // "access : " # debug_show(access) # "\n\n" #
-        // // "owner : " # debug_show(owner) # "\n\n" #
-        // // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
-        // // "access : " # debug_show(access) # "\n\n" #
-        // // "buckets size : " # debug_show(Map.size(state.state.buckets)) # "\n\n" #
-        // // "allocations size : " # debug_show(Map.size(state.state.allocations)) # "\n\n" #
-        // // "nft_metadata size : " # debug_show(Map.size(state.state.nft_metadata)) # "\n\n" #
-        // // "escrow_balances : " # debug_show(state.state.escrow_balances) # "\n\n" #
-        // // "sales_balances : " # debug_show(state.state.sales_balances) # "\n\n" #
-        // // "offers : " # debug_show(state.state.offers) # "\n\n" #
-        // // "nft_sales : " # debug_show(state.state.nft_sales) # "\n\n" #
-        // //  "nft_ledgers : " # debug_show(state.state.nft_ledgers) # "\n\n" 
-        // // "nft_library : " # debug_show(state.nft_library) # "\n\n" 
-        // );
-
-        // *** NFT library ***
-        // let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-        // for(thisKey in nft_library.entries()){
-        //     if(globalTracker == page){
-        //         let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-        //         for(this_item in thisKey.1.entries()){
-        //             this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
-        //         };
-        //         nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
-        //     };
-        //     globalTracker += 1;            
-        // };
-        
+       
 
         // *** Buckets ***
         var buckets : [(Principal, Types.StableBucketData)] = [];

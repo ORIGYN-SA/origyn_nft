@@ -328,35 +328,6 @@ module {
         refresh_state: () -> State;
     };
 
-    // public type BucketData = {  
-    //     principal : Principal;
-    //     allocated_space: Nat;
-    //     available_space: Nat;
-    //     date_added: Int;
-    //     b_gateway: Bool;
-    //     version: (Nat, Nat, Nat);
-    //     allocations: [[(Text,Text,Int)]]; 
-    // };
-    public type Test = {
-        hello: Text;
-        var allocated_space: Nat;
-        var available_space: Nat;
-    };
-    public type TestStable = {
-        hello: Text;       
-        allocated_space: Nat;
-        available_space: Nat;
-    };
-
-    public func stabilize_test (item : Test) : TestStable {
-        {
-            hello = item.hello;
-            allocated_space = item.allocated_space;
-            available_space = item.available_space;
-        }
-    }; 
-    
-
     public type BucketDat = {
         principal : Principal;
         allocated_space: Nat;
