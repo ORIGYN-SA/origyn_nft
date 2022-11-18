@@ -1264,7 +1264,7 @@ module {
             };
         };
 
-        
+
                              debug if(debug_channel.market) D.print("have metadata" # debug_show(metadata));
 
         let owner = switch(
@@ -1284,12 +1284,15 @@ module {
 
         let this_is_minted = Metadata.is_minted(metadata);
 
-        //can't start auction if token is soulbound
-        if (Metadata.is_soulbound(metadata)) {
-            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
-        };
+        
                                  debug if(debug_channel.market) D.print(request.token_id # " isminted" # debug_show(this_is_minted));
         if(this_is_minted){
+
+
+            //can't start auction if token is soulbound
+            if (Metadata.is_soulbound(metadata)) {
+                return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+            };
 
             //can't start auction if token is soulbound
             if (Metadata.is_soulbound(metadata)) {
@@ -1887,10 +1890,7 @@ module {
         };
                             debug if(debug_channel.market) D.print("have metadata");
 
-        //can't start auction if token is soulbound
-        if (Metadata.is_soulbound(metadata)) {
-            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
-        };
+        
 
 
         //can't start auction if token is a phisycal object unless in escrow with a node
@@ -1918,6 +1918,12 @@ module {
         let this_is_minted = Metadata.is_minted(metadata);
                             debug if(debug_channel.market) D.print(request.token_id # " isminted" # debug_show(this_is_minted));
         if(this_is_minted){
+
+            //can't start auction if token is soulbound
+            if (Metadata.is_soulbound(metadata)) {
+                return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+            };
+
             //this is a minted NFT - only the nft owner or nft manager can sell it
             switch(Metadata.is_nft_owner(metadata, #principal(caller))){
               case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller))};
