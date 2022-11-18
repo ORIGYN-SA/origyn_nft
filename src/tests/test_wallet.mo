@@ -122,7 +122,7 @@ shared (deployer) actor class test_wallet() = this {
        let acanister : Types.Service = actor(Principal.toText(canister));
        let stage = await acanister.stage_nft_origyn({metadata = #Class([
             {name = "id"; value=#Text("1"); immutable= true},
-            {name = "primary_asset"; value=#Text("page"); immutable= true},
+            {name = "primary_asset"; value=#Text("page"); immutable=false},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
             {name = "library"; value=#Array(#thawed([
@@ -138,6 +138,25 @@ shared (deployer) actor class test_wallet() = this {
                 ])
             ])); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(acanister)); immutable= false}
+        ])});
+
+       switch(stage){
+         case(#ok(result)){
+            return #ok(result);
+         };
+         case(#err(theerror)){
+           return #err(theerror);
+         };
+       };
+
+    };
+
+    public shared func try_publish_change(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+
+       let acanister : Types.Service = actor(Principal.toText(canister));
+       let stage = await acanister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page2"); immutable= false},
         ])});
 
        switch(stage){

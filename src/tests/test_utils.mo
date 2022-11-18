@@ -76,7 +76,7 @@ module {
         is_soulbound: Bool) : {metadata : CandyTypes.CandyValue} {
         {metadata = #Class([
             {name = "id"; value=#Text(token_id); immutable= true},
-            {name = "primary_asset"; value=#Text("page"); immutable= true},
+            {name = "primary_asset"; value=#Text("page"); immutable=false},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
             {name = "library"; value=#Array(#thawed([

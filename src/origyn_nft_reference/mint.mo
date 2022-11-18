@@ -412,7 +412,67 @@ module {
                     Map.set(state.state.nft_metadata, Map.thash, id_val, found_metadata);
                     return #ok(id_val);
                 } else {
-                    return #err(Types.errors(#cannot_restage_minted_token, "stage_nft_origyn - cannot replace minted token", ?caller))
+
+                  //only an owner can stage
+                  if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
+
+
+                  //check to see if it is minted yet.Array
+                  switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage system node", ?caller));};
+                      case(null){};
+                  };
+
+                  switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
+                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage owner node after mint", ?caller));};
+                      case(null){};
+                  };
+
+                  switch(Properties.getClassProperty(metadata, Types.metadata.library)){
+                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage library node after mint, use stage_library_nft_origyn", ?caller));};
+                      case(null){};
+                  };
+
+                  switch(Properties.getClassProperty(metadata, Types.metadata.__apps)){
+                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage dapps after mint, use update_app_nft_origyn", ?caller));};
+                      case(null){};
+                  };
+
+                  var new_metadata = this_metadata;
+
+                  label update for(this_item in Conversions.valueToProperties(metadata).vals()){
+
+                    if(this_item.name == Types.metadata.id){
+                      continue update;
+                    };
+                    new_metadata := 
+                      switch(
+                        if(this_item.immutable == true){
+                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                          {
+                            name = this_item.name;
+                            mode = #Lock(this_item.value);
+                          }
+                        ]);
+                      } else {
+                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                          {
+                            name = this_item.name;
+                            mode = #Set(this_item.value);
+                          }
+                        ]);
+                      }
+                      ){
+                        case(#ok(props)){
+                          #Class(props);
+                        };
+                        case(#err(err)){
+                          return #err(Types.errors(#update_class_error, "stage_nft_origyn - bad update " # this_item.name # " " #debug_show(err), ?caller));
+                        }
+                      };
+                  };
+
+                  Map.set(state.state.nft_metadata, Map.thash, id_val, new_metadata);
                 };
             };
         };
