@@ -1976,18 +1976,28 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // METRICS
     public query (msg) func getCanisterMetrics(parameters: Canistergeek.GetMetricsParameters): async ?Canistergeek.CanisterMetrics {
-       
+        // Uncomment if statement below to make NFT logs & metrics data private
+        // if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        //     throw Error.reject("Not the admin");
+        // };
         canistergeekMonitor.getMetrics(parameters);
     };
 
     public query (msg) func collectCanisterMetrics(): async () {
+        // Uncomment if statement below to make NFT logs & metrics data private
+        // if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        //     throw Error.reject("Not the admin");
+        // };
         canistergeekMonitor.collectMetrics();
     };
 
     // LOGGER
 
     public query func getCanisterLog(request: ?Canistergeek.CanisterLogRequest) : async ?Canistergeek.CanisterLogResponse {
-       
+        // Uncomment if statement below to make NFT logs & metrics data private
+        // if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        //     throw Error.reject("Not the admin");
+        // };
         canistergeekLogger.getLog(request);
     };
     
