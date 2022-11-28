@@ -601,7 +601,6 @@ shared (deployer) actor class test_wallet() = this {
       debug{if(debug_channel.throws == true){ D.print("checking deposit info in send_ledger_payment for " # debug_show(Principal.fromActor(this)))}};
 
       let #ok(#deposit_info(deposit_info)) = await canister.sale_info_nft_origyn(#deposit_info(?#principal(Principal.fromActor(this))));
-        
 
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have deposit info: " # debug_show(deposit_info))}};

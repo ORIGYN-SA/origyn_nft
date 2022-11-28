@@ -5,9 +5,18 @@ import Char "mo:base/Char";
 import Bool "mo:base/Bool";
 import Float "mo:base/Float";
 import D "mo:base/Debug";
+import Int "mo:base/Int";
+import Int64 "mo:base/Int64";
+import Int32 "mo:base/Int32";
+import Int16 "mo:base/Int16";
+import Int8 "mo:base/Int8";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
+import Nat64 "mo:base/Nat64";
+import Nat32 "mo:base/Nat32";
+import Nat16 "mo:base/Nat16";
+import Nat8 "mo:base/Nat8";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Random "mo:base/Random";
@@ -17,6 +26,7 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import CandyTypes "mo:candy_0_1_10/types";
+import CandyHex "mo:candy_0_1_10/hex";
 import Conversion "mo:candy_0_1_10/conversion";
 import Map "mo:map_6_0_0/Map";
 import Properties "mo:candy_0_1_10/properties";
@@ -1175,6 +1185,10 @@ module {
         switch(val){
             //nat
             case(#Nat(val)){ Nat.toText(val)};
+            case(#Nat64(val)){ Nat64.toText(val)};
+            case(#Nat32(val)){ Nat32.toText(val)};
+            case(#Nat16(val)){ Nat16.toText(val)};
+            case(#Nat8(val)){ Nat8.toText(val)};
             //text
             case(#Text(val)){ "\"" # val # "\""; };
             //class
@@ -1207,29 +1221,82 @@ module {
                     };
                 };
             };
+            case(#Option(val)){
+              switch(val){
+                case(null){"null";};
+                case(?val){value_to_json(val);}
+              }
+            };
+            case(#Nats(val)){
+                switch(val){
+                    case(#frozen(val)){
+                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
+                        for(this_item in val.vals()){
+                            body.add(Nat.toText(this_item));
+                        };
+
+                        return "[" # Text.join(",", body.vals()) # "]";
+                    };
+                    case(#thawed(val)){
+                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
+                        for(this_item in val.vals()){
+                            body.add(Nat.toText(this_item));
+                        };
+
+                        return "[" # Text.join(",", body.vals()) # "]";
+                    };
+                };
+            };
+            case(#Floats(val)){
+                switch(val){
+                    case(#frozen(val)){
+                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
+                        for(this_item in val.vals()){
+                           body.add(Float.toText(this_item));
+                        };
+
+                        return "[" # Text.join(",", body.vals()) # "]";
+                    };
+                    case(#thawed(val)){
+                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
+                        for(this_item in val.vals()){
+                           body.add(Float.toText(this_item));
+                        };
+
+                        return "[" # Text.join(",", body.vals()) # "]";
+                    };
+                };
+            };
             //bytes
             case(#Bytes(val)){
                 switch(val){
                     case(#frozen(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
+                        return "\"" # CandyHex.encode(val) # "\"";//CandyHex.encode(val);
                     };
                     case(#thawed(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
+                        return "\"" # CandyHex.encode(val) # "\"";//CandyHex.encode(val);
                     };
                 };
             };
             //bytes
             case(#Blob(val)){
                 
-                return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
+                return "\"" # CandyHex.encode(Blob.toArray(val)) # "\"";//CandyHex.encode(val);
                
             };
             //principal
             case(#Principal(val)){ "\"" # Principal.toText(val) # "\"";};
             //bool	
             case(#Bool(val)){ "\"" # Bool.toText(val) # "\"";};	
+            
             //float	
             case(#Float(val)){ "\"" # Float.toText(val) # "\"";};
+            case(#Empty){ "null";};
+            case(#Int(val)){ "\"" # Int.toText(val) # "\"";};
+            case(#Int64(val)){ "\"" # Int64.toText(val) # "\"";};
+            case(#Int32(val)){ "\"" # Int32.toText(val) # "\"";};
+            case(#Int16(val)){ "\"" # Int16.toText(val) # "\"";};
+            case(#Int8(val)){ "\"" # Int8.toText(val) # "\"";};
             case(_){"";};
         };
     };
@@ -1371,7 +1438,7 @@ module {
                         };
                         return renderSmartRoute(state, req, metadata, token_id, Types.metadata.primary_asset);
                     };
-                    if(path_size == 3){
+                    if(path_size >= 3){
                         if(path_array[2] == "ex"){
                             var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
                             if(aResponse.status_code==404){
@@ -1413,31 +1480,60 @@ module {
                             };
                             return json(libraries, null);
                         };
-                    };
-                    if(path_size > 3){
-                        if(path_array[2] == "-") {
-                            let library_id = path_array[3];
-                            if(path_size == 4){
-                                if (is_minted == false) {
-                                    switch(http_owner_check(state, req)) {
-                                        case(#err(err)) {
-                                            return _not_found(err);
-                                        };
-                                        case(#ok()) {};
-                                    };
-                                };
+                        if(path_array[2] == "ledger_info"){
+                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                                return renderLibrary(state, req, metadata, token_id, library_id);
+                          let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
+                            case(null){
+                              return json(#Empty, null);
                             };
-                            if(path_size == 5){
-                                if(path_array[4] == "info"){
-                                    let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                        case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                        case(#ok(val)){val};
-                                    };
-                                    return json(library_meta, queryObj.get("query"));
-                                };
-                            };
+                            case(?val){val};
+                          };
+                          
+                          let page = if(path_array.size() > 3){
+                            switch(Conversion.textToNat(path_array[3])){
+                              case(null){0};
+                              case(?val){val;};
+                            }
+                          } else {0};
+
+                          let size = if(path_array.size() > 4){
+                            switch(Conversion.textToNat(path_array[4])){
+                              case(null){10000};
+                              case(?val){val;};
+                            }
+                          } else {10000};
+
+
+                          return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
+                        };
+                        
+                    
+                        if(path_size > 3){
+                          if(path_array[2] == "-") {
+                              let library_id = path_array[3];
+                              if(path_size == 4){
+                                  if (is_minted == false) {
+                                      switch(http_owner_check(state, req)) {
+                                          case(#err(err)) {
+                                              return _not_found(err);
+                                          };
+                                          case(#ok()) {};
+                                      };
+                                  };
+
+                                  return renderLibrary(state, req, metadata, token_id, library_id);
+                              };
+                              if(path_size == 5){
+                                  if(path_array[4] == "info"){
+                                      let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
+                                          case(#err(err)){return _not_found("library by " # library_id # " not found");};
+                                          case(#ok(val)){val};
+                                      };
+                                      return json(library_meta, queryObj.get("query"));
+                                  };
+                              };
+                          };
                         };
                     };
                 };
@@ -1528,6 +1624,36 @@ module {
                         };
                         return json(libraries, null);
                     };
+                    if(path_array[1] == "ledger_info"){
+                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
+
+                        let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
+                          case(null){
+                            return json(#Empty, null);
+                          };
+                          case(?val){val};
+                        };
+                        
+                        let page = if(path_array.size() > 2){
+                          switch(Conversion.textToNat(path_array[2])){
+                              case(null){0};
+                              case(?val){val;};
+                            }
+                        } else {0};
+
+                        let size = if(path_array.size() > 3){
+                          switch(Conversion.textToNat(path_array[3])){
+                              case(null){10000};
+                              case(?val){val;};
+                            }
+                        } else {10000};
+
+
+                        return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
+                    };
+                } else {
+                  let keys = Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  return json(#Array(#frozen(keys)), null);
                 };
             } else if(path_array[0] == "metrics"){
                 return {
