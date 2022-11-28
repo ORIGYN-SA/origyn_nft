@@ -136,7 +136,7 @@ module {
         let verified = switch(Map.get(state.state.escrow_balances, account_handler,escrow.buyer)){
             case(null){
                                     debug if(debug_channel.verify_escrow) D.print("didnt find asset");
-                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow buyer not found ", null));
+                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow buyer not found " # debug_show(escrow.buyer), null));
             };
             case(?to_list){
                 //only the owner can sell it
@@ -145,7 +145,7 @@ module {
                     case(null){};
                     case(?owner){
                         if(Types.account_eq(owner, escrow.seller) == false){
-                            return #err(Types.errors(#unauthorized_access, "verify_escrow_reciept - escrow seller is not the owner ", null));
+                            return #err(Types.errors(#unauthorized_access, "verify_escrow_reciept - escrow seller is not the owner  " # debug_show(owner) # " " # debug_show(escrow.seller), null));
                         };
                     };
                 };
@@ -153,15 +153,15 @@ module {
                 switch(Map.get(to_list, account_handler, escrow.seller)){
                     case(null){
                                             debug if(debug_channel.verify_escrow) D.print("no escrow seller");
-                        return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow seller not found ", null));};
+                        return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow seller not found  " # debug_show(escrow.seller), null));};
                     case(?token_list){
                                             debug if(debug_channel.verify_escrow) D.print("looking for to list");
                         let asset_list = switch(Map.get(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")){
                             case(null, null){
-                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id not found ", null));
+                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id not found  " # debug_show(escrow.token_id), null));
                             };
                             case(null, ?generalList){
-                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id found for general item but token_id is specific ", null));
+                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id found for general item but token_id is specific  " # debug_show(escrow.token_id), null));
                             };
                             
                             
@@ -181,7 +181,7 @@ module {
                                         switch(sale_id, balance.sale_id){
                                             case(null, null){};
                                             case(?desired_sale_id, null){
-                                                return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match ", null));
+                                                return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match  " #   debug_show(sale_id) # debug_show(balance.sale_id), null));
                                             };
                                             case(null, ?on_file_saleID){
                                                 //null is passed in as a sale id if we want to do sale id verification elsewhere
@@ -189,13 +189,13 @@ module {
                                             };
                                             case(?desired_sale_id, ?on_file_saleID){
                                                 if(desired_sale_id != on_file_saleID){
-                                                    return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match ", null));
+                                                    return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match  " # debug_show(on_file_saleID)  # debug_show(desired_sale_id), null));
                                                 };
                                             };
                                         }; 
                                         if(balance.amount >= escrow.amount){
                                             true;
-                                        } else {return #err(Types.errors(#withdraw_too_large, "verify_escrow_reciept - escrow not large enough", null));};
+                                        } else {return #err(Types.errors(#withdraw_too_large, "verify_escrow_reciept - escrow not large enough  " # debug_show(balance.amount) # " " # debug_show(escrow.amount), null));};
                                     };
                                 };
                             };
