@@ -1796,15 +1796,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // *** Buckets ***
         var buckets : [(Principal, Types.StableBucketData)] = [];
         let buckets_size = Map.size(state.state.buckets);
+        let buckets_buffer = Buffer.Buffer<(Principal, Types.StableBucketData)>(buckets_size);
         if(targetStart < globalTracker + buckets_size and targetEnd > globalTracker){
              for ((key, value) in Map.entries(state.state.buckets)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
                     var val = Types.stabilize_bucket_data(value);
                     var e = (key, val);
-                    buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
+                    buckets_buffer.add(e);
+                    // buckets := Array.append<(Principal, Types.StableBucketData)>(buckets,[e]);
                 };
                 globalTracker += 1;
             };
+            buckets := buckets_buffer.toArray();
         } else {
             globalTracker += buckets_size;
         };
@@ -1813,15 +1816,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // *** Allocations ***
         var allocations : [((Text,Text), Types.AllocationRecordStable)] = [];
         let allocations_size = Map.size(state.state.allocations);
+        let allocations_buffer = Buffer.Buffer<((Text,Text), Types.AllocationRecordStable)>(allocations_size);
         if(targetStart < globalTracker + allocations_size and targetEnd > globalTracker){
              for ((key, value) in Map.entries(state.state.allocations)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
                    var val = Types.allocation_record_stabalize(value);
                     var e = (key, val);
-                    allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+                    // allocations := Array.append<((Text,Text), Types.AllocationRecordStable)>(allocations,[e]);
+                    allocations_buffer.add(e);
                 };
                 globalTracker += 1;
             };
+            allocations := allocations_buffer.toArray();
         } else {
             globalTracker += allocations_size;
         };
@@ -1830,6 +1836,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // *** Escrow Balances ***
         var escrows : Types.StableEscrowBalances = [];
         let escrows_size = Map.size(state.state.escrow_balances);
+        let escrows_buffer = Buffer.Buffer<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows_size);
         if(targetStart < globalTracker + escrows_size and targetEnd > globalTracker){
             for((acc_top_key,acc_top_val) in Map.entries(state.state.escrow_balances)){
                     if(globalTracker >= targetStart and targetEnd > globalTracker){
@@ -1837,7 +1844,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                             for((tok_id_key, tok_id_val) in Map.entries(acc_mid_val)){
                                 for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
                                     // Get escrow record
-                                    escrows := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows, [(acc_top_key, acc_mid_key,tok_id_key,token_spec_val)]);
+                                    // escrows := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(escrows, [(acc_top_key, acc_mid_key,tok_id_key,token_spec_val)]);
+                                    escrows_buffer.add((acc_top_key, acc_mid_key,tok_id_key,token_spec_val));
                                 };
                             };
                         };
@@ -1845,6 +1853,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 
                 globalTracker += 1;
             };
+            escrows := escrows_buffer.toArray();
         }else{
             globalTracker += escrows_size;
         };
@@ -1853,6 +1862,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // *** Sales Balances ***
         var sales : Types.StableSalesBalances = [];
         let sales_size = Map.size(state.state.sales_balances);
+        let sales_buffer = Buffer.Buffer<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales_size);
         if(targetStart < globalTracker + sales_size and targetEnd > globalTracker){
             for((acc_top_key,acc_top_val) in Map.entries(state.state.sales_balances)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
@@ -1860,13 +1870,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                         for((tok_id_key,tok_id_val) in Map.entries(acc_mid_val)){
                             for((token_spec_key,token_spec_val) in Map.entries(tok_id_val)){
                                 // Get escrow record
-                                sales := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales, [(acc_top_key,acc_mid_key,tok_id_key,token_spec_val)]);
+                                // sales := Array.append<(Types.Account,Types.Account,Text,Types.EscrowRecord)>(sales, [(acc_top_key,acc_mid_key,tok_id_key,token_spec_val)]);
+                                sales_buffer.add((acc_top_key,acc_mid_key,tok_id_key,token_spec_val));
                             };
                         };
                     };
                 };
                 globalTracker += 1;
             };
+            sales := sales_buffer.toArray();
         } else { 
             globalTracker += sales_size;
         };
@@ -1875,15 +1887,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        // *** Offers ***       
        var offers : Types.StableOffers = [];
        let offers_size = Map.size(state.state.offers);
+       let offers_buffer = Buffer.Buffer<(Types.Account,Types.Account,Int)>(offers_size);
        if(targetStart < globalTracker + offers_size and targetEnd > globalTracker){
             for((acc_top_key,acc_top_val) in Map.entries(state.state.offers)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
                     for((acc_mid_key,acc_mid_val) in Map.entries(acc_top_val)){
-                        offers := Array.append<(Types.Account,Types.Account,Int)>(offers, [(acc_top_key,acc_mid_key,acc_mid_val)]);
+                        // offers := Array.append<(Types.Account,Types.Account,Int)>(offers, [(acc_top_key,acc_mid_key,acc_mid_val)]);
+                        offers_buffer.add((acc_top_key,acc_mid_key,acc_mid_val));
                     };
                 };
                 globalTracker += 1;
             };
+            offers := offers_buffer.toArray();
        } else {
              globalTracker += offers_size;
        };
@@ -1892,16 +1907,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        // *** NFT ledgers ***
        var nft_ledgers : Types.StableNftLedger = [];
        let nft_ledgers_size = Map.size(state.state.nft_ledgers);
+       let nft_ledgers_buffer = Buffer.Buffer<(Text, Types.TransactionRecord)>(nft_ledgers_size);
        if(targetStart < globalTracker + nft_ledgers_size and targetEnd > globalTracker){
             for((tok_key,tok_val) in Map.entries(state.state.nft_ledgers)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
                     let recordsArr = SB.toArray(tok_val);
                     for(this_item in recordsArr.vals()){
-                        nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+                        // nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+                        nft_ledgers_buffer.add((tok_key,this_item));
                     };
                 };
                 globalTracker += 1;
             };
+            nft_ledgers := nft_ledgers_buffer.toArray();
        } else {
             globalTracker +=nft_ledgers_size;
        };
@@ -1910,14 +1928,17 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        // *** NFT Sales ***
        var nft_sales : Types.StableNftSales = [];
        let nft_sales_size = Map.size(state.state.nft_sales);
+       let nft_sales_buffer = Buffer.Buffer<(Text, Types.SaleStatusStable)>(nft_sales_size);
        if(targetStart < globalTracker + nft_sales_size and targetEnd > globalTracker){
             for((key,val) in Map.entries(state.state.nft_sales)){
                 if(globalTracker >= targetStart and targetEnd > globalTracker){
                     let stableSale = Types.SalesStatus_stabalize_for_xfer(val);
-                    nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+                    // nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+                    nft_sales_buffer.add((key,stableSale));
                 };
                 globalTracker += 1;
             };
+            nft_sales := nft_sales_buffer.toArray();
        } else {
             globalTracker +=nft_sales_size;
        };
