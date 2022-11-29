@@ -183,7 +183,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // set the `halt`
     public shared (msg) func set_halt(bHalt: Bool): async () {
-        if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
+        if(NFTUtils.is_owner_network(get_state(),msg.caller) == false){
         throw Error.reject("not the admin");
         };
   
