@@ -175,7 +175,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // set the `data_havester`
     public shared (msg) func set_data_harvester(_page_size: Nat): async () {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
-        throw Error.reject("not the admin");
+        throw Error.reject("Not the admin");
         };
 
         data_harvester_page_size := _page_size
@@ -184,7 +184,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // set the `halt`
     public shared (msg) func set_halt(bHalt: Bool): async () {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
-        throw Error.reject("not the admin");
+        throw Error.reject("Not the admin");
         };
   
         halt := bHalt;
@@ -899,9 +899,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         // Warning: this function does not use msg.caller, if you add it you need to fix the secure query
         
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        canistergeekLogger.logMessage("collection_nft_origyn",#Text("collection_nft_origyn"),?msg.caller);
-        canistergeekMonitor.collectMetrics();
-
         debug if(debug_channel.function_announce) D.print("in collection_nft_origyn");        
 
         let state = get_state();
@@ -1016,8 +1013,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in history_batch_nft_origyn");        
         let results = Buffer.Buffer<Result.Result<[Types.TransactionRecord], Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
-            results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2, msg.caller));
-           
+            results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2, msg.caller));           
         };
         return results.toArray();
     };
@@ -1194,24 +1190,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public query(msg) func balance_of_nft_origyn(account: Types.Account) : async Result.Result<Types.BalanceResponse, Types.OrigynError>{
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        switch(account){
-            case(#account(val)){
-                let a = Principal.toText(val.owner);
-                canistergeekLogger.logMessage("balance_of_nft_origyn",#Text("Type - account : " # a),?msg.caller);
-            };
-            case(#account_id(val)){
-                canistergeekLogger.logMessage("balance_of_nft_origyn",#Text("Type - account id : " # val),?msg.caller);
-            };
-            case(#extensible(val)){
-                canistergeekLogger.logMessage("balance_of_nft_origyn",#Text("Type - extensible"),?msg.caller);
-            };
-            case(#principal(val)){
-                let p = Principal.toText(val);
-                canistergeekLogger.logMessage("balance_of_nft_origyn",#Text("Type - principal : " # p),?msg.caller);
-            };
-        };
-        
-        canistergeekMonitor.collectMetrics();
         return _balance_of_nft_origyn(account, msg.caller);
     };
 
@@ -1288,8 +1266,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in bearer_secure_nft_origyn");
         let results = Buffer.Buffer<Result.Result<Types.Account, Types.OrigynError>>(tokens.size());
         label search for(thisitem in tokens.vals()){
-            results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
-           
+            results.add( _bearer_of_nft_origyn(thisitem, msg.caller));           
         };
         return results.toArray();
     };
@@ -1321,7 +1298,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in get_nat_as_token_id_origyn");
        
-       NFTUtils.get_nat_as_token_id(tokenAsNat)
+        NFTUtils.get_nat_as_token_id(tokenAsNat)
     };
 
     private func _ownerOfDip721 (tokenAsNat: Nat, caller: Principal) :  DIP721.OwnerOfResponse{
@@ -1543,17 +1520,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // A streaming callback based on NFTs. Returns {[], null} if the token can not be found.
     // Expects a key of the following pattern: "nft/{key}".
     public query func nftStreamingCallback(tk : http.StreamingCallbackToken) : async http.StreamingCallbackResponse {
+
        debug if(debug_channel.streaming) D.print("The nftstreamingCallback " # debug_show(debug_show(tk)));
        debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");
-        
-
-        return http.nftStreamingCallback(tk, get_state());
+ 
+       return http.nftStreamingCallback(tk, get_state());
     };
 
     // Handles streaming
-    public query func http_request_streaming_callback(
-        tk : http.StreamingCallbackToken
-    ) : async http.StreamingCallbackResponse {
+    public query func http_request_streaming_callback( tk : http.StreamingCallbackToken) : async http.StreamingCallbackResponse {
         return http.http_request_streaming_callback(tk, get_state());
     };
 
@@ -1707,28 +1682,28 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // * CANDID SERIALIZATION **
     // *************************
 
-    public func text_from_blob(blob : Blob) : async Text {
-        Text.join(",", Iter.map<Nat8, Text>(blob.vals(), Nat8.toText));
-    };
+    // public func text_from_blob(blob : Blob) : async Text {
+    //     Text.join(",", Iter.map<Nat8, Text>(blob.vals(), Nat8.toText));
+    // };
   
-    public func blob_from_text(t : Text) : async Blob {
+    // public func blob_from_text(t : Text) : async Blob {
         
-        // textToNat8
-        // turns "123" into 123
-        func textToNat8(txt : Text) : Nat8 {
-        var num : Nat32 = 0;
-        for (v in txt.chars()) {
-            // Debug.print(debug_show(v));
-            num := num * 10 + (Char.toNat32(v) - 48);  // 0 in ASCII is 48
-            // Debug.print(debug_show(num));
-        };
-        Nat8.fromNat(Nat32.toNat(num));
-        };
+    //     // textToNat8
+    //     // turns "123" into 123
+    //     func textToNat8(txt : Text) : Nat8 {
+    //     var num : Nat32 = 0;
+    //     for (v in txt.chars()) {
+    //         // Debug.print(debug_show(v));
+    //         num := num * 10 + (Char.toNat32(v) - 48);  // 0 in ASCII is 48
+    //         // Debug.print(debug_show(num));
+    //     };
+    //     Nat8.fromNat(Nat32.toNat(num));
+    //     };
 
-        let ts = Text.split(t, #char(','));
-        let bytes = Array.map<Text, Nat8>(Iter.toArray(ts), textToNat8);
-        Blob.fromArray(bytes);
-    };
+    //     let ts = Text.split(t, #char(','));
+    //     let bytes = Array.map<Text, Nat8>(Iter.toArray(ts), textToNat8);
+    //     Blob.fromArray(bytes);
+    // };
    
 
     // public func test_candid_serialization() : async () {
@@ -1782,7 +1757,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     public query(msg) func back_up(page : Nat) : async {#eof : Types.NFTBackupChunk; #data : Types.NFTBackupChunk} {
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
-            throw Error.reject("not the admin");
+            throw Error.reject("Not the admin");
         };
         
         let targetStart = page * data_harvester_page_size;
