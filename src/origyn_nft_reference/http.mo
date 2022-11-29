@@ -1652,7 +1652,11 @@ module {
                         return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
                     };
                 } else {
-                  let keys = Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  let keys = let keys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
+                    Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  } else {
+                    Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  };
                   return json(#Array(#frozen(keys)), null);
                 };
             } else if(path_array[0] == "metrics"){
