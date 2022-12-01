@@ -692,7 +692,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             S.test("owner can sell staged NFT - produces sale_id", switch(blind_market){case(#ok(res)){
                D.print("found blind market response");
                D.print(debug_show(res));
-                if(res.index == 1){
+                if(res.index == 0){
                     "found genesis record id"
                 } else {
                     "no sales id "
