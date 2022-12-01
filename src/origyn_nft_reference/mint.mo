@@ -960,7 +960,7 @@ module {
     };
 
     //executes the mint and gives owner ship to the specified user
-    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
+    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue, Types.TransactionRecord),Types.OrigynError>{
                         debug if(debug_channel.mint) D.print("in mint");
          var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
@@ -969,6 +969,16 @@ module {
             case(#ok(val)){
                 val;
             };
+        };
+
+        let owner : Types.Account = switch(Metadata.get_nft_owner(metadata)){
+          case(#err(err)){
+            //default is the canister 
+            #principal(state.canister());
+          };
+          case(#ok(val)){
+              val;
+          };
         };
 
         //cant mint if already minted
@@ -1093,7 +1103,7 @@ module {
                 token_id = token_id;
                 index = 0; //mint should always be 0
                 txn_type = #mint({
-                    from = #principal(caller);
+                    from = owner;
                     to = newOwner;
                     sale = switch(escrow){
                         case(null){null};
@@ -1104,7 +1114,9 @@ module {
 
                         };
                     };
-                    extensible = #Empty;
+                    extensible = #Class([
+                      {name="caller"; value=#Principal(caller); immutable=true;}
+                    ]);
                 });
                 timestamp = Time.now();
                 chain_hash = [];
@@ -1120,7 +1132,7 @@ module {
 
        
 
-        return #ok((token_id, metadata));
+        return #ok((token_id, metadata, txn_record));
     };
 
 

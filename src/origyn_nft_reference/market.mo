@@ -1500,31 +1500,14 @@ module {
                         let txn_record = if(this_is_minted == false){
                             //execute mint should add mint transaction
                             b_freshmint := true;
-                            switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
+                            let rec = switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
                                 case(#err(err)){
                                     return #err(Types.errors(err.error, "market_transfer_nft_origyn mint attempt" # err.flag_point, ?caller));
                                 };
                                 case(#ok(val)){
                                                             debug if(debug_channel.market) D.print("updating metadata after mint");
                                     metadata := val.1;
-                                    switch(Metadata.add_transaction_record(state,{
-                                        token_id = request.token_id;
-                                        index = 0; //mint should always be 0
-                                        txn_type = #mint({
-                                            from = owner;
-                                            to = escrow.buyer;
-                                            sale = ?{
-                                                token = escrow.token;
-                                                amount = escrow.amount;
-                                            };
-                                            extensible = #Empty;
-                                        });
-                                        timestamp = Time.now();
-                                    }, caller)){
-                                        case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn adding transaction" # err.flag_point, ?caller));};
-                                        case(#ok(val)){val};
-                                    };
-                                    
+                                    val.2;
                                 };
                             };
                         } else{
