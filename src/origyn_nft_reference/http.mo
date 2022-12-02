@@ -1393,8 +1393,14 @@ module {
         caller : Principal): (HTTPResponse) {
 
                         debug if(debug_channel.request) D.print("a page was requested");
+        
+        let req = httpparser.parse({
+            body = rawReq.body;
+            headers = rawReq.headers;
+            method = rawReq.method;
+            url = Text.replace(rawReq.url, #text("%20"), " ");
+        });
 
-        let req = httpparser.parse(rawReq);
         let {host; port; protocol; path; queryObj; anchor; original = url} = req.url;
 
 
