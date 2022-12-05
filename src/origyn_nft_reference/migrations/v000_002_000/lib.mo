@@ -27,8 +27,8 @@ module {
             var allocations = state.allocations;
             
             //tracks space on the gateway canister
-            var canister_availible_space = args.storage_space;
-            var canister_allocated_storage = args.storage_space;
+            var canister_availible_space = state.canister_availible_space;
+            var canister_allocated_storage = state.canister_allocated_storage;
 
             //basic logging functionality for the NFT
             // var log = SB_lib.initPresized<v0_1_0.LogEntry>(1000);
@@ -56,7 +56,7 @@ module {
             var nft_sales = state.nft_sales;
             
             // Add the two new fields for v0_2_0
-            var halt = Bool;
+            var halt = false;
             var data_harvester_page_size = 100;
       }));
   };
@@ -77,8 +77,8 @@ module {
             //tracks token-id, library-id allocations and information about where the asset resides
             var allocations = state.allocations;
             //tracks space on the gateway canister
-            var canister_availible_space = args.storage_space;
-            var canister_allocated_storage = args.storage_space;
+            var canister_availible_space = state.canister_availible_space;
+            var canister_allocated_storage = state.canister_allocated_storage;
 
             //basic logging functionality for the NFT
             var log = SB_lib.initPresized<v0_1_0.LogEntry>(1000);
