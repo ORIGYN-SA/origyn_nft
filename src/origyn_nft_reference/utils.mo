@@ -8,7 +8,6 @@ import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
-import Hex "mo:encoding/Hex";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -23,6 +22,7 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
 import Conversions "mo:candy_0_1_10/conversion";
+import Hex "mo:encoding/Hex";
 import Properties "mo:candy_0_1_10/properties";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
@@ -71,13 +71,13 @@ module {
         return false;
     };
 
-     public func add_log(state: Types.State, entry : Types.LogEntry){
-        if(SB.size(state.state.log) >= 1000){
-            SB.add<[Types.LogEntry]>(state.state.log_history, SB.toArray(state.state.log));
-            state.state.log := SB.initPresized<Types.LogEntry>(1000);
-        };
-        SB.add<Types.LogEntry>(state.state.log, entry);
-    };
+    // public func add_log(state: Types.State, entry : Types.LogEntry){
+    //     if(SB.size(state.state.log) >= 1000){
+    //         SB.add<[Types.LogEntry]>(state.state.log_history, SB.toArray(state.state.log));
+    //         state.state.log := SB.initPresized<Types.LogEntry>(1000);
+    //     };
+    //     SB.add<Types.LogEntry>(state.state.log, entry);
+    // };
 
     public func get_auction_state_from_status(current_sale : Types.SaleStatus ) : Result.Result<Types.AuctionState, Types.OrigynError> {
 

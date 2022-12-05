@@ -2,8 +2,8 @@
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
-import Iter "mo:base/Iter";
 import Int "mo:base/Int";
+import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
 import Order "mo:base/Order";
 import Principal "mo:base/Principal";
@@ -11,9 +11,11 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
+
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
+import CandyTypes_lib "mo:candy_0_1_10/types"; 
 import Conversions "mo:candy_0_1_10/conversion";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
@@ -21,7 +23,7 @@ import Map "mo:map_6_0_0/Map";
 import NFTUtils "mo:map_6_0_0/utils";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import hex "mo:encoding/Hex";
-import CandyTypes_lib "mo:candy_0_1_10/types"; 
+
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
@@ -326,17 +328,8 @@ module {
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         access_tokens : TrieMap.TrieMap<Text, HttpAccess>;
         refresh_state: () -> State;
-    };
-
-    public type BucketDat = {
-        principal : Principal;
-        allocated_space: Nat;
-        available_space: Nat;
-        date_added: Int;
-        b_gateway: Bool;
-        version: (Nat, Nat, Nat);
-        // allocations: [((Text, Text), Int)]
-        allocations: Map.Map<(Text,Text), Int>;
+        halt: Bool;
+        data_harvester_page_size: Nat;
     };
 
     public type StableCollectionData = {

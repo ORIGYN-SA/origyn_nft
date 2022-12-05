@@ -1,6 +1,7 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
@@ -14,13 +15,16 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
+
 import CandyTypes "mo:candy_0_1_10/types";
+import Canistergeek "mo:canistergeek/canistergeek";
 import Conversions "mo:candy_0_1_10/conversion";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import Map "mo:map_6_0_0/Map";
 import Properties "mo:candy_0_1_10/properties";
 import Workspace "mo:candy_0_1_10/workspace";
+
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
@@ -34,8 +38,6 @@ import Owner "owner";
 import Types "./types";
 import data "data";
 import http "http";
-import Char "mo:base/Char";
-import Canistergeek "mo:canistergeek/canistergeek";
 
 
 
@@ -102,7 +104,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
-    migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
+    // migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
+    migration_state := Migrations.migrate(migration_state, #v0_2_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
 
     /* 
     example migration
@@ -117,7 +120,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     */
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_0(#data(state_current)) = migration_state;
+    // let #v0_1_0(#data(state_current)) = migration_state;
+    let #v0_2_0(#data(state_current)) = migration_state;
                         
     debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
@@ -158,6 +162,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             nft_library = nft_library;
             refresh_state = get_state;
             access_tokens = access_tokens;
+            halt = halt;
+            data_harvester_page_size = data_harvester_page_size;
         };
     };
 
@@ -1616,92 +1622,92 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
 
     // Set the `log_harvester`
-    public shared (msg) func set_log_harvester_id(_id: Principal): async () {
+    // public shared (msg) func set_log_harvester_id(_id: Principal): async () {
 
         
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
 
-        NFTUtils.add_log(get_state(), {
-            event = "set_log_harvester_id";
-            timestamp = get_time();
-            data =  #Principal(_id);
-            caller = ?msg.caller;
-        });
-         state.state.log_harvester := _id;
-    };
+    //     NFTUtils.add_log(get_state(), {
+    //         event = "set_log_harvester_id";
+    //         timestamp = get_time();
+    //         data =  #Principal(_id);
+    //         caller = ?msg.caller;
+    //     });
+    //      state.state.log_harvester := _id;
+    // };
 
-    // Get the last pages number of logs and burns them
-    public shared(msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]]{
-        assert(pages > 0);
-        let state = get_state();
-        if(msg.caller !=  state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
-        };
-        let result = Buffer.Buffer<[Types.LogEntry]>(pages);
-        for(thisRound in Iter.range(0, pages-1)){
-            let chunk = SB.removeLast(state.state.log_history);
-            switch(chunk){
-                case(null){};
-                case(?v){
-                result.add(v);
-                };
-            };
-        };
-        return result.toArray();
-    };
+    // // Get the last pages number of logs and burns them
+    // public shared(msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]]{
+    //     assert(pages > 0);
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.log_harvester) {
+    //     throw Error.reject("not the log harvester");
+    //     };
+    //     let result = Buffer.Buffer<[Types.LogEntry]>(pages);
+    //     for(thisRound in Iter.range(0, pages-1)){
+    //         let chunk = SB.removeLast(state.state.log_history);
+    //         switch(chunk){
+    //             case(null){};
+    //             case(?v){
+    //             result.add(v);
+    //             };
+    //         };
+    //     };
+    //     return result.toArray();
+    // };
 
     // Destroys the log
-    public shared(msg) func nuke_log() : async (){
-        let state = get_state();
-        if(msg.caller != state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
-        };
-         state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
-    };
+    // public shared(msg) func nuke_log() : async (){
+    //     let state = get_state();
+    //     if(msg.caller != state.state.log_harvester) {
+    //     throw Error.reject("not the log harvester");
+    //     };
+    //      state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
+    // };
 
-    // Log history info
-    public query(msg) func log_history_size() : async Nat{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-            throw Error.reject("no log rights");
-        };
-        return SB.size( state.state.log_history);
-    };
+    // // Log history info
+    // public query(msg) func log_history_size() : async Nat{
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
+    //         throw Error.reject("no log rights");
+    //     };
+    //     return SB.size( state.state.log_history);
+    // };
 
-    // Look a specific page of log history
-    public query(msg) func log_history_page(i : Nat) : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-            throw Error.reject("no log rights");
-        };
-        return SB.get( state.state.log_history, i);
-    };
+    // // Look a specific page of log history
+    // public query(msg) func log_history_page(i : Nat) : async [Types.LogEntry]{
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
+    //         throw Error.reject("no log rights");
+    //     };
+    //     return SB.get( state.state.log_history, i);
+    // };
 
-    // Look a chunk by page if over 2MB
-    public query(msg) func log_history_page_chunk(i : Nat, start: Nat, end: Nat) : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-            throw Error.reject("no log rights");
-        };
-        let thisChunk = SB.get(state.state.log_history, i);
-        let result = Buffer.Buffer<Types.LogEntry>(end - start + 1);
-        Iter.iterate<Types.LogEntry>(thisChunk.vals(), func(a: Types.LogEntry, index: Nat){
-            if(index >= start and index <= end){
-            result.add(a);
-            };
-        });
-        return result.toArray();
-    };
+    // // Look a chunk by page if over 2MB
+    // public query(msg) func log_history_page_chunk(i : Nat, start: Nat, end: Nat) : async [Types.LogEntry]{
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
+    //         throw Error.reject("no log rights");
+    //     };
+    //     let thisChunk = SB.get(state.state.log_history, i);
+    //     let result = Buffer.Buffer<Types.LogEntry>(end - start + 1);
+    //     Iter.iterate<Types.LogEntry>(thisChunk.vals(), func(a: Types.LogEntry, index: Nat){
+    //         if(index >= start and index <= end){
+    //         result.add(a);
+    //         };
+    //     });
+    //     return result.toArray();
+    // };
 
     // Gets the current log page
-    public query(msg) func current_log() : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-            throw Error.reject("no log rights");
-        };
-        return SB.toArray(state.state.log);
-    };
+    // public query(msg) func current_log() : async [Types.LogEntry]{
+    //     let state = get_state();
+    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
+    //         throw Error.reject("no log rights");
+    //     };
+    //     return SB.toArray(state.state.log);
+    // };
 
     // *************************
     // * CANDID SERIALIZATION **
