@@ -1963,12 +1963,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Announces support of interfaces
     public query func __supports() : async [(Text,Text)]{
         [
-            ("nft_origyn","v0.1.0"),
-            ("data_nft_origyn","v0.1.0"),
-            ("collection_nft_origyn","v0.1.0"),
-            ("mint_nft_origyn","v0.1.0"),
-            ("owner_nft_origyn","v0.1.0"),
-            ("market_nft_origyn","v0.1.0")
+            ("nft_origyn","v0.2.0"),
+            ("data_nft_origyn","v0.2.0"),
+            ("collection_nft_origyn","v0.2.0"),
+            ("mint_nft_origyn","v0.2.0"),
+            ("owner_nft_origyn","v0.2.0"),
+            ("market_nft_origyn","v0.2.0")
         ]
     };
 
