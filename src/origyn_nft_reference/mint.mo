@@ -487,6 +487,8 @@ module {
         state : Types.State,
         chunk : Types.StageChunkArg,
         caller : Principal) : Result.Result<Types.LocalStageLibraryResponse, Types.OrigynError> {
+
+        //todo: add ability for nfto owner to upload files to an nft.
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
                         debug if(debug_channel.stage) D.print("in stage_library_nft_origyn" # debug_show(chunk));
         var b_updated_meta = false;
