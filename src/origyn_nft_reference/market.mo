@@ -460,9 +460,9 @@ module {
     public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
         
         var tracker = 0 : Nat;
-        let (min, max, total, eof) = switch(pages){
+        let (min, max) = switch(pages){
             case(null){
-                (0, Map.size(state.state.nft_metadata), Map.size(state.state.nft_metadata), true);
+                (0, Map.size(state.state.nft_metadata));
             };
             case(?val){
                 (val.0, 
@@ -470,113 +470,125 @@ module {
                      Map.size(state.state.nft_metadata)
                  } else {
                      val.0 + val.1;
-                 }, 
-                 Map.size(state.state.nft_metadata),
-                 if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
-                     true;
-                 } else {
-                     false;
-                 }, 
+                 }
                  );
             };
         };
 
         let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
 
+        var foundTotal : Nat = 0;
+        var eof : Bool = false;
+        let totalSize = Map.size(state.state.nft_metadata);
+
         label search for(this_token in Map.entries(state.state.nft_metadata)){
-            if(tracker > max){break search;};
-            if(tracker >= min){
+            
+            
+          let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
+              case(#err(err)){
+                  results.add("unminted", null);
+                  tracker += 1;
+                  continue search;
+              };
+              case(#ok(val)){
+                  val;
+              };
+          };
+
+          //look for an existing sale
+          
+          let current_sale = switch(Metadata.get_current_sale_id(metadata)){
+              case(#Empty){
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+              };
+              case(#Text(val)){
+                  switch(Map.get(state.state.nft_sales, Map.thash,val)){
+                      case(?status){
+                          status;
+                      };
+                      case(null){
+                          //results.add(this_token.0, null);
+                          tracker += 1;
+                          continue search;
+                      };
+                  };
+              };
+              case(_){
                 
-                let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
-                    case(#err(err)){
-                        results.add("unminted", null);
-                        tracker += 1;
-                        continue search;
-                    };
-                    case(#ok(val)){
-                        val;
-                    };
-                };
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+                  
+              };
+          };
 
-                //look for an existing sale
-               
-                let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-                    case(#Empty){
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                    };
-                    case(#Text(val)){
-                        switch(Map.get(state.state.nft_sales, Map.thash,val)){
-                            case(?status){
-                                status;
-                            };
-                            case(null){
-                                results.add(this_token.0, null);
-                                tracker += 1;
-                                continue search;
-                            };
-                        };
-                    };
-                    case(_){
+          let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+              case(#ok(val)){val};
+              case(#err(err)){
+                    
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
                       
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                        
-                    };
-                };
+              };
+          };
 
-                let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-                    case(#ok(val)){val};
-                    case(#err(err)){
-                         
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                            
-                    };
-                };
+          switch(current_sale_state.config){
+              case(#auction(config)){
+                  let current_pricing = switch(current_sale_state.config){
+                      case(#auction(config)){
+                          config;
+                      };
+                      case(_){
+                          //nyi: handle other sales types
+                          //results.add(this_token.0, null);
+                          tracker += 1;
+                          continue search;
+                      };
+                  };
 
-                switch(current_sale_state.config){
-                    case(#auction(config)){
-                        let current_pricing = switch(current_sale_state.config){
-                            case(#auction(config)){
-                                config;
-                            };
-                            case(_){
-                                //nyi: handle other sales types
-                                results.add(this_token.0, null);
-                                tracker += 1;
-                                continue search;
-                            };
-                        };
+                  if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+                    if(tracker > max){}
+                    else if( tracker >= min ){
 
-                        results.add(this_token.0, ?{
-                            sale_id = current_sale.sale_id;
-                            token_id = current_sale.token_id;
-                            broker_id = current_sale.broker_id;
-                            original_broker_id = current_sale.original_broker_id;
-                            sale_type = switch(current_sale.sale_type){
-                                case(#auction(val)){
-                                    #auction(Types.AuctionState_stabalize_for_xfer(val))
-                                };
-                            };
-                        });
+                      results.add(this_token.0, ?{
+                          sale_id = current_sale.sale_id;
+                          token_id = current_sale.token_id;
+                          broker_id = current_sale.broker_id;
+                          original_broker_id = current_sale.original_broker_id;
+                          sale_type = switch(current_sale.sale_type){
+                              case(#auction(val)){
+                                  #auction(Types.AuctionState_stabalize_for_xfer(val))
+                              };
+                          };
+                      });
 
-                    };
-                    case(_){
-                        results.add(this_token.0, null);
-                    };
-                };
-            };
+                      if(tracker + 1 == totalSize){
+                        eof := true;
+                      };
+                    } else {};
+
+
+                    foundTotal += 1;
+
+                  };
+              };
+              case(_){
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+              };
+          };
+
             tracker += 1;
         };
 
         return #ok(#active({
             records = results.toArray();
             eof = eof;
-            count = total;
+            count = foundTotal;
         }));
     };
 
@@ -618,7 +630,7 @@ module {
                     case(#ok(val)){val};
                     case(#err(err)){
                          
-                        results.add(null);
+                        //results.add(null);
                         tracker += 1;
                         continue search;
                             
@@ -633,7 +645,7 @@ module {
                             };
                             case(_){
                                 //nyi: handle other sales types
-                                results.add( null);
+                                //results.add( null);
                                 tracker += 1;
                                 continue search;
                             };
@@ -655,7 +667,7 @@ module {
                     };
                     case(_){
                         //nyi: implement other sales types
-                        results.add(null);
+                        //results.add(null);
                     };
                 };
             };

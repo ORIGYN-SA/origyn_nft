@@ -1393,6 +1393,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             };
         };
 
+        let active_sale_info_1 = await canister.sale_info_nft_origyn(#active(null));
+
         D.print("starting again");
         //try starting again//should fail MKT0018
         let start_auction_attempt_owner_already_started = await canister.market_transfer_nft_origyn({token_id = "1";
@@ -1500,6 +1502,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let end_date = get_time() + DAY_LENGTH;
         D.print("end date is ");
         D.print(debug_show(end_date));
+
         //todo: write test
         let start_auction_attempt_owner_already_started_b = await canister.market_transfer_nft_origyn({token_id = "2";
             sales_config = {
@@ -1880,8 +1883,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //NFT-19
         //todo: check ledger and make sure transaction is there and it went to the right account
         //check transaction log for sale
-        D.print("tring owner hisotry");
+        D.print("trying owner hisotry");
         let owner_history_withdraw = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        let active_sale_info_2 = await canister.sale_info_nft_origyn(#active(null));
+
+        let history_sale_info_2 = await canister.sale_info_nft_origyn(#history(null));
         
 
 
@@ -2453,7 +2460,62 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 };
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found a record"))), //todo: NFT-94
            
-            
+            S.test("sale info has active and only active sale in it", switch(active_sale_info_1){
+              case(#ok(#active(val))){
+                if(val.records.size() == 1 and val.records[0].0 == "1"){
+                  "correct response";
+                }else {
+                  "bad response" # debug_show(active_sale_info_1)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_1);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("sale info has no active sale after close", switch(active_sale_info_2){
+              case(#ok(#active(val))){
+                if(val.records.size() == 1 and val.records[0].0 == "2"){
+                  "correct response";
+                } else {
+                  "bad response" # debug_show(active_sale_info_2)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_2);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("sale is included in history", switch(history_sale_info_2){
+              case(#ok(#history(val))){
+                if(val.records.size() == 2){
+                  switch(val.records[0]){
+                    case(null){"shouldnt be null"};
+                    case(?val){
+                      if(val.sale_id == current_sales_id){
+                        "correct response";
+                      } else{
+                        "wrong sale id "# debug_show(val);
+                      };
+                    };
+                  };
+                }else {
+                  "bad response" # debug_show(history_sale_info_2)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(history_sale_info_2);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
             
                 
          ]);
