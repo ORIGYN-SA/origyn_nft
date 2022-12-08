@@ -791,6 +791,35 @@ module {
                     if( buy_now == true and caller == state.canister()){
                         //only the canister can end a buy now
                     } else {
+
+                         if(Types.account_eq(#principal(caller), owner) == true and current_sale_state.current_escrow == null){
+                            //an owner can cancel an auction that has no bids yet.
+                            //useful for buy it now sales with a long out end date.
+                            current_sale_state.status := #closed; 
+                            
+
+                            switch(Metadata.add_transaction_record(state,{
+                                token_id = token_id;
+                                index = 0;
+                                txn_type = #sale_ended {
+                                    seller = owner;
+                                    buyer = owner;
+                                    token = config.token;
+                                    sale_id = ?current_sale.sale_id;
+                                    amount = 0;
+                                    extensible = #Text("owner canceled");
+                                };
+                                timestamp = state.get_time();
+                            }, caller)){
+                                case(#ok(new_trx)){
+                                return #ok(#end_sale(new_trx));
+                                };
+                                case(#err(err)){
+                                    return #err(err);
+                                };
+                            };
+
+                         };
                         
                          return #err(Types.errors(#sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller));
                

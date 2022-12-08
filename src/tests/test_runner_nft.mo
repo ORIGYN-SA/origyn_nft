@@ -75,8 +75,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         g_storage_factory := actor(Principal.toText(storage_factory));
 
         let suite = S.suite("test nft", [
-            S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            
             S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -1889,6 +1890,14 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let active_sale_info_2 = await canister.sale_info_nft_origyn(#active(null));
 
         let history_sale_info_2 = await canister.sale_info_nft_origyn(#history(null));
+
+
+        //try to cancel the sale created for 2
+
+        let cancel_auction_with_no_bids = await canister.sale_nft_origyn(#end_sale("2"));
+
+
+        let active_sale_info_3 = await canister.sale_info_nft_origyn(#active(null));
         
 
 
@@ -2476,7 +2485,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               }
             }, M.equals<Text>(T.text("correct response"))),
 
-            S.test("sale info has no active sale after close", switch(active_sale_info_2){
+            S.test("sale info has one active sale after close of first", switch(active_sale_info_2){
               case(#ok(#active(val))){
                 if(val.records.size() == 1 and val.records[0].0 == "2"){
                   "correct response";
@@ -2517,7 +2526,21 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               }
             }, M.equals<Text>(T.text("correct response"))),
             
-                
+            S.test("sale info has no active sale after cancel", switch(active_sale_info_3){
+              case(#ok(#active(val))){
+                if(val.records.size() == 0){
+                  "correct response";
+                } else {
+                  "bad response" # debug_show(active_sale_info_3)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_3);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
          ]);
 
          D.print("suite running");
