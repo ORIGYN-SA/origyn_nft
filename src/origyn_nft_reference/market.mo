@@ -353,7 +353,7 @@ module {
 
     //opens a sale if it is past the date
     public func open_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-        //D.print("in end_sale_nft_origyn");
+        //D.print("in open_sale_nft_origyn");
         let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
                 return #err(Types.errors(#token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
@@ -460,6 +460,8 @@ module {
     public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
         
         var tracker = 0 : Nat;
+        
+
         let (min, max) = switch(pages){
             case(null){
                 (0, Map.size(state.state.nft_metadata));
@@ -550,6 +552,7 @@ module {
                   };
 
                   if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+                    
                     if(tracker > max){}
                     else if( tracker >= min ){
 
@@ -1040,7 +1043,7 @@ module {
                             var remaining = Nat.sub(winning_escrow.amount, fee);
                             
 
-                            remaining := _process_royalties(state, {
+                            let royalty_result =  _process_royalties(state, {
                                 var remaining = remaining;
                                 total = total;
                                 fee = fee;
@@ -1052,6 +1055,8 @@ module {
                                 account_hash = account_hash;
                                 metadata = metadata;
                             }, caller);
+
+                            remaining := royalty_result.0;
                         
 
                             
@@ -1069,8 +1074,31 @@ module {
                                 lock_to_date = null;
                                 account_hash = account_hash;
                             }, true);
-                        };
 
+                            let service : Types.Service = actor((Principal.toText(state.canister())));
+                            let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
+
+                            request_buffer.add(#withdraw(#sale({
+                              amount = new_sale_balance.amount;
+                              buyer = new_sale_balance.buyer;
+                              seller = new_sale_balance.seller;
+                              token = new_sale_balance.token;
+                              token_id = new_sale_balance.token_id;
+                              withdraw_to = new_sale_balance.seller;}
+                            )));
+                            for(thisRoyalty in royalty_result.1.vals()){
+                              request_buffer.add(#withdraw(#sale({
+                                amount = thisRoyalty.amount;
+                                buyer = thisRoyalty.buyer;
+                                seller = thisRoyalty.seller;
+                                token = thisRoyalty.token;
+                                token_id = thisRoyalty.token_id;
+                                withdraw_to = thisRoyalty.seller;})));
+                            };
+                            D.print("attempt to distribute royalties request auction" # debug_show(request_buffer.toArray()));
+                            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                            D.print("attempt to distribute royalties auction" # debug_show(future));
+                        };
 
                         switch(Metadata.add_transaction_record(state,{
                             token_id = token_id;
@@ -1133,18 +1161,20 @@ module {
                 Map.set<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller, newTo);
 
                 //add this item to the offer index
-                switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
-                    case(null){
-                        var aTree = Map.new<Types.Account,Int>();
-                        Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
+                if(escrow.token_id != ""){
+                  switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
+                      case(null){
+                          var aTree = Map.new<Types.Account,Int>();
+                          Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
 
-                        Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
-                    };
-                    case(?val){
-                        Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
+                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
+                      };
+                      case(?val){
+                          Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
 
-                        Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
-                    };
+                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
+                      };
+                  };
                 };
                 newTo;
             };
@@ -1691,7 +1721,7 @@ module {
                             
 
                             D.print("calling process royalty" # debug_show((total,remaining)));
-                            remaining := _process_royalties(state, {
+                            let royalty_result = _process_royalties(state, {
                                 var remaining = remaining;
                                 total = total;
                                 fee = fee;
@@ -1703,6 +1733,8 @@ module {
                                 account_hash = account_hash;
                                 metadata = metadata;
                             }, caller);
+
+                            remaining := royalty_result.0;
 
 
                             D.print("done with royalty" # debug_show((total,remaining)));
@@ -1721,6 +1753,33 @@ module {
                                 lock_to_date = null;
                                 account_hash = account_hash;
                             }, true);
+
+                            let service : Types.Service = actor((Principal.toText(state.canister())));
+                            let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
+
+                            request_buffer.add(#withdraw(#sale({
+                              amount = new_sale_balance.amount;
+                              buyer = new_sale_balance.buyer;
+                              seller = new_sale_balance.seller;
+                              token = new_sale_balance.token;
+                              token_id = new_sale_balance.token_id;
+                              withdraw_to = new_sale_balance.seller;}
+                            )));
+                            for(thisRoyalty in royalty_result.1.vals()){
+                              request_buffer.add(#withdraw(#sale({
+                                amount = thisRoyalty.amount;
+                                buyer = thisRoyalty.buyer;
+                                seller = thisRoyalty.seller;
+                                token = thisRoyalty.token;
+                                token_id = thisRoyalty.token_id;
+                                withdraw_to = thisRoyalty.seller;})));
+                            };
+                            D.print("attempt to distribute royalties request instant" # debug_show(request_buffer.toArray()));
+
+                            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                            D.print("attempt to distribute royalties instant" # debug_show(future));
+
+
                         };
 
                         return #ok(txn_record);
@@ -1741,7 +1800,7 @@ module {
     };
 
     //handles royalty distribution
-    private func _process_royalties(state : StateAccess, request :{
+    private func _process_royalties(state : StateAccess, request : {
         var remaining: Nat;
         total: Nat;
         fee: Nat;
@@ -1752,9 +1811,11 @@ module {
         original_broker_id: ?Principal;
         sale_id: ?Text;
         metadata : CandyTypes.CandyValue;
-    }, caller: Principal) : Nat{
+    }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
                             debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
+
+        let results = Buffer.Buffer<Types.EscrowRecord>(1);
         for(this_item in request.royalty.vals()){
             switch(this_item){
                 case(#Class(the_array)){
@@ -1866,7 +1927,6 @@ module {
                             }, caller);
 
                                                 debug if(debug_channel.royalties) D.print("added trx" # debug_show(id));
-
                             let new_sale_balance = put_sales_balance(state, {
                                 amount = this_royalty;
                                 seller = #principal(this_principal);
@@ -1878,6 +1938,7 @@ module {
                                 account_hash = request.account_hash;
                             }, true);
 
+                            results.add(new_sale_balance);
                                                 debug if(debug_channel.royalties) D.print("new_sale_balance" # debug_show(new_sale_balance));
 
 
@@ -1897,7 +1958,7 @@ module {
             
         };
 
-        return request.remaining;
+        return (request.remaining, results.toArray());
     };
 
     //handles non-async market functions like starting an auction
@@ -2727,7 +2788,7 @@ module {
                                   debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
                                   debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
                                   debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
-              if(Types.account_eq(#principal(caller), details.seller) == false){
+              if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false){
                   //cant withdraw for someone else
                   //D.print("can't withdraw for someone else");
                   return #err(Types.errors(#unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller));

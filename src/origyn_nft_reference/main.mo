@@ -45,7 +45,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     let debug_channel = {
         instantiation = true;
         upgrade = false;
-        function_announce = false;
+        function_announce = true;
         storage = false;
         streaming = false;
     };
@@ -379,6 +379,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
               result_buffer.clear();
             };
         };
+        for(thisItem in result_buffer.vals()){
+          results.add(await thisItem);
+        };
         canistergeekMonitor.collectMetrics();
         return results.toArray();
     };
@@ -566,7 +569,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        
+        for(thisItem in result_buffer.vals()){
+          results.add(await thisItem);
+        };
         //D.print("made it");
         canistergeekMonitor.collectMetrics();
         return results.toArray();
@@ -637,7 +642,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale_nft_origyn batch");
-        if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
+        if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false and msg.caller != get_state().canister()){
             return [#err(Types.errors(#unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch not supported", ?msg.caller))];
         };        
         
@@ -700,6 +705,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
               };
               result_buffer.clear();
             };
+        };
+        for(thisItem in result_buffer.vals()){
+          result.add(await thisItem);
         };
         canistergeekMonitor.collectMetrics();
         return result.toArray();
