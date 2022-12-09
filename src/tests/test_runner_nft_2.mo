@@ -241,8 +241,6 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("fail_stage_because_system result finished");
 
-
-        //MINT0005
         let test_metadata_replace_command = await canister.stage_nft_origyn({metadata = #Class([
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page2"); immutable= true},
