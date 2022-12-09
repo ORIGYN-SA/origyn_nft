@@ -45,6 +45,17 @@ v0.1.2
 * Batch and Secure - added batch and secure methods for history.
 * Services - Updated Service definition in Types.mo
 * Docs - Changed api file to specification.md
+* Collection - collection_nft_origyn will now return the full list of NFTs(minted or not) for collection owners, managers, and the network
+* http routes - /collection now returns the ids of minted items in json
+* http routes - support NatX, IntX, Blob, Floats, Bytes, Option candy types
+* http routes - /ledger_info/{page}/{page_size} now returns the ledger json for the collection level
+* http routes - /-/token_id/ledger_info/{page}/{page_size} now returns the ledger json for the token level
+* Logging - Canister geek integration
+* Debugging - Updated some debug messages to queries.
+* Metadata - Non-immutable NFT level mata data can be updated with stage_nft_origyn by the manager or owner.
+* Backup - Backup mechanism added
+* Backup - Halt canister added.
+
 
 v0.1.0
 

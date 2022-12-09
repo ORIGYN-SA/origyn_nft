@@ -1186,7 +1186,7 @@ module {
               //D.print(debug_show(val));
               //D.print(debug_show(caller));
               //D.print(debug_show(canister));
-              if(Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller)))){
+              if(Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller))) and NFTUtils.is_owner_manager_network(state, caller) == false){
                 return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata - owners not equal" # token_id, ?caller));
               };
             };
@@ -1576,6 +1576,7 @@ module {
           {name="txn_type"; value=switch(thisItem.txn_type){
             case(#auction_bid(val)){
               #Class([
+                  {name="type"; value=#Text("auction_bid"); immutable = true;},
                   {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                   {name="amount"; value=#Nat(val.amount); immutable = true;},
                   
@@ -1587,6 +1588,7 @@ module {
             };
             case(#mint(val)){
               #Class([
+                  {name="type"; value=#Text("mint"); immutable = true;},
                   {name="from"; value=account_to_candy(val.from); immutable = true;},
                   {name="to"; value=account_to_candy(val.to); immutable = true;},
                   {name="sale"; value=switch(val.sale){
@@ -1602,6 +1604,7 @@ module {
             };
             case(#sale_ended(val)){
               #Class([
+                  {name="type"; value=#Text("sale_ended"); immutable = true;},
                   {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                   {name="seller"; value=account_to_candy(val.seller); immutable = true;},
                   
@@ -1619,6 +1622,7 @@ module {
             };
             case(#royalty_paid(val)){
               #Class([
+                  {name="type"; value=#Text("royalty_paid"); immutable = true;},
                   {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                   {name="seller"; value=account_to_candy(val.seller); immutable = true;},
                   {name="reciever"; value=account_to_candy(val.reciever); immutable = true;},
@@ -1638,8 +1642,8 @@ module {
             };
             case(#sale_opened(val)){
               #Class([
-
-                {name="pricing"; value=pricing_to_candy(val.pricing); immutable = true;},
+                  {name="type"; value=#Text("sale_opened"); immutable = true;},
+                  {name="pricing"; value=pricing_to_candy(val.pricing); immutable = true;},
 
                   { name="sale_id"; value=#Text(val.sale_id);immutable = true;},
                   
@@ -1648,7 +1652,7 @@ module {
             };
             case(#owner_transfer(val)){
               #Class([
-
+                {name="type"; value=#Text("owner_transfer"); immutable = true;},
                 {name="from"; value=account_to_candy(val.from); immutable = true;},
                 {name="to"; value=account_to_candy(val.to); immutable = true;},
                 {name="extensible"; value=val.extensible; immutable = true;},
@@ -1656,7 +1660,7 @@ module {
             };
             case(#escrow_deposit(val)){
               #Class([
-
+                {name="type"; value=#Text("escrow_deposit"); immutable = true;},
                 {name="seller"; value=account_to_candy(val.seller); immutable = true;},
                 {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                 {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
@@ -1674,7 +1678,7 @@ module {
             };
             case(#escrow_withdraw(val)){
               #Class([
-
+                {name="type"; value=#Text("escrow_withdraw"); immutable = true;},
                 {name="seller"; value=account_to_candy(val.seller); immutable = true;},
                 {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                 {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
@@ -1695,7 +1699,7 @@ module {
             case(#deposit_withdraw(val)){
               #Class([
 
-                
+                {name="type"; value=#Text("deposit_withdraw"); immutable = true;},
                 {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                 {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
                 
@@ -1713,7 +1717,7 @@ module {
             };
             case(#sale_withdraw(val)){
               #Class([
-
+                {name="type"; value=#Text("sale_withdraw"); immutable = true;},
                 {name="seller"; value=account_to_candy(val.seller); immutable = true;},
                 {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                 {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
@@ -1732,21 +1736,21 @@ module {
             };
             case(#canister_owner_updated(val)){
               #Class([
-
+                {name="type"; value=#Text("canister_owner_updated"); immutable = true;},
                 {name="owner"; value=#Principal(val.owner); immutable = true;},
                 {name="extensible"; value=val.extensible; immutable = true;},
               ])
             };
             case(#canister_managers_updated(val)){
               #Class([
-
+                {name="type"; value=#Text("canister_managers_updated"); immutable = true;},
                 {name="managers"; value=#Array(#frozen( Array.map<Principal, CandyType.CandyValue>(val.managers, func(x:Principal){#Principal(x)}))); immutable=true;},
                 {name="extensible"; value=val.extensible; immutable = true;},
               ])
             };
             case(#canister_network_updated(val)){
               #Class([
-
+                {name="type"; value=#Text("canister_network_updated"); immutable = true;},
                 {name="network"; value=#Principal(val.network); immutable = true;},
                 {name="extensible"; value=val.extensible; immutable = true;},
               ])
@@ -1757,9 +1761,10 @@ module {
             case(#burn){
               #Text("burn");
             };
-            case(#extensible(val)){
-              val;
-            };
+            case(#extensible(val)){#Class([
+              {name="type"; value=#Text("extensible"); immutable = true;},
+              {name="data"; value=val; immutable = true;},
+            ])};
               
           }; immutable=true;},
         ]));

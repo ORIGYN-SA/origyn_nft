@@ -487,6 +487,8 @@ module {
         state : Types.State,
         chunk : Types.StageChunkArg,
         caller : Principal) : Result.Result<Types.LocalStageLibraryResponse, Types.OrigynError> {
+
+        //todo: add ability for nfto owner to upload files to an nft.
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
                         debug if(debug_channel.stage) D.print("in stage_library_nft_origyn" # debug_show(chunk));
         var b_updated_meta = false;
@@ -695,195 +697,200 @@ module {
             Map.set(state.state.nft_metadata, Map.thash, chunk.token_id, metadata);
         };
 
-        //make sure we have an allocation space for this chunk
-        let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
-            case(null){return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
-            case(?val)(val);
-        };
+        if(chunk.content.size() > 0){
 
-        
-            
+          //make sure we have an allocation space for this chunk
+          let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
+              case(null){return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
+              case(?val)(val);
+          };
 
-                                debug if(debug_channel.stage) D.print("found allocation " # debug_show(allocation));
-
-        if( allocation.canister == state.canister()){
-            //the chunk goes on this canister
-
-                            debug if(debug_channel.stage) D.print("looking for workspace");
-            var found_workspace : CandyTypes.Workspace =
-                switch(state.nft_library.get(chunk.token_id)){
-                    case(null){
-                        if(bDelete == true or content_size == 0){
-                          //this was never allocated; return;
-                          return #ok(#staged(state.canister()));
-                        };
-                        //chunk doesn't exist;
-                                        debug if(debug_channel.stage) D.print("does not exist");
-                        let new_workspace = Workspace.initWorkspace(2);
-                                        debug if(debug_channel.stage) D.print("puting Zone");
-                                        debug if(debug_channel.stage) D.print(debug_show(chunk.filedata));
-                        
-                        if(content_size > allocation.available_space){
-                                                debug if(debug_channel.stage) D.print("not enough storage in allocation null library " # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
-                            return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
-                        };
-                        
-                        new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
-
-                                        debug if(debug_channel.stage) D.print("put the zone");
-                        let new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal,Text.hash);
-                                        debug if(debug_channel.stage) D.print("putting workspace");
-                        new_library.put(chunk.library_id, new_workspace);
-                                        debug if(debug_channel.stage) D.print("putting library");
-                        state.nft_library.put(chunk.token_id, new_library);
-                        new_workspace;
-                    };
-                    case(?library){
-                        
-                        switch(library.get(chunk.library_id)){
-                            case(null){
-                                if(bDelete == true or content_size == 0){
-                                  //this was never allocated; return;
-                                  return #ok(#staged(state.canister()));
-                                };
-                                                debug if(debug_channel.stage) D.print("nft exists but not file");
-                                //nft exists but this file librry entry doesnt exist
-                                //nftdoesn't exist;
-                                if(content_size > allocation.available_space){
-                                                        debug if(debug_channel.stage) D.print("not enough storage in allocation not null" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
-                                    return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
-                                };
-                                let new_workspace = Workspace.initWorkspace(2);
-
-                                new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
-
-
-                                library.put(chunk.library_id, new_workspace);
-                                new_workspace;
-                            };
-                            case(?workspace){
-                                if(bDelete == true){
-                                  library.delete(chunk.library_id);
-                                };
-                                                debug if(debug_channel.stage) D.print("found workspace");
-                                workspace;
-                            };
-                        };
-                        
-
-                    };
-                };
-
-
-            if(bDelete == true){
+          
               
-              state.state.canister_availible_space += allocation.allocated_space;
-              state.state.canister_allocated_storage -= allocation.allocated_space;
-              
-              Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
-              return #ok(#staged(state.canister()));
-            } else {
-              //file the chunk
-              if(chunk.content.size() > 0){
-                                debug if(debug_channel.stage) D.print("filing the chunk");
-                let file_chunks = switch(found_workspace.getOpt(1)){
-                    case(null){
-                        if(found_workspace.size()==0){
-                            //nyi: should be an error because no filedata
-                            found_workspace.add(Workspace.initDataZone(#Empty));
-                        };
-                        if(found_workspace.size()==1){
-                            found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
-                        };
-                        found_workspace.get(1);
-                    };
-                    case(?dz){
-                        dz;
-                    };
+
+                                  debug if(debug_channel.stage) D.print("found allocation " # debug_show(allocation));
+
+          if( allocation.canister == state.canister()){
+              //the chunk goes on this canister
+
+                              debug if(debug_channel.stage) D.print("looking for workspace");
+              var found_workspace : CandyTypes.Workspace =
+                  switch(state.nft_library.get(chunk.token_id)){
+                      case(null){
+                          if(bDelete == true or content_size == 0){
+                            //this was never allocated; return;
+                            return #ok(#staged(state.canister()));
+                          };
+                          //chunk doesn't exist;
+                                          debug if(debug_channel.stage) D.print("does not exist");
+                          let new_workspace = Workspace.initWorkspace(2);
+                                          debug if(debug_channel.stage) D.print("puting Zone");
+                                          debug if(debug_channel.stage) D.print(debug_show(chunk.filedata));
+                          
+                          if(content_size > allocation.available_space){
+                                                  debug if(debug_channel.stage) D.print("not enough storage in allocation null library " # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
+                              return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
+                          };
+                          
+                          new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+
+                                          debug if(debug_channel.stage) D.print("put the zone");
+                          let new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal,Text.hash);
+                                          debug if(debug_channel.stage) D.print("putting workspace");
+                          new_library.put(chunk.library_id, new_workspace);
+                                          debug if(debug_channel.stage) D.print("putting library");
+                          state.nft_library.put(chunk.token_id, new_library);
+                          new_workspace;
+                      };
+                      case(?library){
+                          
+                          switch(library.get(chunk.library_id)){
+                              case(null){
+                                  if(bDelete == true or content_size == 0){
+                                    //this was never allocated; return;
+                                    return #ok(#staged(state.canister()));
+                                  };
+                                                  debug if(debug_channel.stage) D.print("nft exists but not file");
+                                  //nft exists but this file librry entry doesnt exist
+                                  //nftdoesn't exist;
+                                  if(content_size > allocation.available_space){
+                                                          debug if(debug_channel.stage) D.print("not enough storage in allocation not null" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
+                                      return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
+                                  };
+                                  let new_workspace = Workspace.initWorkspace(2);
+
+                                  new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+
+
+                                  library.put(chunk.library_id, new_workspace);
+                                  new_workspace;
+                              };
+                              case(?workspace){
+                                  if(bDelete == true){
+                                    library.delete(chunk.library_id);
+                                  };
+                                                  debug if(debug_channel.stage) D.print("found workspace");
+                                  workspace;
+                              };
+                          };
+                          
+
+                      };
+                  };
+
+
+              if(bDelete == true){
+                
+                state.state.canister_availible_space += allocation.allocated_space;
+                state.state.canister_allocated_storage -= allocation.allocated_space;
+                
+                Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                return #ok(#staged(state.canister()));
+              } else {
+                //file the chunk
+                if(chunk.content.size() > 0){
+                                  debug if(debug_channel.stage) D.print("filing the chunk");
+                  let file_chunks = switch(found_workspace.getOpt(1)){
+                      case(null){
+                          if(found_workspace.size()==0){
+                              //nyi: should be an error because no filedata
+                              found_workspace.add(Workspace.initDataZone(#Empty));
+                          };
+                          if(found_workspace.size()==1){
+                              found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                          };
+                          found_workspace.get(1);
+                      };
+                      case(?dz){
+                          dz;
+                      };
+                  };
+
+                                  debug if(debug_channel.stage) D.print("do we have chunks");
+                  if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
+                      //this chunk already exists in the allocation
+                      //see what size it is
+                                      debug if(debug_channel.stage) D.print("branch a");
+                      let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
+                      if(content_size > current_size){
+                          //allocate more space
+                                          debug if(debug_channel.stage) D.print("allocate more");
+                          SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
+                          allocation.available_space += (content_size - current_size);
+                      } else if (content_size != current_size){
+                          //give space back
+                                              debug if(debug_channel.stage) D.print("give space back");
+                          SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
+                          allocation.available_space -= (current_size - content_size);
+                      } else {};
+                  } else {
+                      //D.print("branch b ");
+                      for(this_index in Iter.range(SB.size<Nat>(allocation.chunks), chunk.chunk)){
+                          //D.print(debug_show(this_index));
+                          if(this_index == chunk.chunk){
+                              if(content_size > allocation.available_space){
+                                                      debug if(debug_channel.stage) D.print("not enough storage in allocation not branch b" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
+                                          
+                                  return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available past workspace" # chunk.token_id # " " # chunk.library_id, ?caller));
+                              };
+                              
+                                                  debug if(debug_channel.stage) D.print("branch c" # debug_show(allocation, content_size));
+                              SB.add<Nat>(allocation.chunks, content_size);
+                              allocation.available_space -= content_size;
+                          } else {
+                              //D.print("brac d");
+                              SB.add<Nat>(allocation.chunks, 0);
+                          }
+                      };
+                  };
+
+                  //D.print("putting the chunk");
+                  if(chunk.chunk + 1 <= file_chunks.size()){
+                      file_chunks.put(chunk.chunk, #Blob(chunk.content));
+                  } else {
+                                      debug if(debug_channel.stage) D.print("in putting the chunk iter");
+                                      debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
+                      //D.print(debug_show(file_chunks.size()));
+
+                      for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
+                          //D.print(debug_show(this_index));
+                          if(this_index == chunk.chunk){
+                              //D.print("index was chunk" # debug_show(this_index));
+                              file_chunks.add(#Blob(chunk.content));
+                          } else {
+                              //D.print("index wasnt chunk" # debug_show(this_index));
+                              file_chunks.add(#Blob(Blob.fromArray([])));
+                          }
+                      };
+
+                  };
                 };
 
-                                debug if(debug_channel.stage) D.print("do we have chunks");
-                if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
-                    //this chunk already exists in the allocation
-                    //see what size it is
-                                    debug if(debug_channel.stage) D.print("branch a");
-                    let current_size = SB.get<Nat>(allocation.chunks,chunk.chunk);
-                    if(content_size > current_size){
-                        //allocate more space
-                                        debug if(debug_channel.stage) D.print("allocate more");
-                        SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
-                        allocation.available_space += (content_size - current_size);
-                    } else if (content_size != current_size){
-                        //give space back
-                                            debug if(debug_channel.stage) D.print("give space back");
-                        SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
-                        allocation.available_space -= (current_size - content_size);
-                    } else {};
-                } else {
-                    //D.print("branch b ");
-                    for(this_index in Iter.range(SB.size<Nat>(allocation.chunks), chunk.chunk)){
-                        //D.print(debug_show(this_index));
-                        if(this_index == chunk.chunk){
-                            if(content_size > allocation.available_space){
-                                                    debug if(debug_channel.stage) D.print("not enough storage in allocation not branch b" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
-                                        
-                                return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available past workspace" # chunk.token_id # " " # chunk.library_id, ?caller));
-                            };
-                            
-                                                debug if(debug_channel.stage) D.print("branch c" # debug_show(allocation, content_size));
-                            SB.add<Nat>(allocation.chunks, content_size);
-                            allocation.available_space -= content_size;
-                        } else {
-                            //D.print("brac d");
-                            SB.add<Nat>(allocation.chunks, 0);
-                        }
-                    };
-                };
-
-                //D.print("putting the chunk");
-                if(chunk.chunk + 1 <= file_chunks.size()){
-                    file_chunks.put(chunk.chunk, #Blob(chunk.content));
-                } else {
-                                    debug if(debug_channel.stage) D.print("in putting the chunk iter");
-                                    debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
-                    //D.print(debug_show(file_chunks.size()));
-
-                    for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
-                        //D.print(debug_show(this_index));
-                        if(this_index == chunk.chunk){
-                            //D.print("index was chunk" # debug_show(this_index));
-                            file_chunks.add(#Blob(chunk.content));
-                        } else {
-                            //D.print("index wasnt chunk" # debug_show(this_index));
-                            file_chunks.add(#Blob(Blob.fromArray([])));
-                        }
-                    };
-
-                };
+                //D.print("returning");
+                return #ok(#staged(state.canister()));
               };
-
-              //D.print("returning");
-              return #ok(#staged(state.canister()));
-            };
-            
+              
+          } else {
+              //we need to send this chunk to storage
+              //D.print("This needs to be filed elsewhere " # debug_show(allocation));
+              if(bDelete == true){
+                switch(Map.get<Principal,Types.BucketData>(state.state.buckets, Map.phash, allocation.canister)){
+                  case(?aBucket){
+                    aBucket.available_space += allocation.allocated_space;
+                    aBucket.allocated_space -= allocation.allocated_space;
+                  };
+                  case(null){};
+                };
+                Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                
+              };
+              return #ok(#stage_remote({
+                  allocation = allocation;
+                  metadata = metadata;}));
+              
+          };
         } else {
-            //we need to send this chunk to storage
-            //D.print("This needs to be filed elsewhere " # debug_show(allocation));
-            if(bDelete == true){
-              switch(Map.get<Principal,Types.BucketData>(state.state.buckets, Map.phash, allocation.canister)){
-                case(?aBucket){
-                  aBucket.available_space += allocation.allocated_space;
-                  aBucket.allocated_space -= allocation.allocated_space;
-                };
-                case(null){};
-              };
-              Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
-              
-            };
-            return #ok(#stage_remote({
-                allocation = allocation;
-                metadata = metadata;}));
-            
+          return #ok(#staged(state.canister()));
         };
         
     };
@@ -955,7 +962,7 @@ module {
     };
 
     //executes the mint and gives owner ship to the specified user
-    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue),Types.OrigynError>{
+    public func execute_mint(state: Types.State, token_id : Text, newOwner : Types.Account, escrow: ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue, Types.TransactionRecord),Types.OrigynError>{
                         debug if(debug_channel.mint) D.print("in mint");
          var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
@@ -964,6 +971,16 @@ module {
             case(#ok(val)){
                 val;
             };
+        };
+
+        let owner : Types.Account = switch(Metadata.get_nft_owner(metadata)){
+          case(#err(err)){
+            //default is the canister 
+            #principal(state.canister());
+          };
+          case(#ok(val)){
+              val;
+          };
         };
 
         //cant mint if already minted
@@ -1088,7 +1105,7 @@ module {
                 token_id = token_id;
                 index = 0; //mint should always be 0
                 txn_type = #mint({
-                    from = #principal(caller);
+                    from = owner;
                     to = newOwner;
                     sale = switch(escrow){
                         case(null){null};
@@ -1099,7 +1116,9 @@ module {
 
                         };
                     };
-                    extensible = #Empty;
+                    extensible = #Class([
+                      {name="caller"; value=#Principal(caller); immutable=true;}
+                    ]);
                 });
                 timestamp = Time.now();
                 chain_hash = [];
@@ -1115,7 +1134,7 @@ module {
 
        
 
-        return #ok((token_id, metadata));
+        return #ok((token_id, metadata, txn_record));
     };
 
 
