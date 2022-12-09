@@ -55,7 +55,11 @@ v0.1.2
 * Metadata - Non-immutable NFT level mata data can be updated with stage_nft_origyn by the manager or owner.
 * Backup - Backup mechanism added
 * Backup - Halt canister added.
-
+* Auction - Auction owners can now end a sale if it has no bids. Useful for setting a long running buy it now sale. Set minimum and buy it now to the same amount.
+* Auction - Proceeds and Royalties should now be distributed to the default account of the principal/owner.
+* Sales - Fixed #active endpoint so that only tokens with active sales are listed.
+* Batch - Async batch operations are now parallelized for faster processing. Note: Order is no longer stable for responses.
+* Offers - Offers are no longer processed for the empty string collection.
 
 v0.1.0
 
