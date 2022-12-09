@@ -1,0 +1,61 @@
+{
+  "__Candid_UI": {
+    "local": "qoctq-giaaa-aaaaa-aaaea-cai"
+  },
+  "all_ref": {
+    "local": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+  },
+  "dfxledger": {
+    "local": "ryjl3-tyaaa-aaaaa-aaaba-cai",
+    "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+  },
+  "ledger": {
+    "local": "r7inp-6aaaa-aaaaa-aaabq-cai",
+    "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+  },
+  "origyn_nft_reference": {
+    "local": "rkp4c-7iaaa-aaaaa-aaaca-cai",
+    "ic": "twdpa-6qaaa-aaaaj-adeuq-cai"
+    
+  },
+  "origyn_nft_reference_dev": {
+    "ic": "frfol-iqaaa-aaaaj-acogq-cai"
+  },
+
+  "egg": {
+    "ic": "zkpdr-hqaaa-aaaak-ac4lq-cai"
+  },
+  "dev_mintpass_ogy_reference": {
+    "ic": "s43ul-uiaaa-aaaaj-afksq-cai"
+  },
+  "prod_mintpass_ogy_reference": {
+    "ic": "s32s7-zqaaa-aaaaj-afksa-cai"
+  },
+  "prod_uefa_ogy_reference": {
+    "ic": "twdpa-6qaaa-aaaaj-adeuq-cai"
+  },
+  "prod_f50_ogy_reference": {
+    "ic": "orr5v-rqaaa-aaaaj-al2qq-cai"
+  },
+  "origyn_nft_reference_stage": {
+    "ic": "r5m5i-tiaaa-aaaaj-acgaq-cai"
+  },
+  "origyn_nft_reference_assets": {
+    "local": "rno2w-sqaaa-aaaaa-aaacq-cai"
+  },
+  "test_runner": {
+    "local": "renrk-eyaaa-aaaaa-aaada-cai"
+  },
+  "test_runner_nft": {
+    "local": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+  },
+  "phone_book": {
+    "ic": "ngrpb-5qaaa-aaaaj-adz7a-cai"
+  },
+  "bmdev": {
+    "ic": "frfol-iqaaa-aaaaj-acogq-cai"
+  },
+  "dev_sales_canister": {
+    "ic": "4wwlz-ciaaa-aaaaj-ae2cq-cai"
+  }
+}

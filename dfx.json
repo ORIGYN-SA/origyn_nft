@@ -5,6 +5,14 @@
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko"
         },
+        "egg": {
+          "main": "src/origyn_nft_reference/main.mo",
+          "type": "motoko"
+      },
+      "bmdev": {
+        "main": "src/origyn_nft_reference/main.mo",
+        "type": "motoko"
+      },
         "origyn_sale_reference": {
             "main": "src/origyn_sale_reference/main.mo",
             "type": "motoko"
