@@ -2159,7 +2159,7 @@ module {
     };
 
     //moves tokens from a deposit into an escrow
-    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async Result.Result<Types.EscrowResponse,Types.OrigynError> {
+    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
         //we will also allow a canister/canister owner to create escrows for itself
         if(Types.account_eq(#principal(caller), request.deposit.buyer) == false and 
@@ -2293,7 +2293,7 @@ module {
 
                         debug if(debug_channel.escrow) D.print("have the trx");
                         debug if(debug_channel.escrow) D.print(debug_show(new_trx));
-        return #ok({
+        return #ok(#escrow_deposit({
             receipt = {
                 seller = request.deposit.seller;
                 buyer = request.deposit.buyer;
@@ -2304,13 +2304,13 @@ module {
             };
             balance = escrow_result.amount;
             transaction = new_trx;
-        });
+        }));
 
 
     };
 
     //allows the user to withdraw tokens from an nft canister
-    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async Result.Result<Types.WithdrawResponse,Types.OrigynError> {
+    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         switch(withdraw){
           case(#deposit(details)){
             D.print("in deposit withdraw");
@@ -2404,7 +2404,7 @@ module {
                         timestamp = state.get_time();
                     }, caller)) {
                         case(#ok(val)){
-                            return #ok(val);
+                            return #ok(#withdraw(val));
                         };
                         case(#err(err)){
                             return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -2702,7 +2702,7 @@ module {
                                   timestamp = state.get_time();
                               }, caller)) {
                                   case(#ok(val)){
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -2936,7 +2936,7 @@ module {
                                   case(#ok(val)){
                                       //D.print("we did it");
                                       //D.print(debug_show(val));
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -3189,7 +3189,7 @@ module {
                                   timestamp = state.get_time();
                               }, caller)) {
                                   case(#ok(val)){
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -3215,7 +3215,7 @@ module {
     };
 
     //allows bids on auctons
-    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal) : async Result.Result<Types.BidResponse,Types.OrigynError> {
+    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
 
         //look for an existing sale
@@ -3491,7 +3491,7 @@ module {
                         case(#ok(val)){
                             switch(val){
                                 case(#end_sale(val)){
-                                    return #ok(val);
+                                    return #ok(#bid(val));
                                 };
                                 case(_){
                                     return #err(Types.errors(#improper_interface, "bid_nft_origyn - buy it now call to end sale had odd response " # debug_show(result), ?caller ));
@@ -3505,7 +3505,7 @@ module {
 
                     //call ourseves to close the auction
                 };
-                return #ok(val);
+                return #ok(#bid(val));
             };
             case(#err(err)){
                 return #err(Types.errors(err.error, "bid_nft_origyn - create transaction record " # err.flag_point, ?caller));
