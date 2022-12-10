@@ -1520,7 +1520,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         };
 
         
-        //deposit escrow for two upcoming bids
+        //deposit escrow for two upcoming bids 
         D.print("sending tokens to canisters");
         let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), (new_bid_val * 2 ) + 400000, Principal.fromActor(canister));
 
@@ -1534,9 +1534,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let b_wallet_try_bid_to_low = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), new_bid_val - 10, "1", current_sales_id, null);
 
         
-
-        D.print("Sending escrow for correct currency escrow now");
-        let b_wallet_try_escrow_correct_currency2 = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, new_bid_val, "1", ?current_sales_id, null, null);
+        //try this bid without submitting escrow first...bid should try to load escrow
+        //D.print("Sending escrow for correct currency escrow now");
+        //let b_wallet_try_escrow_correct_currency2 = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, new_bid_val, "1", ?current_sales_id, null, null);
 
 
         //place a second bid
