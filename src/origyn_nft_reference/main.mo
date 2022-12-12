@@ -612,7 +612,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             case (#bid(val)) {
                 log_data #= "Type : bid";
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                await Market.bid_nft_origyn(get_state(), val, msg.caller);
+                await Market.bid_nft_origyn(get_state(), val, msg.caller, false);
 
             };
             case (#withdraw(val)) {                
@@ -677,7 +677,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 case(#bid(val)){
                     log_data #= "Type : bid";
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                    result_buffer.add(Market.bid_nft_origyn(get_state(), val, msg.caller));
+                    result_buffer.add(Market.bid_nft_origyn(get_state(), val, msg.caller, false));
                     
                 };
                  case(#withdraw(val)){

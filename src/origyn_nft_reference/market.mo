@@ -1434,7 +1434,10 @@ module {
                                             debug if(debug_channel.market) D.print(debug_show(escrow.amount));
                         
                         let verified = switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                            case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn verifying escrow " # err.flag_point, ?caller))};
+                            case(#err(err)){
+                              //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
+                              return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+                            };
                             case(#ok(res)){
                                 res;
                             };
@@ -3276,7 +3279,7 @@ module {
     };
 
     //allows bids on auctons
-    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
 
         //look for an existing sale
@@ -3377,7 +3380,36 @@ module {
         //make sure the receipt is valid
                             debug if(debug_channel.bid) D.print("verifying Escrow");
         let verified = switch(verify_escrow_reciept(state, request.escrow_receipt, null, ?request.sale_id)){
-            case(#err(err)){return #err(Types.errors(err.error, "bid_nft_origyn verifying escrow " # err.flag_point, ?caller))};
+            case(#err(err)){
+              //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
+              //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
+
+              if(canister_call == false){
+                switch(await escrow_nft_origyn(state,
+                    {deposit =
+                      {
+                        amount = request.escrow_receipt.amount;
+                        buyer = request.escrow_receipt.buyer;
+                        sale_id = ?request.sale_id;
+                        seller = request.escrow_receipt.seller;
+                        token = request.escrow_receipt.token;
+                        trx_id = null;
+                      }; 
+                    lock_to_date = null; token_id = request.escrow_receipt.token_id}
+                  , caller)){
+                    case(#ok(newEscrow)){
+                        //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
+                        return await bid_nft_origyn(state, request, caller, true);
+
+                    };
+                    case(#err(err)){
+                      return #err(Types.errors(err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+                    };
+                  };
+              } else {
+                return #err(Types.errors(err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller))
+              };
+            };
             case(#ok(res)){
                 res;
             };
