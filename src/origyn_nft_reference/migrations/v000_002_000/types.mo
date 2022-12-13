@@ -11,9 +11,9 @@ module {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
 
-  public let SB = SB_lib;
-  public let Map = Map_lib;
-  public let CandyTypes = CandyTypes_lib;
+    public let SB = SB_lib;
+    public let Map = Map_lib;
+    public let CandyTypes = CandyTypes_lib;
 
     public type CollectionData = {
         var logo: ?Text;
