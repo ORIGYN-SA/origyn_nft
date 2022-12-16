@@ -133,7 +133,7 @@ module {
         var found_asset_list : ?MigrationTypes.Current.EscrowLedgerTrie = null;
                         debug if(debug_channel.verify_escrow) D.print("found asset " # debug_show(found_asset));
 
-        let verified = switch(Map.get(state.state.escrow_balances, account_handler,escrow.buyer)){
+        let verified = switch(Map.get(state.state.escrow_balances, account_handler, escrow.buyer)){
             case(null){
                                     debug if(debug_channel.verify_escrow) D.print("didnt find asset");
                 return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow buyer not found " # debug_show(escrow.buyer), null));

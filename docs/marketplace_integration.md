@@ -210,10 +210,9 @@ High Level:
 2. Get a auction information (User UI or Management Canister)
 3. Get Invoice information (User UI)
 4. Send the Escrow Payment (User UI)
-5. Users escrows tokens for a bid (User UI)
-6. User makes a bid (User UI)
-7. An auction is ended (User UI or Management Canister)
-8. Claim Royalties (Management Canister)
+5. User makes a bid (User UI)
+6. An auction is ended (User UI or Management Canister) - Should happen automatically for "buy it now."
+7. Claim Royalties (Management Canister) - Should happen automatically
 
 Details:
 
@@ -260,11 +259,9 @@ You can choose how to show this data to your user.
 
 3. Get invoice info - this is the same process as described in the Principal Sale section. This gives you the address you must send tokens to make a bid.  Include one fee with the total that a user wants to bid.
 
-4. Send the escrow payment - same as described in Principal payment.
+4. User escrows tokens for bid - This process is the same as for primary sales except that you must provide a sale_id to restrict the escrow to a specific sale and a token_id to restrict the escrow to a specific token_id.
 
-5. User escrows tokens for bid - This process is the same as for primary sales except that you must provide a sale_id to restrict the escrow to a specific sale and a token_id to restrict the escrow to a specific token_id.
-
-6. Make the bid - The user will need to call sale_nft_origyn with the bid info to officially register the bid.  The bid is not made until after this function is called.  This is where you will need to include your broker_id to get the selling broker share of the broker royalty.
+5. Make the bid - The user will need to call sale_nft_origyn with the bid info to officially register the bid.  The bid is not made until after this function is called.  This is where you will need to include your broker_id to get the selling broker share of the broker royalty.
 
 ```
           let bid = await acanister.sale_nft_origyn(#bid({
@@ -286,7 +283,7 @@ You can choose how to show this data to your user.
 
 If the bid is over the buy it now price the auction will end and the user will get the NFT transferred to them.
 
-7. End the auction - Once the auction end date has passed, any user may call the end sale function.  This will end the auction and award the NFT to the winner.  If the reserve has not been met, or there are no bids, the original owner will maintain ownership of the item.  All royalties will be paid if a sale is made.
+6. End the auction - Once the auction end date has passed, any user may call the end sale function.  This will end the auction and award the NFT to the winner.  If the reserve has not been met, or there are no bids, the original owner will maintain ownership of the item.  All royalties will be paid if a sale is made.
 
 ```
 
@@ -294,7 +291,7 @@ let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
 
 ```
 
-8. Claim Royalties - Currently royalties are not paid out automatically.  To see if you have any royalties to recover you can call balance_nft_origyn and inspect the sales collection. If any sales exist, you can collect the sales by calling the below function:
+7. Claim Royalties - Currently royalties are not paid out automatically.  To see if you have any royalties to recover you can call balance_nft_origyn and inspect the sales collection. If any sales exist, you can collect the sales by calling the below function:
 
 ```
 
