@@ -343,11 +343,36 @@ User can always withdraw from their deposit account if something goes wrong.  Yo
       })));
 ```
 
-## Historical Sale Info
+## Active Historical Sale Info
+
+## sale_info_nft_origyn
+
+The sale info query is the best way to find out current info about sales going on in a collection.
+
+```
+sale_info_nft_origyn : shared SaleInfoRequest -> async Result.Result<SaleInfoResponse,OrigynError>;
+
+public type SaleInfoRequest = {
+        #active : ?(Nat, Nat); //get al list of active sales
+        #history : ?(Nat, Nat); //skip, take
+        #status : Text; //saleID
+        #deposit_info : ?Account;
+    };
+```
+
+"#active" will return a list of active sales.
+
+"#history" will return a list of the status of all previous sales.
+
+"#status" will get you the status of a particular sale id.
+
+"#deposit_info" is used for creating escrows.
 
 You can find historical information about sales for an NFT by calling history_nft_origyn(token_id, null, null) and inspecting the ledger for bids, escrows, and sales.
 
 To discover the list of NFTs on a canister you can use collection_nft_origyn query inspect the token_ids field.
+
+All queries have batch functions that can be used to get data for multiple tokens or sales at one time.
 
 ## Where are the Origyn NFT canisters
 
