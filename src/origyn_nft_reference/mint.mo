@@ -160,10 +160,22 @@ module {
                                                 Map.set<(Text,Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, library_id), a_allocation);
                                                 //D.print("testing allocation " # debug_show(canister_bucket.available_space, library_size));
                                                 Map.set<(Text,Text), Int>(canister_bucket.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, library_id), state.get_time());
-                                                canister_bucket.available_space -= library_size;
-                                                state.state.collection_data.available_space -= library_size;
+                                                if(canister_bucket.available_space >= library_size){
+                                                  canister_bucket.available_space -= library_size;
+                                                } else {
+                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
+                                                };
+                                                if(state.state.collection_data.available_space >= library_size){
+                                                  state.state.collection_data.available_space -= library_size;
+                                                } else {
+                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
+                                                };
                                                 if(state.canister() == canister_bucket.principal){
-                                                    state.state.canister_availible_space -= library_size;
+                                                    if(state.state.canister_availible_space >= library_size){
+                                                      state.state.canister_availible_space -= library_size;
+                                                    } else {
+                                                      return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
+                                                    }
                                                 };
                                                 a_allocation;
                                             };
@@ -191,8 +203,18 @@ module {
                                                     Map.set<(Text,Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, library_id), a_allocation);
                                                     //canister_bucket.allocations := Map.set<(Text,Text), Int>(canister_bucket.allocations,( NFTUtils.library_hash,  NFTUtils.library_equal), (token_id, library_id), state.get_time());
                                                                     debug if(debug_channel.library) D.print("testing allocation " # debug_show(canister_bucket.available_space, library_size));
-                                                    canister_bucket.available_space -= (library_size - val.allocated_space);
-                                                    state.state.collection_data.available_space -= (library_size - val.allocated_space);
+                                                    if(canister_bucket.available_space >= (library_size - val.allocated_space)){
+                                                      canister_bucket.available_space -= (library_size - val.allocated_space);
+                                                    } else {
+                                                      return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - canister_bucket.available_space >= (library_size - val.allocated_space) " # debug_show((canister_bucket.available_space,library_size, val.allocated_space)), ?caller));
+                                                    };
+
+                                                    if(state.state.collection_data.available_space >= (library_size - val.allocated_space)){
+                                                      state.state.collection_data.available_space -= (library_size - val.allocated_space);
+                                                    } else {
+                                                      return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - state.state.collection_data.available_space -= (library_size - val.allocated_space) " # debug_show((state.state.collection_data.available_space,library_size, val.allocated_space)), ?caller));
+                                                    };
+                                                    
                                                     a_allocation;
                                                 }  else{
                                                     //nyi: here we would give some back, but we don't support shrining right now.
@@ -780,9 +802,11 @@ module {
 
 
               if(bDelete == true){
-                
+
+                //give all the space back
                 state.state.canister_availible_space += allocation.allocated_space;
-                state.state.canister_allocated_storage -= allocation.allocated_space;
+                allocation.available_space += allocation.allocated_space;
+                state.state.collection_data.available_space += allocation.allocated_space;
                 
                 Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
                 return #ok(#staged(state.canister()));
@@ -816,12 +840,16 @@ module {
                           //allocate more space
                                           debug if(debug_channel.stage) D.print("allocate more");
                           SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
-                          allocation.available_space += (content_size - current_size);
-                      } else if (content_size != current_size){
+                          if(allocation.available_space >= (content_size - current_size)){
+                            allocation.available_space -= (content_size - current_size);
+                          } else {
+                            return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - already exists - allocation.available_space >= (content_size - current_size)" # debug_show((allocation.available_space, content_size, current_size)), ?caller));
+                          };
+                      } else if (content_size >= current_size){
                           //give space back
                                               debug if(debug_channel.stage) D.print("give space back");
                           SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
-                          allocation.available_space -= (current_size - content_size);
+                          allocation.available_space += (current_size - content_size);
                       } else {};
                   } else {
                       //D.print("branch b ");
@@ -836,7 +864,13 @@ module {
                               
                                                   debug if(debug_channel.stage) D.print("branch c" # debug_show(allocation, content_size));
                               SB.add<Nat>(allocation.chunks, content_size);
-                              allocation.available_space -= content_size;
+
+                              if(allocation.available_space >= content_size){
+                                allocation.available_space -= content_size;
+                              } else {
+                                return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - allocation loop - allocation.available_space >= content_size" # debug_show((allocation.available_space, content_size)), ?caller));
+                              };
+                              
                           } else {
                               //D.print("brac d");
                               SB.add<Nat>(allocation.chunks, 0);
@@ -877,7 +911,7 @@ module {
                 switch(Map.get<Principal,Types.BucketData>(state.state.buckets, Map.phash, allocation.canister)){
                   case(?aBucket){
                     aBucket.available_space += allocation.allocated_space;
-                    aBucket.allocated_space -= allocation.allocated_space;
+                    //aBucket.allocated_space -= allocation.allocated_space;
                   };
                   case(null){};
                 };
@@ -940,7 +974,13 @@ module {
                     } else if(content_size != current_size){
                         //give space back
                         SB.put<Nat>(fresh_allocation.chunks, chunk.chunk, content_size);
-                        fresh_allocation.available_space -= (current_size - content_size);
+                         if(fresh_allocation.available_space >= (current_size - content_size)){
+                            fresh_allocation.available_space -= (current_size - content_size);
+                          } else {
+                            return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show((fresh_allocation.available_space,current_size, content_size)), ?caller));
+                          };
+                      
+                        
                     } else {};
                 } else {
                     for(this_index in Iter.range(SB.size<Nat>(fresh_allocation.chunks), chunk.chunk)){

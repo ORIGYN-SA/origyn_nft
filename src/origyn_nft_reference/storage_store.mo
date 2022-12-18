@@ -146,7 +146,7 @@ module {
         
         if(bDelete == true){
           state.state.canister_availible_space += allocation.allocated_space;
-          state.state.canister_allocated_storage -= allocation.allocated_space;
+          //
         } else {
           //file the chunk
           //D.print("filing the chunk");
@@ -174,17 +174,29 @@ module {
               if(chunk.content.size() > current_size){
                   //allocate more space
                   SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
-                  allocation.available_space += (chunk.content.size() - current_size);
+                  if(allocation.available_space >= (chunk.content.size() - current_size)){
+                    allocation.available_space -= (chunk.content.size() - current_size);
+                  } else {
+                    return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space >= (chunk.content.size() - current_size)" # debug_show((allocation.available_space,chunk.content.size(), current_size)), ?caller));
+                  };
+                  
               } else if (chunk.content.size() != current_size){
                   //give space back
                   SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
-                  allocation.available_space -= (current_size - chunk.content.size());
+                  allocation.available_space += (current_size - chunk.content.size());
               } else {};
           } else {
               for(this_index in Iter.range(SB.size<Nat>(allocation.chunks), chunk.chunk)){
                   if(this_index == chunk.chunk){
                       SB.add<Nat>(allocation.chunks, chunk.content.size());
-                      allocation.available_space -= chunk.content.size();
+
+                      if(allocation.available_space >= chunk.content.size()){
+                        allocation.available_space -= chunk.content.size();
+                      } else {
+                        return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space -= chunk.content.size()" # debug_show((allocation.available_space,chunk.content.size())), ?caller));
+                      };
+                      
+                      
                   } else {
                       SB.add<Nat>(allocation.chunks, 0);
                   }
