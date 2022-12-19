@@ -37,17 +37,17 @@ module {
         //D.print(debug_show(stage));
         //D.print("finished stage in build standard");
 
-        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"page","hello world"));
+        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"page","hello world", #Empty));
         //D.print("finished filestage1 in build standard");
         //D.print(debug_show(fileStage));
-        let previewStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"preview","preview hello world"));
+        let previewStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"preview","preview hello world", #Empty));
         //D.print("finished filestage2 in build standard");
         //D.print(debug_show(previewStage));
-        let hiddenStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"hidden","hidden hello world"));
+        let hiddenStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"hidden","hidden hello world", #Empty));
         //D.print("finished filestage3 in build standard");
         //D.print(debug_show(hiddenStage));
 
-        let immutableStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"immutable_item","immutable"));
+        let immutableStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"immutable_item","immutable", #Empty));
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(previewStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(hiddenStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
     };
@@ -62,7 +62,7 @@ module {
         //D.print(debug_show(stage));
         //D.print("finished stage in build standard");
 
-        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner"));
+        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner", #Empty));
         
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
@@ -403,11 +403,11 @@ module {
         ])}
     };
 
-    public func standardFileChunk(token_id: Text, library_id: Text, text: Text) : Types.StageChunkArg{
+    public func standardFileChunk(token_id: Text, library_id: Text, text: Text, fileData: CandyTypes.CandyValue) : Types.StageChunkArg{
         {
             token_id = token_id : Text;
             library_id = library_id : Text;
-            filedata  = #Empty;
+            filedata  = fileData;
             chunk = 0;
             content = Conversion.valueToBlob(#Text(text));// content = #Bytes(nat8array);
         }

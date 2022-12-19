@@ -809,6 +809,7 @@ module {
                 state.state.collection_data.available_space += allocation.allocated_space;
                 
                 Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                //Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
                 return #ok(#staged(state.canister()));
               } else {
                 //file the chunk
@@ -916,12 +917,17 @@ module {
                   case(null){};
                 };
                 Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                switch(state.nft_library.get(chunk.token_id)){
+                  case(null){};
+                  case(?library){
+                    library.delete(chunk.library_id);
+                  };
+                };
                 
               };
               return #ok(#stage_remote({
                   allocation = allocation;
                   metadata = metadata;}));
-              
           };
         } else {
           return #ok(#staged(state.canister()));

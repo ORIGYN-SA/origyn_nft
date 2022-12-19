@@ -1576,6 +1576,40 @@ module {
                             b_freshmint := true;
                             let rec = switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
                                 case(#err(err)){
+                                  //put the escrow back because the minting failed
+                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
+                                    case(#ok(reverify)){
+                                        let target_escrow = {
+                                            account_hash = reverify.found_asset.escrow.account_hash;
+                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+                                            buyer = reverify.found_asset.escrow.buyer;
+                                            seller = reverify.found_asset.escrow.seller;
+                                            token_id = reverify.found_asset.escrow.token_id;
+                                            token = reverify.found_asset.escrow.token;
+                                            sale_id = reverify.found_asset.escrow.sale_id;
+                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                                        };
+
+                                        
+                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                        
+
+                                    };
+                                    case(#err(err)){
+                                        let target_escrow = {
+                                            account_hash = verified.found_asset.escrow.account_hash;
+                                            amount =  escrow.amount;
+                                            buyer = verified.found_asset.escrow.buyer;
+                                            seller = verified.found_asset.escrow.seller;
+                                            token_id = verified.found_asset.escrow.token_id;
+                                            token = verified.found_asset.escrow.token;
+                                            sale_id = verified.found_asset.escrow.sale_id;
+                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
+                                        };
+                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                    }
+                                  };
+                                
                                     return #err(Types.errors(err.error, "market_transfer_nft_origyn mint attempt" # err.flag_point, ?caller));
                                 };
                                 case(#ok(val)){
@@ -1602,6 +1636,39 @@ module {
                                     #Class(props);
                                 };
                                 case(#err(err)){
+                                  //put the escrow back because the ownership change failed
+                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
+                                    case(#ok(reverify)){
+                                        let target_escrow = {
+                                            account_hash = reverify.found_asset.escrow.account_hash;
+                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+                                            buyer = reverify.found_asset.escrow.buyer;
+                                            seller = reverify.found_asset.escrow.seller;
+                                            token_id = reverify.found_asset.escrow.token_id;
+                                            token = reverify.found_asset.escrow.token;
+                                            sale_id = reverify.found_asset.escrow.sale_id;
+                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                                        };
+
+                                        
+                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                        
+
+                                    };
+                                    case(#err(err)){
+                                        let target_escrow = {
+                                            account_hash = verified.found_asset.escrow.account_hash;
+                                            amount =  escrow.amount;
+                                            buyer = verified.found_asset.escrow.buyer;
+                                            seller = verified.found_asset.escrow.seller;
+                                            token_id = verified.found_asset.escrow.token_id;
+                                            token = verified.found_asset.escrow.token;
+                                            sale_id = verified.found_asset.escrow.sale_id;
+                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
+                                        };
+                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                    }
+                                  };
                                         return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner " # escrow.token_id, ?caller));
                                 };
                             };
