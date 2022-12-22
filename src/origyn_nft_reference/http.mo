@@ -1511,28 +1511,48 @@ module {
                     
                         if(path_size > 3){
                           if(path_array[2] == "-") {
-                              let library_id = path_array[3];
-                              if(path_size == 4){
-                                  if (is_minted == false) {
-                                      switch(http_owner_check(state, req)) {
-                                          case(#err(err)) {
-                                              return _not_found(err);
-                                          };
-                                          case(#ok()) {};
-                                      };
-                                  };
 
-                                  return renderLibrary(state, req, metadata, token_id, library_id);
-                              };
-                              if(path_size == 5){
-                                  if(path_array[4] == "info"){
-                                      let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                          case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                          case(#ok(val)){val};
-                                      };
-                                      return json(library_meta, queryObj.get("query"));
+                              if (is_minted == false) {
+                                switch(http_owner_check(state, req)) {
+                                  case(#err(err)) {
+                                    return _not_found(err);
                                   };
+                                  case(#ok()) {};
+                                };
                               };
+                              let library_id_buffer = Buffer.Buffer<Text>(1);
+                              let bIsInfo = path_array[path_array.size()-1] == "info";
+
+                              var tracker : Nat = 0;
+                              
+                              for(thisItem in path_array.vals()){
+                                if(tracker > 2){
+                                  if(bIsInfo and tracker == Nat.sub(path_array.size(),1)){
+
+                                  } else {
+                                    library_id_buffer.add(thisItem)
+                                  };
+                                };
+                                tracker += 1;
+                              };
+
+                                let library_id =if(library_id_buffer.size() > 1){
+                                Text.join("/", library_id_buffer.toArray().vals());
+                              } else {
+                                library_id_buffer.get(0);
+                              };
+
+                              if(path_size >= 5 and path_array[path_array.size()-1] == "info"){
+                                let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
+                                    case(#err(err)){return _not_found("library by " # library_id # " not found");};
+                                    case(#ok(val)){val};
+                                };
+                                return json(library_meta, queryObj.get("query"));
+                              };
+
+                              return renderLibrary(state, req, metadata, token_id, library_id);
+                              
+                              
                           };
                         };
                     };
@@ -1561,29 +1581,46 @@ module {
                         if(path_size == 2){
                             // https://exos.surf/-/canister_id/collection/
                                             debug if(debug_channel.request) D.print("render smart route 2 collection" # token_id);
-
+                            debug if(debug_channel.request) D.print("primary asset");
                             return renderSmartRoute(state, req, metadata, token_id, Types.metadata.primary_asset);
                         };
                         if(path_size > 2){
 
-                            let library_id = path_array[2];
-                            if(path_size == 3){
-                                                    debug if(debug_channel.request) D.print("render library "  # token_id # " " # library_id);
-                                // https://exos.surf/-/canister_id/collection/-/library_id
-                                return renderLibrary(state, req, metadata, token_id, library_id);
-                            };
-                            if(path_size == 4){
-                                if(path_array[4] == "info"){
-                                    /// https://exos.surf/-/canister_id/collection/-/library_id/info
-                                                    debug if(debug_channel.request) D.print("render info "  # token_id # " " # library_id);
+                          debug if(debug_channel.request) D.print("building library id");
+                          let library_id_buffer = Buffer.Buffer<Text>(1);
+                          let bIsInfo = path_array[path_array.size()-1] == "info";
 
-                                    let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                        case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                        case(#ok(val)){val};
-                                    };
-                                    return json(library_meta, queryObj.get("query"));
-                                };
+                          var tracker : Nat = 0;
+                          
+                          for(thisItem in path_array.vals()){
+                            if(tracker > 1){
+                              if(bIsInfo and tracker == Nat.sub(path_array.size(),1)){
+
+                              } else {
+                                library_id_buffer.add(thisItem)
+                              };
                             };
+                            tracker += 1;
+                          };
+
+                            let library_id = if(library_id_buffer.size() > 1){
+                            Text.join("/", library_id_buffer.toArray().vals());
+                          } else {
+                            library_id_buffer.get(0);
+                          };
+
+                          if(path_size >= 3 and path_array[path_array.size()-1] == "info"){
+                            let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
+                                case(#err(err)){return _not_found("library by " # library_id # " not found");};
+                                case(#ok(val)){val};
+                            };
+                            return json(library_meta, queryObj.get("query"));
+                          };
+                          debug if(debug_channel.request) D.print("library id "  # library_id);
+
+                          return renderLibrary(state, req, metadata, token_id, library_id);
+
+                        
 
                         };
                     };
@@ -1652,6 +1689,7 @@ module {
                         return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
                     };
                 } else {
+                  debug if(debug_channel.request) D.print("collection info");
                   let keys = let keys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
                     Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
                   } else {

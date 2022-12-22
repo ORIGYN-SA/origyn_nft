@@ -48,6 +48,8 @@ module {
         //D.print(debug_show(hiddenStage));
 
         let immutableStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"immutable_item","immutable", #Empty));
+
+        //let directoryStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"test/atest/something.txt","a directory item", #Empty));
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(previewStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(hiddenStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
     };
@@ -63,6 +65,7 @@ module {
         //D.print("finished stage in build standard");
 
         let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner", #Empty));
+        //let fileStage2 = await canister.stage_library_nft_origyn(standardFileChunk("","item/test/collection.csv","collection csv", #Empty));
         
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});

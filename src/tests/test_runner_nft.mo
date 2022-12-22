@@ -1147,15 +1147,15 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         
             S.test("fail if node does not get royalty", n_balance2.e8s, M.equals<Nat64>(T.nat64(7561446))), 
-            S.test("fail if broker does not get royalty", b_balance2.e8s, M.equals<Nat64>(T.nat64(100002794000))), 
+            S.test("fail if broker does not get royalty", b_balance2.e8s, M.equals<Nat64>(T.nat64(100005788000))), 
             S.test("fail if network does not get royalty", net_balance2.e8s, M.equals<Nat64>(T.nat64(299000))), 
             S.test("fail if node does not get second royalty", n_balance3.e8s, M.equals<Nat64>(T.nat64(9357446))), 
-            S.test("fail if broker does not get second royalty", b_balance3.e8s, M.equals<Nat64>(T.nat64(100003093000))), 
+            S.test("fail if broker does not get second royalty", b_balance3.e8s, M.equals<Nat64>(T.nat64(100006586000))), 
             S.test("fail if network does not get second royalty", net_balance3.e8s, M.equals<Nat64>(T.nat64(598000))), 
             S.test("fail if originator does not get first royalty", o_balance3.e8s, M.equals<Nat64>(T.nat64(3126633))), 
             //S.test("fail if broker still has balance after withdraw", b_balance4.e8s, M.equals<Nat64>(T.nat64(6))), 
             S.test("fail if node does not get third royalty", n_balance5.e8s, M.equals<Nat64>(T.nat64(11153446))), 
-            S.test("fail if broker does not get new royalty", b_balance5.e8s, M.equals<Nat64>(T.nat64(100003891000))), 
+            S.test("fail if broker does not get new royalty", b_balance5.e8s, M.equals<Nat64>(T.nat64(100007384000))), 
             S.test("fail if network does not get third royalty", net_balance5.e8s,  M.equals<Nat64>(T.nat64(897000))), 
             S.test("fail if originator does not get second royalty", o_balance5.e8s,  M.equals<Nat64>(T.nat64(6253266))), 
             

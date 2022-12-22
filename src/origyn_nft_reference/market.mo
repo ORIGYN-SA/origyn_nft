@@ -1054,6 +1054,7 @@ module {
                                 sale_id = ?current_sale.sale_id;
                                 account_hash = account_hash;
                                 metadata = metadata;
+                                token_id = ?token_id
                             }, caller);
 
                             remaining := royalty_result.0;
@@ -1697,10 +1698,6 @@ module {
                             };
                         };
 
-                        
-
-
-
                         //escrow already invalidated
                         //calculate royalties
                                             debug if(debug_channel.market) D.print("trying to invalidate asset");
@@ -1799,9 +1796,10 @@ module {
                                 royalty = royalty;
                                 sale_id = null;
                                 broker_id = request.sales_config.broker_id;
-                                original_broker_id = request.sales_config.broker_id;
+                                original_broker_id = null;
                                 account_hash = account_hash;
                                 metadata = metadata;
+                                token_id = ?request.token_id;
                             }, caller);
 
                             remaining := royalty_result.0;
@@ -1809,9 +1807,6 @@ module {
 
                             D.print("done with royalty" # debug_show((total,remaining)));
                                 
-                            
-
-
                             let new_sale_balance = put_sales_balance(state, {
                                 amount = remaining;
                                 seller = verified.found_asset.escrow.seller;
@@ -1835,6 +1830,7 @@ module {
                               token_id = new_sale_balance.token_id;
                               withdraw_to = new_sale_balance.seller;}
                             )));
+
                             for(thisRoyalty in royalty_result.1.vals()){
                               request_buffer.add(#withdraw(#sale({
                                 amount = thisRoyalty.amount;
@@ -1881,6 +1877,7 @@ module {
         original_broker_id: ?Principal;
         sale_id: ?Text;
         metadata : CandyTypes.CandyValue;
+        token_id: ?Text
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
                             debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
@@ -1991,7 +1988,14 @@ module {
                                     amount = this_royalty;
                                     tag = tag;
                                     reciever = #principal(this_principal);
-                                    extensible = #Empty;
+                                    extensible = switch(request.token_id){
+                                      case(null){
+                                        #Empty;
+                                      };
+                                      case(?token_id){
+                                        #Text(token_id)
+                                      }
+                                    };
                                 };
                                 timestamp = state.get_time();
                             }, caller);
