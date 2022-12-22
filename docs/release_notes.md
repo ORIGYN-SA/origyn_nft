@@ -60,6 +60,10 @@ v0.1.2
 * Sales - Fixed #active endpoint so that only tokens with active sales are listed.
 * Batch - Async batch operations are now parallelized for faster processing. Note: Order is no longer stable for responses.
 * Offers - Offers are no longer processed for the empty string collection.
+* Royalties - Fixed bug that split broker fees into two payments when there was only one broker fee.
+* Library - now support "/" in library ids to simulate directory structure for http access.
+* Bug Fix - Minting a item that was minted after mint check now returns escrow and fails gracefully.
+* Bug Fix - Fixed bug when deallocating a library and adding it back larger.
 
 v0.1.0
 

@@ -1947,7 +1947,13 @@ module {
                                     case(null, null){[Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")]}; //dev fund
                                     case(?val, null){[val]};
                                     case(null, ?val2){[val2]};
-                                    case(?val, ?val2){[val, val2]};
+                                    case(?val, ?val2){
+                                      if(val == val2){
+                                        [val];
+                                      } else {
+                                        [val, val2]
+                                      };
+                                    };
                                 };
 
                             } else { 
