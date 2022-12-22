@@ -64,6 +64,7 @@ v0.1.2
 * Library - now support "/" in library ids to simulate directory structure for http access.
 * Bug Fix - Minting a item that was minted after mint check now returns escrow and fails gracefully.
 * Bug Fix - Fixed bug when deallocating a library and adding it back larger.
+* Sale Distribution - Collection owner can now distribute sales using the #distribute_sale variant for sale_nft_origyn
 
 v0.1.0
 

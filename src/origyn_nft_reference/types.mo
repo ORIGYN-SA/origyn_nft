@@ -223,6 +223,12 @@ module {
         broker_id: ?Principal;
     };
 
+    public type DistributeSaleRequest = {
+        seller: ?Account;
+    };
+
+    public type DistributeSaleResponse = [Result.Result<ManageSaleResponse, OrigynError>];
+
     public type BidResponse = TransactionRecord;
 
     public type PricingConfig = MigrationTypes.Current.PricingConfig;
@@ -505,6 +511,7 @@ module {
         #refresh_offers: ?Account;
         #bid: BidRequest;
         #withdraw: WithdrawRequest;
+        #distribute_sale: DistributeSaleRequest;
     };
 
     public type ManageSaleResponse = {
@@ -514,6 +521,7 @@ module {
         #refresh_offers: [EscrowRecord];
         #bid: BidResponse;
         #withdraw: WithdrawResponse;
+        #distribute_sale: DistributeSaleResponse;
     };
 
     public type SaleInfoRequest = {

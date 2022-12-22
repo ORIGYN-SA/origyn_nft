@@ -1135,6 +1135,45 @@ module {
 
     };
 
+    
+
+
+    public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+      if(NFTUtils.is_owner_network(state, caller) == false){
+        return #err(Types.errors(#unauthorized_access, "distribute_sale - not a canister owner or network", ?caller));
+      };
+
+      let request_buffer : Buffer.Buffer<Types.ManageSaleRequest> = Buffer.Buffer<Types.ManageSaleRequest>(1);
+
+      label sellerSearch for(this_seller in Map.entries(state.state.sales_balances)){
+        switch(request.seller){
+          case(null){};
+          case(?seller){
+            if(Types.account_eq(this_seller.0, seller) == false){
+              continue sellerSearch;
+            };
+          };
+        };
+        for(this_buyer in Map.entries(this_seller.1)){
+          for(this_token in Map.entries(this_buyer.1)){
+            for(this_token in Map.entries(this_token.1)){
+               request_buffer.add(#withdraw(#sale({
+                    amount = this_token.1.amount;
+                    buyer = this_token.1.buyer;
+                    seller = this_token.1.seller;
+                    token = this_token.1.token;
+                    token_id = this_token.1.token_id;
+                    withdraw_to = this_token.1.seller;})));
+              };
+            };
+          };
+        };
+
+      let service : Types.Service = actor((Principal.toText(state.canister())));
+      let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+      return #ok(#distribute_sale(future));
+    };
+
     //processes a change in escrow balance
     public func put_escrow_balance(
         state: StateAccess, 
@@ -1443,6 +1482,8 @@ module {
                                 res;
                             };
                         };
+
+                        
 
                         //reentrancy risk so we remove the credit from the escrow
                                             debug if(debug_channel.market) D.print("updating the asset list");

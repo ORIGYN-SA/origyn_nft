@@ -480,24 +480,23 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func market_transfer_nft_origyn(request : Types.MarketTransferRequest) : async Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        var log_data : Text = "Token : " # request.token_id;
-        switch(request.sales_config.pricing){
+        let log_data : Text = "Token : " # request.token_id # (switch(request.sales_config.pricing){
             case(#instant){
-                log_data #= ", type : instant";
+                 ", type : instant " # debug_show(request);
             };
             case(#flat(val)){
-                log_data #= ", type : flat, amount : " # Nat.toText(val.amount);
+                 ", type : flat, amount : " # Nat.toText(val.amount) # debug_show(request);
             };
             case(#auction(val)){
-                log_data #= ", type : auction, start price : " # Nat.toText(val.start_price);
+                 ", type : auction, start price : " # Nat.toText(val.start_price) # debug_show(request);
             };
             case(#dutch(val)){
-                log_data #= ", type : dutch, start price : " # Nat.toText(val.start_price);
+                 ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show(request);
             };
             case(#extensible(val)){
-                log_data #= ", type : extensible";
+                 ", type : extensible " # debug_show(request);
             };
-        };
+        });
 
         canistergeekLogger.logMessage("market_transfer_nft_origyn",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -532,24 +531,23 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         for(this_item in request.vals()){
             // Logs
             // var first_item = request[0];
-            var log_data : Text = "Token : " # this_item.token_id;
-            switch(this_item.sales_config.pricing){
+            var log_data : Text = "Token : " # this_item.token_id # (switch(this_item.sales_config.pricing){
                 case(#instant){
-                    log_data #= ", type : instant";
+                     ", type : instant " # debug_show(request);
                 };
                 case(#flat(val)){
-                    log_data #= ", type : flat, amount : " # Nat.toText(val.amount);
+                     ", type : flat, amount : " # Nat.toText(val.amount) # debug_show(request);
                 };
                 case(#auction(val)){
-                    log_data #= ", type : auction, start price : " # Nat.toText(val.start_price);
+                     ", type : auction, start price : " # Nat.toText(val.start_price) # debug_show(request);
                 };
                 case(#dutch(val)){
-                    log_data #= ", type : dutch, start price : " # Nat.toText(val.start_price);
+                     ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show(request);
                 };
                 case(#extensible(val)){
-                    log_data #= ", type : extensible";
+                     ", type : extensible " # debug_show(request);
                 };
-            };
+            });
             canistergeekLogger.logMessage("market_transfer_batch_nft_origyn",#Text(log_data),?msg.caller);
             // nyi: should probably check for some spammy things and bail if too many errors
             
@@ -590,44 +588,49 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         return switch (request) {
             case (#end_sale(val)) {
-                log_data #= "Type : end sale, token id : " # val;
+                 let log_data = "Type : end sale, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                 await Market.end_sale_nft_origyn(get_state(), val, msg.caller);
             };
             case (#open_sale(val)) {
-                log_data #= "Type : open sale, token id : " # val;
+                let log_data =  "Type : open sale, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                 Market.open_sale_nft_origyn(get_state(), val, msg.caller);
             };
             case (#escrow_deposit(val)) {
-                log_data #= "Type : escrow deposit, token id : " # val.token_id;
+                 let log_data = "Type : escrow deposit, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                 return await Market.escrow_nft_origyn(get_state(), val, msg.caller);
             };
             case (#refresh_offers(val)) {
-                log_data #= "Type : refresh offers";
+                 let log_data = "Type : refresh offers " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                 Market.refresh_offers_nft_origyn(get_state(), val, msg.caller);
             };
             case (#bid(val)) {
-                log_data #= "Type : bid";
+                 let log_data = "Type : bid " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                 await Market.bid_nft_origyn(get_state(), val, msg.caller, false);
 
             };
+            case (#distribute_sale(val)) {
+                 let log_data = "Type : distribute sale " # debug_show(val);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
+                await Market.distribute_sale(get_state(), val, msg.caller);
+            };
             case (#withdraw(val)) {                
-                switch(val){
+                let log_data = switch(val){
                     case(#escrow(v)){
-                        log_data #= "Type : withdraw with escrow";
+                         "Type : withdraw with escrow  " # debug_show(val) ;
                     };
                     case(#sale(v)){
-                        log_data #= "Type : withdraw with sale";
+                         "Type : withdraw with sale " # debug_show(val);
                     };
                     case(#reject(v)){
-                        log_data #= "Type : withdraw with reject";
+                         "Type : withdraw with reject " # debug_show(val);
                     };
                     case(#deposit(v)){
-                        log_data #= "Type : withdraw with deposit";
+                         "Type : withdraw with deposit " # debug_show(val);
                     };
                 };
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
@@ -655,44 +658,50 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 //NOTE: this causes a commit and could over run the cycle limit. We may need to refactor to
                 // an end and then distribute pattern...or collect needed transfers and batch them.
                 case(#end_sale(val)){
-                    log_data #= "Type : end sale, token id : " # val;
+                     let log_data = "Type : end sale, token id :  " # debug_show(val);
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                     result_buffer.add(Market.end_sale_nft_origyn(get_state(), val, msg.caller));
                 };
                 case(#open_sale(val)){
-                    log_data #= "Type : open sale, token id : " # val;
+                     let log_data = "Type : open sale, token id :  " # debug_show(val);
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                     result.add(Market.open_sale_nft_origyn(get_state(), val, msg.caller));
                 };
                 case(#escrow_deposit(val)){ 
-                    log_data #= "Type : escrow deposit, token id : " # val.token_id;
+                     let log_data = "Type : escrow deposit, token id :  " # debug_show(val);
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                     result_buffer.add(Market.escrow_nft_origyn(get_state(), val, msg.caller));
                 };
                 case(#refresh_offers(val)){
-                    log_data #= "Type : refresh offers";
+                     let log_data = "Type : refresh offers " # debug_show(val);
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                     result.add(Market.refresh_offers_nft_origyn(get_state(), val, msg.caller));
                 };
                 case(#bid(val)){
-                    log_data #= "Type : bid";
+                     let log_data = "Type : bid " # debug_show(val);
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
                     result_buffer.add(Market.bid_nft_origyn(get_state(), val, msg.caller, false));
                     
                 };
+                case(#distribute_sale(val)){
+                    let log_data =  "Type : distribute_sale " # debug_show(val);
+                    canistergeekLogger.logMessage("sale_nft_origyn",# Text(log_data),?msg.caller);
+                    result_buffer.add(Market.distribute_sale(get_state(), val, msg.caller));
+                    
+                };
                  case(#withdraw(val)){
-                    switch(val){
+                    let log_data = switch(val){
                         case(#escrow(v)){
-                            log_data #= "Type : withdraw with escrow";
+                             "Type : withdraw with escrow " # debug_show(v);
                         };
                         case(#sale(v)){
-                            log_data #= "Type : withdraw with sale";
+                             "Type : withdraw with sale" # debug_show(v);
                         };
                         case(#reject(v)){
-                            log_data #= "Type : withdraw with reject";
+                             "Type : withdraw with reject" # debug_show(v);
                         };
                         case(#deposit(v)){
-                            log_data #= "Type : withdraw with deposit";
+                             "Type : withdraw with deposit" # debug_show(v);
                         };
                     };
                     canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
@@ -738,12 +747,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared(msg) func sale_info_secure_nft_origyn(request: Types.SaleInfoRequest) : async Result.Result<Types.SaleInfoResponse, Types.OrigynError>{
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");}; 
-        var log_data : Text = "";
-        switch(request){
-            case(#active(val)){ log_data #= "Type : active" };
-            case(#history(val)){ log_data #= "Type : history" };
-            case(#status(val)){ log_data #= "Type : status" };
-            case(#deposit_info(val)){ log_data #= "Type : deposit" };
+        let log_data : Text = switch(request){
+            case(#active(val)){ "Type : active " # debug_show(val)};
+            case(#history(val)){"Type : history " # debug_show(val)};
+            case(#status(val)){ "Type : status " # debug_show(val) };
+            case(#deposit_info(val)){"Type : deposit " # debug_show(val)};
         };
         canistergeekLogger.logMessage("sale_info_secure_nft_origyn",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -771,12 +779,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in sale info batch secure");
         let result = Buffer.Buffer<Result.Result<Types.SaleInfoResponse, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
-            var log_data : Text = "";
-            switch(this_item){
-                case(#active(val)){ log_data #= "Type : active" };
-                case(#history(val)){ log_data #= "Type : history" };
-                case(#status(val)){ log_data #= "Type : status" };
-                case(#deposit_info(val)){ log_data #= "Type : deposit" };
+            let log_data : Text = switch(this_item){
+                case(#active(val)){"Type : active " # debug_show(val) };
+                case(#history(val)){ "Type : history " # debug_show(val)};
+                case(#status(val)){ "Type : status " # debug_show(val)};
+                case(#deposit_info(val)){"Type : deposit " # debug_show(val)};
             };
             canistergeekLogger.logMessage("sale_info_batch_secure_nft_origyn",#Text(log_data),?msg.caller);   
             result.add(_sale_info_nft_origyn(this_item, msg.caller));
@@ -788,15 +795,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func collection_update_nft_origyn(request : Types.ManageCollectionCommand) : async Result.Result<Bool, Types.OrigynError>{
         
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        var log_data : Text = "";
-        switch(request){
-            case(#UpdateManagers(val)){ log_data #= "Type : UpdateManagers" };
-            case(#UpdateOwner(val)){ log_data #= "Type : UpdateOwner" };
-            case(#UpdateNetwork(val)){ log_data #= "Type : UpdateNetwork" };
-            case(#UpdateLogo(val)){ log_data #= "Type : UpdateLogo" };
-            case(#UpdateName(val)){ log_data #= "Type : UpdateName" };
-            case(#UpdateSymbol(val)){ log_data #= "Type : UpdateSymbol" };
-            case(#UpdateMetadata(val)){ log_data #= "Type : UpdateMetadata" };
+        let log_data : Text = switch(request){
+            case(#UpdateManagers(val)){  "Type : UpdateManagers " # debug_show(val) };
+            case(#UpdateOwner(val)){  "Type : UpdateOwner " # debug_show(val)  };
+            case(#UpdateNetwork(val)){  "Type : UpdateNetwork " # debug_show(val)  };
+            case(#UpdateLogo(val)){  "Type : UpdateLogo "  };
+            case(#UpdateName(val)){  "Type : UpdateName " # debug_show(val)  };
+            case(#UpdateSymbol(val)){  "Type : UpdateSymbol " # debug_show(val)  };
+            case(#UpdateMetadata(val)){  "Type : UpdateMetadata" };
         };
         canistergeekLogger.logMessage("collection_update_nft_origyn",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -817,15 +823,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         let results = Buffer.Buffer<Result.Result<Bool, Types.OrigynError>>(requests.size());
         for(this_item in requests.vals()){
-             var log_data : Text = "";
-            switch(this_item){
-                case(#UpdateManagers(val)){ log_data #= "Type : UpdateManagers" };
-                case(#UpdateOwner(val)){ log_data #= "Type : UpdateOwner" };
-                case(#UpdateNetwork(val)){ log_data #= "Type : UpdateNetwork" };
-                case(#UpdateLogo(val)){ log_data #= "Type : UpdateLogo" };
-                case(#UpdateName(val)){ log_data #= "Type : UpdateName" };
-                case(#UpdateSymbol(val)){ log_data #= "Type : UpdateSymbol" };
-                case(#UpdateMetadata(val)){ log_data #= "Type : UpdateMetadata" };
+            let log_data : Text = switch(this_item){
+                case(#UpdateManagers(val)){  "Type : UpdateManagers " # debug_show(val)  };
+                case(#UpdateOwner(val)){  "Type : UpdateOwner " # debug_show(val)  };
+                case(#UpdateNetwork(val)){  "Type : UpdateNetwork " # debug_show(val)  };
+                case(#UpdateLogo(val)){  "Type : UpdateLogo" };
+                case(#UpdateName(val)){  "Type : UpdateName " # debug_show(val)  };
+                case(#UpdateSymbol(val)){  "Type : UpdateSymbol " # debug_show(val)  };
+                case(#UpdateMetadata(val)){  "Type : UpdateMetadata" };
             };
             canistergeekLogger.logMessage("collection_update_batch_nft_origyn",#Text(log_data),?msg.caller);
             results.add(Metadata.collection_update_nft_origyn(get_state(), this_item, msg.caller));
@@ -865,7 +870,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         debug if(debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
         
-        canistergeekLogger.logMessage("manage_storage_nft_origyn",#Text("#add_storage_canisters"),?msg.caller);
+        canistergeekLogger.logMessage("manage_storage_nft_origyn",#Text("#add_storage_canisters " # debug_show(request)),?msg.caller);
         canistergeekMonitor.collectMetrics();
 
         let state = get_state();
@@ -950,7 +955,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func collection_secure_nft_origyn(fields : ?[(Text,?Nat, ?Nat)]) : async Result.Result<Types.CollectionInfo, Types.OrigynError>{
         
        if(halt == true){throw Error.reject("canister is in maintenance mode");};  
-       canistergeekLogger.logMessage("collection_secure_nft_origyn",#Text("collection_secure_nft_origyn"),?msg.caller);
+       canistergeekLogger.logMessage("collection_secure_nft_origyn",#Text("collection_secure_nft_origyn " # debug_show(fields)),?msg.caller);
        canistergeekMonitor.collectMetrics();
        debug if(debug_channel.function_announce) D.print("in collection_secure_nft_origyn");
         
@@ -1011,7 +1016,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public shared (msg) func history_secure_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat) : async Result.Result<[Types.TransactionRecord],Types.OrigynError> {
        
        if(halt == true){throw Error.reject("canister is in maintenance mode");};
-       var log_data : Text = "Token id : " # token_id;
+       var log_data : Text = "Token id : " # token_id # " " #  debug_show(start) #  " " # debug_show(end);
        canistergeekLogger.logMessage("history_secure_nft_origyn",#Text(log_data),?msg.caller);
        canistergeekMonitor.collectMetrics();
 
