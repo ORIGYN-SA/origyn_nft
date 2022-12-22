@@ -91,6 +91,15 @@ type SendArgs = record {
     created_at_time: opt TimeStamp;
 };
 
+type SendArgsDFX = record {
+    memo: Memo;
+    amount: Tokens;
+    fee: Tokens;
+    from_subaccount: opt SubAccount;
+    to: AccountIdentifierDFX;
+    created_at_time: opt TimeStamp;
+};
+
 
 // Arguments for the `notify` call.
 //check
@@ -415,7 +424,7 @@ type Archives = record {
 };
 
 service: (LedgerCanisterInitPayload) -> {
-  send_dfx : (SendArgs) -> (BlockHeight);
+  send_dfx : (SendArgsDFX) -> (BlockHeight);
   notify_dfx: (NotifyCanisterArgs) -> ();
   account_balance_dfx : (AccountBalanceArgsDFX) -> (Tokens) query;
   get_nodes : () -> (vec CanisterId) query;

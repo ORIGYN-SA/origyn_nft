@@ -1,35 +1,33 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
+import Candy "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy_0_1_10/types";
+import Conversions "mo:candy_0_1_10/conversion";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
+import DIP721 "../origyn_nft_reference/DIP721";
+import EXT "mo:ext/Core";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
+import Metadata "../origyn_nft_reference/metadata";
+import Mint "../origyn_nft_reference/mint";
+import NFTUtils "../origyn_nft_reference/utils";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat8 "mo:base/Nat8";
 import Principal "mo:base/Principal";
+import Map "mo:map_6_0_0/Map";
 import Result "mo:base/Result";
+import Storage_Store "../origyn_nft_reference/storage_store";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
-
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import EXT "mo:ext/Core";
-import Map "mo:map_6_0_0/Map";
+import Types "../origyn_nft_reference/types";
 import Workspace "mo:candy_0_1_10/workspace";
-
-import DIP721 "DIP721";
-import Metadata "metadata";
-import MigrationTypes "./migrations_storage/types";
-import Migrations "./migrations_storage";
-import Mint "mint";
-import NFTUtils "utils";
-import Storage_Store "storage_store";
-import Types "./types";
-import http "storage_http";
+import http "../origyn_nft_reference/storage_http";
+import Migrations "../origyn_nft_reference/migrations_storage";
+import MigrationTypes "../origyn_nft_reference/migrations_storage/types";
 
 
 shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArgs) = this {
@@ -61,17 +59,17 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     let StateTypes = MigrationTypes.Current;
     let SB = StateTypes.SB;
 
-    stable var migration_state : MigrationTypes.State = #v0_0_0(#data);
+    stable var migrationState : MigrationTypes.State = #v0_0_0(#data);
 
-    migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), { 
+    migrationState := Migrations.migrate(migrationState, #v0_1_0(#id), { 
         owner = deployer.caller;
         network = __initargs.network;
         storage_space = initial_storage; 
         gateway_canister = __initargs.gateway_canister;
         caller = deployer.caller ;});
 
-    // do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_0(#data(state_current)) = migration_state;
+    // do not forget to change #state002 when you are adding a new migration
+    let #v0_1_0(#data(state_current)) = migrationState;
 
     //the library needs to stay unstable for maleable access to the Buffers that make up the file chunks
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
@@ -131,7 +129,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     // get current network of the nft
-    public query func get_collection_network_nft_origyn(): async ?Principal.Principal {
+    public query func get_collection_network_nft_origynt(): async ?Principal.Principal {
         state_current.collection_data.network;
     };
 
@@ -346,14 +344,6 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         Cycles.balance()
     };
 
-    //lets the storage canister accept cycles
-    public func wallet_receive() : async  Nat  {
-      let amount = Cycles.available();
-      let accepted = amount;
-      let deposit = Cycles.accept(accepted);
-      accepted;
-    };
-
     system func preupgrade() {
 
 
@@ -361,11 +351,11 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){
-            let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-            for(this_item in thisKey.1.entries()){
-                this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
+            let thisLibrary_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+            for(thisItem in thisKey.1.entries()){
+                thisLibrary_buffer.add((thisItem.0, Workspace.workspaceToAddressedChunkArray(thisItem.1)) );
             };
-            nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
+            nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
         };
 
         nft_library_stable := nft_library_stable_buffer.toArray();

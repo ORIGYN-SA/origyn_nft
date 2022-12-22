@@ -37,6 +37,35 @@ Library-id - Each library item in your token's asset library has a unique text-b
 
 
 
+v0.1.2
+
+* Library - make a library mutable with a node "com.origyn.immutable_library" with a value of #Bool(true). (Defaults to false if not present).
+* Library - Delete a library using stage_library_nft_origyn with filedata set to #Bool(false).  This will not work for minted immutable libraries.
+* Soulbound - Souldbound now only takes effect after minting for sales.
+* Batch and Secure - added batch and secure methods for history.
+* Services - Updated Service definition in Types.mo
+* Docs - Changed api file to specification.md
+* Collection - collection_nft_origyn will now return the full list of NFTs(minted or not) for collection owners, managers, and the network
+* http routes - /collection now returns the ids of minted items in json
+* http routes - support NatX, IntX, Blob, Floats, Bytes, Option candy types
+* http routes - /ledger_info/{page}/{page_size} now returns the ledger json for the collection level
+* http routes - /-/token_id/ledger_info/{page}/{page_size} now returns the ledger json for the token level
+* Logging - Canister geek integration
+* Debugging - Updated some debug messages to queries.
+* Metadata - Non-immutable NFT level mata data can be updated with stage_nft_origyn by the manager or owner.
+* Backup - Backup mechanism added
+* Backup - Halt canister added.
+* Auction - Auction owners can now end a sale if it has no bids. Useful for setting a long running buy it now sale. Set minimum and buy it now to the same amount.
+* Auction - Proceeds and Royalties should now be distributed to the default account of the principal/owner.
+* Sales - Fixed #active endpoint so that only tokens with active sales are listed.
+* Batch - Async batch operations are now parallelized for faster processing. Note: Order is no longer stable for responses.
+* Offers - Offers are no longer processed for the empty string collection.
+* Royalties - Fixed bug that split broker fees into two payments when there was only one broker fee.
+* Library - now support "/" in library ids to simulate directory structure for http access.
+* Bug Fix - Minting a item that was minted after mint check now returns escrow and fails gracefully.
+* Bug Fix - Fixed bug when deallocating a library and adding it back larger.
+* Sale Distribution - Collection owner can now distribute sales using the #distribute_sale variant for sale_nft_origyn
+
 v0.1.0
 
 * Storage - Supports Manually Adding Storage Canisters to a Gateway Canister
@@ -82,6 +111,9 @@ v0.1.0
 * Media - Handle collection media
 * Media - Handle web-based media with a redirect
 * Dapps - Wallet, Marketplace, Library Viewer, Data Viewer, Ledger Viewer
+
+
+
 
 
 Future

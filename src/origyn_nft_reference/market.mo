@@ -133,10 +133,10 @@ module {
         var found_asset_list : ?MigrationTypes.Current.EscrowLedgerTrie = null;
                         debug if(debug_channel.verify_escrow) D.print("found asset " # debug_show(found_asset));
 
-        let verified = switch(Map.get(state.state.escrow_balances, account_handler,escrow.buyer)){
+        let verified = switch(Map.get(state.state.escrow_balances, account_handler, escrow.buyer)){
             case(null){
                                     debug if(debug_channel.verify_escrow) D.print("didnt find asset");
-                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow buyer not found ", null));
+                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow buyer not found " # debug_show(escrow.buyer), null));
             };
             case(?to_list){
                 //only the owner can sell it
@@ -145,7 +145,7 @@ module {
                     case(null){};
                     case(?owner){
                         if(Types.account_eq(owner, escrow.seller) == false){
-                            return #err(Types.errors(#unauthorized_access, "verify_escrow_reciept - escrow seller is not the owner ", null));
+                            return #err(Types.errors(#unauthorized_access, "verify_escrow_reciept - escrow seller is not the owner  " # debug_show(owner) # " " # debug_show(escrow.seller), null));
                         };
                     };
                 };
@@ -153,15 +153,15 @@ module {
                 switch(Map.get(to_list, account_handler, escrow.seller)){
                     case(null){
                                             debug if(debug_channel.verify_escrow) D.print("no escrow seller");
-                        return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow seller not found ", null));};
+                        return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow seller not found  " # debug_show(escrow.seller), null));};
                     case(?token_list){
                                             debug if(debug_channel.verify_escrow) D.print("looking for to list");
                         let asset_list = switch(Map.get(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")){
                             case(null, null){
-                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id not found ", null));
+                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id not found  " # debug_show(escrow.token_id), null));
                             };
                             case(null, ?generalList){
-                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id found for general item but token_id is specific ", null));
+                                return #err(Types.errors(#no_escrow_found, "verify_escrow_reciept - escrow token_id found for general item but token_id is specific  " # debug_show(escrow.token_id), null));
                             };
                             
                             
@@ -181,7 +181,7 @@ module {
                                         switch(sale_id, balance.sale_id){
                                             case(null, null){};
                                             case(?desired_sale_id, null){
-                                                return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match ", null));
+                                                return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match  " #   debug_show(sale_id) # debug_show(balance.sale_id), null));
                                             };
                                             case(null, ?on_file_saleID){
                                                 //null is passed in as a sale id if we want to do sale id verification elsewhere
@@ -189,13 +189,13 @@ module {
                                             };
                                             case(?desired_sale_id, ?on_file_saleID){
                                                 if(desired_sale_id != on_file_saleID){
-                                                    return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match ", null));
+                                                    return #err(Types.errors(#sale_id_does_not_match, "verify_escrow_reciept - escrow sale_id does not match  " # debug_show(on_file_saleID)  # debug_show(desired_sale_id), null));
                                                 };
                                             };
                                         }; 
                                         if(balance.amount >= escrow.amount){
                                             true;
-                                        } else {return #err(Types.errors(#withdraw_too_large, "verify_escrow_reciept - escrow not large enough", null));};
+                                        } else {return #err(Types.errors(#withdraw_too_large, "verify_escrow_reciept - escrow not large enough  " # debug_show(balance.amount) # " " # debug_show(escrow.amount), null));};
                                     };
                                 };
                             };
@@ -353,7 +353,7 @@ module {
 
     //opens a sale if it is past the date
     public func open_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-        //D.print("in end_sale_nft_origyn");
+        //D.print("in open_sale_nft_origyn");
         let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
                 return #err(Types.errors(#token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
@@ -460,9 +460,11 @@ module {
     public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
         
         var tracker = 0 : Nat;
-        let (min, max, total, eof) = switch(pages){
+        
+
+        let (min, max) = switch(pages){
             case(null){
-                (0, Map.size(state.state.nft_metadata), Map.size(state.state.nft_metadata), true);
+                (0, Map.size(state.state.nft_metadata));
             };
             case(?val){
                 (val.0, 
@@ -470,113 +472,126 @@ module {
                      Map.size(state.state.nft_metadata)
                  } else {
                      val.0 + val.1;
-                 }, 
-                 Map.size(state.state.nft_metadata),
-                 if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
-                     true;
-                 } else {
-                     false;
-                 }, 
+                 }
                  );
             };
         };
 
         let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
 
+        var foundTotal : Nat = 0;
+        var eof : Bool = false;
+        let totalSize = Map.size(state.state.nft_metadata);
+
         label search for(this_token in Map.entries(state.state.nft_metadata)){
-            if(tracker > max){break search;};
-            if(tracker >= min){
+            
+            
+          let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
+              case(#err(err)){
+                  results.add("unminted", null);
+                  tracker += 1;
+                  continue search;
+              };
+              case(#ok(val)){
+                  val;
+              };
+          };
+
+          //look for an existing sale
+          
+          let current_sale = switch(Metadata.get_current_sale_id(metadata)){
+              case(#Empty){
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+              };
+              case(#Text(val)){
+                  switch(Map.get(state.state.nft_sales, Map.thash,val)){
+                      case(?status){
+                          status;
+                      };
+                      case(null){
+                          //results.add(this_token.0, null);
+                          tracker += 1;
+                          continue search;
+                      };
+                  };
+              };
+              case(_){
                 
-                let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
-                    case(#err(err)){
-                        results.add("unminted", null);
-                        tracker += 1;
-                        continue search;
-                    };
-                    case(#ok(val)){
-                        val;
-                    };
-                };
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+                  
+              };
+          };
 
-                //look for an existing sale
-               
-                let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-                    case(#Empty){
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                    };
-                    case(#Text(val)){
-                        switch(Map.get(state.state.nft_sales, Map.thash,val)){
-                            case(?status){
-                                status;
-                            };
-                            case(null){
-                                results.add(this_token.0, null);
-                                tracker += 1;
-                                continue search;
-                            };
-                        };
-                    };
-                    case(_){
+          let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+              case(#ok(val)){val};
+              case(#err(err)){
+                    
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
                       
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                        
-                    };
-                };
+              };
+          };
 
-                let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-                    case(#ok(val)){val};
-                    case(#err(err)){
-                         
-                        results.add(this_token.0, null);
-                        tracker += 1;
-                        continue search;
-                            
-                    };
-                };
+          switch(current_sale_state.config){
+              case(#auction(config)){
+                  let current_pricing = switch(current_sale_state.config){
+                      case(#auction(config)){
+                          config;
+                      };
+                      case(_){
+                          //nyi: handle other sales types
+                          //results.add(this_token.0, null);
+                          tracker += 1;
+                          continue search;
+                      };
+                  };
 
-                switch(current_sale_state.config){
-                    case(#auction(config)){
-                        let current_pricing = switch(current_sale_state.config){
-                            case(#auction(config)){
-                                config;
-                            };
-                            case(_){
-                                //nyi: handle other sales types
-                                results.add(this_token.0, null);
-                                tracker += 1;
-                                continue search;
-                            };
-                        };
+                  if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+                    
+                    if(tracker > max){}
+                    else if( tracker >= min ){
 
-                        results.add(this_token.0, ?{
-                            sale_id = current_sale.sale_id;
-                            token_id = current_sale.token_id;
-                            broker_id = current_sale.broker_id;
-                            original_broker_id = current_sale.original_broker_id;
-                            sale_type = switch(current_sale.sale_type){
-                                case(#auction(val)){
-                                    #auction(Types.AuctionState_stabalize_for_xfer(val))
-                                };
-                            };
-                        });
+                      results.add(this_token.0, ?{
+                          sale_id = current_sale.sale_id;
+                          token_id = current_sale.token_id;
+                          broker_id = current_sale.broker_id;
+                          original_broker_id = current_sale.original_broker_id;
+                          sale_type = switch(current_sale.sale_type){
+                              case(#auction(val)){
+                                  #auction(Types.AuctionState_stabalize_for_xfer(val))
+                              };
+                          };
+                      });
 
-                    };
-                    case(_){
-                        results.add(this_token.0, null);
-                    };
-                };
-            };
+                      if(tracker + 1 == totalSize){
+                        eof := true;
+                      };
+                    } else {};
+
+
+                    foundTotal += 1;
+
+                  };
+              };
+              case(_){
+                  //results.add(this_token.0, null);
+                  tracker += 1;
+                  continue search;
+              };
+          };
+
             tracker += 1;
         };
 
         return #ok(#active({
             records = results.toArray();
             eof = eof;
-            count = total;
+            count = foundTotal;
         }));
     };
 
@@ -618,7 +633,7 @@ module {
                     case(#ok(val)){val};
                     case(#err(err)){
                          
-                        results.add(null);
+                        //results.add(null);
                         tracker += 1;
                         continue search;
                             
@@ -633,7 +648,7 @@ module {
                             };
                             case(_){
                                 //nyi: handle other sales types
-                                results.add( null);
+                                //results.add( null);
                                 tracker += 1;
                                 continue search;
                             };
@@ -655,7 +670,7 @@ module {
                     };
                     case(_){
                         //nyi: implement other sales types
-                        results.add(null);
+                        //results.add(null);
                     };
                 };
             };
@@ -779,6 +794,35 @@ module {
                     if( buy_now == true and caller == state.canister()){
                         //only the canister can end a buy now
                     } else {
+
+                         if(Types.account_eq(#principal(caller), owner) == true and current_sale_state.current_escrow == null){
+                            //an owner can cancel an auction that has no bids yet.
+                            //useful for buy it now sales with a long out end date.
+                            current_sale_state.status := #closed; 
+                            
+
+                            switch(Metadata.add_transaction_record(state,{
+                                token_id = token_id;
+                                index = 0;
+                                txn_type = #sale_ended {
+                                    seller = owner;
+                                    buyer = owner;
+                                    token = config.token;
+                                    sale_id = ?current_sale.sale_id;
+                                    amount = 0;
+                                    extensible = #Text("owner canceled");
+                                };
+                                timestamp = state.get_time();
+                            }, caller)){
+                                case(#ok(new_trx)){
+                                return #ok(#end_sale(new_trx));
+                                };
+                                case(#err(err)){
+                                    return #err(err);
+                                };
+                            };
+
+                         };
                         
                          return #err(Types.errors(#sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller));
                
@@ -999,7 +1043,7 @@ module {
                             var remaining = Nat.sub(winning_escrow.amount, fee);
                             
 
-                            remaining := _process_royalties(state, {
+                            let royalty_result =  _process_royalties(state, {
                                 var remaining = remaining;
                                 total = total;
                                 fee = fee;
@@ -1010,7 +1054,10 @@ module {
                                 sale_id = ?current_sale.sale_id;
                                 account_hash = account_hash;
                                 metadata = metadata;
+                                token_id = ?token_id
                             }, caller);
+
+                            remaining := royalty_result.0;
                         
 
                             
@@ -1028,8 +1075,31 @@ module {
                                 lock_to_date = null;
                                 account_hash = account_hash;
                             }, true);
-                        };
 
+                            let service : Types.Service = actor((Principal.toText(state.canister())));
+                            let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
+
+                            request_buffer.add(#withdraw(#sale({
+                              amount = new_sale_balance.amount;
+                              buyer = new_sale_balance.buyer;
+                              seller = new_sale_balance.seller;
+                              token = new_sale_balance.token;
+                              token_id = new_sale_balance.token_id;
+                              withdraw_to = new_sale_balance.seller;}
+                            )));
+                            for(thisRoyalty in royalty_result.1.vals()){
+                              request_buffer.add(#withdraw(#sale({
+                                amount = thisRoyalty.amount;
+                                buyer = thisRoyalty.buyer;
+                                seller = thisRoyalty.seller;
+                                token = thisRoyalty.token;
+                                token_id = thisRoyalty.token_id;
+                                withdraw_to = thisRoyalty.seller;})));
+                            };
+                            D.print("attempt to distribute royalties request auction" # debug_show(request_buffer.toArray()));
+                            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                            D.print("attempt to distribute royalties auction" # debug_show(future));
+                        };
 
                         switch(Metadata.add_transaction_record(state,{
                             token_id = token_id;
@@ -1065,6 +1135,45 @@ module {
 
     };
 
+    
+
+
+    public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+      if(NFTUtils.is_owner_network(state, caller) == false){
+        return #err(Types.errors(#unauthorized_access, "distribute_sale - not a canister owner or network", ?caller));
+      };
+
+      let request_buffer : Buffer.Buffer<Types.ManageSaleRequest> = Buffer.Buffer<Types.ManageSaleRequest>(1);
+
+      label sellerSearch for(this_seller in Map.entries(state.state.sales_balances)){
+        switch(request.seller){
+          case(null){};
+          case(?seller){
+            if(Types.account_eq(this_seller.0, seller) == false){
+              continue sellerSearch;
+            };
+          };
+        };
+        for(this_buyer in Map.entries(this_seller.1)){
+          for(this_token in Map.entries(this_buyer.1)){
+            for(this_token in Map.entries(this_token.1)){
+               request_buffer.add(#withdraw(#sale({
+                    amount = this_token.1.amount;
+                    buyer = this_token.1.buyer;
+                    seller = this_token.1.seller;
+                    token = this_token.1.token;
+                    token_id = this_token.1.token_id;
+                    withdraw_to = this_token.1.seller;})));
+              };
+            };
+          };
+        };
+
+      let service : Types.Service = actor((Principal.toText(state.canister())));
+      let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+      return #ok(#distribute_sale(future));
+    };
+
     //processes a change in escrow balance
     public func put_escrow_balance(
         state: StateAccess, 
@@ -1092,18 +1201,20 @@ module {
                 Map.set<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller, newTo);
 
                 //add this item to the offer index
-                switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
-                    case(null){
-                        var aTree = Map.new<Types.Account,Int>();
-                        Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
+                if(escrow.token_id != ""){
+                  switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
+                      case(null){
+                          var aTree = Map.new<Types.Account,Int>();
+                          Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
 
-                        Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
-                    };
-                    case(?val){
-                        Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
+                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
+                      };
+                      case(?val){
+                          Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
 
-                        Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
-                    };
+                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
+                      };
+                  };
                 };
                 newTo;
             };
@@ -1263,12 +1374,9 @@ module {
                 val;
             };
         };
-                             debug if(debug_channel.market) D.print("have metadata" # debug_show(metadata));
 
-        //can't start auction if token is soulbound
-        if (Metadata.is_soulbound(metadata)) {
-            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
-        };
+
+                             debug if(debug_channel.market) D.print("have metadata" # debug_show(metadata));
 
         let owner = switch(
             Metadata.get_nft_owner(metadata)){
@@ -1286,8 +1394,22 @@ module {
         //check to see if there is a current sale going on MKT0018
 
         let this_is_minted = Metadata.is_minted(metadata);
+
+        
                                  debug if(debug_channel.market) D.print(request.token_id # " isminted" # debug_show(this_is_minted));
         if(this_is_minted){
+
+
+            //can't start auction if token is soulbound
+            if (Metadata.is_soulbound(metadata)) {
+                return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+            };
+
+            //can't start auction if token is soulbound
+            if (Metadata.is_soulbound(metadata)) {
+                return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+            };
+
             //this is a minted NFT - only the nft owner or nft manager can sell it
             switch(Metadata.is_nft_owner(metadata, #principal(caller))){
               case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller))};
@@ -1352,11 +1474,16 @@ module {
                                             debug if(debug_channel.market) D.print(debug_show(escrow.amount));
                         
                         let verified = switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                            case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn verifying escrow " # err.flag_point, ?caller))};
+                            case(#err(err)){
+                              //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
+                              return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+                            };
                             case(#ok(res)){
                                 res;
                             };
                         };
+
+                        
 
                         //reentrancy risk so we remove the credit from the escrow
                                             debug if(debug_channel.market) D.print("updating the asset list");
@@ -1489,31 +1616,48 @@ module {
                         let txn_record = if(this_is_minted == false){
                             //execute mint should add mint transaction
                             b_freshmint := true;
-                            switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
+                            let rec = switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
                                 case(#err(err)){
+                                  //put the escrow back because the minting failed
+                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
+                                    case(#ok(reverify)){
+                                        let target_escrow = {
+                                            account_hash = reverify.found_asset.escrow.account_hash;
+                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+                                            buyer = reverify.found_asset.escrow.buyer;
+                                            seller = reverify.found_asset.escrow.seller;
+                                            token_id = reverify.found_asset.escrow.token_id;
+                                            token = reverify.found_asset.escrow.token;
+                                            sale_id = reverify.found_asset.escrow.sale_id;
+                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                                        };
+
+                                        
+                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                        
+
+                                    };
+                                    case(#err(err)){
+                                        let target_escrow = {
+                                            account_hash = verified.found_asset.escrow.account_hash;
+                                            amount =  escrow.amount;
+                                            buyer = verified.found_asset.escrow.buyer;
+                                            seller = verified.found_asset.escrow.seller;
+                                            token_id = verified.found_asset.escrow.token_id;
+                                            token = verified.found_asset.escrow.token;
+                                            sale_id = verified.found_asset.escrow.sale_id;
+                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
+                                        };
+                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                    }
+                                  };
+                                
                                     return #err(Types.errors(err.error, "market_transfer_nft_origyn mint attempt" # err.flag_point, ?caller));
                                 };
                                 case(#ok(val)){
                                                             debug if(debug_channel.market) D.print("updating metadata after mint");
                                     metadata := val.1;
-                                    switch(Metadata.add_transaction_record(state,{
-                                        token_id = request.token_id;
-                                        index = 0; //mint should always be 0
-                                        txn_type = #mint({
-                                            from = owner;
-                                            to = escrow.buyer;
-                                            sale = ?{
-                                                token = escrow.token;
-                                                amount = escrow.amount;
-                                            };
-                                            extensible = #Empty;
-                                        });
-                                        timestamp = Time.now();
-                                    }, caller)){
-                                        case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn adding transaction" # err.flag_point, ?caller));};
-                                        case(#ok(val)){val};
-                                    };
-                                    
+                                    val.2;
                                 };
                             };
                         } else{
@@ -1534,6 +1678,39 @@ module {
                                     #Class(props);
                                 };
                                 case(#err(err)){
+                                  //put the escrow back because the ownership change failed
+                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
+                                    case(#ok(reverify)){
+                                        let target_escrow = {
+                                            account_hash = reverify.found_asset.escrow.account_hash;
+                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+                                            buyer = reverify.found_asset.escrow.buyer;
+                                            seller = reverify.found_asset.escrow.seller;
+                                            token_id = reverify.found_asset.escrow.token_id;
+                                            token = reverify.found_asset.escrow.token;
+                                            sale_id = reverify.found_asset.escrow.sale_id;
+                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                                        };
+
+                                        
+                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                        
+
+                                    };
+                                    case(#err(err)){
+                                        let target_escrow = {
+                                            account_hash = verified.found_asset.escrow.account_hash;
+                                            amount =  escrow.amount;
+                                            buyer = verified.found_asset.escrow.buyer;
+                                            seller = verified.found_asset.escrow.seller;
+                                            token_id = verified.found_asset.escrow.token_id;
+                                            token = verified.found_asset.escrow.token;
+                                            sale_id = verified.found_asset.escrow.sale_id;
+                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
+                                        };
+                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                    }
+                                  };
                                         return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner " # escrow.token_id, ?caller));
                                 };
                             };
@@ -1561,10 +1738,6 @@ module {
                                 case(#ok(val)){val};
                             };
                         };
-
-                        
-
-
 
                         //escrow already invalidated
                         //calculate royalties
@@ -1656,7 +1829,7 @@ module {
                             
 
                             D.print("calling process royalty" # debug_show((total,remaining)));
-                            remaining := _process_royalties(state, {
+                            let royalty_result = _process_royalties(state, {
                                 var remaining = remaining;
                                 total = total;
                                 fee = fee;
@@ -1664,17 +1837,17 @@ module {
                                 royalty = royalty;
                                 sale_id = null;
                                 broker_id = request.sales_config.broker_id;
-                                original_broker_id = request.sales_config.broker_id;
+                                original_broker_id = null;
                                 account_hash = account_hash;
                                 metadata = metadata;
+                                token_id = ?request.token_id;
                             }, caller);
+
+                            remaining := royalty_result.0;
 
 
                             D.print("done with royalty" # debug_show((total,remaining)));
                                 
-                            
-
-
                             let new_sale_balance = put_sales_balance(state, {
                                 amount = remaining;
                                 seller = verified.found_asset.escrow.seller;
@@ -1686,6 +1859,34 @@ module {
                                 lock_to_date = null;
                                 account_hash = account_hash;
                             }, true);
+
+                            let service : Types.Service = actor((Principal.toText(state.canister())));
+                            let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
+
+                            request_buffer.add(#withdraw(#sale({
+                              amount = new_sale_balance.amount;
+                              buyer = new_sale_balance.buyer;
+                              seller = new_sale_balance.seller;
+                              token = new_sale_balance.token;
+                              token_id = new_sale_balance.token_id;
+                              withdraw_to = new_sale_balance.seller;}
+                            )));
+
+                            for(thisRoyalty in royalty_result.1.vals()){
+                              request_buffer.add(#withdraw(#sale({
+                                amount = thisRoyalty.amount;
+                                buyer = thisRoyalty.buyer;
+                                seller = thisRoyalty.seller;
+                                token = thisRoyalty.token;
+                                token_id = thisRoyalty.token_id;
+                                withdraw_to = thisRoyalty.seller;})));
+                            };
+                            D.print("attempt to distribute royalties request instant" # debug_show(request_buffer.toArray()));
+
+                            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                            D.print("attempt to distribute royalties instant" # debug_show(future));
+
+
                         };
 
                         return #ok(txn_record);
@@ -1706,7 +1907,7 @@ module {
     };
 
     //handles royalty distribution
-    private func _process_royalties(state : StateAccess, request :{
+    private func _process_royalties(state : StateAccess, request : {
         var remaining: Nat;
         total: Nat;
         fee: Nat;
@@ -1717,9 +1918,12 @@ module {
         original_broker_id: ?Principal;
         sale_id: ?Text;
         metadata : CandyTypes.CandyValue;
-    }, caller: Principal) : Nat{
+        token_id: ?Text
+    }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
                             debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
+
+        let results = Buffer.Buffer<Types.EscrowRecord>(1);
         for(this_item in request.royalty.vals()){
             switch(this_item){
                 case(#Class(the_array)){
@@ -1784,7 +1988,13 @@ module {
                                     case(null, null){[Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")]}; //dev fund
                                     case(?val, null){[val]};
                                     case(null, ?val2){[val2]};
-                                    case(?val, ?val2){[val, val2]};
+                                    case(?val, ?val2){
+                                      if(val == val2){
+                                        [val];
+                                      } else {
+                                        [val, val2]
+                                      };
+                                    };
                                 };
 
                             } else { 
@@ -1825,13 +2035,19 @@ module {
                                     amount = this_royalty;
                                     tag = tag;
                                     reciever = #principal(this_principal);
-                                    extensible = #Empty;
+                                    extensible = switch(request.token_id){
+                                      case(null){
+                                        #Empty;
+                                      };
+                                      case(?token_id){
+                                        #Text(token_id)
+                                      }
+                                    };
                                 };
                                 timestamp = state.get_time();
                             }, caller);
 
                                                 debug if(debug_channel.royalties) D.print("added trx" # debug_show(id));
-
                             let new_sale_balance = put_sales_balance(state, {
                                 amount = this_royalty;
                                 seller = #principal(this_principal);
@@ -1843,6 +2059,7 @@ module {
                                 account_hash = request.account_hash;
                             }, true);
 
+                            results.add(new_sale_balance);
                                                 debug if(debug_channel.royalties) D.print("new_sale_balance" # debug_show(new_sale_balance));
 
 
@@ -1862,7 +2079,7 @@ module {
             
         };
 
-        return request.remaining;
+        return (request.remaining, results.toArray());
     };
 
     //handles non-async market functions like starting an auction
@@ -1879,9 +2096,14 @@ module {
         };
                             debug if(debug_channel.market) D.print("have metadata");
 
-        //can't start auction if token is soulbound
-        if (Metadata.is_soulbound(metadata)) {
-            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+        
+
+
+        //can't start auction if token is a phisycal object unless in escrow with a node
+        if (Metadata.is_physical(metadata)) {
+          if (Metadata.is_in_physical_escrow(metadata) == false) {
+            return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn physical token must be escrowed", ?caller));
+          };
         };
 
         let owner = switch(
@@ -1902,6 +2124,12 @@ module {
         let this_is_minted = Metadata.is_minted(metadata);
                             debug if(debug_channel.market) D.print(request.token_id # " isminted" # debug_show(this_is_minted));
         if(this_is_minted){
+
+            //can't start auction if token is soulbound
+            if (Metadata.is_soulbound(metadata)) {
+                return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
+            };
+
             //this is a minted NFT - only the nft owner or nft manager can sell it
             switch(Metadata.is_nft_owner(metadata, #principal(caller))){
               case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller))};
@@ -2113,7 +2341,7 @@ module {
     };
 
     //moves tokens from a deposit into an escrow
-    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async Result.Result<Types.EscrowResponse,Types.OrigynError> {
+    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
         //we will also allow a canister/canister owner to create escrows for itself
         if(Types.account_eq(#principal(caller), request.deposit.buyer) == false and 
@@ -2247,7 +2475,7 @@ module {
 
                         debug if(debug_channel.escrow) D.print("have the trx");
                         debug if(debug_channel.escrow) D.print(debug_show(new_trx));
-        return #ok({
+        return #ok(#escrow_deposit({
             receipt = {
                 seller = request.deposit.seller;
                 buyer = request.deposit.buyer;
@@ -2258,13 +2486,13 @@ module {
             };
             balance = escrow_result.amount;
             transaction = new_trx;
-        });
+        }));
 
 
     };
 
     //allows the user to withdraw tokens from an nft canister
-    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async Result.Result<Types.WithdrawResponse,Types.OrigynError> {
+    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         switch(withdraw){
           case(#deposit(details)){
             D.print("in deposit withdraw");
@@ -2358,7 +2586,7 @@ module {
                         timestamp = state.get_time();
                     }, caller)) {
                         case(#ok(val)){
-                            return #ok(val);
+                            return #ok(#withdraw(val));
                         };
                         case(#err(err)){
                             return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -2656,7 +2884,7 @@ module {
                                   timestamp = state.get_time();
                               }, caller)) {
                                   case(#ok(val)){
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -2681,7 +2909,7 @@ module {
                                   debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
                                   debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
                                   debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
-              if(Types.account_eq(#principal(caller), details.seller) == false){
+              if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false){
                   //cant withdraw for someone else
                   //D.print("can't withdraw for someone else");
                   return #err(Types.errors(#unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller));
@@ -2890,7 +3118,7 @@ module {
                                   case(#ok(val)){
                                       //D.print("we did it");
                                       //D.print(debug_show(val));
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -3143,7 +3371,7 @@ module {
                                   timestamp = state.get_time();
                               }, caller)) {
                                   case(#ok(val)){
-                                      return #ok(val);
+                                      return #ok(#withdraw(val));
                                   };
                                   case(#err(err)){
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
@@ -3169,7 +3397,7 @@ module {
     };
 
     //allows bids on auctons
-    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal) : async Result.Result<Types.BidResponse,Types.OrigynError> {
+    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
 
         //look for an existing sale
@@ -3270,7 +3498,36 @@ module {
         //make sure the receipt is valid
                             debug if(debug_channel.bid) D.print("verifying Escrow");
         let verified = switch(verify_escrow_reciept(state, request.escrow_receipt, null, ?request.sale_id)){
-            case(#err(err)){return #err(Types.errors(err.error, "bid_nft_origyn verifying escrow " # err.flag_point, ?caller))};
+            case(#err(err)){
+              //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
+              //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
+
+              if(canister_call == false){
+                switch(await escrow_nft_origyn(state,
+                    {deposit =
+                      {
+                        amount = request.escrow_receipt.amount;
+                        buyer = request.escrow_receipt.buyer;
+                        sale_id = ?request.sale_id;
+                        seller = request.escrow_receipt.seller;
+                        token = request.escrow_receipt.token;
+                        trx_id = null;
+                      }; 
+                    lock_to_date = null; token_id = request.escrow_receipt.token_id}
+                  , caller)){
+                    case(#ok(newEscrow)){
+                        //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
+                        return await bid_nft_origyn(state, request, caller, true);
+
+                    };
+                    case(#err(err)){
+                      return #err(Types.errors(err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+                    };
+                  };
+              } else {
+                return #err(Types.errors(err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller))
+              };
+            };
             case(#ok(res)){
                 res;
             };
@@ -3445,7 +3702,7 @@ module {
                         case(#ok(val)){
                             switch(val){
                                 case(#end_sale(val)){
-                                    return #ok(val);
+                                    return #ok(#bid(val));
                                 };
                                 case(_){
                                     return #err(Types.errors(#improper_interface, "bid_nft_origyn - buy it now call to end sale had odd response " # debug_show(result), ?caller ));
@@ -3459,7 +3716,7 @@ module {
 
                     //call ourseves to close the auction
                 };
-                return #ok(val);
+                return #ok(#bid(val));
             };
             case(#err(err)){
                 return #err(Types.errors(err.error, "bid_nft_origyn - create transaction record " # err.flag_point, ?caller));

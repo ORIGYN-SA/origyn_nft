@@ -37,15 +37,19 @@ module {
         //D.print(debug_show(stage));
         //D.print("finished stage in build standard");
 
-        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"page","hello world"));
+        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"page","hello world", #Empty));
         //D.print("finished filestage1 in build standard");
         //D.print(debug_show(fileStage));
-        let previewStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"preview","preview hello world"));
+        let previewStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"preview","preview hello world", #Empty));
         //D.print("finished filestage2 in build standard");
         //D.print(debug_show(previewStage));
-        let hiddenStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"hidden","hidden hello world"));
+        let hiddenStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"hidden","hidden hello world", #Empty));
         //D.print("finished filestage3 in build standard");
         //D.print(debug_show(hiddenStage));
+
+        let immutableStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"immutable_item","immutable", #Empty));
+
+        //let directoryStage = await canister.stage_library_nft_origyn(standardFileChunk(token_id,"test/atest/something.txt","a directory item", #Empty));
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(previewStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(hiddenStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
     };
@@ -60,7 +64,8 @@ module {
         //D.print(debug_show(stage));
         //D.print("finished stage in build standard");
 
-        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner"));
+        let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner", #Empty));
+        //let fileStage2 = await canister.stage_library_nft_origyn(standardFileChunk("","item/test/collection.csv","collection csv", #Empty));
         
         
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
@@ -74,7 +79,7 @@ module {
         is_soulbound: Bool) : {metadata : CandyTypes.CandyValue} {
         {metadata = #Class([
             {name = "id"; value=#Text(token_id); immutable= true},
-            {name = "primary_asset"; value=#Text("page"); immutable= true},
+            {name = "primary_asset"; value=#Text("page"); immutable=false},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
             {name = "library"; value=#Array(#thawed([
@@ -121,6 +126,18 @@ module {
                     {name = "size"; value=#Nat(file_size); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public");immutable=false;},
+                ]),
+                #Class([
+                    {name = "library_id"; value=#Text("immutable_item"); immutable= true},
+                    {name = "title"; value=#Text("immutable"); immutable= true},
+                    {name = "location_type"; value=#Text("canister"); immutable= true},
+                    {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId=" # Principal.toText(canister)); immutable= true},
+                    {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "size"; value=#Nat(file_size); immutable= true},
+                    {name = "sort"; value=#Nat(0); immutable= true},
+                    {name = "read"; value=#Text("public");immutable=false;},
+                    {name = "com.origyn.immutable_library"; value=#Bool(true);immutable=false;},
                 ])
             ])); immutable= false},
             {name="__apps"; value=#Array(#thawed([
@@ -216,7 +233,7 @@ module {
                 immutable=false;},
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
-            {name = "primary_protcol"; value=#Text("http"); immutable= false},
+            {name = "primary_protocol"; value=#Text("http"); immutable= false},
            
             {name = "owner"; value=#Principal(canister); immutable= false},
             {name = "is_soulbound"; value=#Bool(is_soulbound); immutable = is_soulbound},
@@ -268,12 +285,10 @@ module {
                 ]),
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.custom"); immutable= true},
-                    {name = "rate"; value=#Float(0.04); immutable= true}
+                    {name = "rate"; value=#Float(0.04); immutable= true},
+                    {name = "account"; value=#Principal(originator); immutable= true}
                 ]),
-                #Class([
-                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
-                    {name = "rate"; value=#Float(0.04); immutable= true}
-                ]),
+                
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
                     {name = "rate"; value=#Float(0.005); immutable= true}
@@ -387,16 +402,15 @@ module {
             {name = "is_soulbound"; value=#Bool(false); immutable = false},
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
-            {name = "primary_protcol"; value=#Text("http"); immutable= false},
-            {name = "owner"; value=#Principal(canister); immutable= false}
+            {name = "primary_protocol"; value=#Text("http"); immutable= false},
         ])}
     };
 
-    public func standardFileChunk(token_id: Text, library_id: Text, text: Text) : Types.StageChunkArg{
+    public func standardFileChunk(token_id: Text, library_id: Text, text: Text, fileData: CandyTypes.CandyValue) : Types.StageChunkArg{
         {
             token_id = token_id : Text;
             library_id = library_id : Text;
-            filedata  = #Empty;
+            filedata  = fileData;
             chunk = 0;
             content = Conversion.valueToBlob(#Text(text));// content = #Bytes(nat8array);
         }
