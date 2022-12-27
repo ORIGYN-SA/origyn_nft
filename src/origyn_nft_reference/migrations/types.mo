@@ -1,8 +1,8 @@
 import v0_1_0 "./v000_001_000/types";
-import v0_2_0 "./v000_002_000/types";
+import v0_1_2 "./v000_001_200/types";
 
 module {
-  public let Current = v0_2_0;
+  public let Current = v0_1_2;
 
   public type Args = {
     owner: Principal;
@@ -13,7 +13,7 @@ module {
   public type State = {
     #v0_0_0: {#id; #data: ()};
     #v0_1_0: { #id; #data: v0_1_0.State };
-    #v0_2_0: { #id; #data: v0_2_0.State };
+    #v0_1_2: { #id; #data: v0_1_2.State };
     // do not forget to add your new migration state types here
   };
 };

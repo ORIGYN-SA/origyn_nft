@@ -15,7 +15,7 @@ module {
     
     
     D.print("in upgrade");
-    return #v0_2_0(#data({
+    return #v0_1_2(#data({
         //holds info about the collection
             var collection_data = state.collection_data;
            
@@ -55,7 +55,7 @@ module {
             //nyi: currently only store the latest sale so other data is destoyed, probably need to store somewhere, basic data is available in the ledger
             var nft_sales = state.nft_sales;
             
-            // Add the two new fields for v0_2_0
+            // Add the two new fields for v0_1_2
             var halt = false;
             var data_harvester_page_size = 100;
       }));
@@ -64,7 +64,7 @@ module {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   public func downgrade(migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {
-    let state = switch (migration_state) { case (#v0_2_0(#data(state))) state; case (_) D.trap("Unexpected migration state") };
+    let state = switch (migration_state) { case (#v0_1_2(#data(state))) state; case (_) D.trap("Unexpected migration state") };
 
     return #v0_1_0(#data({
         //holds info about the collection

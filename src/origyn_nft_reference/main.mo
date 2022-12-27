@@ -105,7 +105,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
     // migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
-    migration_state := Migrations.migrate(migration_state, #v0_2_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
+    migration_state := Migrations.migrate(migration_state, #v0_1_2(#id), {owner = __initargs.owner; storage_space = initial_storage});
 
     /* 
     example migration
@@ -121,7 +121,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // let #v0_1_0(#data(state_current)) = migration_state;
-    let #v0_2_0(#data(state_current)) = migration_state;
+    let #v0_1_2(#data(state_current)) = migration_state;
                         
     debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
@@ -1621,152 +1621,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
 
-    // Set the `log_harvester`
-    // public shared (msg) func set_log_harvester_id(_id: Principal): async () {
+    
 
-        
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
-
-    //     NFTUtils.add_log(get_state(), {
-    //         event = "set_log_harvester_id";
-    //         timestamp = get_time();
-    //         data =  #Principal(_id);
-    //         caller = ?msg.caller;
-    //     });
-    //      state.state.log_harvester := _id;
-    // };
-
-    // // Get the last pages number of logs and burns them
-    // public shared(msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]]{
-    //     assert(pages > 0);
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.log_harvester) {
-    //     throw Error.reject("not the log harvester");
-    //     };
-    //     let result = Buffer.Buffer<[Types.LogEntry]>(pages);
-    //     for(thisRound in Iter.range(0, pages-1)){
-    //         let chunk = SB.removeLast(state.state.log_history);
-    //         switch(chunk){
-    //             case(null){};
-    //             case(?v){
-    //             result.add(v);
-    //             };
-    //         };
-    //     };
-    //     return result.toArray();
-    // };
-
-    // Destroys the log
-    // public shared(msg) func nuke_log() : async (){
-    //     let state = get_state();
-    //     if(msg.caller != state.state.log_harvester) {
-    //     throw Error.reject("not the log harvester");
-    //     };
-    //      state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
-    // };
-
-    // // Log history info
-    // public query(msg) func log_history_size() : async Nat{
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-    //         throw Error.reject("no log rights");
-    //     };
-    //     return SB.size( state.state.log_history);
-    // };
-
-    // // Look a specific page of log history
-    // public query(msg) func log_history_page(i : Nat) : async [Types.LogEntry]{
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-    //         throw Error.reject("no log rights");
-    //     };
-    //     return SB.get( state.state.log_history, i);
-    // };
-
-    // // Look a chunk by page if over 2MB
-    // public query(msg) func log_history_page_chunk(i : Nat, start: Nat, end: Nat) : async [Types.LogEntry]{
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-    //         throw Error.reject("no log rights");
-    //     };
-    //     let thisChunk = SB.get(state.state.log_history, i);
-    //     let result = Buffer.Buffer<Types.LogEntry>(end - start + 1);
-    //     Iter.iterate<Types.LogEntry>(thisChunk.vals(), func(a: Types.LogEntry, index: Nat){
-    //         if(index >= start and index <= end){
-    //         result.add(a);
-    //         };
-    //     });
-    //     return result.toArray();
-    // };
-
-    // Gets the current log page
-    // public query(msg) func current_log() : async [Types.LogEntry]{
-    //     let state = get_state();
-    //     if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-    //         throw Error.reject("no log rights");
-    //     };
-    //     return SB.toArray(state.state.log);
-    // };
-
-    // *************************
-    // * CANDID SERIALIZATION **
-    // *************************
-
-    public func text_from_blob(blob : Blob) : async Text {
-        Text.join(",", Iter.map<Nat8, Text>(blob.vals(), Nat8.toText));
-    };
-  
-    public func blob_from_text(t : Text) : async Blob {
-        
-        // textToNat8
-        // turns "123" into 123
-        func textToNat8(txt : Text) : Nat8 {
-        var num : Nat32 = 0;
-        for (v in txt.chars()) {
-            // Debug.print(debug_show(v));
-            num := num * 10 + (Char.toNat32(v) - 48);  // 0 in ASCII is 48
-            // Debug.print(debug_show(num));
-        };
-        Nat8.fromNat(Nat32.toNat(num));
-        };
-
-        let ts = Text.split(t, #char(','));
-        let bytes = Array.map<Text, Nat8>(Iter.toArray(ts), textToNat8);
-        Blob.fromArray(bytes);
-    };
    
-
-    // public func test_candid_serialization() : async () {
-    //     let state = get_state();
-
-    //     // let u : Types.BackupBuckets = state.state.buckets;
-
-    //     // let u : Types.BackupCollectionData = {
-    //     //         logo = state.state.collection_data.logo;
-    //     //         name = state.state.collection_data.name;
-    //     //         symbol = state.state.collection_data.symbol;
-    //     //         metadata = state.state.collection_data.metadata;
-    //     //         owner  = state.state.collection_data.owner;
-    //     //         managers = state.state.collection_data.managers;
-    //     //         network = state.state.collection_data.network;
-    //     //         allocated_storage = state.state.collection_data.allocated_storage;
-    //     //         available_space  = state.state.collection_data.available_space;
-    //     //         active_bucket = state.state.collection_data.active_bucket;
-    //     // };
-    //     let u : Types.TestStable = Types.stabilize_test({hello = "hey"; var allocated_space = 1024;
-    //         var available_space =2048;});
-    //     // [Nat8] to text
-    //     var txt: Text = await text_from_blob(to_candid(u));
-    //     D.print("Txt : " # debug_show(txt)); 
-    //     // text to blob
-    //     let v : ?Types.TestStable = from_candid(await blob_from_text(txt));
-    //     D.print(debug_show(v)); 
-    // };
-
-    // *************************
-    // **** END SERIALIZATION **
-    // *************************
 
     // *************************
     // ******** BACKUP *********
@@ -2001,41 +1858,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         canistergeekLogger.getLog(request);
     };
     
-    // public shared (msg) func doThis( e : Text ): async () {
-    //     canistergeekLogger.logMessage(
-    //         e,
-    //         #Class([
-    //                 {name = "library_id"; value=#Text("page"); immutable= true},
-    //                 {name = "title"; value=#Text("page"); immutable= true},
-    //                 {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-    //                 {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae"); immutable= true},
-    //                 {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-    //                 {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
-    //                 {name = "size"; value=#Nat(10); immutable= true},
-    //                 {name = "sort"; value=#Nat(0); immutable= true},
-    //                 {name = "read"; value=#Text("public"); immutable=false;},
-    //             ]),
-    //             ?msg.caller    
-    //         );
-    //     // rest part of the your method...
-    // };
-    
-    // public shared (msg) func doThat( e : Text ): async () {
-    //     canistergeekLogger.logMessage(e, #Class([
-    //                 {name = "library_id"; value=#Text("page"); immutable= true},
-    //                 {name = "title"; value=#Text("page"); immutable= true},
-    //                 {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-    //                 {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae"); immutable= true},
-    //                 {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-    //                 {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
-    //                 {name = "size"; value=#Nat(10); immutable= true},
-    //                 {name = "sort"; value=#Nat(0); immutable= true},
-    //                 {name = "read"; value=#Text("public"); immutable=false;},
-    //             ]),
-    //             ?msg.caller
-    //             );
-    //     // rest part of the your method...
-    // };
 
     // *************************
     // *** END CANISTER GEEK ***
