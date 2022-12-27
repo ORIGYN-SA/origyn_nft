@@ -1621,10 +1621,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
 
-    
-
-   
-
     // *************************
     // ******** BACKUP *********
     // *************************
