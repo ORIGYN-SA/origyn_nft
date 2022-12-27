@@ -8,7 +8,6 @@ import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
-import Hex "mo:encoding/Hex";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -23,6 +22,7 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy_0_1_10/types";
 import CandyTypes "mo:candy_0_1_10/types";
 import Conversions "mo:candy_0_1_10/conversion";
+import Hex "mo:encoding/Hex";
 import Properties "mo:candy_0_1_10/properties";
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
@@ -306,6 +306,656 @@ module {
                 return Prelude.nyi(); //cant implement until candy has stable hash
             }
         };
+    };
+
+        public func get_logger_candy_sale_nft_origyn(request: Types.ManageSaleRequest) : async CandyTypes.CandyValue {
+
+       
+        switch (request) {
+            case (#end_sale(val)) {
+                return #Class([
+                    {name = "variant"; value=#Text("end_sale"); immutable= true},
+                    {name = "token_id"; value=#Text(val); immutable= true},
+                ]);
+                
+            };
+            case (#open_sale(val)) {
+                return #Class([
+                    {name = "variant"; value=#Text("open_sale"); immutable= true},
+                    {name = "token_id"; value=#Text(val); immutable= true},
+                ]);
+                
+            };
+            case (#escrow_deposit(val)) {
+           
+            var escrow_deposit_token : Text = "";
+            var escrow_deposit_token_fee : Nat = 0;
+            var escrow_deposit_token_symbol : Text = "";
+            var escrow_deposit_token_decimals : Nat = 0;
+            var escrow_deposit_token_canister : Text = "";
+            var escrow_deposit_token_standard : Text = "";
+            var escrow_deposit_seller:  Text = "";
+            var escrow_deposit_buyer:  Text = "";
+            var escrow_deposit_trx_id:  Text = "";
+            var escrow_deposit_trx_id_nat: (Nat) = (0);
+            var escrow_deposit_sale_id: Text = "";
+            
+
+            switch(val.deposit.token){
+                    case(#ic(t)){
+                    escrow_deposit_token #=  "ic";
+                    escrow_deposit_token_fee := t.fee;
+                    escrow_deposit_token_symbol := t.symbol;
+                    escrow_deposit_token_decimals := t.decimals;
+                    escrow_deposit_token_canister := Principal.toText(t.canister);
+
+                        switch(t.standard){
+                            case(#DIP20){
+                                escrow_deposit_token_standard #= "#DIP20";
+                            };
+                            case(#Ledger){
+                                escrow_deposit_token_standard #= "#Ledger";
+                            };
+                            case(#EXTFungible){
+                                escrow_deposit_token_standard #= "#EXTFungible";
+                            };
+                            case(#ICRC1){
+                                escrow_deposit_token_standard #= "#ICRC1";
+                            };
+                        };                   
+                    };
+                    case(#extensible(t)){
+                        escrow_deposit_token #= "extensbible";
+                         D.print("Txt : " # debug_show(t)); 
+                    };
+            };
+            switch(val.deposit.seller) {
+                case(#principal(v)) { 
+                    escrow_deposit_seller #= Principal.toText(v);
+                 };
+                case(#account(v)) { 
+                    escrow_deposit_seller #= Principal.toText(v.owner);
+                };
+                case(#account_id(v)) { 
+                    escrow_deposit_seller #= v;
+                };
+                case(#extensible(v)) { 
+                    // Need to pass a candy class - just a string for the moment
+                    escrow_deposit_seller #= "extensible";
+                };
+            };
+
+            switch(val.deposit.buyer) {
+                case(#principal(v)) { 
+                    escrow_deposit_buyer #= Principal.toText(v);
+                 };
+                case(#account(v)) { 
+                    escrow_deposit_buyer #= Principal.toText(v.owner);
+                };
+                case(#account_id(v)) { 
+                    escrow_deposit_buyer #= v;
+                };
+                case(#extensible(v)) { 
+                    // Need to pass a candy class - just a string for the moment
+                    escrow_deposit_buyer #= "extensible";
+                };
+            };
+
+            switch(val.deposit.sale_id) {
+                case(?val) { escrow_deposit_sale_id #= val; };
+                case(null) { escrow_deposit_sale_id #= "null"; };
+            };
+
+            switch(val.deposit.trx_id) {
+                case(?v) {  
+                    switch(v) { 
+                        case(#nat(val)) { escrow_deposit_trx_id #= Nat.toText(val); };
+                        case(#text(val)) { escrow_deposit_trx_id #= val; };
+                        case(#extensible(val)) { escrow_deposit_trx_id #= "extensible"; }
+                     };
+                    
+                };
+                case(null) { escrow_deposit_trx_id #= "null"; };
+            };
+                
+              return #Class([
+                    {name = "variant"; value=#Text("escrow_deposit"); immutable= true},
+                    {name = "escrow_token_id"; value=#Text(val.token_id); immutable= true},
+                    {name = "escrow_lock_to_date"; value=#Int(switch(val.lock_to_date){case(?v){v};case(_){0}}); immutable= true},
+                    {name = "escrow_deposit_token"; value=#Text(escrow_deposit_token); immutable= true},
+                    {name = "escrow_deposit_token_fee"; value=#Nat(escrow_deposit_token_fee); immutable= true},
+                    {name = "escrow_deposit_token_symbol"; value=#Text(escrow_deposit_token_symbol); immutable= true},
+                    {name = "escrow_deposit_token_decimals"; value=#Nat(escrow_deposit_token_decimals); immutable= true},
+                    {name = "escrow_deposit_token_canister"; value=#Text(escrow_deposit_token_canister); immutable= true},
+                    {name = "escrow_deposit_token_standard"; value=#Text(escrow_deposit_token_standard); immutable= true},
+                    {name = "escrow_deposit_seller"; value=#Text(escrow_deposit_seller); immutable= true},
+                    {name = "escrow_deposit_buyer"; value=#Text(escrow_deposit_buyer); immutable= true},
+                    {name = "escrow_deposit_sale_id"; value=#Text(escrow_deposit_sale_id); immutable= true},
+                    {name = "escrow_deposit_trx_id"; value=#Text(escrow_deposit_trx_id); immutable= true},
+                   
+                ]);
+                
+            };
+            case (#refresh_offers(val)) {
+                var refresh_offers_account: Text = "";
+                switch(val){
+                    case(?val){ 
+                         switch(val) {
+                            case(#principal(v)) { 
+                                refresh_offers_account #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                refresh_offers_account #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                refresh_offers_account #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                refresh_offers_account #= "extensible";
+                            };
+                        };
+                    };
+                    case(null){
+                        refresh_offers_account #= "null";
+                    };
+                };
+                return #Class([
+                    {name = "variant"; value=#Text("#refresh_offers"); immutable= true},
+                    {name = "refresh_offers_account"; value=#Text(refresh_offers_account); immutable= true},
+                ]);
+            };
+            case (#bid(val)) {
+
+               var bid_sale_id : Text = "";
+               var bid_broker_id : Text = "";
+               var bid_escrow_receipt_amount : Nat = 0;
+               var bid_escrow_receipt_seller : Text = "";
+               var bid_escrow_receipt_buyer : Text = "";
+               
+               
+               switch(val.broker_id){
+                case(?v){ bid_broker_id #= Principal.toText(v) };
+                case(null) { bid_broker_id #= "null"; }
+               };
+
+               switch(val.escrow_receipt.seller) {
+                    case(#principal(v)) { 
+                        bid_escrow_receipt_seller #= Principal.toText(v);
+                    };
+                    case(#account(v)) { 
+                        bid_escrow_receipt_seller #= Principal.toText(v.owner);
+                    };
+                    case(#account_id(v)) { 
+                        bid_escrow_receipt_seller #= v;
+                    };
+                    case(#extensible(v)) { 
+                        // Need to pass a candy class - just a string for the moment
+                        bid_escrow_receipt_seller #= "extensible";
+                    };
+                };
+
+                switch(val.escrow_receipt.buyer) {
+                    case(#principal(v)) { 
+                        bid_escrow_receipt_buyer #= Principal.toText(v);
+                    };
+                    case(#account(v)) { 
+                        bid_escrow_receipt_buyer #= Principal.toText(v.owner);
+                    };
+                    case(#account_id(v)) { 
+                        bid_escrow_receipt_buyer #= v;
+                    };
+                    case(#extensible(v)) { 
+                        // Need to pass a candy class - just a string for the moment
+                        bid_escrow_receipt_buyer #= "extensible";
+                    };
+                };
+
+                var bid_escrow_receipt_token : Text = "";
+                var bid_escrow_receipt_token_fee : Nat = 0;
+                var bid_escrow_receipt_token_symbol : Text = "";
+                var bid_escrow_receipt_token_decimals : Nat = 0;
+                var bid_escrow_receipt_token_canister : Text = "";
+                var bid_escrow_receipt_token_standard : Text = "";
+
+                switch(val.escrow_receipt.token){
+                    case(#ic(t)){
+                    bid_escrow_receipt_token #=  "ic";
+                    bid_escrow_receipt_token_fee := t.fee;
+                    bid_escrow_receipt_token_symbol := t.symbol;
+                    bid_escrow_receipt_token_decimals := t.decimals;
+                    bid_escrow_receipt_token_canister := Principal.toText(t.canister);
+
+                        switch(t.standard){
+                            case(#DIP20){
+                                bid_escrow_receipt_token_standard #= "#DIP20";
+                            };
+                            case(#Ledger){
+                                bid_escrow_receipt_token_standard #= "#Ledger";
+                            };
+                            case(#EXTFungible){
+                                bid_escrow_receipt_token_standard #= "#EXTFungible";
+                            };
+                            case(#ICRC1){
+                                bid_escrow_receipt_token_standard #= "#ICRC1";
+                            };
+                        };                   
+                    };
+                    case(#extensible(t)){
+                        bid_escrow_receipt_token #= "extensbible";
+                        //  D.print("Txt : " # debug_show(t)); 
+                    };
+                };
+
+               return #Class([
+                    {name = "variant"; value=#Text("#bid"); immutable= true},
+                    {name = "bid_sale_id"; value=#Text(val.sale_id); immutable= true},
+                    {name = "bid_broker_id"; value=#Text(bid_broker_id); immutable= true},
+                    {name = "bid_escrow_receipt_token_id"; value=#Text(val.escrow_receipt.token_id); immutable= true},
+                    {name = "bid_escrow_receipt_seller"; value=#Text(bid_escrow_receipt_seller); immutable= true},
+                    {name = "bid_escrow_receipt_buyer"; value=#Text(bid_escrow_receipt_buyer); immutable= true},
+                    {name = "bid_escrow_receipt_token"; value=#Text(bid_escrow_receipt_token); immutable= true},
+                    {name = "bid_escrow_receipt_token_fee"; value=#Nat(bid_escrow_receipt_token_fee); immutable= true},
+                    {name = "bid_escrow_receipt_token_symbol"; value=#Text(bid_escrow_receipt_token_symbol); immutable= true},
+                    {name = "bid_escrow_receipt_token_decimals"; value=#Nat(bid_escrow_receipt_token_decimals); immutable= true},
+                    {name = "bid_escrow_receipt_token_canister"; value=#Text(bid_escrow_receipt_token_canister); immutable= true},
+                    {name = "bid_escrow_receipt_token_standard"; value=#Text(bid_escrow_receipt_token_standard); immutable= true},
+                ]);
+            };
+            case (#withdraw(val)) {                
+                switch(val){
+                    case(#escrow(v)){
+                        var withdraw_escrow_seller : Text = "";
+                        var withdraw_escrow_buyer : Text = "";
+                        var withdraw_escrow_withdraw_to : Text = "";
+
+                        switch(v.seller) {
+                            case(#principal(v)) { 
+                                withdraw_escrow_seller #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_escrow_seller #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_escrow_seller #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_escrow_seller #= "extensible";
+                            };
+                        };
+
+                        switch(v.buyer) {
+                            case(#principal(v)) { 
+                                withdraw_escrow_buyer #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_escrow_buyer #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_escrow_buyer #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_escrow_buyer #= "extensible";
+                            };
+                        };
+
+                        switch(v.withdraw_to) {
+                            case(#principal(v)) { 
+                                withdraw_escrow_withdraw_to #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_escrow_withdraw_to #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_escrow_withdraw_to #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_escrow_withdraw_to #= "extensible";
+                            };
+                        };
+
+                        var withdraw_escrow_token : Text = "";
+                        var withdraw_escrow_token_fee : Nat = 0;
+                        var withdraw_escrow_token_symbol : Text = "";
+                        var withdraw_escrow_token_decimals : Nat = 0;
+                        var withdraw_escrow_token_canister : Text = "";
+                        var withdraw_escrow_token_standard : Text = "";
+
+                        switch(v.token){
+                            case(#ic(t)){
+                            withdraw_escrow_token #=  "ic";
+                            withdraw_escrow_token_fee := t.fee;
+                            withdraw_escrow_token_symbol := t.symbol;
+                            withdraw_escrow_token_decimals := t.decimals;
+                            withdraw_escrow_token_canister := Principal.toText(t.canister);
+
+                                switch(t.standard){
+                                    case(#DIP20){
+                                        withdraw_escrow_token_standard #= "#DIP20";
+                                    };
+                                    case(#Ledger){
+                                        withdraw_escrow_token_standard #= "#Ledger";
+                                    };
+                                    case(#EXTFungible){
+                                        withdraw_escrow_token_standard #= "#EXTFungible";
+                                    };
+                                    case(#ICRC1){
+                                        withdraw_escrow_token_standard #= "#ICRC1";
+                                    };
+                                };                   
+                            };
+                            case(#extensible(t)){
+                                withdraw_escrow_token #= "extensbible";
+                                //  D.print("Txt : " # debug_show(t)); 
+                            };
+                        };
+
+                        return #Class([
+                            {name = "variant"; value=#Text("#withdraw_#escrow"); immutable= true},
+                            {name = "withdraw_escrow_token_id"; value=#Text(v.token_id); immutable= true},
+                            {name = "withdraw_escrow_amount"; value=#Nat(v.amount); immutable= true},
+                            {name = "withdraw_escrow_seller"; value=#Text(withdraw_escrow_seller); immutable= true},
+                            {name = "withdraw_escrow_buyer"; value=#Text(withdraw_escrow_buyer); immutable= true},
+                            {name = "withdraw_escrow_withdraw_to"; value=#Text(withdraw_escrow_withdraw_to); immutable= true},
+                            {name = "withdraw_escrow_token"; value=#Text(withdraw_escrow_token); immutable= true},
+                            {name = "withdraw_escrow_token_fee"; value=#Nat(withdraw_escrow_token_fee); immutable= true},
+                            {name = "withdraw_escrow_token_symbol"; value=#Text(withdraw_escrow_token_symbol); immutable= true},
+                            {name = "withdraw_escrow_token_decimals"; value=#Nat(withdraw_escrow_token_decimals); immutable= true},
+                            {name = "withdraw_escrow_token_canister"; value=#Text(withdraw_escrow_token_canister); immutable= true},
+                            {name = "withdraw_escrow_token_standard"; value=#Text(withdraw_escrow_token_standard); immutable= true},
+                        
+                        ]);
+                    };
+                    case(#sale(v)){
+                        var withdraw_sale_seller : Text = "";
+                        var withdraw_sale_buyer : Text = "";
+                        var withdraw_sale_withdraw_to : Text = "";
+
+                        switch(v.seller) {
+                            case(#principal(v)) { 
+                                withdraw_sale_seller #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_sale_seller #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_sale_seller #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_sale_seller #= "extensible";
+                            };
+                        };
+
+                        switch(v.buyer) {
+                            case(#principal(v)) { 
+                                withdraw_sale_buyer #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_sale_buyer #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_sale_buyer #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_sale_buyer #= "extensible";
+                            };
+                        };
+
+                        switch(v.withdraw_to) {
+                            case(#principal(v)) { 
+                                withdraw_sale_withdraw_to #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_sale_withdraw_to #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_sale_withdraw_to #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_sale_withdraw_to #= "extensible";
+                            };
+                        };
+
+                        var withdraw_sale_token : Text = "";
+                        var withdraw_sale_token_fee : Nat = 0;
+                        var withdraw_sale_token_symbol : Text = "";
+                        var withdraw_sale_token_decimals : Nat = 0;
+                        var withdraw_sale_token_canister : Text = "";
+                        var withdraw_sale_token_standard : Text = "";
+
+                        switch(v.token){
+                            case(#ic(t)){
+                            withdraw_sale_token #=  "ic";
+                            withdraw_sale_token_fee := t.fee;
+                            withdraw_sale_token_symbol := t.symbol;
+                            withdraw_sale_token_decimals := t.decimals;
+                            withdraw_sale_token_canister := Principal.toText(t.canister);
+
+                                switch(t.standard){
+                                    case(#DIP20){
+                                        withdraw_sale_token_standard #= "#DIP20";
+                                    };
+                                    case(#Ledger){
+                                        withdraw_sale_token_standard #= "#Ledger";
+                                    };
+                                    case(#EXTFungible){
+                                        withdraw_sale_token_standard #= "#EXTFungible";
+                                    };
+                                    case(#ICRC1){
+                                        withdraw_sale_token_standard #= "#ICRC1";
+                                    };
+                                };                   
+                            };
+                            case(#extensible(t)){
+                                withdraw_sale_token #= "extensbible";
+                                //  D.print("Txt : " # debug_show(t)); 
+                            };
+                        };
+
+                        return #Class([
+                            {name = "variant"; value=#Text("#withdraw_#sale"); immutable= true},
+                            {name = "withdraw_sale_token_id"; value=#Text(v.token_id); immutable= true},
+                            {name = "withdraw_sale_amount"; value=#Nat(v.amount); immutable= true},
+                            {name = "withdraw_sale_seller"; value=#Text(withdraw_sale_seller); immutable= true},
+                            {name = "withdraw_sale_buyer"; value=#Text(withdraw_sale_buyer); immutable= true},
+                            {name = "withdraw_sale_withdraw_to"; value=#Text(withdraw_sale_withdraw_to); immutable= true},
+                            {name = "withdraw_sale_token"; value=#Text(withdraw_sale_token); immutable= true},
+                            {name = "withdraw_sale_token_fee"; value=#Nat(withdraw_sale_token_fee); immutable= true},
+                            {name = "withdraw_sale_token_symbol"; value=#Text(withdraw_sale_token_symbol); immutable= true},
+                            {name = "withdraw_sale_token_decimals"; value=#Nat(withdraw_sale_token_decimals); immutable= true},
+                            {name = "withdraw_sale_token_canister"; value=#Text(withdraw_sale_token_canister); immutable= true},
+                            {name = "withdraw_sale_token_standard"; value=#Text(withdraw_sale_token_standard); immutable= true},
+                        
+                        ]);
+                    };
+                    case(#reject(v)){
+                        var withdraw_reject_seller : Text = "";
+                        var withdraw_reject_buyer : Text = "";
+                        
+
+                        switch(v.seller) {
+                            case(#principal(v)) { 
+                                withdraw_reject_seller #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_reject_seller #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_reject_seller #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_reject_seller #= "extensible";
+                            };
+                        };
+
+                        switch(v.buyer) {
+                            case(#principal(v)) { 
+                                withdraw_reject_buyer #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_reject_buyer #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_reject_buyer #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_reject_buyer #= "extensible";
+                            };
+                        };
+
+                        var withdraw_reject_token : Text = "";
+                        var withdraw_reject_token_fee : Nat = 0;
+                        var withdraw_reject_token_symbol : Text = "";
+                        var withdraw_reject_token_decimals : Nat = 0;
+                        var withdraw_reject_token_canister : Text = "";
+                        var withdraw_reject_token_standard : Text = "";
+
+                        switch(v.token){
+                            case(#ic(t)){
+                            withdraw_reject_token #=  "ic";
+                            withdraw_reject_token_fee := t.fee;
+                            withdraw_reject_token_symbol := t.symbol;
+                            withdraw_reject_token_decimals := t.decimals;
+                            withdraw_reject_token_canister := Principal.toText(t.canister);
+
+                                switch(t.standard){
+                                    case(#DIP20){
+                                        withdraw_reject_token_standard #= "#DIP20";
+                                    };
+                                    case(#Ledger){
+                                        withdraw_reject_token_standard #= "#Ledger";
+                                    };
+                                    case(#EXTFungible){
+                                        withdraw_reject_token_standard #= "#EXTFungible";
+                                    };
+                                    case(#ICRC1){
+                                        withdraw_reject_token_standard #= "#ICRC1";
+                                    };
+                                };                   
+                            };
+                            case(#extensible(t)){
+                                withdraw_reject_token #= "extensbible";
+                                //  D.print("Txt : " # debug_show(t)); 
+                            };
+                        };
+
+                        return #Class([
+                            {name = "variant"; value=#Text("#withdraw_#reject"); immutable= true},
+                            {name = "withdraw_reject_token_id"; value=#Text(v.token_id); immutable= true},
+                            {name = "withdraw_reject_seller"; value=#Text(withdraw_reject_seller); immutable= true},
+                            {name = "withdraw_reject_buyer"; value=#Text(withdraw_reject_buyer); immutable= true},
+                            {name = "withdraw_reject_token"; value=#Text(withdraw_reject_token); immutable= true},
+                            {name = "withdraw_reject_token_fee"; value=#Nat(withdraw_reject_token_fee); immutable= true},
+                            {name = "withdraw_reject_token_symbol"; value=#Text(withdraw_reject_token_symbol); immutable= true},
+                            {name = "withdraw_reject_token_decimals"; value=#Nat(withdraw_reject_token_decimals); immutable= true},
+                            {name = "withdraw_reject_token_canister"; value=#Text(withdraw_reject_token_canister); immutable= true},
+                            {name = "withdraw_reject_token_standard"; value=#Text(withdraw_reject_token_standard); immutable= true},
+                        
+                        ]);
+                    };
+                    case(#deposit(v)){
+                        
+                        var withdraw_escrow_buyer : Text = "";
+                        var withdraw_escrow_withdraw_to : Text = "";
+
+                        
+
+                        switch(v.buyer) {
+                            case(#principal(v)) { 
+                                withdraw_escrow_buyer #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_escrow_buyer #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_escrow_buyer #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_escrow_buyer #= "extensible";
+                            };
+                        };
+
+                        switch(v.withdraw_to) {
+                            case(#principal(v)) { 
+                                withdraw_escrow_withdraw_to #= Principal.toText(v);
+                            };
+                            case(#account(v)) { 
+                                withdraw_escrow_withdraw_to #= Principal.toText(v.owner);
+                            };
+                            case(#account_id(v)) { 
+                                withdraw_escrow_withdraw_to #= v;
+                            };
+                            case(#extensible(v)) { 
+                                // Need to pass a candy class - just a string for the moment
+                                withdraw_escrow_withdraw_to #= "extensible";
+                            };
+                        };
+
+                        var withdraw_escrow_token : Text = "";
+                        var withdraw_escrow_token_fee : Nat = 0;
+                        var withdraw_escrow_token_symbol : Text = "";
+                        var withdraw_escrow_token_decimals : Nat = 0;
+                        var withdraw_escrow_token_canister : Text = "";
+                        var withdraw_escrow_token_standard : Text = "";
+
+                        switch(v.token){
+                            case(#ic(t)){
+                            withdraw_escrow_token #=  "ic";
+                            withdraw_escrow_token_fee := t.fee;
+                            withdraw_escrow_token_symbol := t.symbol;
+                            withdraw_escrow_token_decimals := t.decimals;
+                            withdraw_escrow_token_canister := Principal.toText(t.canister);
+
+                                switch(t.standard){
+                                    case(#DIP20){
+                                        withdraw_escrow_token_standard #= "#DIP20";
+                                    };
+                                    case(#Ledger){
+                                        withdraw_escrow_token_standard #= "#Ledger";
+                                    };
+                                    case(#EXTFungible){
+                                        withdraw_escrow_token_standard #= "#EXTFungible";
+                                    };
+                                    case(#ICRC1){
+                                        withdraw_escrow_token_standard #= "#ICRC1";
+                                    };
+                                };                   
+                            };
+                            case(#extensible(t)){
+                                withdraw_escrow_token #= "extensbible";
+                                //  D.print("Txt : " # debug_show(t)); 
+                            };
+                        };
+
+                        return #Class([
+                            {name = "variant"; value=#Text("#withdraw_#escrow"); immutable= true},
+                            {name = "withdraw_escrow_amount"; value=#Nat(v.amount); immutable= true},
+                            {name = "withdraw_escrow_buyer"; value=#Text(withdraw_escrow_buyer); immutable= true},
+                            {name = "withdraw_escrow_withdraw_to"; value=#Text(withdraw_escrow_withdraw_to); immutable= true},
+                            {name = "withdraw_escrow_token"; value=#Text(withdraw_escrow_token); immutable= true},
+                            {name = "withdraw_escrow_token_fee"; value=#Nat(withdraw_escrow_token_fee); immutable= true},
+                            {name = "withdraw_escrow_token_symbol"; value=#Text(withdraw_escrow_token_symbol); immutable= true},
+                            {name = "withdraw_escrow_token_decimals"; value=#Nat(withdraw_escrow_token_decimals); immutable= true},
+                            {name = "withdraw_escrow_token_canister"; value=#Text(withdraw_escrow_token_canister); immutable= true},
+                            {name = "withdraw_escrow_token_standard"; value=#Text(withdraw_escrow_token_standard); immutable= true},
+                        
+                        ]);
+                    };
+                };
+               
+               
+            };
+        };
+       
     };
 
 }
