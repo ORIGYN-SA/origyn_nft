@@ -12,11 +12,13 @@ import v0_1_0 "../v000_000_000/types";
 import v0_1_1 "../v000_001_000/types";
 import v0_1_3 "types";
 
-let { ihash; nhash; thash; phash; calcHash } = Map_lib;
-
 module {
 
+  let { ihash; nhash; thash; phash; calcHash } = Map_lib;
+
   public func upgrade(prev_migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {
+
+    D.print("in upgrade v0.1.3");
 
     let state = switch (prev_migration_state) { case (#v0_1_0(#data(state))) state; case (_) D.trap("Unexpected migration state") };
 

@@ -102,19 +102,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
-    migration_state := Migrations.migrate(migration_state, #v0_1_3(#id), {owner = __initargs.owner; storage_space = initial_storage});
 
-    /* 
-    example migration
-
-    switch(migration_state){
-        case(#v0_1_1(val)){
-            migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), { owner = deployer.caller; storage_space = initial_storage });
-        };
-        case(_){};
-    };
-    
-    */
+    migration_state := Migrations.migrate(migration_state, #v0_1_3(#id), { owner = __initargs.owner; storage_space = initial_storage });
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_3(#data(state_current)) = migration_state;
