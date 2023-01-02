@@ -522,6 +522,8 @@ module {
     };
   };
 
+  let account_handler = MigrationTypes.Current.account_handler;
+
   public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Result.Result<Bool, Types.OrigynError>{
     
     let owner = switch(get_nft_owner(metadata)){
@@ -549,7 +551,7 @@ module {
             
                   };
                 };
-                Map.set<Types.Account, Bool>(result, Types.account_handler, anAccount, true);
+                Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
               };
               result;
             };
@@ -564,7 +566,7 @@ module {
                   };
                 };
 
-                Map.set<Types.Account, Bool>(result, Types.account_handler, anAccount, true);
+                Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
               };
               result;
             };
@@ -573,7 +575,7 @@ module {
             };
         };
 
-      let foundOwner = switch(Map.get<Types.Account, Bool>(wallet_shares, Types.account_handler, anAccount)){
+      let foundOwner = switch(Map.get<Types.Account, Bool>(wallet_shares, account_handler, anAccount)){
         case(?val){
           return#ok(val);
         };

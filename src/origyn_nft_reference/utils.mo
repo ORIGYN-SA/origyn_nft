@@ -30,6 +30,8 @@ import Workspace "mo:candy_0_1_10/workspace";
 
 import Types "types";
 
+import MigrationTypes "./migrations/types";
+
 
 module {
 
@@ -103,10 +105,6 @@ module {
         };
     };
 
-
-  
-   
-
     public func build_library(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
         
         let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal,Text.hash);
@@ -121,34 +119,11 @@ module {
         return aMap;
     };
 
-    public func compare_library(x : (Text, Text), y: (Text, Text)) : Order.Order {
-        let a = Text.compare(x.0, y.0);
-        switch(a){
-            case(#equal){
-                return  Text.compare(x.1,y.1);
-            };
-            case(_){
-                return a;
-            };
-        };
-    };
+    public let compare_library  = MigrationTypes.Current.compare_library;
 
-    public func library_equal(x : (Text, Text), y: (Text, Text)) : Bool {
-        
-        switch(compare_library(x, y)){
-            case(#equal){
-                return  true;
-            };
-            case(_){
-                return false;
-            };
-        };
-    };
+    public let library_equal = MigrationTypes.Current.library_equal;
 
-    public func library_hash(x : (Text, Text)) : Nat {
-        return Nat32.toNat(Text.hash("token_id" # x.0 # "library_id" # x.1));
-        
-    };
+    public let library_hash = MigrationTypes.Current.library_hash;
 
     public func get_deposit_info(depositor_account : Types.Account, host: Principal) : Types.SubAccountInfo{
         D.print("getting deposit info");
@@ -162,13 +137,13 @@ module {
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Text("com.origyn.nft.escrow")));
         h.write(Conversions.valueToBytes(#Text("buyer")));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
         h.write(Conversions.valueToBytes(#Text("seller")));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
         h.write(Conversions.valueToBytes(#Text(("tokenid"))));
         h.write(Conversions.valueToBytes(#Text(request.token_id)));
         h.write(Conversions.valueToBytes(#Text("ledger")));
-        h.write(Conversions.valueToBytes(#Nat(Types.token_hash_uncompressed(request.token))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
@@ -196,13 +171,13 @@ module {
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("buyer"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("seller"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("tokenid"))));
         h.write(Conversions.valueToBytes(#Text(request.token_id)));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("ledger"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.token_hash_uncompressed(request.token))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));

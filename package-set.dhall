@@ -9,8 +9,13 @@ let Package =
 let additions =
     [
    { name = "candy_0_1_10"
-    , repo = "https://github.com/aramakme/candy_library.git"
+    , repo = "https://github.com/icdevs/candy_library.git"
     , version = "v0.1.10"
+    , dependencies = ["base"]
+   },
+   { name = "candy_0_1_11"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "v0.1.11"
     , dependencies = ["base"]
    },
    {
@@ -79,6 +84,11 @@ let additions =
   { name = "stablebuffer"
   , repo = "https://github.com/skilesare/StableBuffer"
   , version = "v0.2.0"
+  , dependencies = [ "base"]
+  },
+  { name = "map_7_0_0"
+  , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
+  , version = "v7.0.0"
   , dependencies = [ "base"]
   },
   { name = "map_6_0_0"

@@ -12,16 +12,16 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
+import Candy "mo:candy_0_1_11/types";
+import CandyTypes "mo:candy_0_1_11/types";
+import Conversions "mo:candy_0_1_11/conversion";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
-import Map "mo:map_6_0_0/Map";
-import NFTUtils "mo:map_6_0_0/utils";
+import Map "mo:map_7_0_0/Map";
+
 import SB "mo:stablebuffer_0_2_0/StableBuffer";
-import hex "mo:encoding/Hex";
-import CandyTypes_lib "mo:candy_0_1_10/types"; 
+
+import CandyTypes_lib "mo:candy_0_1_11/types"; 
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
@@ -179,6 +179,18 @@ module {
 
     public let TokenSpecDefault = #extensible(#Empty);
 
+    public let account_eq = MigrationTypes.Current.account_eq;
+    public let token_hash = MigrationTypes.Current.token_hash;
+
+    public let compare_library = MigrationTypes.Current.compare_library;
+    public let library_equal = MigrationTypes.Current.library_equal;
+
+    public let library_hash = MigrationTypes.Current.library_hash;
+    public let token_compare = MigrationTypes.Current.token_compare;
+
+    public let token_eq = MigrationTypes.Current.token_eq;
+
+    public let account_hash = MigrationTypes.Current.account_hash;
 
     //nyi: anywhere a deposit address is used, check blob for size in inspect message
     public type SubAccountInfo = {
@@ -334,16 +346,7 @@ module {
         refresh_state: () -> State;
     };
 
-    public type BucketDat = {
-        principal : Principal;
-        allocated_space: Nat;
-        available_space: Nat;
-        date_added: Int;
-        b_gateway: Bool;
-        version: (Nat, Nat, Nat);
-        // allocations: [((Text, Text), Int)]
-        allocations: Map.Map<(Text,Text), Int>;
-    };
+    
 
     public type StableCollectionData = {
         logo: ?Text;
@@ -1170,255 +1173,6 @@ module {
         __apps_app_id = "app_id";
         __system_current_sale_id = "current_sale_id";
     };
-
-
-    public func account_eq(a : Account, b : Account) : Bool{
-        switch(a){
-            case(#principal(a_principal)){
-                switch(b){
-                    case(#principal(b_principal)){
-                        return a_principal == b_principal;
-                    };
-                    case(#account_id(b_account_id)){
-                        return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == b_account_id;
-                    };
-                    case(#account(b_account)){
-                        return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch(b_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}})) ;
-                    };
-                    case(#extensible(b_extensible)){
-                        //not implemented
-                        return false;
-                    };
-                };
-            };
-            case(#account_id(a_account_id)){
-                switch(b){
-                    case(#principal(b_principal)){
-                        return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal,null));
-                    };
-                    case(#account_id(b_account_id)){
-                        return a_account_id == b_account_id;
-                    };
-                    case(#account(b_account)){
-                        return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch(b_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}})) ;
-                    };
-                    case(#extensible(b_extensible)){
-                        //not implemented
-                        return false;
-                    }
-                }
-            };
-            case(#extensible(a_extensible)){
-                switch(b){
-                    case(#principal(b_principal)){
-                        return false;
-                    };
-                    case(#account_id(b_account_id)){
-                        return false;
-                    };
-                    case(#account(b_account_id)){
-                        return false;
-                    };
-                    case(#extensible(b_extensible)){
-                        //not implemented
-                        return false;
-                    }
-                };
-            };
-            case(#account(a_account)){
-                switch(b){
-                    case(#principal(b_principal)){
-                        return  AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch(a_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}})) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal, null)) ;
-                    };
-                    case(#account_id(b_account_id)){
-                        return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch(a_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}})) == b_account_id;
-                    };
-                     case(#account(b_account)){
-                        return a_account.owner == b_account.owner and a_account.sub_account == b_account.sub_account;
-                    };
-                    case(#extensible(b_extensible)){
-                        //not implemented
-                        return false;
-                    };
-                };
-            }
-        };
-    };
-
-    
-
-    public func token_compare (a : TokenSpec, b : TokenSpec) : Order.Order{
-        /* #ic: {
-            canister: Principal;
-            standard: {
-                #DIP20;
-                #Ledger;
-                #ICRC1;
-                #EXTFungible;
-            }
-        };
-        #extensible : CandyTypes.CandyValue; //#Class*/
-        switch(a, b){
-            case(#ic(a_token), #ic(b_token)){
-                return Principal.compare(a_token.canister, b_token.canister);
-            };
-            case(#extensible(a_token), #ic(b_token)){
-               return Text.compare(Conversions.valueToText(a_token), Principal.toText(b_token.canister));
-            };
-            case(#ic(a_token), #extensible(b_token)){
-               return  Text.compare(Principal.toText(a_token.canister),Conversions.valueToText(b_token));
-            };
-            case(#extensible(a_token), #extensible(b_token)){
-               return Text.compare(Conversions.valueToText(a_token), Conversions.valueToText(b_token));
-            };
-        };
-    };
-
-    public func token_eq(a : TokenSpec, b : TokenSpec) : Bool{
-        /* #ic: {
-            canister: Principal;
-            standard: {
-                #DIP20;
-                #Ledger;
-                #EXTFungible;
-                #ICRC1;
-            }
-        };
-        #extensible : CandyTypes.CandyValue; //#Class*/
-        switch(a){
-            case(#ic(a_token)){
-                switch(b){
-                    case(#ic(b_token)){
-                        
-                        if(a_token.standard != b_token.standard){
-                            return false;
-                        };
-                        if(a_token.canister != b_token.canister){
-                            return false;
-                        };
-                        return true;
-                    };
-                    case(#extensible(b_token)){
-                        //not implemented
-                        return false;
-                    };
-                };
-            };
-            case(#extensible(a_token)){
-                switch(b){
-                    case(#ic(b_token)){
-                        //not implemented
-                        return false;
-                    };
-                    case(#extensible(b_token)){
-                        //not implemented
-                        return false;
-                    };
-                    
-                }
-            };
-        };
-    };
-
-    public func account_hash(a : Account) : Nat{
-        switch(a){
-            case(#principal(a_principal)){
-                Nat32.toNat(Principal.hash(a_principal));
-            };
-            case(#account_id(a_account_id)){
-                Nat32.toNat(Text.hash(a_account_id));
-
-            };
-            case(#account(a_account)){
-                Nat32.toNat(Text.hash(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch(a_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}})) ));
-
-            };
-            case(#extensible(a_extensible)){
-                //unimplemnted; unsafe; probably dont use
-                //until a reliable valueToHash function is written
-                //if any redenring of classes changes the whole hash
-                //will change
-                Nat32.toNat(Text.hash(Conversions.valueToText(a_extensible)));
-
-            };
-        };
-    };
-
-    public func account_hash_uncompressed(a : Account) : Nat{
-                switch(a){
-             case(#principal(a_principal)){
-                NFTUtils.hashBlob(Principal.toBlob(a_principal));
-             };
-             case(#account_id(a_account_id)){
-
-                let accountBlob = switch(hex.decode(a_account_id)){
-                  case(#ok(item)){Blob.fromArray(item)};
-                  case(#err(err)){
-                    D.trap("Not a valid hex");
-                  };
-                };
-                NFTUtils.hashBlob(accountBlob);
-             };
-             case(#account(a_account)){
-                let account_id = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch(a_account.sub_account){case(null){null}; case(?val){?Blob.toArray(val)}}));
-                let accountBlob = switch(hex.decode(account_id)){
-                  case(#ok(item)){Blob.fromArray(item)};
-                  case(#err(err)){
-                    D.trap("Not a valid hex");
-                  };
-                };
-                NFTUtils.hashBlob(accountBlob);
-             };
-             case(#extensible(a_extensible)){
-                 //unimplemnted; unsafe; probably dont use
-                 //until a reliable valueToHash function is written
-                 //if any redenring of classes changes the whole hash
-                 //will change
-                NFTUtils.hashBlob(Conversions.valueToBlob(#Text(Conversions.valueToText(a_extensible))));
-             };
-         };
-     };
-
-
-    public func token_hash(a : TokenSpec) : Nat {
-        switch(a){
-            case(#ic(a)){
-              Nat32.toNat(Principal.hash(a.canister));
-
-            };
-            case(#extensible(a_extensible)){
-                 //unimplemnted; unsafe; probably dont use
-                //until a reliable valueToHash function is written
-                //if any redenring of classes changes the whole hash
-                //will change
-                Nat32.toNat(Text.hash(Conversions.valueToText(a_extensible)));
-            };
-        };
-        
-    };
-
-    public func token_hash_uncompressed(a : TokenSpec) : Nat {
-        switch(a){
-            case(#ic(a)){
-                NFTUtils.hashBlob(Principal.toBlob(a.canister));
-
-
-            };
-            case(#extensible(a_extensible)){
-                 //unimplemnted; unsafe; probably dont use
-                //until a reliable valueToHash function is written
-                //if any redenring of classes changes the whole hash
-                //will change
-                NFTUtils.hashBlob(Conversions.valueToBlob(a_extensible));
-
-            };
-        };
-        
-    };
-
-    public let account_handler = (account_hash, account_eq);
-
-    public let token_handler = (token_hash, token_eq);
 
     public type HTTPResponse = {
         body               : Blob;
