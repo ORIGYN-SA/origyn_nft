@@ -34,89 +34,72 @@ import Types "types";
 
 module {
 
-    let debug_channel = {
-        verify_escrow = true;
-        verify_sale = false;
-        ensure = false;
-        invoice = false;
-        end_sale = false;
-        market = false;
-        royalties = false;
-        offers = false;
-        escrow = false;
-        withdraw_escrow = false;
-        withdraw_sale = false;
-        withdraw_reject = false;
-        withdraw_deposit = false;
-        bid = false;
+  let debug_channel = {
+      verify_escrow = true;
+      verify_sale = false;
+      ensure = false;
+      invoice = false;
+      end_sale = false;
+      market = false;
+      royalties = false;
+      offers = false;
+      escrow = false;
+      withdraw_escrow = false;
+      withdraw_sale = false;
+      withdraw_reject = false;
+      withdraw_deposit = false;
+      bid = false;
+  };
+
+  let account_handler = MigrationTypes.Current.account_handler;
+  let token_handler = MigrationTypes.Current.token_handler;
+
+  type StateAccess = Types.State;
+
+  let SB = MigrationTypes.Current.SB;
+
+
+  // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
+  public func find_escrow_reciept(
+    state: StateAccess,
+    buyer : Types.Account,
+    seller: Types.Account,
+    token_id: Text) : Result.Result<
+        MigrationTypes.Current.EscrowLedgerTrie
+    , Types.OrigynError> {
+
+    //find buyer's escrows
+    let to_list = switch(Map.get(state.state.escrow_balances, account_handler, buyer)){
+      case(null){
+        debug if(debug_channel.verify_escrow) D.print("didnt find asset");
+        return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow buyer not found ", null));
+      };
+      case(?to_list){to_list};
     };
 
-    let account_handler = MigrationTypes.Current.account_handler;
-    let token_handler = MigrationTypes.Current.token_handler;
-
-    type StateAccess = Types.State;
-
-    let SB = MigrationTypes.Current.SB;
-
-
-    // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
-    public func find_escrow_reciept(
-        state: StateAccess,
-        buyer : Types.Account,
-        seller: Types.Account,
-        token_id: Text) : Result.Result<
-            MigrationTypes.Current.EscrowLedgerTrie
-        , Types.OrigynError> {
-
-        var found_asset : ?(Hash.Hash, Types.EscrowRecord) = null;
-        var found_asset_list : ?MigrationTypes.Current.EscrowLedgerTrie = null;
-                        debug if(debug_channel.verify_escrow) D.print("found asset " # debug_show(found_asset));
-
-        //find buyer's escrows
-        let verified = switch(Map.get(state.state.escrow_balances, account_handler, buyer)){
-            case(null){
-                                    debug if(debug_channel.verify_escrow) D.print("didnt find asset");
-                return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow buyer not found ", null));
-            };
-            case(?to_list){
-                
-                                    debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
-                //find sellers deposits
-                switch(Map.get(to_list, account_handler, seller)){
-                    case(null){
-                                            debug if(debug_channel.verify_escrow) D.print("no escrow seller");
-                        return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow seller not found ", null));};
-                    case(?token_list){
-                                            debug if(debug_channel.verify_escrow) D.print("looking for to list");
-                        //find tokens deposited for both "" and provided token_id
-                        let asset_list = switch(Map.get(token_list, Map.thash, token_id), Map.get(token_list, Map.thash, "")){
-                            case(null, null){
-                                return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow token_id not found ", null));
-                            };
-                            case(null, ?generalList){
-                                return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow token_id found for general item but token_id is specific ", null));
-                            };
-                            case(?asset_list, _ ){
-                                
-                                found_asset_list := ?asset_list;
-                                
-                            };
-                        };
-
-                    };
-                };
-            };
-        };
-
-        switch(found_asset_list){
-            case(?found_asset_list){
-                return #ok(found_asset_list);
-            };
-            case(null){
-                 return #err(Types.errors(#no_escrow_found, "find_escrow_reciept", null));
-            };
-        };
+    debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
+            //find sellers deposits
+    let token_list = switch(Map.get(to_list, account_handler, seller)){
+      case(null){
+        debug if(debug_channel.verify_escrow) D.print("no escrow seller");
+        return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow seller not found ", null));};
+      case(?token_list){token_list};
     };
+    
+    debug if(debug_channel.verify_escrow) D.print("looking for to list");
+    //find tokens deposited for both "" and provided token_id
+    let asset_list = switch(Map.get(token_list, Map.thash, token_id), Map.get(token_list, Map.thash, "")){
+      case(null, null){
+          return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow token_id not found ", null));
+      };
+      case(null, ?generalList){
+          return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow token_id found for general item but token_id is specific ", null));
+      };
+      case(?asset_list, _ ){
+          return #ok(asset_list);
+      };
+    };
+  };
 
     //verifies that an escrow reciept exists in this NF
     public func verify_escrow_reciept(
@@ -125,8 +108,8 @@ module {
         owner: ?Types.Account, 
         sale_id: ?Text) : Result.Result<
         {
-            found_asset : {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord};
-            found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
+          found_asset : {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord};
+          found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
         }, Types.OrigynError> {
 
         var found_asset : ?{token_spec: Types.TokenSpec; escrow: Types.EscrowRecord} = null;
@@ -976,8 +959,7 @@ module {
                                             debug if(debug_channel.end_sale) D.print("putting escrow balance");
                                             debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
                         if(verified.found_asset.escrow.amount < winning_escrow.amount){
-                            return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
-
+                          return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
                         } else {
                             if(verified.found_asset.escrow.amount > winning_escrow.amount ){
                                 let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
@@ -1362,6 +1344,53 @@ module {
 
     };
 
+    private func handle_escrow_update_error(
+      state: StateAccess, 
+      escrow: Types.EscrowReceipt,
+      owner: ?Types.Account, 
+      found_asset: {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord},
+      found_asset_list : MigrationTypes.Current.EscrowLedgerTrie) : () {
+
+      switch(verify_escrow_reciept(state, escrow, owner, null)){
+        case(#ok(reverify)){
+            let target_escrow = { reverify.found_asset.escrow with
+                amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+            };
+            Map.set(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        };
+        case(#err(err)){
+            let target_escrow = { found_asset.escrow with
+                amount =  escrow.amount;
+            };
+            Map.set(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        }
+      };
+    };
+
+    private func handle_sale_update_error(
+      state: StateAccess, 
+      escrow: Types.EscrowReceipt,
+      owner: ?Types.Account, 
+      found_asset: {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord},
+      found_asset_list : MigrationTypes.Current.EscrowLedgerTrie) : () {
+
+      switch(verify_sales_reciept(state, escrow)){
+        case(#ok(reverify)){
+            let target_escrow = {
+                reverify.found_asset.escrow with 
+                amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+            };
+            Map.set(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        };
+        case(#err(err)){
+            let target_escrow = { found_asset.escrow with
+                amount =  escrow.amount;
+            };
+            Map.set(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        };
+    };
+    };
+
     //handles async market transfer operations like instant where interaction with other canisters is required
     public func market_transfer_nft_origyn_async(state: StateAccess, request : Types.MarketTransferRequest, caller: Principal) : async Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
@@ -1492,16 +1521,10 @@ module {
                         if(verified.found_asset.escrow.amount > escrow.amount){
                                                 debug if(debug_channel.market) D.print("should be overwriting escrow" # debug_show((verified.found_asset.escrow.amount,escrow.amount)));
                             Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, {
-                                account_hash = verified.found_asset.escrow.account_hash;
-                                amount = Nat.sub(verified.found_asset.escrow.amount,escrow.amount);
-                                seller = verified.found_asset.escrow.seller;
+                              verified.found_asset.escrow with 
+                                amount = Nat.sub(verified.found_asset.escrow.amount, escrow.amount);
                                 balances = null;
-                                buyer = verified.found_asset.escrow.buyer;
-                                token_id = verified.found_asset.escrow.token_id;
-                                token = verified.found_asset.escrow.token;
-                                sale_id = verified.found_asset.escrow.sale_id; 
-                                lock_to_date = verified.found_asset.escrow.lock_to_date;//should be null
-                                });
+                              });
                         } else {
                                                 debug if(debug_channel.market) D.print("should be deleting escrow" # debug_show((verified.found_asset.token_spec)));
                             Map.delete(verified.found_asset_list, token_handler, verified.found_asset.token_spec);
@@ -1523,76 +1546,13 @@ module {
                                                 };
                                                 case(#err(err)){
                                                     //put the escrow back because the payment failed
-                                                    switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                                                        case(#ok(reverify)){
-                                                            let target_escrow = {
-                                                                account_hash = reverify.found_asset.escrow.account_hash;
-                                                                amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
-                                                                buyer = reverify.found_asset.escrow.buyer;
-                                                                seller = reverify.found_asset.escrow.seller;
-                                                                token_id = reverify.found_asset.escrow.token_id;
-                                                                token = reverify.found_asset.escrow.token;
-                                                                sale_id = reverify.found_asset.escrow.sale_id;
-                                                                lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                            };
-
-                                                            
-                                                            Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                                            
-
-                                                        };
-                                                        case(#err(err)){
-                                                            let target_escrow = {
-                                                                account_hash = verified.found_asset.escrow.account_hash;
-                                                                amount =  escrow.amount;
-                                                                buyer = verified.found_asset.escrow.buyer;
-                                                                seller = verified.found_asset.escrow.seller;
-                                                                token_id = verified.found_asset.escrow.token_id;
-                                                                token = verified.found_asset.escrow.token;
-                                                                sale_id = verified.found_asset.escrow.sale_id;
-                                                                lock_to_date = verified.found_asset.escrow.lock_to_date;
-                                                            };
-                                                            Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                                        }
-                                                    };
+                                                    handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
                                                     return #err(Types.errors(err.error, "market_transfer_nft_origyn instant " # err.flag_point, ?caller));
                                                 };
                                             };
                                         } catch (e){
                                             //put the escrow back because payment failed
-                                            switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                                                case(#ok(reverify)){
-                                                    let target_escrow = {
-                                                        account_hash = reverify.found_asset.escrow.account_hash;
-                                                        amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
-                                                        buyer = reverify.found_asset.escrow.buyer;
-                                                        seller = reverify.found_asset.escrow.seller;
-                                                        token_id = reverify.found_asset.escrow.token_id;
-                                                        token = reverify.found_asset.escrow.token;
-                                                        sale_id = reverify.found_asset.escrow.sale_id;
-                                                        lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                    };
-
-                                                    
-                                                    Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                                    
-
-                                                };
-                                                case(#err(err)){
-                                                    let target_escrow = {
-                                                        account_hash = verified.found_asset.escrow.account_hash;
-                                                        amount =  escrow.amount;
-                                                        buyer = verified.found_asset.escrow.buyer;
-                                                        seller = verified.found_asset.escrow.seller;
-                                                        token_id = verified.found_asset.escrow.token_id;
-                                                        token = verified.found_asset.escrow.token;
-                                                        sale_id = verified.found_asset.escrow.sale_id;
-                                                        lock_to_date = verified.found_asset.escrow.lock_to_date;
-                                                    };
-                                                    Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                                }
-                                            };
-                                            
+                                            handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
                                             return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn instant catch branch" # Error.message(e), ?caller));
 
                                             
@@ -1619,40 +1579,8 @@ module {
                             let rec = switch(Mint.execute_mint(state, request.token_id, escrow.buyer, ?escrow, caller )){
                                 case(#err(err)){
                                   //put the escrow back because the minting failed
-                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                                    case(#ok(reverify)){
-                                        let target_escrow = {
-                                            account_hash = reverify.found_asset.escrow.account_hash;
-                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
-                                            buyer = reverify.found_asset.escrow.buyer;
-                                            seller = reverify.found_asset.escrow.seller;
-                                            token_id = reverify.found_asset.escrow.token_id;
-                                            token = reverify.found_asset.escrow.token;
-                                            sale_id = reverify.found_asset.escrow.sale_id;
-                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                        };
-
-                                        
-                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                        
-
-                                    };
-                                    case(#err(err)){
-                                        let target_escrow = {
-                                            account_hash = verified.found_asset.escrow.account_hash;
-                                            amount =  escrow.amount;
-                                            buyer = verified.found_asset.escrow.buyer;
-                                            seller = verified.found_asset.escrow.seller;
-                                            token_id = verified.found_asset.escrow.token_id;
-                                            token = verified.found_asset.escrow.token;
-                                            sale_id = verified.found_asset.escrow.sale_id;
-                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
-                                        };
-                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                    }
-                                  };
-                                
-                                    return #err(Types.errors(err.error, "market_transfer_nft_origyn mint attempt" # err.flag_point, ?caller));
+                                  handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
+                                  return #err(Types.errors(err.error, "market_transfer_nft_origyn mint attempt" # err.flag_point, ?caller));
                                 };
                                 case(#ok(val)){
                                                             debug if(debug_channel.market) D.print("updating metadata after mint");
@@ -1679,39 +1607,9 @@ module {
                                 };
                                 case(#err(err)){
                                   //put the escrow back because the ownership change failed
-                                  switch(verify_escrow_reciept(state, escrow, ?owner, null)){
-                                    case(#ok(reverify)){
-                                        let target_escrow = {
-                                            account_hash = reverify.found_asset.escrow.account_hash;
-                                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
-                                            buyer = reverify.found_asset.escrow.buyer;
-                                            seller = reverify.found_asset.escrow.seller;
-                                            token_id = reverify.found_asset.escrow.token_id;
-                                            token = reverify.found_asset.escrow.token;
-                                            sale_id = reverify.found_asset.escrow.sale_id;
-                                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                        };
-
-                                        
-                                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                        
-
-                                    };
-                                    case(#err(err)){
-                                        let target_escrow = {
-                                            account_hash = verified.found_asset.escrow.account_hash;
-                                            amount =  escrow.amount;
-                                            buyer = verified.found_asset.escrow.buyer;
-                                            seller = verified.found_asset.escrow.seller;
-                                            token_id = verified.found_asset.escrow.token_id;
-                                            token = verified.found_asset.escrow.token;
-                                            sale_id = verified.found_asset.escrow.sale_id;
-                                            lock_to_date = verified.found_asset.escrow.lock_to_date;
-                                        };
-                                        Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                    }
-                                  };
-                                        return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner " # escrow.token_id, ?caller));
+                                  handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
+                                                    
+                                  return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner " # escrow.token_id, ?caller));
                                 };
                             };
 
@@ -1890,11 +1788,6 @@ module {
                         };
 
                         return #ok(txn_record);
-
-
-
-
-
                     };
                 };
             };
@@ -1902,7 +1795,6 @@ module {
                 return #err(Types.errors(#nyi, "market_transfer_nft_origyn nyi pricing type async", ?caller));
             };
         };
-
         return #err(Types.errors(#nyi, "market_transfer_nft_origyn nyi ", ?caller));
     };
 
@@ -2095,9 +1987,6 @@ module {
             };
         };
                             debug if(debug_channel.market) D.print("have metadata");
-
-        
-
 
         //can't start auction if token is a phisycal object unless in escrow with a node
         if (Metadata.is_physical(metadata)) {
@@ -2592,9 +2481,6 @@ module {
                             return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
                         };
                     };
-
-
-
                 };
             };
                 
@@ -2769,80 +2655,16 @@ module {
                                                   ?val;
                                               };
                                               case(#err(err)){
-                                                  switch(verify_escrow_reciept(state, details, null, null)){
-                                                      case(#ok(reverify)){
-                                                          let target_escrow = {
-                                                              account_hash = reverify.found_asset.escrow.account_hash;
-                                                              amount = Nat.add(reverify.found_asset.escrow.amount, details.amount);
-                                                              buyer = reverify.found_asset.escrow.buyer;
-                                                              seller = reverify.found_asset.escrow.seller;
-                                                              token_id = reverify.found_asset.escrow.token_id;
-                                                              token = reverify.found_asset.escrow.token;
-                                                              sale_id = reverify.found_asset.escrow.sale_id;
-                                                              lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                          };
-
-                                                          
-                                                          Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(reverify.found_asset_list, token_handler, details.token, target_escrow);
-                                                          
-
-                                                      };
-                                                      case(#err(err)){
-                                                          let target_escrow = {
-                                                              account_hash = a_ledger.account_hash;
-                                                              amount =  details.amount;
-                                                              buyer = a_ledger.buyer;
-                                                              seller = a_ledger.seller;
-                                                              token_id = a_ledger.token_id;
-                                                              token = a_ledger.token;
-                                                              sale_id = a_ledger.sale_id;
-                                                              lock_to_date = a_ledger.lock_to_date;
-                                                          };
-
-                                                          
-                                                          Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token, target_escrow);
-                                                      }
-                                                  };
+                                                  handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+                                                    
                                                   
                                                   return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller));
                                               };
                                           };
                                       } catch (e){
                                           //put the escrow back because something went wrong
-                                          switch(verify_escrow_reciept(state, details, null, null)){
-                                              case(#ok(reverify)){
-                                                  let target_escrow = {
-                                                      account_hash = reverify.found_asset.escrow.account_hash;
-                                                      amount = Nat.add(reverify.found_asset.escrow.amount, details.amount);
-                                                      buyer = reverify.found_asset.escrow.buyer;
-                                                      seller = reverify.found_asset.escrow.seller;
-                                                      token_id = reverify.found_asset.escrow.token_id;
-                                                      token = reverify.found_asset.escrow.token;
-                                                      sale_id = reverify.found_asset.escrow.sale_id;
-                                                      lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                  };
-
-                                                  
-                                                  Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(reverify.found_asset_list, token_handler, details.token, target_escrow);
-                                                          
-
-                                              };
-                                              case(#err(err)){
-                                                  let target_escrow = {
-                                                      account_hash = a_ledger.account_hash;
-                                                      amount =  details.amount;
-                                                      buyer = a_ledger.buyer;
-                                                      seller = a_ledger.seller;
-                                                      token_id = a_ledger.token_id;
-                                                      token = a_ledger.token;
-                                                      sale_id = a_ledger.sale_id;
-                                                      lock_to_date = a_ledger.lock_to_date;
-                                                  };
-
-                                                  
-                                                  Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token, target_escrow);
-                                              }
-                                          };
+                                          handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+                                                    
                                           return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller));
                                               
                                       };
@@ -2890,9 +2712,6 @@ module {
                                       return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
                                   };
                               };
-
-
-
                           };
                       };
                       
@@ -3001,83 +2820,16 @@ module {
                                               };
                                               case(#err(err)){
                                                   //put the escrow back
-                                                                      debug if(debug_channel.withdraw_sale) D.print("failed, putting back ledger");
-                                                  switch(verify_sales_reciept(state, details)){
-                                                      case(#ok(reverify)){
-                                                          let target_escrow = {
-                                                              account_hash = reverify.found_asset.escrow.account_hash;
-                                                              amount = Nat.add(reverify.found_asset.escrow.amount, details.amount);
-                                                              buyer = reverify.found_asset.escrow.buyer;
-                                                              seller = reverify.found_asset.escrow.seller;
-                                                              token_id = reverify.found_asset.escrow.token_id;
-                                                              token = reverify.found_asset.escrow.token;
-                                                              sale_id = reverify.found_asset.escrow.sale_id;
-                                                              lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                          };
-
-                                                          
-                                                          Map.set(a_token_id, token_handler, details.token, target_escrow);
-                                                          
-
-                                                      };
-                                                      case(#err(err)){
-
-                                                          //put the escrow back
-                                                          let target_escrow = {
-                                                              account_hash = a_ledger.account_hash;
-                                                              amount =  details.amount;
-                                                              buyer = a_ledger.buyer;
-                                                              seller = a_ledger.seller;
-                                                              token_id = a_ledger.token_id;
-                                                              token = a_ledger.token;
-                                                              sale_id = a_ledger.sale_id;
-                                                              lock_to_date = a_ledger.lock_to_date;
-                                                          };
-
-                                                          
-                                                          Map.set(a_token_id, token_handler, details.token, target_escrow);
-                                                      }
-                                                  };
+                                                  debug if(debug_channel.withdraw_sale) D.print("failed, putting back ledger");
                                                   
+                                                  handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
+
                                                   return #err(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller));
                                               };
                                           };
                                       } catch(e){
                                           //put the escrow back
-                                          switch(verify_sales_reciept(state, details)){
-                                              case(#ok(reverify)){
-                                                  let target_escrow = {
-                                                      account_hash = reverify.found_asset.escrow.account_hash;
-                                                      amount = Nat.add(reverify.found_asset.escrow.amount, details.amount);
-                                                      buyer = reverify.found_asset.escrow.buyer;
-                                                      seller = reverify.found_asset.escrow.seller;
-                                                      token_id = reverify.found_asset.escrow.token_id;
-                                                      token = reverify.found_asset.escrow.token;
-                                                      sale_id = reverify.found_asset.escrow.sale_id;
-                                                      lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                  };
-
-                                                  
-                                                  Map.set(a_token_id, token_handler, details.token, target_escrow);
-                                                  
-
-                                              };
-                                              case(#err(err)){
-                                                  let target_escrow = {
-                                                      account_hash = a_ledger.account_hash;
-                                                      amount =  details.amount;
-                                                      buyer = a_ledger.buyer;
-                                                      seller = a_ledger.seller;
-                                                      token_id = a_ledger.token_id;
-                                                      token = a_ledger.token;
-                                                      sale_id = a_ledger.sale_id;
-                                                      lock_to_date = a_ledger.lock_to_date;
-                                                  };
-
-                                                  
-                                                  Map.set(a_token_id, token_handler, details.token, target_escrow);
-                                              }
-                                          };
+                                          handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
                                           
                                           return #err(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller));
                                       };
@@ -3280,29 +3032,8 @@ module {
                                                   //put the escrow back
                                                   //make sure things havent changed in the mean time
                                                   //D.print("failed, putting back ledger");
-                                                  switch(verify_escrow_reciept(state, a_ledger, null, null)){
-                                                      case(#ok(reverify)){
-                                                          let target_escrow = {
-                                                              account_hash = reverify.found_asset.escrow.account_hash;
-                                                              amount = Nat.add(reverify.found_asset.escrow.amount, a_ledger.amount);
-                                                              buyer = reverify.found_asset.escrow.buyer;
-                                                              seller = reverify.found_asset.escrow.seller;
-                                                              token_id = reverify.found_asset.escrow.token_id;
-                                                              token = reverify.found_asset.escrow.token;
-                                                              sale_id = reverify.found_asset.escrow.sale_id;
-                                                              lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                                          };
+                                                  handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
 
-                                                          
-                                                          Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                                          
-
-                                                      };
-                                                      case(#err(err)){
-                                                          let putback = put_escrow_balance(state, a_ledger, true);
-                                                      };
-                                                  };
-                                                  
                                                   return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller));
                                               };
                                           };
@@ -3321,28 +3052,8 @@ module {
                           //something failed, put the escrow back
                           //make sure it hasn't changed in the mean time
                           //D.print("failed, putting back throw");
-                          switch(verify_escrow_reciept(state, a_ledger, null, null)){
-                              case(#ok(reverify)){
-                                  let target_escrow = {
-                                      account_hash = reverify.found_asset.escrow.account_hash;
-                                      amount = Nat.add(reverify.found_asset.escrow.amount, a_ledger.amount);
-                                      buyer = reverify.found_asset.escrow.buyer;
-                                      seller = reverify.found_asset.escrow.seller;
-                                      token_id = reverify.found_asset.escrow.token_id;
-                                      token = reverify.found_asset.escrow.token;
-                                      sale_id = reverify.found_asset.escrow.sale_id;
-                                      lock_to_date = reverify.found_asset.escrow.lock_to_date;
-                                  };
+                          handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
 
-                                  
-                                  Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                                  
-
-                              };
-                              case(#err(err)){
-                                  let putback = put_escrow_balance(state, a_ledger, true);
-                              };
-                          };
                           return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e) , ?caller));
                       };
 
