@@ -375,6 +375,11 @@ module {
 
     public let account_handler = (account_hash, account_eq);
 
+    public type HttpAccess= {
+        identity: Principal;
+        expires: Int;
+    };
+
     public let token_handler = (token_hash, token_eq);
 
   public type State = {
@@ -384,14 +389,12 @@ module {
     var allocations : Map.Map<(Text, Text), AllocationRecord>;
     var canister_availible_space : Nat;
     var canister_allocated_storage : Nat;
-    var log : SB.StableBuffer<LogEntry>;
-    var log_history : SB.StableBuffer<[LogEntry]>;
-    var log_harvester :  Principal;
     var offers : Map.Map<Account, Map.Map<Account, Int>>;
     var nft_metadata : Map.Map<Text,CandyTypes.CandyValue>;
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
+    var access_tokens : Map_lib.Map<Text, HttpAccess>;
   };
 };

@@ -349,19 +349,13 @@ module {
     
     public type Account = MigrationTypes.Current.Account;
 
-    public type HttpAccess= {
-        identity: Principal;
-        expires: Time.Time;
-    };
+    public type State = State_v0_1_3;
 
-    public type State = State_v0_1_0;
-
-    public type State_v0_1_0 = {
-        state : GatewayState_v0_1_0;
+    public type State_v0_1_3 = {
+        state : GatewayState_v0_1_3;
         canister : () -> Principal;
         get_time: () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
-        access_tokens : TrieMap.TrieMap<Text, HttpAccess>;
         refresh_state: () -> State;
     };
 
@@ -454,21 +448,18 @@ module {
         nft_sales: Nat;
     };
 
-    public type GatewayState = GatewayState_v0_1_0;
+    public type GatewayState = GatewayState_v0_1_3;
 
-    public type GatewayState_v0_1_0 = MigrationTypes.Current.State;
+    public type GatewayState_v0_1_3 = MigrationTypes.Current.State;
 
-    public type StorageState = StorageState_v_0_1_0;
+    public type StorageState = StorageState_v_0_1_3;
 
-    public type StorageState_v_0_1_0 ={
-
+    public type StorageState_v_0_1_3 ={
         var state : StorageMigrationTypes.Current.State;
         canister : () -> Principal;
         get_time: () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
-        tokens : TrieMap.TrieMap<Text, HttpAccess>;
-
-        refresh_state: () -> StorageState_v_0_1_0;
+        refresh_state: () -> StorageState_v_0_1_3;
     };
 
     public type StorageMetrics = {

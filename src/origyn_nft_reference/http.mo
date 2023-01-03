@@ -47,6 +47,8 @@ module {
         request = false;
     };
 
+    let { ihash; nhash; thash; phash; calcHash } = Map;
+
     //the max size of a streaming chunk
     private let __MAX_STREAM_CHUNK = 2048000;
 
@@ -1202,66 +1204,48 @@ module {
     //checks that a access token holder is the collection owner
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        if(stateBody.state.collection_data.owner != identity) {
-                            return #err("not an owner");
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+      switch(req.url.queryObj.get("access")) {
+        case(null) {
+          return #err("no access code in request when nft not minted");
         };
+        case(?access_token) {
+          switch(Map.get(stateBody.state.access_tokens, thash, access_token)) {
+            case(null) return #err("identity not found by access_token : " # access_token);
+            case(?info) {
+              let { identity; expires; } = info;
 
-        #ok();
+              if(stateBody.state.collection_data.owner != identity) return #err("not an owner");
+            
+              if(expires < Time.now()) return #err("access expired");
+            };
+          };
+        };
+      };
+      #ok();
     };
 
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_nft_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
-                          case(#ok(val)){
-                            if(val == false){
-                              return #err("not an owner");
-                            };
-                          };
-                          case(#err(err)){
-                            return #err("identity not found by access_token : " # access_token);
-                          };
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+        let access_token = switch(req.url.queryObj.get("access")) {
+            case(null) return #err("no access code in request when nft not minted");
+            case(?access_token) access_token;
         };
+
+        let info = switch(Map.get(stateBody.state.access_tokens, thash,access_token)) {
+          case(null) return #err("identity not found by access_token : " # access_token);
+          case(?info) info;
+        };
+        let { identity; expires; } = info;
+
+        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
+          case(#ok(val)){
+            if(val == false) return #err("not an owner");
+          };
+          case(#err(err)) return #err("identity not found by access_token : " # access_token);
+        };
+
+        if(expires < Time.now()) return #err("access expired");
 
         #ok();
     };

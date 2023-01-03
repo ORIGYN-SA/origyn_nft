@@ -12,7 +12,6 @@ import Random "mo:base/Random";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 
 import CandyTypes "mo:candy/types";
 import Conversion "mo:candy/conversion";
@@ -25,6 +24,7 @@ import httpparser "mo:httpparser/lib";
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+import MigrationTypes "migrations_storage/types";
 
 
 //this is a virtual copy of http.mo except that we use Types.StorageState
@@ -37,6 +37,8 @@ module {
         library = false;
         request = false;
     };
+
+    let { ihash; nhash; thash; phash; calcHash } = Map;
 
     //the max size of a streaming chunk
     private let __MAX_STREAM_CHUNK = 2048000;
@@ -1146,7 +1148,7 @@ module {
                 return #err("no access code in request when nft not minted");
             };
             case(?access_token) {
-                switch(stateBody.tokens.get(access_token)) {
+                switch(Map.get<Text, MigrationTypes.Current.HttpAccess>(stateBody.state.access_tokens, thash, access_token)) {
                     case(null) {
                         return #err("identity not found by access_token : " # access_token);
                     };

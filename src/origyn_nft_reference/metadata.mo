@@ -1522,32 +1522,17 @@ module {
       };
       case(#UpdateManagers(data)){
         //D.print("updateing manager" # debug_show(data));
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.updateManagers";
-          timestamp = state.get_time();
-          data = #Array(#frozen(Array.map<Principal,CandyType.CandyValue>(data, func(item){#Principal(item)})));
-          caller = ?caller;
-        });
+        
         state.state.collection_data.managers := data;
         return #ok(true);
       };
       case(#UpdateOwner(data)){
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.updateOwner";
-          timestamp = state.get_time();
-          data = #Principal(data);
-          caller = ?caller;
-        });
-         state.state.collection_data.owner := data;
+        
+        state.state.collection_data.owner := data;
         return #ok(true);
       };
       case(#UpdateNetwork(data)){
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.UpdateNetwork";
-          timestamp = state.get_time();
-          data = #Option( switch(data){case(null){null};case(?data){?#Principal(data)};});
-          caller = ?caller;
-        });
+        
          state.state.collection_data.network := data;
         return #ok(true);
       };

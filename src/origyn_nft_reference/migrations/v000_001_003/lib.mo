@@ -25,7 +25,7 @@ module {
     let buckets = Map_lib.new<Principal, v0_1_3.BucketData>();
     
     for(thisItem in Map_6.entries(state.buckets)){
-      let allocations = Map_lib.fromIter<(Text, Text), Int>(Map_6.entries(thisItem.1.allocations), (v0_1_3.library_hash,v0_1_3.library_equal));
+      let allocations = Map_lib.fromIter<(Text, Text), Int>(Map_6.entries(thisItem.1.allocations), (v0_1_3.library_hash, v0_1_3.library_equal));
       ignore Map_lib.put(buckets, phash, thisItem.0, {
         principal = thisItem.1.principal;
         var allocated_space = thisItem.1.allocated_space;
@@ -109,6 +109,8 @@ module {
 
     let nft_sales = Map_lib.fromIter<Text, v0_1_3.SaleStatus>(Map_6.entries(state.nft_sales), thash);
 
+    let access_tokens = Map_lib.new<Text, v0_1_3.HttpAccess>();
+
     return  #v0_1_3(#data({
       var collection_data = state.collection_data;
       var buckets = buckets;
@@ -124,6 +126,7 @@ module {
       var sales_balances = sales;
       var nft_ledgers = nft_ledgers;
       var nft_sales = nft_sales;
+      var access_tokens = access_tokens;
     }));
   };
 

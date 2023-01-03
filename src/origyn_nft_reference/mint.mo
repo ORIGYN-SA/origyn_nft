@@ -203,14 +203,14 @@ module {
                                                     Map.set<(Text,Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, library_id), a_allocation);
                                                     //canister_bucket.allocations := Map.set<(Text,Text), Int>(canister_bucket.allocations,( NFTUtils.library_hash,  NFTUtils.library_equal), (token_id, library_id), state.get_time());
                                                                     debug if(debug_channel.library) D.print("testing allocation " # debug_show(canister_bucket.available_space, library_size));
-                                                    if(canister_bucket.available_space >= (library_size - val.allocated_space)){
+                                                    if(canister_bucket.available_space >= Nat.sub(library_size ,val.allocated_space)){
                                                       canister_bucket.available_space -= (library_size - val.allocated_space);
                                                     } else {
                                                       return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - canister_bucket.available_space >= (library_size - val.allocated_space) " # debug_show((canister_bucket.available_space,library_size, val.allocated_space)), ?caller));
                                                     };
 
-                                                    if(state.state.collection_data.available_space >= (library_size - val.allocated_space)){
-                                                      state.state.collection_data.available_space -= (library_size - val.allocated_space);
+                                                    if(state.state.collection_data.available_space >= Nat.sub(library_size, val.allocated_space)){
+                                                      state.state.collection_data.available_space -= Nat.sub(library_size, val.allocated_space);
                                                     } else {
                                                       return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - state.state.collection_data.available_space -= (library_size - val.allocated_space) " # debug_show((state.state.collection_data.available_space,library_size, val.allocated_space)), ?caller));
                                                     };
@@ -841,8 +841,8 @@ module {
                           //allocate more space
                                           debug if(debug_channel.stage) D.print("allocate more");
                           SB.put<Nat>(allocation.chunks, chunk.chunk, content_size);
-                          if(allocation.available_space >= (content_size - current_size)){
-                            allocation.available_space -= (content_size - current_size);
+                          if(allocation.available_space >= Nat.sub(content_size, current_size)){
+                            allocation.available_space -= Nat.sub(content_size, current_size);
                           } else {
                             return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - already exists - allocation.available_space >= (content_size - current_size)" # debug_show((allocation.available_space, content_size, current_size)), ?caller));
                           };
@@ -980,8 +980,8 @@ module {
                     } else if(content_size != current_size){
                         //give space back
                         SB.put<Nat>(fresh_allocation.chunks, chunk.chunk, content_size);
-                         if(fresh_allocation.available_space >= (current_size - content_size)){
-                            fresh_allocation.available_space -= (current_size - content_size);
+                         if(fresh_allocation.available_space >= Nat.sub(current_size, content_size)){
+                            fresh_allocation.available_space -= Nat.sub(current_size, content_size);
                           } else {
                             return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show((fresh_allocation.available_space,current_size, content_size)), ?caller));
                           };

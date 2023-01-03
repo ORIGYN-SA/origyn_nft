@@ -51,6 +51,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     debug if(debug_channel.instantiation) D.print("creating a canister");
+
+    let { ihash; nhash; thash; phash; calcHash } = Map;
                             
     // A standard file chunk size.  The IC limits intercanister messages to ~2MB+ so we set that here
     stable var SIZE_CHUNK = 2048000; //max message size
@@ -116,14 +118,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Upgrade storage for non-stable types
     stable var nft_library_stable : [(Text,[(Text,CandyTypes.AddressedChunkArray)])] = [];
-    stable var access_tokens_stable : [(Text, Types.HttpAccess)] = [];
+    
     
     // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
     
-    // Store access tokens for owner assets to owner specific data
-    private var access_tokens : TrieMap.TrieMap<Text, Types.HttpAccess> = TrieMap.fromEntries<Text, Types.HttpAccess>(access_tokens_stable.vals(), Text.equal, Text.hash);
-
+   
     // Let us get the principal of the host gateway canister
     private var canister_principal : ?Principal = null;
     private func get_canister(): Principal {
@@ -146,7 +146,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             get_time = get_time;
             nft_library = nft_library;
             refresh_state = get_state;
-            access_tokens = access_tokens;
         };
     };
 
@@ -1469,18 +1468,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     // Cleans access keys
-    private func clearAccessKeysExpired() {
+    private func clearAccessKeysExpired(state: Types.State) {
         let max_size = 20000;
-        if(access_tokens.size() > max_size) {
-            Iter.iterate<Text>(access_tokens.keys(), func(key, _index) {
-                switch(access_tokens.get(key)){
+        if(Map.size(state.state.access_tokens) > max_size) {
+            Iter.iterate<Text>(Map.keys(state.state.access_tokens), func(key, _index) {
+                switch(Map.get<Text, MigrationTypes.Current.HttpAccess>(state.state.access_tokens, thash, key)){
                   case(null){};
                   case(?item){
                     if(item.expires < get_time()){
-                        access_tokens.delete(key);
+                        Map.delete(state.state.access_tokens, thash, key);
                     }
-                  }
-                }
+                  };
+                };
             });
         };
     };
@@ -1494,14 +1493,16 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in http_access_key");        
         // nyi: spam prevention
         if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
-                            
-        clearAccessKeysExpired();
+        let state = get_state();
+        clearAccessKeysExpired(state);
 
         let access_key = (await http.gen_access_key()) # Nat32.toText(Text.hash(debug_show(msg.caller, Time.now())));
 
-        access_tokens.put(access_key, {
+        
+
+        ignore Map.put<Text, MigrationTypes.Current.HttpAccess>(state.state.access_tokens, thash, access_key, {
             identity = msg.caller;
-            expires = Time.now() + access_expiration; 
+            expires = state.get_time() + access_expiration; 
         });
 
         #ok(access_key);
@@ -1511,7 +1512,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     public query(msg) func get_access_key(): async Result.Result<Text, Types.OrigynError> {
         debug if(debug_channel.function_announce) D.print("in get_access_key");
         //optimization: use a Map
-        for((key, info) in access_tokens.entries()){
+        let state = get_state();
+        for((key, info) in Map.entries(state.state.access_tokens)){
           if(Principal.equal(info.identity, msg.caller)) {
             return #ok(key);
           };
@@ -1597,95 +1599,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return #ok(#nonfungible({
                 metadata = ?Text.encodeUtf8("https://prptl.io/-/" # Principal.toText(get_canister()) # "/-/" # token_id)
             }));
-    };
-
-
-    // Set the `log_harvester`
-    public shared (msg) func set_log_harvester_id(_id: Principal): async () {
-
-        
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner) { throw Error.reject("not owner")};
-
-        NFTUtils.add_log(get_state(), {
-            event = "set_log_harvester_id";
-            timestamp = get_time();
-            data =  #Principal(_id);
-            caller = ?msg.caller;
-        });
-         state.state.log_harvester := _id;
-    };
-
-    // Get the last pages number of logs and burns them
-    public shared(msg) func harvest_log(pages : Nat) : async [[Types.LogEntry]]{
-        assert(pages > 0);
-        let state = get_state();
-        if(msg.caller !=  state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
-        };
-        let result = Buffer.Buffer<[Types.LogEntry]>(pages);
-        for(thisRound in Iter.range(0, pages-1)){
-            let chunk = SB.removeLast(state.state.log_history);
-            switch(chunk){
-                case(null){};
-                case(?v){
-                result.add(v);
-                };
-            };
-        };
-        return result.toArray();
-    };
-
-    // Destroys the log
-    public shared(msg) func nuke_log() : async (){
-        let state = get_state();
-        if(msg.caller != state.state.log_harvester) {
-        throw Error.reject("not the log harvester");
-        };
-         state.state.log_history := SB.initPresized<[Types.LogEntry]>(1);
-    };
-
-    // Log history info
-    public query(msg) func log_history_size() : async Nat{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-            throw Error.reject("no log rights");
-        };
-        return SB.size( state.state.log_history);
-    };
-
-    // Look a specific page of log history
-    public query(msg) func log_history_page(i : Nat) : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester ) {
-            throw Error.reject("no log rights");
-        };
-        return SB.get( state.state.log_history, i);
-    };
-
-    // Look a chunk by page if over 2MB
-    public query(msg) func log_history_page_chunk(i : Nat, start: Nat, end: Nat) : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-            throw Error.reject("no log rights");
-        };
-        let thisChunk = SB.get(state.state.log_history, i);
-        let result = Buffer.Buffer<Types.LogEntry>(end - start + 1);
-        Iter.iterate<Types.LogEntry>(thisChunk.vals(), func(a: Types.LogEntry, index: Nat){
-            if(index >= start and index <= end){
-            result.add(a);
-            };
-        });
-        return result.toArray();
-    };
-
-    // Gets the current log page
-    public query(msg) func current_log() : async [Types.LogEntry]{
-        let state = get_state();
-        if(msg.caller !=  state.state.collection_data.owner and msg.caller != state.state.log_harvester) {
-            throw Error.reject("no log rights");
-        };
-        return SB.toArray(state.state.log);
     };
 
     // *************************
@@ -2050,7 +1963,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         _canistergeekLoggerUD := ? canistergeekLogger.preupgrade();
         // End Canistergeek
 
-        access_tokens_stable := Iter.toArray(access_tokens.entries());
 
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){
@@ -2067,7 +1979,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     system func postupgrade() {
         nft_library_stable := [];
-        access_tokens_stable := [];
 
         // Canistergeek
 
