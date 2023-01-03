@@ -83,7 +83,7 @@ module {
     };
   };
 
-  //confirms if a token is a physical item
+  //confirms if a token is in escrow item
   public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
   {
     let property = get_system_var(metadata, Types.metadata.__system_escrowed);
