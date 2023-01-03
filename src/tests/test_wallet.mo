@@ -1,6 +1,6 @@
 
 
-import CandyType "mo:candy_0_1_10/types";
+import CandyType "mo:candy/types";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import D "mo:base/Debug";

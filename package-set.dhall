@@ -13,9 +13,14 @@ let additions =
     , version = "v0.1.10"
     , dependencies = ["base"]
    },
-   { name = "candy_0_1_11"
+   { name = "candy_0_1_12"
     , repo = "https://github.com/icdevs/candy_library.git"
-    , version = "v0.1.11"
+    , version = "v0.1.12"
+    , dependencies = ["base"]
+   },
+    { name = "candy"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "v0.1.12"
     , dependencies = ["base"]
    },
    {
@@ -71,11 +76,7 @@ let additions =
   , version = "v0.1.0"
   , dependencies = [ "base", "parser-combinators" ]
   },
-  { name = "stablerbtree_0_6_1"
-  , repo = "https://github.com/skilesare/StableRBTree"
-  , version = "v0.6.1"
-  , dependencies = [ "base"]
-  },
+  
   { name = "stablebuffer_0_2_0"
   , repo = "https://github.com/skilesare/StableBuffer"
   , version = "v0.2.0"
@@ -98,7 +99,7 @@ let additions =
   },
   { name = "map"
   , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
-  , version = "v6.0.0"
+  , version = "v7.0.0"
   , dependencies = [ "base"]
   },
   { name = "canistergeek"

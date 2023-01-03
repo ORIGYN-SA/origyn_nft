@@ -6,10 +6,10 @@ import Result "mo:base/Result";
 import StableBuffer "mo:base/Buffer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import CandyTypes "mo:candy_0_1_10/types";
+import CandyTypes "mo:candy/types";
 import EXT "mo:ext/Core";
-import Map "mo:map_6_0_0/Map";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import Map "mo:map/Map";
+import SB "mo:stablebuffer/StableBuffer";
 
 import NFTTypes "../origyn_nft_reference/types";
 

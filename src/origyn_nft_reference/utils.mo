@@ -20,13 +20,13 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import Candy "mo:candy/types";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Properties "mo:candy/properties";
+import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
-import Workspace "mo:candy_0_1_10/workspace";
+import Workspace "mo:candy/workspace";
 
 import Types "types";
 
@@ -71,14 +71,6 @@ module {
         if(caller == state.state.collection_data.owner){return true;};
         if(Option.make(caller) == state.state.collection_data.network){return true;};
         return false;
-    };
-
-     public func add_log(state: Types.State, entry : Types.LogEntry){
-        if(SB.size(state.state.log) >= 1000){
-            SB.add<[Types.LogEntry]>(state.state.log_history, SB.toArray(state.state.log));
-            state.state.log := SB.initPresized<Types.LogEntry>(1000);
-        };
-        SB.add<Types.LogEntry>(state.state.log, entry);
     };
 
     public func get_auction_state_from_status(current_sale : Types.SaleStatus ) : Result.Result<Types.AuctionState, Types.OrigynError> {
