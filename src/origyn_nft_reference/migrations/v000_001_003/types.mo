@@ -1,8 +1,8 @@
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
 import Map_lib "mo:map_7_0_0/Map"; 
-import CandyTypes_lib "mo:candy_0_1_11/types"; 
-import Conversion_lib "mo:candy_0_1_11/conversion"; 
-import Properties_lib "mo:candy_0_1_11/properties"; 
+import CandyTypes_lib "mo:candy_0_1_12/types"; 
+import Conversion_lib "mo:candy_0_1_12/conversion"; 
+import Properties_lib "mo:candy_0_1_12/properties"; 
 import v0_1_0 "../v000_001_000/types";
 import MapUtils "mo:map_7_0_0/utils";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";

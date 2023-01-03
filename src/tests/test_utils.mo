@@ -5,8 +5,8 @@ import Iter "mo:base/Iter";
 import Option "mo:base/Option";
 
 import Text "mo:base/Text";
-import Properties "mo:candy_0_1_10/properties";
-import Workspace "mo:candy_0_1_10/workspace";
+import Properties "mo:candy/properties";
+import Workspace "mo:candy/workspace";
 import TrieMap "mo:base/TrieMap";
 
 import Buffer "mo:base/Buffer";
@@ -17,10 +17,10 @@ import Time "mo:base/Time";
  import D "mo:base/Debug";
  import Result "mo:base/Result";
  import Types "../origyn_nft_reference/types";
- import CandyTypes "mo:candy_0_1_10/types";
+ import CandyTypes "mo:candy/types";
  import Principal "mo:base/Principal";
 
-import Conversion "mo:candy_0_1_10/conversion";
+import Conversion "mo:candy/conversion";
 
 
 

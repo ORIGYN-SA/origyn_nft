@@ -9,12 +9,12 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
-import Workspace "mo:candy_0_1_10/workspace";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Map "mo:map/Map";
+import Properties "mo:candy/properties";
+import SB "mo:stablebuffer/StableBuffer";
+import Workspace "mo:candy/workspace";
 
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";

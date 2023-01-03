@@ -1,5 +1,5 @@
 import C "mo:matchers/Canister";
-import Conversion "mo:candy_0_1_10/conversion";
+import Conversion "mo:candy/conversion";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
 import M "mo:matchers/Matchers";

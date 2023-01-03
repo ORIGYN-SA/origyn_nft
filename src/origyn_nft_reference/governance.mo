@@ -3,9 +3,9 @@ import D "mo:base/Debug";
 import Option "mo:base/Option";
 import Result "mo:base/Result";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Properties "mo:candy/properties";
 
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";

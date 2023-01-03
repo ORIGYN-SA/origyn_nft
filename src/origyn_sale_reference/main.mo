@@ -15,8 +15,8 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Map "mo:map_6_0_0/Map";
+import CandyTypes "mo:candy/types";
+import Map "mo:map/Map";
 
 import NFTTypes "../origyn_nft_reference/types";
 import NFTMigrationTypes "../origyn_nft_reference/migrations/types";

@@ -14,12 +14,12 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
+import Candy "mo:candy/types";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
-import Map "mo:map_6_0_0/Map";
-import Workspace "mo:candy_0_1_10/workspace";
+import Map "mo:map/Map";
+import Workspace "mo:candy/workspace";
 
 import DIP721 "DIP721";
 import Metadata "metadata";
