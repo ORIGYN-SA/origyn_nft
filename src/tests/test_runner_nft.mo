@@ -1282,7 +1282,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account
         let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this))); //mint to the test account
 
-        D.print("start auction fail");
+        D.print("start auction fail " # debug_show((mint_attempt, mint_attempt2)));
         //non owner start auction should fail MKT0019
         let start_auction_attempt_fail = await a_wallet.try_start_auction(Principal.fromActor(canister), Principal.fromActor(dfx), "1", null);
 
@@ -1310,7 +1310,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 };
             }; } );
 
-        D.print("get sale id");
+        D.print("get sale id " # debug_show(start_auction_attempt_owner));
         let current_sales_id = switch(start_auction_attempt_owner){
             case(#ok(val)){
                 switch(val.txn_type){
