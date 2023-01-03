@@ -26,12 +26,12 @@ module {
 
     //lets user turn debug messages on and off for local replica
     let debug_channel = {
-        function_announce = false;
-        storage = false;
-        library = false;
-        stage = false;
-        mint = false;
-        remote = false;
+        function_announce = true;
+        storage = true;
+        library = true;
+        stage = true;
+        mint = true;
+        remote = true;
     };
 
     //adds a library to the nft
