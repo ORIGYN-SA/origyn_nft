@@ -32,11 +32,10 @@ As an example, say the broker fee was 3% on a 100 ICP transaction.  The followin
 
 |             | Listing Present      | Listing Absent |
 | ----------- | ----------- | ----------- |
-| **Selling Present** | 15 ICP to Selling Broker; 15 ICP to Listing Broker | 30 ICP to Selling Broker |
-| **Selling Absent**   | 30 ICP to Listing Broker        | 30 ICP to Dev Fund |
+| **Selling Present** | 1.5 ICP to Selling Broker; 1.5 ICP to Listing Broker | 3 ICP to Selling Broker |
+| **Selling Absent**   | 3 ICP to Listing Broker        | 3 ICP to Dev Fund |
 
-Broker ids are just the principal under which one wold like their fees stored until retrieval.
-
+Broker ids are just the principal under which one wold like their fees stored until retrieval. 
 Not Yet Implemented: In the future we may automate the distribution of these fees to the default account of the principal provided.
 
 Broker fees can be determined by looking in the __system.[com.origyn.royalties.primary].[com.origyn.royalty.broker] node of any origyn_nft.  If this does not exist then the NFT does not pay royalties to brokers.
