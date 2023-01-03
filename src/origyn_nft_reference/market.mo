@@ -255,311 +255,286 @@ module {
         };
       };
     };
-    
 
     //makes sure that there is not an ongoing sale for an item
     public func is_token_on_sale(
-        state: StateAccess,
-        metadata: CandyTypes.CandyValue, 
-        caller: Principal) : Result.Result<Bool,Types.OrigynError>{
+      state: StateAccess,
+      metadata: CandyTypes.CandyValue, 
+      caller: Principal) : Result.Result<Bool,Types.OrigynError>{
 
-                        debug if(debug_channel.ensure) D.print("in ensure");
-        let token_id = switch(Metadata.get_nft_id(metadata)){
-            case(#err(err_)){return #err(Types.errors(#token_not_found, "_ensure_no_existing_sale - could not find token_id ", ?caller));};
-            case(#ok(val)){val};
-        };
+                      debug if(debug_channel.ensure) D.print("in ensure");
+      let token_id = switch(Metadata.get_nft_id(metadata)){
+          case(#err(err_)){return #err(Types.errors(#token_not_found, "is_token_on_sale - could not find token_id ", ?caller));};
+          case(#ok(val)){val};
+      };
 
-        //look for an existing sale
-                            debug if(debug_channel.verify_sale) D.print("geting sale");
-        switch(Metadata.get_current_sale_id(metadata)){
-            case(#Empty){return #ok(false)};
-            case(#Text(sale_id)){
-                            debug if(debug_channel.verify_sale) D.print("found sale" # sale_id);
-                
-                let current_sale = switch(Map.get(state.state.nft_sales, Map.thash, sale_id)){
-                    case(?status){
-                        status;
-                    };
-                    case(null){return #err(Types.errors(#sale_not_found, "_ensure_no_existing_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));};
-                };
-        
-                  
-                            debug if(debug_channel.verify_sale) D.print("checking state");
-                let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-                    case(#ok(val)){val};
-                    case(#err(err)){
-                        return #err(Types.errors(err.error, "_ensure_no_existing_sale - find sale state " # err.flag_point, ?caller));
-                    }
-                };
-                            debug if(debug_channel.verify_sale) D.print("switching config");
-                switch(current_sale_state.config){
-                    case(#auction(config)){
-                                        debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));
-                        switch(current_sale_state.status){
-                            case(#closed){
-                                //can continue
-                                return #ok(false);
-                            };
-                            case(#open){
-                                //can continue
-                                return #ok(true);
-                            };
-                            case(_){
-                                return #ok(true);
-                            };
-                        };
-                    };
-                    case(_){
-                        return #err(Types.errors(#nyi, "_ensure_no_existing_sale - sales type check not implemented", ?caller));
-                    };
-                };
-            };
-            case(_){return #err(Types.errors(#nyi, "_ensure_no_existing_sale - sales id did not match ", ?caller));};
+      //look for an existing sale
+      debug if(debug_channel.verify_sale) D.print("geting sale");
+      
+      let sale_id = switch(Metadata.get_current_sale_id(metadata)){
+          case(#Empty){return #ok(false)};
+          case(#Text(sale_id)){sale_id};
+          case(_){return #err(Types.errors(#nyi, "is_token_on_sale - imporoper candy type ", ?caller));};
+      };
+                          
+      debug if(debug_channel.verify_sale) D.print("found sale" # sale_id);
+              
+      let current_sale = switch(Map.get(state.state.nft_sales, Map.thash, sale_id)){
+          case(?status){
+            status;
+          };
+          case(null){return #err(Types.errors(#sale_not_found, "is_token_on_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));};
+      };
+
+      debug if(debug_channel.verify_sale) D.print("checking state");
+      let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+          case(#ok(val)){val};
+          case(#err(err)){
+            return #err(Types.errors(err.error, "is_token_on_sale - find sale state " # err.flag_point, ?caller));
+          }
+      };
+      
+      debug if(debug_channel.verify_sale) D.print("switching config");
+      let config = switch(current_sale_state.config){
+        case(#auction(config)){config};
+        case(_){
+          return #err(Types.errors(#nyi, "is_token_on_sale - sales type check not implemented", ?caller));
         };
+      };
+
+      debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));
+
+      switch(current_sale_state.status){
+        case(#closed){
+          return #ok(false);
+        };
+        case(#open){
+          return #ok(true);
+        };
+        case(_){
+          return #ok(true);
+        };
+      };
     };
 
     //opens a sale if it is past the date
     public func open_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-        //D.print("in open_sale_nft_origyn");
-        let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-            case(#err(err)){
-                return #err(Types.errors(#token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
-            };
-            case(#ok(val)){
-                val;
-            };
+      //D.print("in open_sale_nft_origyn");
+      let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+        case(#err(err)){
+          return #err(Types.errors(#token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
         };
-
-        //look for an existing sale
-        //nyi: refactor this with details found in other functions
-        let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-            case(#Empty){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
-            case(#Text(val)){
-                switch(Map.get(state.state.nft_sales, Map.thash,val)){
-                    case(?status){
-                        status;
-                    };
-                    case(null){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
-                };
-            };
-            case(_){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+        case(#ok(val)){
+          val;
         };
+      };
 
-        let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-            case(#ok(val)){val};
-            case(#err(err)){
-                return #err(Types.errors(err.error, "open_sale_nft_origyn - find state " # err.flag_point, ?caller));
+      //look for an existing sale
+      let current_sale = switch(Metadata.get_current_sale_id(metadata)){
+        case(#Empty){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+        case(#Text(val)){
+          switch(Map.get(state.state.nft_sales, Map.thash,val)){
+            case(?status){
+              status;
             };
+            case(null){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+          };
         };
+        case(_){return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+      };
 
-        switch(current_sale_state.config){
+      let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+        case(#ok(val)){val};
+        case(#err(err)){
+          return #err(Types.errors(err.error, "open_sale_nft_origyn - find state " # err.flag_point, ?caller));
+        };
+      };
+
+      switch(current_sale_state.config){
+        case(#auction(config)){
+          let current_pricing = switch(current_sale_state.config){
             case(#auction(config)){
-                let current_pricing = switch(current_sale_state.config){
-                    case(#auction(config)){
-                        config;
-                    };
-                    case(_){
-                        return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
-
-                    };
-                };
-
-
-
-               
-
-                 switch(current_sale_state.status){
-                    case(#closed){
-                        return #err(Types.errors(#auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
-                    };
-                    case(#not_started){
-                        if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
-                            current_sale_state.status := #open;
-                            return(#ok(#open_sale(true)));
-                        } else {
-                            return #err(Types.errors(#auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_pricing.start_date), ?caller));
-                        };
-                    };
-                    case(#open){
-                         return #err(Types.errors(#auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
-                    };
-                };
+              config;
             };
             case(_){
-                return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
-
+              return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
             };
+          };
+
+          switch(current_sale_state.status){
+            case(#closed){
+              return #err(Types.errors(#auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
+            };
+            case(#not_started){
+              if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
+                current_sale_state.status := #open;
+                return(#ok(#open_sale(true)));
+              } else {
+                  return #err(Types.errors(#auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_pricing.start_date), ?caller));
+              };
+            };
+            case(#open){
+              return #err(Types.errors(#auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
+            };
+          };
         };
+        case(_){
+          return #err(Types.errors(#sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
+        };
+      };
     };
 
     //reports information about a sale
     public func sale_status_nft_origyn(state: StateAccess, sale_id: Text, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
-        
-        //look for an existing sale
-        let current_sale =  switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-            case(?status){
-                status;
-            };
-            case(null){return #ok(#status(null))};
+
+      //look for an existing sale
+      let current_sale =  switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
+        case(?status){
+          status;
         };
-            
+        case(null){return #ok(#status(null))};
+      };
 
-        let result = #ok(#status(?{
-            sale_id = current_sale.sale_id;
-            token_id = current_sale.token_id;
-            original_broker_id = current_sale.original_broker_id;
-            broker_id = current_sale.broker_id;
-            sale_type = switch(current_sale.sale_type){
-                case(#auction(val)){
-                    #auction(Types.AuctionState_stabalize_for_xfer(val))
-                };
-                /* case(_){
-                   return #err(Types.errors(#sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
-            
-                } */
-            };
-        }));
+      let result = #ok(#status(?{
+        current_sale with
+        sale_type = switch(current_sale.sale_type){
+          case(#auction(val)){
+              #auction(Types.AuctionState_stabalize_for_xfer(val))
+          };
+          /* case(_){
+              return #err(Types.errors(#sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
+          } */
+        };
+      }));
 
-        return result;
+      return result;
     };
 
     //returns active sales on a canister
     public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
         
-        var tracker = 0 : Nat;
-        
+      var tracker = 0 : Nat;
+      
 
-        let (min, max) = switch(pages){
-            case(null){
-                (0, Map.size(state.state.nft_metadata));
-            };
-            case(?val){
-                (val.0, 
-                 if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
-                     Map.size(state.state.nft_metadata)
-                 } else {
-                     val.0 + val.1;
-                 }
-                 );
-            };
+      let (min, max) = switch(pages){
+        case(null){
+          (0, Map.size(state.state.nft_metadata));
         };
+        case(?val){
+          (val.0, 
+            if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
+              Map.size(state.state.nft_metadata)
+            } else {
+              val.0 + val.1;
+            }
+          );
+        };
+      };
 
-        let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
+      let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
 
-        var foundTotal : Nat = 0;
-        var eof : Bool = false;
-        let totalSize = Map.size(state.state.nft_metadata);
+      var foundTotal : Nat = 0;
+      var eof : Bool = false;
+      let totalSize = Map.size(state.state.nft_metadata);
 
-        label search for(this_token in Map.entries(state.state.nft_metadata)){
-            
-            
-          let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
-              case(#err(err)){
-                  results.add("unminted", null);
-                  tracker += 1;
-                  continue search;
-              };
-              case(#ok(val)){
-                  val;
-              };
-          };
-
-          //look for an existing sale
-          
-          let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-              case(#Empty){
-                  //results.add(this_token.0, null);
-                  tracker += 1;
-                  continue search;
-              };
-              case(#Text(val)){
-                  switch(Map.get(state.state.nft_sales, Map.thash,val)){
-                      case(?status){
-                          status;
-                      };
-                      case(null){
-                          //results.add(this_token.0, null);
-                          tracker += 1;
-                          continue search;
-                      };
-                  };
-              };
-              case(_){
-                
-                  //results.add(this_token.0, null);
-                  tracker += 1;
-                  continue search;
-                  
-              };
-          };
-
-          let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-              case(#ok(val)){val};
-              case(#err(err)){
-                    
-                  //results.add(this_token.0, null);
-                  tracker += 1;
-                  continue search;
-                      
-              };
-          };
-
-          switch(current_sale_state.config){
-              case(#auction(config)){
-                  let current_pricing = switch(current_sale_state.config){
-                      case(#auction(config)){
-                          config;
-                      };
-                      case(_){
-                          //nyi: handle other sales types
-                          //results.add(this_token.0, null);
-                          tracker += 1;
-                          continue search;
-                      };
-                  };
-
-                  if(current_sale_state.status == #open or current_sale_state.status == #not_started){
-                    
-                    if(tracker > max){}
-                    else if( tracker >= min ){
-
-                      results.add(this_token.0, ?{
-                          sale_id = current_sale.sale_id;
-                          token_id = current_sale.token_id;
-                          broker_id = current_sale.broker_id;
-                          original_broker_id = current_sale.original_broker_id;
-                          sale_type = switch(current_sale.sale_type){
-                              case(#auction(val)){
-                                  #auction(Types.AuctionState_stabalize_for_xfer(val))
-                              };
-                          };
-                      });
-
-                      if(tracker + 1 == totalSize){
-                        eof := true;
-                      };
-                    } else {};
-
-
-                    foundTotal += 1;
-
-                  };
-              };
-              case(_){
-                  //results.add(this_token.0, null);
-                  tracker += 1;
-                  continue search;
-              };
-          };
-
+      label search for(this_token in Map.entries(state.state.nft_metadata)){
+        let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
+          case(#err(err)){
+            results.add("unminted", null);
             tracker += 1;
+            continue search;
+          };
+          case(#ok(val)){
+            val;
+          };
         };
 
-        return #ok(#active({
-            records = results.toArray();
-            eof = eof;
-            count = foundTotal;
-        }));
+        //look for an existing sale
+        let current_sale = switch(Metadata.get_current_sale_id(metadata)){
+          case(#Empty){
+            //results.add(this_token.0, null);
+            tracker += 1;
+            continue search;
+          };
+          case(#Text(val)){
+            switch(Map.get(state.state.nft_sales, Map.thash,val)){
+              case(?status){
+                status;
+              };
+              case(null){
+                //results.add(this_token.0, null);
+                tracker += 1;
+                continue search;
+              };
+            };
+          };
+          case(_){
+            //results.add(this_token.0, null);
+            tracker += 1;
+            continue search;
+          };
+        };
+
+        let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+          case(#ok(val)){val};
+          case(#err(err)){
+            //results.add(this_token.0, null);
+            tracker += 1;
+            continue search;
+          };
+        };
+
+        switch(current_sale_state.config){
+          case(#auction(config)){
+            let current_pricing = switch(current_sale_state.config){
+              case(#auction(config)){
+                config;
+              };
+              case(_){
+                //nyi: handle other sales types
+                //results.add(this_token.0, null);
+                tracker += 1;
+                continue search;
+              };
+            };
+
+            if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+              
+              if(tracker > max){}
+              else if( tracker >= min ){
+
+                results.add(this_token.0, ?{
+                  current_sale with
+                  sale_type = switch(current_sale.sale_type){
+                    case(#auction(val)){
+                      #auction(Types.AuctionState_stabalize_for_xfer(val))
+                    };
+                  };
+                });
+
+                if(tracker + 1 == totalSize){
+                  eof := true;
+                };
+              } else {};
+
+              foundTotal += 1;
+            };
+          };
+          case(_){
+              //results.add(this_token.0, null);
+              tracker += 1;
+              continue search;
+          };
+        };
+
+        tracker += 1;
+      };
+
+      return #ok(#active({
+          records = results.toArray();
+          eof = eof;
+          count = foundTotal;
+      }));
     };
 
 
@@ -568,541 +543,469 @@ module {
         
         var tracker = 0 : Nat;
         let (min, max, total, eof) = switch(pages){
-            case(null){
-                (0, Map.size(state.state.nft_sales), Map.size(state.state.nft_sales), true);
-            };
-            case(?val){
-                (val.0, 
-                 if(val.0 + val.1 >= Map.size(state.state.nft_sales)){
-                     Map.size(state.state.nft_sales)
-                 } else {
-                     val.0 + val.1;
-                 }, 
-                 Map.size(state.state.nft_sales),
-                 if(val.0 + val.1 >= Map.size(state.state.nft_sales)){
-                     true;
-                 } else {
-                     false;
-                 }, 
-                 );
-            };
+          case(null){
+            (0, Map.size(state.state.nft_sales), Map.size(state.state.nft_sales), true);
+          };
+          case(?val){
+            (val.0, 
+              if(val.0 + val.1 >= Map.size(state.state.nft_sales)){
+                Map.size(state.state.nft_sales)
+              } else {
+                val.0 + val.1;
+              }, 
+              Map.size(state.state.nft_sales),
+              if(val.0 + val.1 >= Map.size(state.state.nft_sales)){
+                true;
+              } else {
+                false;
+              }, 
+            );
+          };
         };
 
         let results = Buffer.Buffer<?Types.SaleStatusStable>(max - min);
 
         label search for(thisSale in Map.entries(state.state.nft_sales)){
-            if(tracker > max){break search;};
-            if(tracker >= min){
+          if(tracker > max){break search;};
+          if(tracker >= min){
 
-            
-
-                let current_sale_state = switch(NFTUtils.get_auction_state_from_status(thisSale.1)){
-                    case(#ok(val)){val};
-                    case(#err(err)){
-                         
-                        //results.add(null);
-                        tracker += 1;
-                        continue search;
-                            
-                    };
-                };
-
-                switch(current_sale_state.config){
-                    case(#auction(config)){
-                        let current_pricing = switch(current_sale_state.config){
-                            case(#auction(config)){
-                                config;
-                            };
-                            case(_){
-                                //nyi: handle other sales types
-                                //results.add( null);
-                                tracker += 1;
-                                continue search;
-                            };
-                        };
-
-                        results.add(?{
-                                sale_id = thisSale.1.sale_id;
-                                token_id = thisSale.1.token_id;
-                                broker_id = thisSale.1.broker_id;
-                                original_broker_id = thisSale.1.original_broker_id;
-                                sale_type = switch(thisSale.1.sale_type){
-                                    case(#auction(val)){
-                                        #auction(Types.AuctionState_stabalize_for_xfer(val))
-                                    };
-                                };
-                            }
-                        );
-
-                    };
-                    case(_){
-                        //nyi: implement other sales types
-                        //results.add(null);
-                    };
-                };
+            let current_sale_state = switch(NFTUtils.get_auction_state_from_status(thisSale.1)){
+              case(#ok(val)){val};
+              case(#err(err)){
+                //results.add(null);
+                tracker += 1;
+                continue search;
+              };
             };
-            tracker += 1;
+
+            switch(current_sale_state.config){
+              case(#auction(config)){
+                let current_pricing = switch(current_sale_state.config){
+                  case(#auction(config)){
+                      config;
+                  };
+                  case(_){
+                      //nyi: handle other sales types
+                      //results.add( null);
+                      tracker += 1;
+                      continue search;
+                  };
+                };
+
+                results.add(?{
+                  thisSale.1 with
+                  sale_type = switch(thisSale.1.sale_type){
+                      case(#auction(val)){
+                          #auction(Types.AuctionState_stabalize_for_xfer(val))
+                      };
+                  };
+                });
+              };
+              case(_){
+                  //nyi: implement other sales types
+                  //results.add(null);
+              };
+            };
+          };
+          tracker += 1;
         };
 
         return #ok(#history({
-            records = results.toArray();
-            eof = eof;
-            count = total;
+          records = results.toArray();
+          eof = eof;
+          count = total;
         }));
     };
 
     //returns an invoice or details of where a user can send their depoits on a standard ledger
     public func deposit_info_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
 
-                            debug if(debug_channel.invoice) D.print("in deposit info nft origyn.");
+      debug if(debug_channel.invoice) D.print("in deposit info nft origyn.");
 
-        let account = switch(request){
-            case(null){#principal(caller)};
-            case(?val){val};
-        };
+      let account = switch(request){
+        case(null){#principal(caller)};
+        case(?val){val};
+      };
 
-                            debug if(debug_channel.invoice) D.print("getting info for " # debug_show(account));
-        return #ok(#deposit_info(NFTUtils.get_deposit_info(account, state.canister())));
+      debug if(debug_channel.invoice) D.print("getting info for " # debug_show(account));
+      return #ok(#deposit_info(NFTUtils.get_deposit_info(account, state.canister())));
     };
-    
 
     //ends a sale if it is past the date or a buy it now has occured
     public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-                            debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
+        debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
         let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-            case(#err(err)){
-                return #err(Types.errors(#token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller));
-            };
-            case(#ok(val)){
-                val;
-            };
+          case(#err(err)){
+            return #err(Types.errors(#token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller));
+          };
+          case(#ok(val)){
+            val;
+          };
         };
 
-         let owner = switch(Metadata.get_nft_owner(metadata)){
-            case(#err(err)){
-                return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
-            };
-            case(#ok(val)){
-                val;
-            };
+        let owner = switch(Metadata.get_nft_owner(metadata)){
+          case(#err(err)){
+            return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+          };
+          case(#ok(val)){
+            val;
+          };
         };
-
-
 
         //look for an existing sale
         let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-            case(#Empty){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
-            case(#Text(val)){
-                switch(Map.get(state.state.nft_sales, Map.thash,val)){
-                    case(?status){
-                        status;
-                    };
-                    case(null){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
-                };
+          case(#Empty){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+          case(#Text(val)){
+            switch(Map.get(state.state.nft_sales, Map.thash,val)){
+              case(?status){
+                status;
+              };
+              case(null){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
             };
-            case(_){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
+          };
+          case(_){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));};
         };
 
         let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-            case(#ok(val)){val};
-            case(#err(err)){
-                return #err(Types.errors(err.error, "end_sale_nft_origyn - find state " # err.flag_point, ?caller));
-            };
+          case(#ok(val)){val};
+          case(#err(err)){
+            return #err(Types.errors(err.error, "end_sale_nft_origyn - find state " # err.flag_point, ?caller));
+          };
         };
 
-        switch(current_sale_state.config){
-            case(#auction(config)){
-                let current_pricing = switch(current_sale_state.config){
-                    case(#auction(config)){
-                        config;
+        let config = switch(current_sale_state.config){
+          case(#auction(config)){config};
+          case(_){return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));};
+        };
+
+        let current_pricing = switch(current_sale_state.config){
+          case(#auction(config)){config;};
+          case(_){
+            return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));
+          };
+        };
+
+        let buy_now = switch(current_pricing.buy_now){
+          case(null){false};
+          case(?val){
+            if(val <= current_sale_state.current_bid_amount){
+              true;
+            } else {
+              false;
+            };
+          };
+        };
+
+        debug if(debug_channel.end_sale) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
+        
+        switch(current_sale_state.status){
+          case(#closed){
+            //we will close later after we try to refund a valid bid
+            //return #err(Types.errors(#auction_ended, "end_sale_nft_origyn - auction already closed ", ?caller));
+          };
+          case(#not_started){
+            debug if(debug_channel.end_sale) D.print("wasnt started");
+    
+            if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
+              current_sale_state.status := #open;
+            };
+          };
+          case(_){};
+        };
+
+        debug if(debug_channel.end_sale) D.print("handled current stauts" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
+
+        //make sure auction is still over
+        if(state.get_time() < current_sale_state.end_date ){
+          if( buy_now == true and caller == state.canister()){
+            //only the canister can end a buy now
+          } else {
+
+            if(Types.account_eq(#principal(caller), owner) == true and current_sale_state.current_escrow == null){
+              //an owner can cancel an auction that has no bids yet.
+              //useful for buy it now sales with a long out end date.
+              current_sale_state.status := #closed; 
+
+              switch(Metadata.add_transaction_record(state,{
+                token_id = token_id;
+                index = 0;
+                txn_type = #sale_ended {
+                    seller = owner;
+                    buyer = owner;
+                    token = config.token;
+                    sale_id = ?current_sale.sale_id;
+                    amount = 0;
+                    extensible = #Text("owner canceled");
+                };
+                timestamp = state.get_time();
+              }, caller)){
+                case(#ok(new_trx)){
+                return #ok(#end_sale(new_trx));
+                };
+                case(#err(err)){
+                    return #err(err);
+                };
+              };
+            };
+
+            return #err(Types.errors(#sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller));
+          };
+            
+        };
+
+        debug if(debug_channel.end_sale) D.print("checking reserve" # debug_show(config.reserve));
+        
+
+
+        //check reserve MKT0038
+        switch(config.reserve){
+          case(?reserve){
+            if(current_sale_state.current_bid_amount < reserve){
+              //end sale but don't move NFT
+              current_sale_state.status := #closed; 
+              
+
+              switch(Metadata.add_transaction_record(state,{
+                token_id = token_id;
+                index = 0;
+                txn_type = #sale_ended {
+                  seller = owner;
+                  buyer = owner;
+                  token = config.token;
+                  sale_id = ?current_sale.sale_id;
+                  amount = 0;
+                  extensible = #Text("reserve not met");
+                };
+                timestamp = state.get_time();
+              }, caller)){
+                case(#ok(new_trx)){
+                return #ok(#end_sale(new_trx));
+                };
+                case(#err(err)){
+                    return #err(err);
+                };
+              };
+            };
+          };
+          case(null){};
+        };
+
+        debug if(debug_channel.end_sale) D.print("checking escrow" # debug_show(current_sale_state.current_escrow));
+
+        switch(current_sale_state.current_escrow){
+          case(null){
+            //end sale but don't move NFT
+            current_sale_state.status := #closed;
+
+            switch(Metadata.add_transaction_record(state,{
+              token_id = token_id;
+              index = 0;
+              txn_type = #sale_ended {
+                seller = owner;
+                buyer = owner;
+                token = config.token;
+                sale_id = ?current_sale.sale_id;
+                amount = 0;
+                extensible = #Text("no bids");
+              };
+              timestamp = state.get_time();
+            }, caller)){
+              case(#ok(new_trx)){
+                return #ok(#end_sale(new_trx));
+              };
+              case(#err(err)){
+                return #err(err);
+              };
+            };
+
+
+              
+              
+          };
+          case(?winning_escrow){
+              debug if(debug_channel.end_sale) D.print("verifying escrow");
+              debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
+              let verified = switch(verify_escrow_receipt(state, winning_escrow, ?owner, ?current_sale.sale_id)){
+                case(#err(err)){return #err(Types.errors(err.error, "end_sale_nft_origyn verifying escrow " # err.flag_point, ?caller))};
+                case(#ok(res)){res;};
+              };
+
+              debug if(debug_channel.end_sale) D.print("verified is  " # debug_show(verified.found_asset));
+
+              //move the payment to the sale revenue account
+              //nyi: use transfer batch to split across royalties
+
+              let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(winning_escrow.token){
+                case(#ic(token)){
+                  switch(token.standard){
+                    case(#Ledger){
+                      debug if(debug_channel.end_sale) D.print("found ledger");
+                      let checker = Ledger_Interface.Ledger_Interface();
+                      switch(await checker.transfer_sale(state.canister(), winning_escrow, token_id, caller)){
+                        case(#ok(val)){
+                          (val.0,?val.1.account.sub_account, token.fee);
+                        };
+                        case(#err(err)){
+                          return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+                        };
+                      };
                     };
                     case(_){
-                        return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));
-
+                      return #err(Types.errors(#nyi, "end_sale_nft_origyn - ic type nyi - " # debug_show(token), ?caller));
                     };
+                  };
                 };
-
-
-
-                let buy_now = switch(current_pricing.buy_now){
-        
-                    case(null){false};
-                    case(?val){
-                        if(val <= current_sale_state.current_bid_amount){
-                            true;
-                        } else {
-                            false;
-                        };
-                    };
+                case(#extensible(val)){
+                  return #err(Types.errors(#nyi, "end_sale_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
                 };
+              };
 
-                                    debug if(debug_channel.end_sale) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
-                
-                switch(current_sale_state.status){
-                    case(#closed){
-                        //we will close later after we try to refund a valid bid
-                        //return #err(Types.errors(#auction_ended, "end_sale_nft_origyn - auction already closed ", ?caller));
-                    };
-                    case(#not_started){
-                                            debug if(debug_channel.end_sale) D.print("wasnt started");
-                
-                        if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
-                            current_sale_state.status := #open;
-                        };
-                    };
-                    case(_){};
+              //change owner
+              var new_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
+                {
+                  name = Types.metadata.owner;
+                  mode = #Set(switch(winning_escrow.buyer){
+                    case(#principal(buyer)){#Principal(buyer);};
+                    case(#account_id(buyer)){#Text(buyer);};
+                    case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), switch(buyer.sub_account){
+                      case(null){#Option(null)};
+                      case(?val){#Option(?#Blob(val))}
+                    }]))};
+                    case(#extensible(buyer)){buyer;};
+                  });
+                }
+              ])){
+                case(#ok(props)){
+                  #Class(props);
                 };
-
-                                        debug if(debug_channel.end_sale) D.print("handled current stauts" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
-                
-
-                //make sure auction is still over
-                if(state.get_time() < current_sale_state.end_date ){
-                    if( buy_now == true and caller == state.canister()){
-                        //only the canister can end a buy now
-                    } else {
-
-                         if(Types.account_eq(#principal(caller), owner) == true and current_sale_state.current_escrow == null){
-                            //an owner can cancel an auction that has no bids yet.
-                            //useful for buy it now sales with a long out end date.
-                            current_sale_state.status := #closed; 
-                            
-
-                            switch(Metadata.add_transaction_record(state,{
-                                token_id = token_id;
-                                index = 0;
-                                txn_type = #sale_ended {
-                                    seller = owner;
-                                    buyer = owner;
-                                    token = config.token;
-                                    sale_id = ?current_sale.sale_id;
-                                    amount = 0;
-                                    extensible = #Text("owner canceled");
-                                };
-                                timestamp = state.get_time();
-                            }, caller)){
-                                case(#ok(new_trx)){
-                                return #ok(#end_sale(new_trx));
-                                };
-                                case(#err(err)){
-                                    return #err(err);
-                                };
-                            };
-
-                         };
-                        
-                         return #err(Types.errors(#sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller));
-               
-                    };
-                    
-                 };
-
-                                    debug if(debug_channel.end_sale) D.print("checking reserve" # debug_show(config.reserve));
-                
-
-
-                //check reserve MKT0038
-                switch(config.reserve){
-                    case(?reserve){
-                        if(current_sale_state.current_bid_amount < reserve){
-                            //end sale but don't move NFT
-                            current_sale_state.status := #closed; 
-                            
-
-                            switch(Metadata.add_transaction_record(state,{
-                                token_id = token_id;
-                                index = 0;
-                                txn_type = #sale_ended {
-                                    seller = owner;
-                                    buyer = owner;
-                                    token = config.token;
-                                    sale_id = ?current_sale.sale_id;
-                                    amount = 0;
-                                    extensible = #Text("reserve not met");
-                                };
-                                timestamp = state.get_time();
-                            }, caller)){
-                                case(#ok(new_trx)){
-                                return #ok(#end_sale(new_trx));
-                                };
-                                case(#err(err)){
-                                    return #err(err);
-                                };
-                            };
-                        };
-                    };
-                    case(null){};
+                case(#err(err)){
+                  return #err(Types.errors(#update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
                 };
+              };
 
-                                    debug if(debug_channel.end_sale) D.print("checking escrow" # debug_show(current_sale_state.current_escrow));
+              debug if(debug_channel.end_sale) D.print("updating metadata");
 
-                switch(current_sale_state.current_escrow){
-                    case(null){
-                        //end sale but don't move NFT
-                        current_sale_state.status := #closed;
+              //clear shared wallets
+              new_metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Empty);
+              Map.set(state.state.nft_metadata, Map.thash, token_id, new_metadata);
 
-                        switch(Metadata.add_transaction_record(state,{
-                            token_id = token_id;
-                            index = 0;
-                            txn_type = #sale_ended {
-                                seller = owner;
-                                buyer = owner;
-                                token = config.token;
-                                sale_id = ?current_sale.sale_id;
-                                amount = 0;
-                                extensible = #Text("no bids");
-                            };
-                            timestamp = state.get_time();
-                        }, caller)){
-                            case(#ok(new_trx)){
-                                return #ok(#end_sale(new_trx));
-                            };
-                            case(#err(err)){
-                                return #err(err);
-                            };
+              current_sale_state.end_date := state.get_time();
+              current_sale_state.status := #closed;
+              current_sale_state.winner := ?winning_escrow.buyer;
+
+              //remove escrow
+              debug if(debug_channel.end_sale) D.print("putting escrow balance");
+              debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
+              if(verified.found_asset.escrow.amount < winning_escrow.amount){
+                return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
+              };
+
+              if(verified.found_asset.escrow.amount > winning_escrow.amount ){
+                let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
+                Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, {
+                  verified.found_asset.escrow with
+                  amount = total_amount;
+                  balances = null;
+                });
+              } else {
+                  Map.delete(verified.found_asset_list, token_handler,verified.found_asset.token_spec);
+              };
+              
+
+              //log royalties
+              //currently for auctions there are only secondary royalties
+              let royalty= switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+                case(null){[];};
+                case(?val){
+                  switch(Properties.getClassProperty(val.value, Types.metadata.__system_secondary_royalty)){
+                    case(null){[];};
+                    case(?list){
+                      switch(list.value){
+                        case(#Array(the_array)){
+                          switch(the_array){
+                            case(#thawed(val)){val;};
+                            case(#frozen(val)){val;};
+                          };
                         };
-
-
-                        
-                        
+                        case(_){[];};
+                      };
                     };
-                    case(?winning_escrow){
-                                            debug if(debug_channel.end_sale) D.print("verifying escrow");
-                                            debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
-                        let verified = switch(verify_escrow_receipt(state, winning_escrow, ?owner, ?current_sale.sale_id)){
-                            case(#err(err)){return #err(Types.errors(err.error, "end_sale_nft_origyn verifying escrow " # err.flag_point, ?caller))};
-                            case(#ok(res)){
-                                res;
-                            };
-                        };
-                                            debug if(debug_channel.end_sale) D.print("verified is  " # debug_show(verified.found_asset));
-
-                        //move the payment to the sale revenue account
-                        //nyi: use transfer batch to split across royalties
-
-                        let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(winning_escrow.token){
-                            case(#ic(token)){
-                                switch(token.standard){
-                                    case(#Ledger){
-                                                            debug if(debug_channel.end_sale) D.print("found ledger");
-                                        let checker = Ledger_Interface.Ledger_Interface();
-                                        switch(await checker.transfer_sale(state.canister(), winning_escrow, token_id, caller)){
-                                            case(#ok(val)){
-                                                (val.0,?val.1.account.sub_account, token.fee);
-                                            };
-                                            case(#err(err)){
-                                                return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
-                                            };
-                                        };
-
-                                    };
-                                    case(_){
-                                        return #err(Types.errors(#nyi, "end_sale_nft_origyn - ic type nyi - " # debug_show(token), ?caller));
-                                    };
-                                };
-                            };
-                            case(#extensible(val)){
-                                return #err(Types.errors(#nyi, "end_sale_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
-                            };
-                        };
-
-                        //change owner
-                        var new_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
-                            {
-                                name = Types.metadata.owner;
-                                mode = #Set(switch(winning_escrow.buyer){
-                                    case(#principal(buyer)){#Principal(buyer);};
-                                    case(#account_id(buyer)){#Text(buyer);};
-                                    case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), switch(buyer.sub_account){
-                                        case(null){#Option(null)};
-                                        case(?val){#Option(?#Blob(val))}
-                                    }]))};
-                                    case(#extensible(buyer)){buyer;};
-                                });
-                            }
-                        ])){
-                            case(#ok(props)){
-                                #Class(props);
-                            };
-                            case(#err(err)){
-                                    return #err(Types.errors(#update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
-                            };
-                        };
-
-                                            debug if(debug_channel.end_sale) D.print("updating metadata");
-
-                        //clear shared wallets
-                        new_metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Empty);
-                        Map.set(state.state.nft_metadata, Map.thash, token_id, new_metadata);
-
-                        current_sale_state.end_date := state.get_time();
-                        current_sale_state.status := #closed;
-                        current_sale_state.winner := ?winning_escrow.buyer;
-
-                        //remove escrow
-                                            debug if(debug_channel.end_sale) D.print("putting escrow balance");
-                                            debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
-                        if(verified.found_asset.escrow.amount < winning_escrow.amount){
-                          return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
-                        } else {
-                            if(verified.found_asset.escrow.amount > winning_escrow.amount ){
-                                let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
-                                Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, {
-                                    amount = total_amount;
-                                    seller = verified.found_asset.escrow.seller;
-                                    balances = null;
-                                    buyer = verified.found_asset.escrow.buyer;
-                                    token_id = verified.found_asset.escrow.token_id;
-                                    token = verified.found_asset.escrow.token;
-                                    sale_id = verified.found_asset.escrow.sale_id; //should be null
-                                    lock_to_date = verified.found_asset.escrow.lock_to_date;
-                                    account_hash = verified.found_asset.escrow.account_hash;
-                                    
-                                    });
-                            } else {
-                                Map.delete(verified.found_asset_list, token_handler,verified.found_asset.token_spec);
-                            };
-                        };
-                        
-
-                        //log royalties
-                        //currently for auctions there are only secondary royalties
-                        let royalty= switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
-                                case(null){
-                                    [];
-                                };
-                                case(?val){
-                                    
-                                    switch(Properties.getClassProperty(val.value, Types.metadata.__system_secondary_royalty)){
-                                        case(null){
-                                             [];
-                                        };
-                                        case(?list){
-                                           switch(list.value){
-                                                case(#Array(the_array)){
-                                                    switch(the_array){
-                                                        case(#thawed(val)){
-                                                            val;
-                                                        };
-                                                        case(#frozen(val)){
-                                                            val;
-                                                        };
-                                                    };
-                                                };
-                                                case(_){
-                                                    [];
-                                                };
-                                           };
-                                        };
-                                    };
-                                    
-                                };
-                            };
-                        
-
-
-                        //let royaltyList = Buffer.Buffer<(Types.Account, Nat)>(royalty.size() + 1);
-                        if(winning_escrow.amount > fee){
-                            //if the fee is bigger than the amount we aren't going to pay anything
-                            //this should really be prevented elsewhere
-                            let total = Nat.sub(winning_escrow.amount, fee);
-                            var remaining = Nat.sub(winning_escrow.amount, fee);
-                            
-
-                            let royalty_result =  _process_royalties(state, {
-                                var remaining = remaining;
-                                total = total;
-                                fee = fee;
-                                escrow = winning_escrow;
-                                royalty = royalty;
-                                broker_id = current_sale_state.current_broker_id;
-                                original_broker_id = current_sale.original_broker_id;
-                                sale_id = ?current_sale.sale_id;
-                                account_hash = account_hash;
-                                metadata = metadata;
-                                token_id = ?token_id
-                            }, caller);
-
-                            remaining := royalty_result.0;
-                        
-
-                            
-                            //D.print("putting Sales balance");
-                            //D.print(debug_show(winning_escrow));
-
-                            let new_sale_balance = put_sales_balance(state, {
-                                amount = remaining;
-                                seller = winning_escrow.seller;
-                            
-                                buyer = winning_escrow.buyer;
-                                token = winning_escrow.token;
-                                token_id = winning_escrow.token_id;
-                                sale_id = ?current_sale.sale_id;
-                                lock_to_date = null;
-                                account_hash = account_hash;
-                            }, true);
-
-                            let service : Types.Service = actor((Principal.toText(state.canister())));
-                            let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
-
-                            request_buffer.add(#withdraw(#sale({
-                              amount = new_sale_balance.amount;
-                              buyer = new_sale_balance.buyer;
-                              seller = new_sale_balance.seller;
-                              token = new_sale_balance.token;
-                              token_id = new_sale_balance.token_id;
-                              withdraw_to = new_sale_balance.seller;}
-                            )));
-                            for(thisRoyalty in royalty_result.1.vals()){
-                              request_buffer.add(#withdraw(#sale({
-                                amount = thisRoyalty.amount;
-                                buyer = thisRoyalty.buyer;
-                                seller = thisRoyalty.seller;
-                                token = thisRoyalty.token;
-                                token_id = thisRoyalty.token_id;
-                                withdraw_to = thisRoyalty.seller;})));
-                            };
-                            D.print("attempt to distribute royalties request auction" # debug_show(request_buffer.toArray()));
-                            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
-                            D.print("attempt to distribute royalties auction" # debug_show(future));
-                        };
-
-                        switch(Metadata.add_transaction_record(state,{
-                            token_id = token_id;
-                            index = 0;
-                            txn_type = #sale_ended {
-                                seller = winning_escrow.seller;
-                                buyer = winning_escrow.buyer;
-                                token = winning_escrow.token;
-                                sale_id = ?current_sale.sale_id;
-                                amount = winning_escrow.amount;
-                                
-                                extensible = #Empty;
-                            };
-                            timestamp = state.get_time();
-                        }, caller)){
-                                case(#ok(new_trx)){
-                                    return #ok(#end_sale(new_trx));
-                                };
-                                case(#err(err)){
-                                    return #err(err);
-                                };
-                            };
-                    };
+                  };
                 };
-            };
-            case(_){
-                return #err(Types.errors(#sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));
+              };
+              
+              //let royaltyList = Buffer.Buffer<(Types.Account, Nat)>(royalty.size() + 1);
+              if(winning_escrow.amount > fee){
+                //if the fee is bigger than the amount we aren't going to pay anything
+                //this should really be prevented elsewhere
+                let total = Nat.sub(winning_escrow.amount, fee);
+                var remaining = Nat.sub(winning_escrow.amount, fee);
 
-            };
+                let royalty_result =  _process_royalties(state, {
+                  var remaining = remaining;
+                  total = total;
+                  fee = fee;
+                  escrow = winning_escrow;
+                  royalty = royalty;
+                  broker_id = current_sale_state.current_broker_id;
+                  original_broker_id = current_sale.original_broker_id;
+                  sale_id = ?current_sale.sale_id;
+                  account_hash = account_hash;
+                  metadata = metadata;
+                  token_id = ?token_id
+                }, caller);
+
+                remaining := royalty_result.0;
+
+                //D.print("putting Sales balance");
+                //D.print(debug_show(winning_escrow));
+
+                let new_sale_balance = put_sales_balance(state, {
+                    winning_escrow with
+                    amount = remaining;
+                    sale_id = ?current_sale.sale_id;
+                    lock_to_date = null;
+                    account_hash = account_hash;
+                }, true);
+
+                let service : Types.Service = actor((Principal.toText(state.canister())));
+                let request_buffer = Buffer.Buffer<Types.ManageSaleRequest>(royalty_result.1.size() + 1);
+
+                request_buffer.add(#withdraw(#sale({
+                  new_sale_balance with 
+                  withdraw_to = new_sale_balance.seller;}
+                )));
+                for(thisRoyalty in royalty_result.1.vals()){
+                  request_buffer.add(#withdraw(#sale({
+                    thisRoyalty with
+                    withdraw_to = thisRoyalty.seller;})));
+                };
+                D.print("attempt to distribute royalties request auction" # debug_show(request_buffer.toArray()));
+                let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                D.print("attempt to distribute royalties auction" # debug_show(future));
+              };
+
+              switch(Metadata.add_transaction_record(state,{
+                token_id = token_id;
+                index = 0;
+                txn_type = #sale_ended {
+                  winning_escrow with
+                  sale_id = ?current_sale.sale_id;
+                  extensible = #Empty;
+                };
+                timestamp = state.get_time();
+              }, caller)){
+                case(#ok(new_trx)){
+                  return #ok(#end_sale(new_trx));
+                };
+                case(#err(err)){
+                  return #err(err);
+                };
+              };
+          };
         };
-
         return #err(Types.errors(#nyi, "end_sale_nft_origyn - nyi - " , ?caller));
-
     };
-
-    
-
 
     public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       if(NFTUtils.is_owner_network(state, caller) == false){
@@ -1123,17 +1026,13 @@ module {
         for(this_buyer in Map.entries(this_seller.1)){
           for(this_token in Map.entries(this_buyer.1)){
             for(this_token in Map.entries(this_token.1)){
-               request_buffer.add(#withdraw(#sale({
-                    amount = this_token.1.amount;
-                    buyer = this_token.1.buyer;
-                    seller = this_token.1.seller;
-                    token = this_token.1.token;
-                    token_id = this_token.1.token_id;
-                    withdraw_to = this_token.1.seller;})));
-              };
+              request_buffer.add(#withdraw(#sale({
+                this_token.1 with
+                withdraw_to = this_token.1.seller;})));
             };
           };
         };
+      };
 
       let service : Types.Service = actor((Principal.toText(state.canister())));
       let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
@@ -1142,105 +1041,87 @@ module {
 
     //processes a change in escrow balance
     public func put_escrow_balance(
-        state: StateAccess, 
-        escrow: Types.EscrowRecord, 
-        append: Bool): Types.EscrowRecord{
-        //add the escrow
+      state: StateAccess, 
+      escrow: Types.EscrowRecord, 
+      append: Bool): Types.EscrowRecord{
+      //add the escrow
 
-        var a_from = switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer)){
-            case(null){
-                let new_from = Map.new<Types.Account,
-                    Map.Map<Text,
-                        Map.Map<Types.TokenSpec,Types.EscrowRecord>>>();
-                Map.set<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer, new_from);
-                new_from;
-            };
-            case(?val){
-                val;
-            };
+      var a_from = switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer)){
+        case(null){
+          let new_from = Map.new<Types.Account,
+            Map.Map<Text,
+              Map.Map<Types.TokenSpec,Types.EscrowRecord>>>();
+          Map.set<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer, new_from);
+          new_from;
         };
-
-        var a_to = switch(Map.get<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller)){
-            case(null){
-                let newTo = Map.new<Text,
-                                Map.Map<Types.TokenSpec,Types.EscrowRecord>>();
-                Map.set<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller, newTo);
-
-                //add this item to the offer index
-                if(escrow.token_id != ""){
-                  switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
-                      case(null){
-                          var aTree = Map.new<Types.Account,Int>();
-                          Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
-
-                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
-                      };
-                      case(?val){
-                          Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
-
-                          Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
-                      };
-                  };
-                };
-                newTo;
-            };
-            case(?val){
-                val;
-            };
+        case(?val){
+          val;
         };
+      };
 
-        var a_token_id = switch(Map.get<Text, MigrationTypes.Current.EscrowLedgerTrie>(a_to, Map.thash, escrow.token_id)){
-            case(null){
-                let new_token_id = Map.new<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>();
-                Map.set<Text, MigrationTypes.Current.EscrowLedgerTrie>(a_to, Map.thash, escrow.token_id, new_token_id);
-                new_token_id;
+      var a_to = switch(Map.get<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller)){
+        case(null){
+          let newTo = Map.new<Text,
+                          Map.Map<Types.TokenSpec,Types.EscrowRecord>>();
+          Map.set<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller, newTo);
+
+          //add this item to the offer index
+          if(escrow.token_id != ""){
+            switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
+              case(null){
+                var aTree = Map.new<Types.Account,Int>();
+                Map.set<Types.Account, Int>(aTree, account_handler, escrow.buyer, state.get_time());
+                Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, aTree);
+              };
+              case(?val){
+                Map.set<Types.Account, Int>(val, account_handler, escrow.buyer, state.get_time());
+                Map.set<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller, val);
+              };
             };
-            case(?val){
-                val;
-            };
+          };
+          newTo;
         };
-
-        switch(Map.get<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, escrow.token)){
-            case(null){
-
-
-                Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id,token_handler,escrow.token, escrow);
-                return escrow;
-            };
-            case(?val){
-
-                //note: sale_id will overwrite to save user clicks; alternative is to make them clear it and submit a new escrow
-                //nyi: add transaction for overwriting sale id
-                let newLedger = if(append == true){
-                     {
-                        account_hash = escrow.account_hash;
-                        amount = val.amount + escrow.amount;
-                        seller = escrow.seller;
-                        buyer = escrow.buyer;
-                        balances = null;
-                        token = escrow.token;
-                        token_id = escrow.token_id;
-                        sale_id = escrow.sale_id; //the user has staked for a new sale and we should use the new one.
-                        lock_to_date = escrow.lock_to_date;
-                    };
-                } else {
-                     {
-                        account_hash = escrow.account_hash;
-                        amount = escrow.amount;
-                        seller = escrow.seller;
-                        buyer = escrow.buyer;
-                        balances = null;
-                        token = escrow.token;
-                        token_id = escrow.token_id;
-                        sale_id = escrow.sale_id;
-                        lock_to_date = escrow.lock_to_date;
-                    };
-                };
-                Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, escrow.token, newLedger);
-                return newLedger;
-            };
+        case(?val){
+          val;
         };
+      };
 
+      var a_token_id = switch(Map.get<Text, MigrationTypes.Current.EscrowLedgerTrie>(a_to, Map.thash, escrow.token_id)){
+        case(null){
+          let new_token_id = Map.new<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>();
+          Map.set<Text, MigrationTypes.Current.EscrowLedgerTrie>(a_to, Map.thash, escrow.token_id, new_token_id);
+          new_token_id;
+        };
+        case(?val){
+          val;
+        };
+      };
+
+      switch(Map.get<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, escrow.token)){
+        case(null){
+          Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id,token_handler,escrow.token, escrow);
+          return escrow;
+        };
+        case(?val){
+
+          //note: sale_id will overwrite to save user clicks; alternative is to make them clear it and submit a new escrow
+          //nyi: add transaction for overwriting sale id
+          let newLedger = if(append == true){
+            {
+              escrow with 
+              amount = val.amount + escrow.amount;
+              balances = null;
+            };
+          } else {
+            {
+              escrow with 
+              balances = null;
+            };
+          };
+          Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, escrow.token, newLedger);
+          return newLedger;
+        };
+      };
     };
 
     //processes a changing sale balance
