@@ -51,8 +51,8 @@ module {
         bid = false;
     };
 
-    let account_handler = Types.account_handler;
-    let token_handler = Types.token_handler;
+    let account_handler = MigrationTypes.Current.account_handler;
+    let token_handler = MigrationTypes.Current.token_handler;
 
     type StateAccess = Types.State;
 
@@ -2192,7 +2192,7 @@ module {
                 h.write(Conversions.valueToBytes(#Text("token-id")));
                 h.write(Conversions.valueToBytes(#Text(request.token_id)));
                 h.write(Conversions.valueToBytes(#Text("seller")));
-                h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(owner))));
+                h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
                 h.write(Conversions.valueToBytes(#Text("timestamp")));
                 h.write(Conversions.valueToBytes(#Int(state.get_time())));
                 let sale_id = Conversions.valueToText(#Bytes(#frozen(h.sum([]))));

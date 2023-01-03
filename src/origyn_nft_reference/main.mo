@@ -102,7 +102,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
-    migration_state := Migrations.migrate(migration_state, #v0_1_0(#id), {owner = __initargs.owner; storage_space = initial_storage});
+    migration_state := Migrations.migrate(migration_state, #v0_1_3(#id), {owner = __initargs.owner; storage_space = initial_storage});
 
     /* 
     example migration
@@ -117,7 +117,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     */
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_0(#data(state_current)) = migration_state;
+    let #v0_1_3(#data(state_current)) = migration_state;
                         
     debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
@@ -1107,6 +1107,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        debug if(debug_channel.function_announce) D.print("in getEXTTokenIdentifier");
         return _getEXTTokenIdentifier(token_id);
     };
+
+    let account_handler = MigrationTypes.Current.account_handler;
     
     // Builds the balance object showing what resources an account holds on the server.
     private func _balance_of_nft_origyn(account: Types.Account, caller: Principal) : Result.Result<Types.BalanceResponse, Types.OrigynError> {
@@ -1116,15 +1118,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let state = get_state();
         
         // Get escrows
-        let escrows = Map.get(state_current.escrow_balances, Types.account_handler, account);
+        let escrows = Map.get(state_current.escrow_balances, account_handler, account);
         let escrowResults = Buffer.Buffer<Types.EscrowRecord>(1);
 
-        let sales = Map.get(state_current.sales_balances, Types.account_handler, account);
+        let sales = Map.get(state_current.sales_balances, account_handler, account);
         let salesResults = Buffer.Buffer<Types.EscrowRecord>(1);
 
         let nft_results = Buffer.Buffer<Text>(1);
 
-        let offers = Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, Types.account_handler, account);
+        let offers = Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, account);
         let offer_results = Buffer.Buffer<Types.EscrowRecord>(1);
 
         // nyi: check the mint status and compare to msg.caller
@@ -1175,10 +1177,10 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             case(null){};
             case(?found_offer){
                 for(this_buyer in Map.entries<Types.Account, Int>(found_offer)){
-                    switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state_current.escrow_balances, Types.account_handler, this_buyer.0)){
+                    switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state_current.escrow_balances, account_handler, this_buyer.0)){
                         case(null){};
                         case(?found_buyer){
-                            switch(Map.get(found_buyer, Types.account_handler, account)){
+                            switch(Map.get(found_buyer, account_handler, account)){
                                 case(null){};
                                 case(?found_seller){
                                      for(this_token in Map.entries(found_seller)){

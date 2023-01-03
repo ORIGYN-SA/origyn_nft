@@ -17,6 +17,7 @@ module {
     return switch (state) {
       case (#v0_0_0(_)) 0;
       case (#v0_1_0(_)) 1;
+      case (#v0_1_3(_)) 2;
       // do not forget to add your new migration id here
       // should be increased by 1 as it will be later used as an index to get upgrade/downgrade methods
     };

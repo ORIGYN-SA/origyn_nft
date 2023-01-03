@@ -35,7 +35,10 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
+v0.1.3
 
+* Upgrade - Upgrading to Map v7.0.0
+* dfx - upgrade to dfx 0.12.1
 
 v0.1.2
 
