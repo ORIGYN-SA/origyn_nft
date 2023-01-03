@@ -205,7 +205,7 @@ module {
           found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
       }, Types.OrigynError> {
 
-      let verified = switch(Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller)){
+      let to_list = switch(Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller)){
         case(null){
           debug if(debug_channel.verify_sale) D.print("sale seller not found");
           return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow seller not found ", null));
@@ -243,11 +243,11 @@ module {
       
       if(balance.amount < escrow.amount) return #err(Types.errors(#withdraw_too_large, "verify_sales_reciept - escrow not large enough", null));
 
-      switch(found_asset, found_asset_list){
-        case(?found_asset, ?found_asset_list){
+      switch(found_asset, ?asset_list){
+        case(?found_asset, ?asset_list){
           return #ok({
             found_asset = found_asset;
-            found_asset_list = found_asset_list;
+            found_asset_list = asset_list;
           });
         };
         case(_){
