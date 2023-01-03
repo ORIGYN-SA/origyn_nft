@@ -1,8 +1,8 @@
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
 import Map_lib "mo:map_7_0_0/Map"; 
-import CandyTypes_lib "mo:candy_0_1_11/types"; 
-import Conversion_lib "mo:candy_0_1_11/conversion"; 
-import Properties_lib "mo:candy_0_1_11/properties"; 
+import CandyTypes_lib "mo:candy_0_1_12/types"; 
+import Conversion_lib "mo:candy_0_1_12/conversion"; 
+import Properties_lib "mo:candy_0_1_12/properties"; 
 import v0_1_0 "../v000_001_000/types";
 import MapUtils "mo:map_7_0_0/utils";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
@@ -375,6 +375,11 @@ module {
 
     public let account_handler = (account_hash, account_eq);
 
+    public type HttpAccess= {
+        identity: Principal;
+        expires: Int;
+    };
+
     public let token_handler = (token_hash, token_eq);
 
   public type State = {
@@ -384,14 +389,12 @@ module {
     var allocations : Map.Map<(Text, Text), AllocationRecord>;
     var canister_availible_space : Nat;
     var canister_allocated_storage : Nat;
-    var log : SB.StableBuffer<LogEntry>;
-    var log_history : SB.StableBuffer<[LogEntry]>;
-    var log_harvester :  Principal;
     var offers : Map.Map<Account, Map.Map<Account, Int>>;
     var nft_metadata : Map.Map<Text,CandyTypes.CandyValue>;
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
+    var access_tokens : Map_lib.Map<Text, HttpAccess>;
   };
 };

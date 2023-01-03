@@ -39,6 +39,8 @@ v0.1.3
 
 * Upgrade - Upgrading to Map v7.0.0
 * dfx - upgrade to dfx 0.12.1
+* Refactor - Data API cleaned up and de-nested
+* Refactor - Market - standardized code for handling ledger errors
 
 v0.1.2
 

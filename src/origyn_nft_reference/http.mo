@@ -25,11 +25,12 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import CandyHex "mo:candy_0_1_10/hex";
-import Conversion "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
+import CandyTypes "mo:candy/types";
+import CandyHex "mo:candy/hex";
+import Conversion "mo:candy/conversion";
+import JSON "mo:candy/json";
+import Map "mo:map/Map";
+import Properties "mo:candy/properties";
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
@@ -45,6 +46,8 @@ module {
         library = false;
         request = false;
     };
+
+    let { ihash; nhash; thash; phash; calcHash } = Map;
 
     //the max size of a streaming chunk
     private let __MAX_STREAM_CHUNK = 2048000;
@@ -1011,7 +1014,7 @@ module {
         };
 
         return {
-            body = Text.encodeUtf8(value_to_json(message_response));
+            body = Text.encodeUtf8(JSON.value_to_json(message_response));
             headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
             status_code = 200;
             streaming_strategy = null;
@@ -1180,127 +1183,6 @@ module {
         };
     };
 
-    //converst a candu value to JSON
-    public func value_to_json(val: CandyTypes.CandyValue): Text {
-        switch(val){
-            //nat
-            case(#Nat(val)){ Nat.toText(val)};
-            case(#Nat64(val)){ Nat64.toText(val)};
-            case(#Nat32(val)){ Nat32.toText(val)};
-            case(#Nat16(val)){ Nat16.toText(val)};
-            case(#Nat8(val)){ Nat8.toText(val)};
-            //text
-            case(#Text(val)){ "\"" # val # "\""; };
-            //class
-            case(#Class(val)){
-                var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                for(this_item in val.vals()){
-                    body.add("\"" # this_item.name # "\"" # ":" # value_to_json(this_item.value));
-                };
-
-                return "{" # Text.join(",", body.vals()) # "}";
-            };
-            //array
-            case(#Array(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                    case(#thawed(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                };
-            };
-            case(#Option(val)){
-              switch(val){
-                case(null){"null";};
-                case(?val){value_to_json(val);}
-              }
-            };
-            case(#Nats(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(Nat.toText(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                    case(#thawed(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(Nat.toText(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                };
-            };
-            case(#Floats(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                           body.add(Float.toText(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                    case(#thawed(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                           body.add(Float.toText(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                };
-            };
-            //bytes
-            case(#Bytes(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        return "\"" # CandyHex.encode(val) # "\"";//CandyHex.encode(val);
-                    };
-                    case(#thawed(val)){
-                        return "\"" # CandyHex.encode(val) # "\"";//CandyHex.encode(val);
-                    };
-                };
-            };
-            //bytes
-            case(#Blob(val)){
-                
-                return "\"" # CandyHex.encode(Blob.toArray(val)) # "\"";//CandyHex.encode(val);
-               
-            };
-            //principal
-            case(#Principal(val)){ "\"" # Principal.toText(val) # "\"";};
-            //bool	
-            case(#Bool(val)){ "\"" # Bool.toText(val) # "\"";};	
-            
-            //float	
-            case(#Float(val)){ "\"" # Float.toText(val) # "\"";};
-            case(#Empty){ "null";};
-            case(#Int(val)){ "\"" # Int.toText(val) # "\"";};
-            case(#Int64(val)){ "\"" # Int64.toText(val) # "\"";};
-            case(#Int32(val)){ "\"" # Int32.toText(val) # "\"";};
-            case(#Int16(val)){ "\"" # Int16.toText(val) # "\"";};
-            case(#Int8(val)){ "\"" # Int8.toText(val) # "\"";};
-            case(_){"";};
-        };
-    };
-
     public func split_text(q: Text, p: Char): [Text] {
         var queries: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
         var key : Text = "";
@@ -1322,66 +1204,48 @@ module {
     //checks that a access token holder is the collection owner
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        if(stateBody.state.collection_data.owner != identity) {
-                            return #err("not an owner");
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+      switch(req.url.queryObj.get("access")) {
+        case(null) {
+          return #err("no access code in request when nft not minted");
         };
+        case(?access_token) {
+          switch(Map.get(stateBody.state.access_tokens, thash, access_token)) {
+            case(null) return #err("identity not found by access_token : " # access_token);
+            case(?info) {
+              let { identity; expires; } = info;
 
-        #ok();
+              if(stateBody.state.collection_data.owner != identity) return #err("not an owner");
+            
+              if(expires < Time.now()) return #err("access expired");
+            };
+          };
+        };
+      };
+      #ok();
     };
 
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_nft_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
-                          case(#ok(val)){
-                            if(val == false){
-                              return #err("not an owner");
-                            };
-                          };
-                          case(#err(err)){
-                            return #err("identity not found by access_token : " # access_token);
-                          };
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+        let access_token = switch(req.url.queryObj.get("access")) {
+            case(null) return #err("no access code in request when nft not minted");
+            case(?access_token) access_token;
         };
+
+        let info = switch(Map.get(stateBody.state.access_tokens, thash,access_token)) {
+          case(null) return #err("identity not found by access_token : " # access_token);
+          case(?info) info;
+        };
+        let { identity; expires; } = info;
+
+        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
+          case(#ok(val)){
+            if(val == false) return #err("not an owner");
+          };
+          case(#err(err)) return #err("identity not found by access_token : " # access_token);
+        };
+
+        if(expires < Time.now()) return #err("access expired");
 
         #ok();
     };

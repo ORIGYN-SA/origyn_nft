@@ -12,18 +12,19 @@ import Random "mo:base/Random";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversion "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
+import CandyTypes "mo:candy/types";
+import Conversion "mo:candy/conversion";
+import JSON "mo:candy/json";
+import Map "mo:map/Map";
+import Properties "mo:candy/properties";
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+import MigrationTypes "migrations_storage/types";
 
 
 //this is a virtual copy of http.mo except that we use Types.StorageState
@@ -36,6 +37,8 @@ module {
         library = false;
         request = false;
     };
+
+    let { ihash; nhash; thash; phash; calcHash } = Map;
 
     //the max size of a streaming chunk
     private let __MAX_STREAM_CHUNK = 2048000;
@@ -950,7 +953,7 @@ module {
         };
 
         return {
-            body = Text.encodeUtf8(value_to_json(message_response));
+            body = Text.encodeUtf8(JSON.value_to_json(message_response));
             headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
             status_code = 200;
             streaming_strategy = null;
@@ -1118,65 +1121,7 @@ module {
         };
     };
 
-    //converst a candu value to JSON
-    public func value_to_json(val: CandyTypes.CandyValue): Text {
-        switch(val){
-            //nat
-            case(#Nat(val)){ Nat.toText(val)};
-            //text
-            case(#Text(val)){ "\"" # val # "\""; };
-            //class
-            case(#Class(val)){
-                var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                for(this_item in val.vals()){
-                    body.add("\"" # this_item.name # "\"" # ":" # value_to_json(this_item.value));
-                };
-
-                return "{" # Text.join(",", body.vals()) # "}";
-            };
-            //array
-            case(#Array(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                    case(#thawed(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                };
-            };
-            //bytes
-            case(#Bytes(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-                    };
-                    case(#thawed(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-                    };
-                };
-            };
-            //bytes
-            case(#Blob(val)){
-                
-                return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-               
-            };
-            //principal
-            case(#Principal(val)){ "\"" # Principal.toText(val) # "\"";};
-            case(_){"";};
-        };
-    };
+    
 
     public func split_text(q: Text, p: Char): [Text] {
         var queries: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
@@ -1203,7 +1148,7 @@ module {
                 return #err("no access code in request when nft not minted");
             };
             case(?access_token) {
-                switch(stateBody.tokens.get(access_token)) {
+                switch(Map.get<Text, MigrationTypes.Current.HttpAccess>(stateBody.state.access_tokens, thash, access_token)) {
                     case(null) {
                         return #err("identity not found by access_token : " # access_token);
                     };

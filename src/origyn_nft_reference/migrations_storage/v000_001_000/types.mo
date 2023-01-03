@@ -1,6 +1,6 @@
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
-import Map_lib "mo:map_6_0_0/Map"; 
-import CandyTypes_lib "mo:candy_0_1_10/types"; 
+import Map_lib "mo:map/Map"; 
+import CandyTypes_lib "mo:candy/types"; 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
