@@ -2,8 +2,8 @@ import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
 import M "mo:matchers/Matchers";
 
-import Conversion "mo:candy_0_1_10/conversion";
-import CandyTypes "mo:candy_0_1_10/types";
+import Conversion "mo:candy/conversion";
+import CandyTypes "mo:candy/types";
 
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";

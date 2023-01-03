@@ -8,11 +8,11 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
-import Properties "mo:candy_0_1_10/properties";
-import Workspace "mo:candy_0_1_10/workspace";
+import Properties "mo:candy/properties";
+import Workspace "mo:candy/workspace";
 
 import DIP721 "DIP721";
 import Market "market";

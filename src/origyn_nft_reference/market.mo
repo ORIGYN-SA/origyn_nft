@@ -16,13 +16,11 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Map "mo:map/Map";
+import Properties "mo:candy/properties";
 import SHA256 "mo:crypto/SHA/SHA256";
-
-import Current "migrations/v000_001_000/types";
 import Ledger_Interface "ledger_interface";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";

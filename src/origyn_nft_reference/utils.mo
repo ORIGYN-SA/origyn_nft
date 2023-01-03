@@ -20,13 +20,13 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import Candy "mo:candy/types";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Properties "mo:candy/properties";
+import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
-import Workspace "mo:candy_0_1_10/workspace";
+import Workspace "mo:candy/workspace";
 
 import Types "types";
 

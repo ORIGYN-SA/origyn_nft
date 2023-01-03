@@ -1,7 +1,7 @@
 import D "mo:base/Debug";
 
 
-import CandyTypes_lib "mo:candy_0_1_11/types"; 
+import CandyTypes_lib "mo:candy_0_1_12/types"; 
 import Map_6 "mo:map_6_0_0/Map"; 
 import Map_lib "mo:map_7_0_0/Map"; 
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
