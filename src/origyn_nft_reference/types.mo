@@ -1124,7 +1124,7 @@ module {
         primary_port: Text;
         primary_protocol: Text;
         primary_royalties_default : Text;
-        
+        royalty_originator_override : Text;
         royalty_broker : Text;
         royalty_node : Text;
         royalty_originator : Text;
@@ -1161,6 +1161,7 @@ module {
         primary_host = "primary_host";
         primary_port = "primary_port";
         primary_protocol = "primary_protocol";
+        royalty_originator_override = "com.origyn.originator.override";
         royalty_broker = "com.origyn.royalty.broker";
         royalty_node = "com.origyn.royalty.node";
         royalty_originator = "com.origyn.royalty.originator";

@@ -58,6 +58,7 @@ module {
 
     let SB = MigrationTypes.Current.SB;
 
+    let { ihash; nhash; thash; phash; calcHash } = Map;
 
     // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
     public func find_escrow_reciept(
@@ -1973,8 +1974,8 @@ module {
                                 
                                 };
                             } else if(tag == Types.metadata.royalty_originator){
-                                let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
-                                switch(Metadata.get_system_var(request.metadata, Types.metadata.__system_originator)){
+                                let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
+                                switch(val){
                                     case(#Empty){[Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")]}; //dev fund
                                     case(#Principal(val)){
                                         [val]
@@ -3657,6 +3658,7 @@ module {
                         current_sale_state.min_next_bid := newMinBid;
                         current_sale_state.current_escrow := ?request.escrow_receipt;
                         current_sale_state.current_broker_id := request.broker_id;
+                        ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
                     };
                     case(?val){
 
@@ -3666,6 +3668,7 @@ module {
                         current_sale_state.min_next_bid := newMinBid;
                         current_sale_state.current_escrow := ?request.escrow_receipt;
                         current_sale_state.current_broker_id := request.broker_id;
+                        ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
                                             debug if(debug_channel.bid) D.print("After" # debug_show(val.amount) # debug_show(val));
                         //refund the escrow
                         //nyi: this would be better triggered by an event

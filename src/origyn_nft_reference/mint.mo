@@ -1066,26 +1066,65 @@ module {
         };
 
         var primary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.primary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+          case(null) #Array(#frozen([]));
+          case(?val) val.value;
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
+        let primary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
+
+        for(thisItem in Conversions.valueToValueArray(primary_royalties).vals()){
+          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
+            case(null) "other";
+            case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) "other"; 
+              };
+            };
+          };
+
+          if(tag == Types.metadata.royalty_originator){
+            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
+              case(null) primary_buffer.add(thisItem);
+              case(?val) primary_buffer.add(val.value);
+            };
+          } else {
+            primary_buffer.add(thisItem);
+          };
+        };
+
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, #Array(#frozen(primary_buffer.toArray())));
+
 
         var secondary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+            case(null) #Array(#frozen([]));
+            case(?val) val.value;
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
+        let secondary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
+
+        for(thisItem in Conversions.valueToValueArray(secondary_royalties).vals()){
+          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
+            case(null) "other";
+            case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) "other"; 
+              };
+            };
+          };
+
+          if(tag == Types.metadata.royalty_originator){
+            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
+              case(null) secondary_buffer.add(thisItem);
+              case(?val) secondary_buffer.add(val.value);
+            };
+          } else {
+            secondary_buffer.add(thisItem);
+          };
+        };
+
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, #Array(#frozen(secondary_buffer.toArray())));
 
         
         var node_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_node)){
