@@ -130,7 +130,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("calling stage");
 
         //MINT0007, MINT0008
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
         D.print("finished stage");
         D.print(debug_show(standardStage.0));
 
@@ -341,14 +341,14 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 case(#ok(res)){
                     switch(res.metadata){
                         case(#Class(data)){
-                            if(data.size() ==12){ //check if a top level element was added to the structure
+                            if(data.size() ==13){ //check if a top level element was added to the structure
                                 "Ok";
                             } else {
                                 D.print("testing size");
                                 D.print(debug_show(test_metadata));
                                 D.print(debug_show(data));
                                 D.print(debug_show(data.size()));
-                                "data elements don't match wanted 9 found " # debug_show(data.size());
+                                "data elements don't match wanted 13 found " # debug_show(data.size());
                             }
                         };
                         case (_){
@@ -439,7 +439,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("a mint canister");
         D.print(debug_show(Principal.fromActor(canister)));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
@@ -694,8 +694,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let mode = canister.__set_time_mode(#test);
         let atime = canister.__advance_time(Time.now());
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false); //for auctioning a minted item
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false); //for auctioning an unminted item
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
 
         D.print("Minting");
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account

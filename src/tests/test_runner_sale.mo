@@ -151,14 +151,14 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         let registration_date = Time.now() + 100000000000;
         let allocation_date = Time.now() + 900000000000;
@@ -786,14 +786,14 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         let registration_date = Time.now() + 100000000000;
         let allocation_date = Time.now() + 900000000000;
@@ -1439,14 +1439,14 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         let registration_date = Time.now() + 100000000000;
         let allocation_date = Time.now() + 900000000000;
@@ -2030,14 +2030,14 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
 
         let allocation_date = Time.now() + 900000000000;
@@ -2500,14 +2500,14 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage5 = await utils.buildStandardNFT("5", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage6 = await utils.buildStandardNFT("6", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage7 = await utils.buildStandardNFT("7", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage8 = await utils.buildStandardNFT("8", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         //create sales canister
         let sale_canister = await Sales.SaleCanister({
@@ -3083,10 +3083,10 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         //mint 2
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
