@@ -1150,6 +1150,7 @@ module {
         royalty_broker : Text;
         royalty_node : Text;
         royalty_originator : Text;
+        royalty_originator_override : Text;
         royalty_network : Text;
         royalty_custom : Text;
         secondary_royalties_default : Text;
@@ -1186,6 +1187,7 @@ module {
         royalty_broker = "com.origyn.royalty.broker";
         royalty_node = "com.origyn.royalty.node";
         royalty_originator = "com.origyn.royalty.originator";
+        royalty_originator_override = "com.origyn.royalty.originator.override";
         royalty_network = "com.origyn.royalty.network";
         royalty_custom = "com.origyn.royalty.custom";
         experience_asset = "experience_asset";

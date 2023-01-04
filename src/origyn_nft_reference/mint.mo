@@ -133,7 +133,7 @@ module {
                                                     } else {
                                                                         debug if(debug_channel.library) D.print("erroring because " # debug_show((a_bucket.available_space, library_size)));
                                                         //make sure that size isn't bigger than biggest possible size
-                                                        return #err(Types.errors(#not_enough_storage, "stage_nft_origyn - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
+                                                        return #err(Types.errors(#not_enough_storage, "handle_library - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
                                                     };
                                                 };
                                             };
@@ -163,18 +163,18 @@ module {
                                                 if(canister_bucket.available_space >= library_size){
                                                   canister_bucket.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(#storage_configuration_error, "handle_library - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.state.collection_data.available_space >= library_size){
                                                   state.state.collection_data.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(#storage_configuration_error, "handle_library - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.canister() == canister_bucket.principal){
                                                     if(state.state.canister_availible_space >= library_size){
                                                       state.state.canister_availible_space -= library_size;
                                                     } else {
-                                                      return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
+                                                      return #err(Types.errors(#storage_configuration_error, "handle_library - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
                                                     }
                                                 };
                                                 a_allocation;
@@ -228,10 +228,10 @@ module {
                                     //nyi: if it is collection, should we check that it exists?
                                 };
                             };
-                            case(_){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library should be thawed", ?caller));};
+                            case(_){return #err(Types.errors(#malformed_metadata, "handle_library - library should be thawed", ?caller));};
                         };
                     };
-                    case(_){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library should be an array", ?caller));};
+                    case(_){return #err(Types.errors(#malformed_metadata, "handle_library - library should be an array", ?caller));};
                 };
 
             };
@@ -1055,39 +1055,71 @@ module {
         //get the royalties
         //nyi: should ask the network for the network royalty and node royalty
 
-
         var collection = switch(Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)){
-            case(#err(err)){
-                #Class([]);
-            };
-            case(#ok(val)){
-                val;
-            };
+          case(#err(err))#Class([]);
+          case(#ok(val))val;
         };
 
         var primary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.primary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+          case(null) #Array(#frozen([]));
+          case(?val) val.value;
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
+        let primary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
+
+        for(thisItem in Conversions.valueToValueArray(primary_royalties).vals()){
+          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
+            case(null) "other";
+            case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) "other"; 
+              };
+            };
+          };
+
+          if(tag == Types.metadata.royalty_originator){
+            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
+              case(null) primary_buffer.add(thisItem);
+              case(?val) primary_buffer.add(val.value);
+            };
+          } else {
+            primary_buffer.add(thisItem);
+          };
+        };
+
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, #Array(#frozen(primary_buffer.toArray())));
 
         var secondary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+            case(null) #Array(#frozen([]));
+            case(?val) val.value;
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
+        let secondary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
 
-        
+        for(thisItem in Conversions.valueToValueArray(secondary_royalties).vals()){
+          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
+            case(null) "other";
+            case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) "other"; 
+              };
+            };
+          };
+
+          if(tag == Types.metadata.royalty_originator){
+            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
+              case(null) secondary_buffer.add(thisItem);
+              case(?val) secondary_buffer.add(val.value);
+            };
+          } else {
+            secondary_buffer.add(thisItem);
+          };
+        };
+
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, #Array(#frozen(secondary_buffer.toArray())));
+
         var node_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_node)){
             case(null){
                 #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund

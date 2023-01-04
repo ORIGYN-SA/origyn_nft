@@ -41,6 +41,8 @@ v0.1.3
 * dfx - upgrade to dfx 0.12.1
 * Refactor - Data API cleaned up and de-nested
 * Refactor - Market - standardized code for handling ledger errors
+* Refactor - Moved access_tokens into migration state
+* Refactor - Moved Candy to Json to Candy Library
 
 v0.1.2
 
