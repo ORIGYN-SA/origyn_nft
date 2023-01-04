@@ -40,7 +40,7 @@ module {
         ensure = false;
         invoice = false;
         end_sale = false;
-        market = false;
+        market = true;
         royalties = false;
         offers = false;
         escrow = false;

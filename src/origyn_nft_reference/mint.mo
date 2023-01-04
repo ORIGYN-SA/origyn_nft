@@ -1070,30 +1070,7 @@ module {
           case(?val) val.value;
         };
 
-        let primary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
-
-        for(thisItem in Conversions.valueToValueArray(primary_royalties).vals()){
-          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
-            case(null) "other";
-            case(?val){
-              switch(val.value){
-                case(#Text(val)) val;
-                case(_) "other"; 
-              };
-            };
-          };
-
-          if(tag == Types.metadata.royalty_originator){
-            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
-              case(null) primary_buffer.add(thisItem);
-              case(?val) primary_buffer.add(val.value);
-            };
-          } else {
-            primary_buffer.add(thisItem);
-          };
-        };
-
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, #Array(#frozen(primary_buffer.toArray())));
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
 
 
         var secondary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)){
@@ -1101,30 +1078,7 @@ module {
             case(?val) val.value;
         };
 
-        let secondary_buffer = Buffer.Buffer<CandyTypes.CandyValue>(1);
-
-        for(thisItem in Conversions.valueToValueArray(secondary_royalties).vals()){
-          let tag = switch(Properties.getClassProperty(thisItem, "tag")){
-            case(null) "other";
-            case(?val){
-              switch(val.value){
-                case(#Text(val)) val;
-                case(_) "other"; 
-              };
-            };
-          };
-
-          if(tag == Types.metadata.royalty_originator){
-            switch(Properties.getClassProperty(metadata, Types.metadata.royalty_originator_override)){
-              case(null) secondary_buffer.add(thisItem);
-              case(?val) secondary_buffer.add(val.value);
-            };
-          } else {
-            secondary_buffer.add(thisItem);
-          };
-        };
-
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, #Array(#frozen(secondary_buffer.toArray())));
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
 
         
         var node_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_node)){
@@ -1138,13 +1092,18 @@ module {
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_node, node_principal);
 
-        var originator_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
-            case(null){
-                #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+        var originator_principal = switch(Properties.getClassProperty(metadata, Types.metadata.originator_override)){
+          case(null){
+            switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
+              case(null){
+                  #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+              };
+              case(?val){
+                  val.value;
+              };
             };
-            case(?val){
-                val.value;
-            };
+          };
+          case(?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_originator, originator_principal);
