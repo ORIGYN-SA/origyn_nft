@@ -890,7 +890,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             canister, 
             Principal.fromActor(canister), 
             Principal.fromActor(n_wallet),
-            Principal.fromActor(o_wallet),
+            Principal.fromActor(this),
             2048000);
 
         let updateNetwork = canister.collection_update_nft_origyn(#UpdateNetwork(?Principal.fromActor(net_wallet)));
