@@ -937,7 +937,7 @@ module {
 
 
                         //reentancy risk so change the owner to inflight
-                        metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, #extensible(#Text("trx in flight")), caller)){
+                        metadata := switch(Metadata.set_nft_owner(state, token_id, #extensible(#Text("trx in flight")), caller)){
                           case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                           case(#ok(new_metadata)) new_metadata;
                         };
@@ -992,7 +992,7 @@ module {
                                                 };
 
                                                 //put the owner back if the transaction fails
-                                                metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, owner, caller)){
+                                                metadata := switch(Metadata.set_nft_owner(state, token_id, owner, caller)){
                                                   case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                                                   case(#ok(new_metadata)) new_metadata;
                                                 };
@@ -1036,7 +1036,7 @@ module {
                                           };
 
                                           //put the owner back if the transaction fails
-                                          metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, owner, caller)){
+                                          metadata := switch(Metadata.set_nft_owner(state, token_id, owner, caller)){
                                             case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                                             case(#ok(new_metadata)) new_metadata;
                                           };
@@ -1056,24 +1056,10 @@ module {
                             };
                         };
 
+      
                         //change owner
-                        var new_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
-                            {
-                                name = Types.metadata.owner;
-                                mode = #Set(switch(winning_escrow.buyer){
-                                    case(#principal(buyer)){#Principal(buyer);};
-                                    case(#account_id(buyer)){#Text(buyer);};
-                                    case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), switch(buyer.sub_account){
-                                        case(null){#Option(null)};
-                                        case(?val){#Option(?#Blob(val))}
-                                    }]))};
-                                    case(#extensible(buyer)){buyer;};
-                                });
-                            }
-                        ])){
-                            case(#ok(props)){
-                                #Class(props);
-                            };
+                        var new_metadata : CandyTypes.CandyValue = switch(Metadata.set_nft_owner(state, token_id, winning_escrow.buyer, caller)){
+                            case(#ok(new_metadata)){new_metadata};
                             case(#err(err)){
                               //changing owner failed but the tokens are already gone....what to do...leave up to governance
                               return #err(Types.errors(#update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
@@ -1512,6 +1498,14 @@ module {
         } else {
             //this is a staged NFT it can be sold by the canister owner or the canister manager
             if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn - not an owner of the canister - staged sale ", ?caller))};
+            switch(owner){
+              case(#extensible(ex)){
+                if(Conversions.valueToText(ex) == "trx in flight"){
+                  return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn - not an owner of the canister - staged sale - trx in flight", ?caller))
+                };
+              };
+              case(_){};
+            };
         };
 
                              debug if(debug_channel.market) D.print("have minted " # debug_show(this_is_minted));
@@ -1544,6 +1538,7 @@ module {
                     case(null){
                         //we can't insta transfer because no instructions are given
                         //D.print("no escrow set");
+
                         return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn verifying escrow - not included ", ?caller));
                             
                     };
@@ -1603,7 +1598,7 @@ module {
                                                 debug if(debug_channel.market) D.print(debug_show(Iter.toArray(Map.entries(verified.found_asset_list))));
                         
                         //reentrancy risk so set the owner to a black hole while transaction is in flight
-                        metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, #extensible(#Text("trx in flight")), caller)){
+                        metadata := switch(Metadata.set_nft_owner(state, request.token_id, #extensible(#Text("trx in flight")), caller)){
                           case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                           case(#ok(new_metadata)) new_metadata;
                         };
@@ -1659,7 +1654,7 @@ module {
                                                     };
 
                                                     //put the owner back if the transaction fails
-                                                    metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                                                    metadata := switch(Metadata.set_nft_owner(state, request.token_id, owner, caller)){
                                                       case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                                                       case(#ok(new_metadata)) new_metadata;
                                                     };
@@ -1705,7 +1700,7 @@ module {
                                             };
 
                                             //put the owner back if the transaction fails
-                                            metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                                            metadata := switch(Metadata.set_nft_owner(state, request.token_id, owner, caller)){
                                               case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                                               case(#ok(new_metadata)) new_metadata;
                                             };
@@ -1771,7 +1766,7 @@ module {
                                   };
 
                                   //put the owner back if the transaction fails
-                                  metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                                  metadata := switch(Metadata.set_nft_owner(state, request.token_id, owner, caller)){
                                     case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
                                     case(#ok(new_metadata)) new_metadata;
                                   };
@@ -1785,8 +1780,9 @@ module {
                                 };
                             };
                         } else{
+
                             //change owner
-                            metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, escrow.buyer, caller)){
+                            var new_metadata = switch(Metadata.set_nft_owner(state, request.token_id, escrow.buyer, caller)){
                               case(#err(err)) {
                                 //ownership change failed, but we already have tokens...what to do...leave in flight and let governance fix
                                 /* switch(verify_escrow_reciept(state, escrow, ?owner, null)){
@@ -1824,7 +1820,7 @@ module {
                             };
                             
 
-                            metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Empty);
+                            metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Empty);
 
                             //D.print("updating metadata");
                             Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, metadata);
@@ -2348,7 +2344,7 @@ module {
                     });
                 });
 
-                //set new owner
+                //set new saleid
                                    debug if(debug_channel.market) D.print("Setting sale id");
                 metadata := Metadata.set_system_var(metadata, Types.metadata.__system_current_sale_id, #Text(sale_id));
 
