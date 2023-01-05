@@ -522,6 +522,47 @@ module {
     };
   };
 
+  //sets the owner on the nft
+  //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+  public func set_nft_owner(state: Types.State, token_id: Text, metadata: CandyType.CandyValue, new_owner: Types.Account, caller: Principal) : Result.Result<CandyType.CandyValue, Types.OrigynError>{
+
+    let current_state = state.refresh_state();
+
+    //make sure we always have fresh meta data incase something has changed
+    var fresh_metadata = switch(get_metadata_for_token(current_state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+      case(#err(err)){
+        return #err(Types.errors(#token_not_found, "set_nft_owner can't get metadata " # err.flag_point, ?caller));
+      };
+      case(#ok(val)){
+        val;
+      };
+    };
+
+    var temp_metadata : CandyType.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(fresh_metadata), [
+      {
+        name = Types.metadata.owner;
+        mode = #Set(switch(new_owner){
+          case(#principal(buyer)){#Principal(buyer);};
+          case(#account_id(buyer)){#Text(buyer);};
+          case(#extensible(buyer)){buyer;};
+          case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), #Option(switch(buyer.sub_account){case(null){null}; case(?val){?#Blob(val);}})]))};
+        });
+      }
+      ])){
+        case(#ok(props)){
+          #Class(props);
+        };
+        case(#err(err)){
+          return #err(Types.errors(#update_class_error, "set_nft_owner - error setting owner " # debug_show((metadata, new_owner)), ?caller));
+        };
+      };
+
+      Map.set(current_state.state.nft_metadata, Map.thash, token_id, temp_metadata);
+
+      #ok(temp_metadata);
+  };
+
+
   let account_handler = MigrationTypes.Current.account_handler;
 
   public func is_nft_owner(metadata: CandyType.CandyValue, anAccount : Types.Account) : Result.Result<Bool, Types.OrigynError>{
@@ -531,6 +572,14 @@ module {
         return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case(#ok(val)){
+        switch(val){
+          case(#extensible(ex)){
+            if(Conversions.valueToText(ex) == "trx in flight"){
+              return(#ok(false));
+            }
+          };
+          case(_){};
+        };
         val;
       };
     };
