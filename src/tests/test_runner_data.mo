@@ -81,7 +81,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let canister : Types.Service =  actor(Principal.toText(newPrincipal));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         //D.print("Minting");
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(a_wallet)));
@@ -377,7 +377,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let canister : Types.Service =  actor(Principal.toText(newPrincipal));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         //attempt to change the metadata of a library before mint
 
@@ -539,7 +539,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let canister : Types.Service =  actor(Principal.toText(newPrincipal));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         //attempt to delete page before minting
 
@@ -694,7 +694,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let canister : Types.Service =  actor(Principal.toText(newPrincipal));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         //attempt to delete page before minting
 
@@ -710,7 +710,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         
         D.print("deletePage:" # debug_show(deletePage));
 
-        //let stage = await canister.stage_nft_origyn(utils.standardNFT("1", Principal.fromActor(canister), Principal.fromActor(this), 1024, false));
+        //let stage = await canister.stage_nft_origyn(utils.standardNFT("1", Principal.fromActor(canister), Principal.fromActor(this), 1024, false, Principal.fromActor(this)));
         
         let fileStage = await canister.stage_library_nft_origyn(utils.standardFileChunk("1","page","hello world replace larger", #Class([
                     {name = "library_id"; value=#Text("page"); immutable= true},

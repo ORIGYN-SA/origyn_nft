@@ -1066,23 +1066,16 @@ module {
         };
 
         var primary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.primary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+          case(null) #Array(#frozen([]));
+          case(?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
 
+
         var secondary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+            case(null) #Array(#frozen([]));
+            case(?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
@@ -1099,13 +1092,18 @@ module {
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_node, node_principal);
 
-        var originator_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
-            case(null){
-                #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+        var originator_principal = switch(Properties.getClassProperty(metadata, Types.metadata.originator_override)){
+          case(null){
+            switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
+              case(null){
+                  #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+              };
+              case(?val){
+                  val.value;
+              };
             };
-            case(?val){
-                val.value;
-            };
+          };
+          case(?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_originator, originator_principal);
