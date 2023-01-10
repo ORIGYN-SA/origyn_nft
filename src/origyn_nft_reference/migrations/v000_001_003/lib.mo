@@ -5,12 +5,14 @@ import CandyTypes_lib "mo:candy_0_1_12/types";
 import Map_6 "mo:map_6_0_0/Map"; 
 import Map_lib "mo:map_7_0_0/Map"; 
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
+import MerkleTree "mo:merkle_tree_0_1_1";
 
 import MigrationTypes "../types";
 
 import v0_1_0 "../v000_000_000/types";
 import v0_1_1 "../v000_001_000/types";
 import v0_1_3 "types";
+
 
 module {
 
@@ -127,6 +129,7 @@ module {
       var nft_ledgers = nft_ledgers;
       var nft_sales = nft_sales;
       var access_tokens = access_tokens;
+      var certified_assets = MerkleTree.empty();
     }));
   };
 

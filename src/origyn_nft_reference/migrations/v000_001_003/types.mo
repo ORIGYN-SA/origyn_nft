@@ -8,6 +8,7 @@ import MapUtils "mo:map_7_0_0/utils";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import hex "mo:encoding/Hex";
 
+import MerkleTree "mo:merkle_tree_0_1_1";
 
 import Blob "mo:base/Blob";
 import D "mo:base/Debug";
@@ -396,5 +397,6 @@ module {
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var access_tokens : Map_lib.Map<Text, HttpAccess>;
+    var certified_assets : MerkleTree.Tree;
   };
 };

@@ -2,6 +2,7 @@ import SB_lib "mo:stablebuffer_0_2_0/StableBuffer";
 import Map_lib "mo:map_7_0_0/Map"; 
 import CandyTypes_lib "mo:candy/types"; 
 import v0_1_0 "../v000_001_000/types";
+import MerkleTree "mo:merkle_tree_0_1_1";
 
 import Order "mo:base/Order";
 import Text "mo:base/Text";
@@ -10,6 +11,8 @@ import Nat32 "mo:base/Nat32";
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
 // use MigrationTypes.Current property instead
+
+
 
 
 module {
@@ -66,6 +69,7 @@ module {
     var allocations : Map_lib.Map<(Text, Text), AllocationRecord>;
     var canister_availible_space : Nat;
     var canister_allocated_storage : Nat;
-    var access_tokens : Map_lib.Map<Text, HttpAccess>; 
+    var access_tokens : Map_lib.Map<Text, HttpAccess>;
+    var certified_assets : MerkleTree.Tree;
   };
 };

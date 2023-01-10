@@ -17,9 +17,13 @@ import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import Workspace "mo:candy/workspace";
 
+import SHA "mo:crypto/SHA/SHA256";
+
+import Certification "certification";
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+
 
 
 module {
@@ -36,6 +40,8 @@ module {
 
     //adds a library to the nft
     private func handle_library(state : Types.State, token_id : Text, found_metadata : CandyTypes.CandyValue, caller : Principal) : Result.Result<Text, Types.OrigynError>{
+
+        let cert_buffer = Buffer.Buffer<(Text, Text, [Nat8])>(1);
         //prep the library
                         debug if(debug_channel.library) D.print("in handle library");
         switch(Metadata.get_nft_library(found_metadata, ?caller)){
@@ -61,6 +67,11 @@ module {
 
                                     let library_type = switch(Metadata.get_nft_text_property(this_item, Types.metadata.library_location_type)){
                                         case(#err(err)){return #err(Types.errors(#malformed_metadata, "handle_library - library needs type", ?caller))};
+                                        case(#ok(val)){val};
+                                    };
+
+                                    let library_hash = switch(Metadata.get_nft_bytes_property(this_item, Types.metadata.library_hash)){
+                                        case(#err(err)){return #err(Types.errors(#malformed_metadata, "handle_library - library needs hash", ?caller))};
                                         case(#ok(val)){val};
                                     };
 
@@ -133,7 +144,7 @@ module {
                                                     } else {
                                                                         debug if(debug_channel.library) D.print("erroring because " # debug_show((a_bucket.available_space, library_size)));
                                                         //make sure that size isn't bigger than biggest possible size
-                                                        return #err(Types.errors(#not_enough_storage, "stage_nft_origyn - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
+                                                        return #err(Types.errors(#not_enough_storage, "handle_library - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
                                                     };
                                                 };
                                             };
@@ -163,18 +174,18 @@ module {
                                                 if(canister_bucket.available_space >= library_size){
                                                   canister_bucket.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(#storage_configuration_error, "handle_library - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.state.collection_data.available_space >= library_size){
                                                   state.state.collection_data.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(#storage_configuration_error, "handle_library - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.canister() == canister_bucket.principal){
                                                     if(state.state.canister_availible_space >= library_size){
                                                       state.state.canister_availible_space -= library_size;
                                                     } else {
-                                                      return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
+                                                      return #err(Types.errors(#storage_configuration_error, "handle_library - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
                                                     }
                                                 };
                                                 a_allocation;
@@ -224,8 +235,15 @@ module {
                                         };
 
                                                         debug if(debug_channel.library) D.print("ok allocation");
+                                      
                                     };
                                     //nyi: if it is collection, should we check that it exists?
+
+                                    //certify the library.
+                                    //we assume that a user is telling the truth about the hash of their library. If they are lying, the service worker in the icx proxy should throw an error
+                                    //the icx proxy needs to check this hash against the final bytes.
+
+                                    cert_buffer.add((token_id, library_id, library_hash));
                                 };
                             };
                             case(_){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library should be thawed", ?caller));};
@@ -236,6 +254,8 @@ module {
 
             };
         };
+
+        ignore Certification.certify_library(state, cert_buffer.toArray());
 
         return #ok("ok");
 
@@ -432,7 +452,7 @@ module {
 
                     //swap metadata
                     Map.set(state.state.nft_metadata, Map.thash, id_val, found_metadata);
-                    return #ok(id_val);
+                    //return #ok(id_val);
                 } else {
 
                   //only an owner can stage
@@ -460,24 +480,24 @@ module {
                       case(null){};
                   };
 
-                  var new_metadata = this_metadata;
+                  found_metadata := this_metadata;
 
                   label update for(this_item in Conversions.valueToProperties(metadata).vals()){
 
                     if(this_item.name == Types.metadata.id){
                       continue update;
                     };
-                    new_metadata := 
+                    found_metadata := 
                       switch(
                         if(this_item.immutable == true){
-                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                        Properties.updateProperties(Conversions.valueToProperties(found_metadata), [
                           {
                             name = this_item.name;
                             mode = #Lock(this_item.value);
                           }
                         ]);
                       } else {
-                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                        Properties.updateProperties(Conversions.valueToProperties(found_metadata), [
                           {
                             name = this_item.name;
                             mode = #Set(this_item.value);
@@ -494,10 +514,17 @@ module {
                       };
                   };
 
-                  Map.set(state.state.nft_metadata, Map.thash, id_val, new_metadata);
+                  Map.set(state.state.nft_metadata, Map.thash, id_val, found_metadata);
                 };
             };
         };
+
+        //nyi: data level certification
+        /* switch(Certification.certify_token_metadata(state, id_val, found_metadata, caller)){
+            case(#ok(tree)) {};
+            case(#err(err)) {return #err(err)};
+        }; */
+
         return #ok(id_val);
     };
 
@@ -658,7 +685,7 @@ module {
                           
                                           debug if(debug_channel.stage) D.print("replaceing with filechunk");
                         if(bDelete == true){
-
+                          //we delete the file by leaving it out
                         } else {
                           new_library.add(chunk.filedata);
                         };
@@ -740,6 +767,7 @@ module {
                   switch(state.nft_library.get(chunk.token_id)){
                       case(null){
                           if(bDelete == true or content_size == 0){
+                            //nyi: certify data when delete is added to merkle tree?
                             //this was never allocated; return;
                             return #ok(#staged(state.canister()));
                           };
@@ -770,10 +798,11 @@ module {
                               case(null){
                                   if(bDelete == true or content_size == 0){
                                     //this was never allocated; return;
+                                    //nyi: certify data when delete is added to merkle tree?
                                     return #ok(#staged(state.canister()));
                                   };
                                                   debug if(debug_channel.stage) D.print("nft exists but not file");
-                                  //nft exists but this file librry entry doesnt exist
+                                  //nft exists but this file libray entry doesnt exist
                                   //nftdoesn't exist;
                                   if(content_size > allocation.available_space){
                                                           debug if(debug_channel.stage) D.print("not enough storage in allocation not null" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
@@ -810,6 +839,7 @@ module {
                 
                 Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
                 //Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                //nyi: certify data when delete is added to merkle tree?
                 return #ok(#staged(state.canister()));
               } else {
                 //file the chunk
@@ -825,6 +855,25 @@ module {
                               found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
                           };
                           found_workspace.get(1);
+                      };
+                      case(?dz){
+                          dz;
+                      };
+                  };
+
+                  let file_hashes = switch(found_workspace.getOpt(2)){
+                      case(null){
+                          if(found_workspace.size()==0){
+                              //nyi: should be an error because no filedata
+                              found_workspace.add(Workspace.initDataZone(#Empty));
+                          };
+                          if(found_workspace.size()==1){
+                              found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                          };
+                          if(found_workspace.size()==2){
+                              found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                          };
+                          found_workspace.get(2);
                       };
                       case(?dz){
                           dz;
@@ -879,9 +928,12 @@ module {
                       };
                   };
 
+                  var thisHash = SHA.sum(Blob.toArray(chunk.content));
+
                   //D.print("putting the chunk");
                   if(chunk.chunk + 1 <= file_chunks.size()){
                       file_chunks.put(chunk.chunk, #Blob(chunk.content));
+                      file_hashes.put(chunk.chunk, #Bytes(#frozen(thisHash)));
                   } else {
                                       debug if(debug_channel.stage) D.print("in putting the chunk iter");
                                       debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
@@ -892,16 +944,22 @@ module {
                           if(this_index == chunk.chunk){
                               //D.print("index was chunk" # debug_show(this_index));
                               file_chunks.add(#Blob(chunk.content));
+                              file_hashes.add(#Bytes(#frozen(thisHash)));
                           } else {
                               //D.print("index wasnt chunk" # debug_show(this_index));
                               file_chunks.add(#Blob(Blob.fromArray([])));
+                              file_hashes.add(#Empty);
                           }
                       };
 
                   };
+
+                  ignore Certification.certify_library_chunk(state, chunk, thisHash);
                 };
 
                 //D.print("returning");
+                //nyi: certify data?
+                
                 return #ok(#staged(state.canister()));
               };
               
@@ -925,11 +983,13 @@ module {
                 };
                 
               };
+              //nyi: certify data?
               return #ok(#stage_remote({
                   allocation = allocation;
                   metadata = metadata;}));
           };
         } else {
+          //nyi: certify data?
           return #ok(#staged(state.canister()));
         };
         

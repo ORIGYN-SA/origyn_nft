@@ -1133,6 +1133,7 @@ module {
         library_id : Text;
         library_size : Text;
         library_location_type: Text;
+        library_hash: Text;
         owner : Text;
         id: Text;
         primary_asset: Text;
@@ -1169,6 +1170,7 @@ module {
         library = "library";
         library_id = "library_id";
         library_size = "size";
+        library_hash = "content_hash";
         library_location_type = "location_type";
         owner = "owner";
         id = "id";

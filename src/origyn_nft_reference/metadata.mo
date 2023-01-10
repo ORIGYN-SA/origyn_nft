@@ -301,6 +301,25 @@ module {
     };
   };
 
+  //gets a Nat property out of the metadata
+   public func get_nft_bytes_property(metadata: CandyType.CandyValue, prop: Text) : Result.Result<[Nat8], Types.OrigynError>{
+    switch(Properties.getClassProperty(metadata, prop)){
+      case(null){
+        return #err(Types.errors(#property_not_found, "get_nft_bytes_property - cannot find " # prop # " in metadata", null));
+      };
+      case(?val){
+         return #ok(
+           switch(val.value){
+             case(#Bytes(#frozen(val))){return #ok(val)};
+             case(#Bytes(#thawed(val))){return #ok(val)};
+             case(_){
+               return #err(Types.errors(#property_not_found, "get_nft_bytes_property - unknown " # prop # " type", null));
+             }
+           });
+      };
+    };
+  };
+
   //checks if an item is minted
   public func is_minted(metaData: CandyType.CandyValue) : Bool{
     switch(Properties.getClassProperty(metaData, Types.metadata.__system)){

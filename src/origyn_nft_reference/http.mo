@@ -38,6 +38,9 @@ import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
 
+import MerkleTree "mo:merkle_tree";
+import CertifiedData "mo:base/CertifiedData";
+
 module {
 
     let debug_channel = {
@@ -45,6 +48,9 @@ module {
         large_content = false;
         library = false;
         request = false;
+        cert = false;
+        tree = false;
+        tree_path = false;
     };
 
     let { ihash; nhash; thash; phash; calcHash } = Map;
@@ -110,53 +116,56 @@ module {
         let canister = actor (canister_id) : actor { nftStreamingCallback : shared () -> async () };
 
 
-                        debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
+        debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
         var size : Nat = 0;
         //find the right data zone
         for(this_item in data.vals()){
-            switch(this_item){
-                case(#Bytes(bytes)){
-                    switch(bytes){
-                        case(#thawed(aArray)){
-                            size := size + aArray.size();
-                        };
-                        case(#frozen(aArray)){
-                            size := size + aArray.size();
-                        };
-                    };
-                };
-                case(#Blob(bytes)){
-                    
-                    size := size + bytes.size();
-                        
-                };
-                case(_){};
-            };
-
+            size := size + Conversion.valueUnstableToBytesBuffer(this_item).size();
         };
+
+        let chunk_index = Nat.div(switch(start){
+          case(null) 0;
+          case(?v) v;}
+          , __MAX_STREAM_CHUNK);
+
+        var rStart = switch(start){
+            case(null){0;};
+            case(?v){
+              //for certified content we can only certify whole blocks
+              (chunk_index * __MAX_STREAM_CHUNK);
+            };
+        };
+
+       
 
         var rEnd = switch(end){
-            case(null){size-1 : Nat;};
-            case(?v){v};
+            case(null){
+              if(size < __MAX_STREAM_CHUNK){
+                size - 1 : Nat;
+              } else {
+                rStart + __MAX_STREAM_CHUNK - 1;
+              };
+            };
+            case(?v){
+               if(v == size){
+                v;
+              } else {
+                rStart + __MAX_STREAM_CHUNK - 1;
+              };
+            };
         };
 
-        let rStart = switch(start){
-            case(null){0;};
-            case(?v){v};
+        var tree_key = "/-/" # token_id # "/-/" # library_id;
+        if(chunk_index > 0) {
+            tree_key := tree_key # "--" # Nat.toText(chunk_index);
         };
 
-                        debug if(debug_channel.streaming)D.print( Nat.toText(rStart) # " - " # Nat.toText(rEnd) # " / " #Nat.toText(size));
-
-        if(rEnd - rStart : Nat > __MAX_STREAM_CHUNK){
-            rEnd := rStart + __MAX_STREAM_CHUNK - 1;
-        };
-
-        if(rEnd - rStart : Nat > __MAX_STREAM_CHUNK){
-                                debug if(debug_channel.streaming) D.print("handling big branch");
+        if(size : Nat > __MAX_STREAM_CHUNK){
+            debug if(debug_channel.streaming) D.print("handling big branch");
             
             let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
 
-                                debug if(debug_channel.streaming)D.print("The cbt: " # debug_show(cbt.callback));
+            debug if(debug_channel.streaming)D.print("The cbt: " # debug_show(cbt.callback));
             {
                 //need to use streaming strategy
                 status_code        = 206;
@@ -168,6 +177,9 @@ module {
                     //("Content-Range", "bytes 0-"#  Nat.toText(size-1) # "/" # Nat.toText(size)),
                     ("Content-Length",  Nat.toText(cbt.payload.size())),
                     ("Cache-Control","private"),
+                    ("Tree-Key", tree_key),
+                    ("chunk-index", Nat.toText(chunk_index)),
+                    certification_header(state.state.certified_assets, tree_key),
                     ];
                 body               = cbt.payload;
                 streaming_strategy = switch (cbt.callback) {
@@ -182,11 +194,11 @@ module {
             };
         } else  {
             //just one chunk
-                                debug if(debug_channel.streaming) D.print("returning short array");
+            debug if(debug_channel.streaming) D.print("returning short array");
 
             let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
 
-                               debug if(debug_channel.streaming) D.print("the size " # Nat.toText(cbt.payload.size()));
+            debug if(debug_channel.streaming) D.print("the size " # Nat.toText(cbt.payload.size()));
             return {
                 status_code        = 206;
                 headers            = [
@@ -195,14 +207,15 @@ module {
                     ("Content-Range", "bytes " # Nat.toText(rStart) # "-" # Nat.toText(rEnd) # "/" # Nat.toText(size)),
                     //("Content-Range", "bytes 0-"#  Nat.toText(size-1) # "/" # Nat.toText(size)),
                     ("Content-Length",  Nat.toText(cbt.payload.size())),
-                    ("Cache-Control","private")
+                    ("Cache-Control","private"),
+                    ("Tree-Key", tree_key),
+                    ("chunk-index", Nat.toText(chunk_index)),
+                    certification_header(state.state.certified_assets, tree_key),
                 ];
                 body               = cbt.payload;
                 streaming_strategy = null;
             };
         };
-
-
     };
 
     //handles non-streaming large content
@@ -210,12 +223,14 @@ module {
         state : Types.State,
         key         : Text,
         contentType : Text,
+        token_id    : Text,
+        library_id    : Text,
         data        : CandyTypes.DataZone,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
         let result = _stream_content(key, 0, data);
 
-                            debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
+        debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
                            
         let canister_id: Text = Principal.toText(state.canister());
         let canister = actor (canister_id) : actor { nftStreamingCallback : shared () -> async () };
@@ -224,6 +239,9 @@ module {
         var start_range : Nat = 0;
         var end_range : Nat = 0;
 
+        var tree_key = "/-/" # token_id # "/-/" # library_id;
+        
+        //the first item is chunk zero and should have the sha of the entire item.
         //nyi: should the data zone cache this?
         {
             status_code        = 200;
@@ -231,6 +249,10 @@ module {
                 ("Content-Type", contentType),
                 ("accept-ranges", "bytes"),
                 ("Cache-Control","private"),
+                ("Cache-Control","private"),
+                ("Tree-Key", tree_key),
+                ("chunk-index", "first chunk - whole sha"),
+                certification_header(state.state.certified_assets, tree_key)
             ];
             body               = result.payload;
             streaming_strategy = switch (result.callback) {
@@ -353,6 +375,7 @@ module {
         if (index + 1 == data.size()) return {payload = Conversion.valueUnstableToBlob(payload); callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
+
         {payload = Conversion.valueUnstableToBlob(payload);
         callback =  ?{
             content_encoding = "gzip";
@@ -600,6 +623,8 @@ module {
                                 state,
                                 "nft/" # token_id # "|" # library_id,
                                 content_type,
+                                token_id,
+                                library_id,
                                 zone,
                                 req
                             );
@@ -706,6 +731,8 @@ module {
                                 state,
                                 "nft/" # use_token_id # "|" # library_id,
                                 content_type,
+                                token_id,
+                                library_id,
                                 zone,
                                 req
                             );
@@ -716,7 +743,9 @@ module {
                             //only one chunck
                             return {
                                 status_code        = 200;
-                                headers            = [("Content-Type", content_type)];
+                                headers            = [(
+                                  "Content-Type", content_type),
+                                  certification_header(state.state.certified_assets, req.url.path.original),];
                                 body               = Conversion.valueUnstableToBlob(zone.get(0));
                                 streaming_strategy = null;
                             };
@@ -725,9 +754,6 @@ module {
 
                 };
             };
-
-
-
         } else {
             //redirect to asset
             let location = switch(Metadata.get_nft_text_property(library_meta, "location")){
@@ -1573,6 +1599,37 @@ module {
 
         return _not_found("nyi");
     };
+
+
+    func certification_header(certified_assets: MerkleTree.Tree, path: Text) : HeaderField {
+        let cert = switch (CertifiedData.getCertificate()) {
+            case (?c) c;
+            case null {
+                // unfortunately, we cannot do
+                //   throw Error.reject("getCertificate failed. Call this as a query call!")
+                // here, because this function isn’t async, but we can’t make it async
+                // because it is called from a query (and it would do the wrong thing) :-(
+                //
+                // So just return erronous data instead
+                "getCertificate failed. Call this as a query call!" : Blob
+            }
+        };
+
+        return
+        ("ic-certificate",
+            "certificate=:" # MerkleTree.base64(cert) # ":, " #
+            "tree=:" # MerkleTree.base64(MerkleTree.treeCBOR(
+                MerkleTree.witnessUnderLabel(
+                    Text.encodeUtf8("http_assets"),
+                    MerkleTree.reveal(certified_assets, Text.encodeUtf8(path))
+                )
+            ) ) # ":"
+        )
+    };
+
+
+
+    
 
 
 }

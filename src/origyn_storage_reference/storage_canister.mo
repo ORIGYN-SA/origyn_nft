@@ -41,7 +41,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     
     stable var nft_library_stable : [(Text,[(Text,CandyTypes.AddressedChunkArray)])] = [];
-    stable var tokens_stable : [(Text, Types.HttpAccess)] = [];
+    stable var tokens_stable : [(Text, MigrationTypes.Current.HttpAccess)] = [];
 
     let initial_storage = switch(__initargs.storage_space){
             case(null){
@@ -69,12 +69,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         caller = deployer.caller ;});
 
     // do not forget to change #state002 when you are adding a new migration
-    let #v0_1_0(#data(state_current)) = migrationState;
+    let #v0_1_3(#data(state_current)) = migrationState;
 
     //the library needs to stay unstable for maleable access to the Buffers that make up the file chunks
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
     //store access tokens for owner assets to owner specific data
-    private var tokens : TrieMap.TrieMap<Text, Types.HttpAccess> = TrieMap.fromEntries<Text, Types.HttpAccess>(tokens_stable.vals(), Text.equal, Text.hash);
+    private var tokens : TrieMap.TrieMap<Text, MigrationTypes.Current.HttpAccess> = TrieMap.fromEntries<Text, MigrationTypes.Current.HttpAccess>(tokens_stable.vals(), Text.equal, Text.hash);
 
     private var canister_principal : ?Principal = null;
 

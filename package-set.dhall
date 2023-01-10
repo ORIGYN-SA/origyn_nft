@@ -29,9 +29,15 @@ let additions =
        version = "v0.2.5",
        dependencies = ["base"]
    },
+   {
+       name="base-0.7.3",
+       repo = "https://github.com/dfinity/motoko-base",
+       version = "aafcdee0c8328087aeed506e64aa2ff4ed329b47",
+       dependencies = ["base"]
+   },
    { name = "crypto"
-    , repo = "https://github.com/aviate-labs/crypto.mo"
-    , version = "v0.2.0"
+    , repo = "https://github.com/skilesare/crypto.mo"
+    , version = "main"
     , dependencies = [ "base", "encoding" ]
   },
    { name = "encoding"
@@ -95,6 +101,16 @@ let additions =
   { name = "map_6_0_0"
   , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
   , version = "v6.0.0"
+  , dependencies = [ "base"]
+  },
+  { name = "merkle_tree"
+  , repo = "https://github.com/icdevs/motoko-merkle-tree"
+  , version = "v0.1.1"
+  , dependencies = [ "base"]
+  },
+  { name = "merkle_tree_0_1_1"
+  , repo = "https://github.com/icdevs/motoko-merkle-tree"
+  , version = "v0.1.1"
   , dependencies = [ "base"]
   },
   { name = "map"
