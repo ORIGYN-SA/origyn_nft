@@ -257,19 +257,19 @@ module {
                             }, data)){
                     case(#ok(val)){val};
                     case(#err(err)){
-                        return #err(#Other("escrow required for EXT transfer - failure of EXT tranfer " # err.flag_point));
+                        return #err(#Other("escrow required for EXT transfer - failure of EXT tranfer - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer" # err.flag_point));
                     };
                 };
 
                 if(Map.size(escrows) == 0 ){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer"));
+                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer"));
                 };
 
                 //dip721 is not discerning. If it finds a first asset it will use that for the transfer
                 let first_asset = Iter.toArray(Map.entries(escrows))[0];
 
                 if(first_asset.1.sale_id != null){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer due to sale_id in escrow reciept" # debug_show(first_asset)));
+                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer due to sale_id in escrow reciept - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer. " # debug_show(first_asset)));
                 };
 
                 let result = await Market.market_transfer_nft_origyn_async(state, {

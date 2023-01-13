@@ -1405,6 +1405,81 @@ module {
                         debug if(debug_channel.request) D.print(debug_show(rawReq));
         
         if(path_size == 0) {
+          switch(queryObj.get("tokenid")){
+            case(null){};
+            case(?found_ext_id){
+
+              var metadata : CandyTypes.CandyValue = #Empty;
+              if(found_ext_id == "") return {
+                  body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                  headers = [];
+                  status_code = 200;
+                  streaming_strategy = null;
+              };
+
+              label search for(this_nft in Map.entries(state.state.nft_metadata)){
+                  if(Types._getEXTTokenIdentifier(this_nft.0, state.canister()) == found_ext_id) {
+                    metadata := this_nft.1;
+                    break search;
+                  };
+              };
+
+              if(metadata == #Empty){
+                return {
+                  body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                  headers = [];
+                  status_code = 200;
+                  streaming_strategy = null;
+                };
+              };
+              let token_id = Conversion.valueToText(
+                switch(Properties.getClassProperty(metadata, "id")){
+                    case(null){
+                        return {
+                          body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                          headers = [];
+                          status_code = 200;
+                          streaming_strategy = null;
+                        };
+                    };
+                    case(?found){
+                        found.value;
+                    };
+                });
+              let is_minted = Metadata.is_minted(metadata);
+
+              switch(queryObj.get("type")){
+                case(null){
+                  //return primary
+                  if(is_minted == false){
+                      return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                  };
+                  return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
+                };
+                case(?val){
+                  if(val=="thumbnail"){
+                    //return preview
+                    if(is_minted == false){
+                        return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                    };
+                    var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                    if(aResponse.status_code==404){
+                        //default to primary asset
+                        aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
+                    };
+                    return aResponse;
+                  } else {
+                    //return primary
+                    if(is_minted == false){
+                        return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                    };
+                    return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
+                  };
+                };
+              }
+            };
+          };
+          
             return {
                 body = Text.encodeUtf8 ("<html><head><title> An Origyn NFT Canister </title></head><body></body></html>\n");
                 headers = [];

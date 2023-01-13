@@ -1,5 +1,6 @@
 
 import Blob "mo:base/Blob";
+import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
@@ -670,6 +671,18 @@ module {
 
     public type OrigynError = {number : Nat32; text: Text; error: Errors; flag_point: Text;};
 
+    public type EXTTokensResult = (Nat32, ?{locked: ?Int; seller : Principal; price : Nat64}, ?[Nat8]);
+
+     // Converts a token id into a reversable ext token id
+    public func _getEXTTokenIdentifier(token_id: Text, canister: Principal) : Text{
+        let tds : [Nat8] = [10, 116, 105, 100]; //b"\x0Atid"
+        let theID = Array.append<Nat8>(
+            Array.append<Nat8>(tds, Blob.toArray(Principal.toBlob(canister))),
+            Conversions.valueToBytes(#Nat32(Text.hash(token_id))));
+
+        return Principal.toText(Principal.fromBlob(Blob.fromArray(theID)));
+    };
+
     public type Errors = {
         #app_id_not_found;
         #asset_mismatch;
@@ -1170,6 +1183,15 @@ module {
         experience_asset = "experience_asset";
         __apps_app_id = "app_id";
         __system_current_sale_id = "current_sale_id";
+    };
+
+    public func force_account_to_account_id(request : Account) : Result.Result<Account, OrigynError>{
+      switch(request){
+        case(#principal(principal)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(principal, null))));
+        case(#account(account)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(account.owner, null))));
+        case(#account_id(account_id)) #ok(request);
+        case(#extensible(ex)) return #err(errors(#nyi, "force_account_to_account_id", null));
+      }
     };
 
 

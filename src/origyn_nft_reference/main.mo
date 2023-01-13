@@ -1074,6 +1074,37 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return  _getEXTBalance(request);
     };
 
+    // Ext balance
+    public query(msg) func tokens_ext(request: Text) : async Result.Result<[Types.EXTTokensResult], EXT.CommonError> {
+        
+        debug if(debug_channel.function_announce) D.print("in tokens_ext");
+        let state = get_state();
+
+        let request_account = #account_id(request);
+
+        let result = Buffer.Buffer<Types.EXTTokensResult>(0);
+
+        // nyi: check the mint status and compare to msg.caller
+        // nyi: indexing of NFTs, Escrows, Sales, Offers if this is a performance drain
+        label search for(this_nft in Map.entries(state.state.nft_metadata)){
+
+            if(this_nft.0 == "") continue search;
+
+            let owner = switch(Metadata.get_nft_owner(this_nft.1)){
+              case(#err(err)){#account_id("00")};
+              case(#ok(val)) val;
+            };
+            let force_account_id = switch(Types.force_account_to_account_id(owner)){
+              case(#ok(val))val;
+              case(_){continue search;};
+            };
+            if(Types.account_eq(request_account, force_account_id) ){
+              result.add((Text.hash(this_nft.0), null, null));
+            };
+        };
+        return  #ok(result.toArray());
+    };
+
     private func _getEXTBalance(request: EXT.BalanceRequest) : EXT.BalanceResponse{
         let thisCollection = Metadata.get_NFTs_for_user(get_state(), switch(request.user){
             case(#address(data)){
@@ -1085,27 +1116,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
         );
         for(this_item in thisCollection.vals()){
-            if(_getEXTTokenIdentifier(this_item) == request.token){
+            if(Types._getEXTTokenIdentifier(this_item, Principal.fromActor(this)) == request.token){
                 return #ok(1: Nat);
             }
         };
         return #ok(0: Nat);
     };
 
-    // Converts a token id into a reversable ext token id
-    private func _getEXTTokenIdentifier(token_id: Text) : Text{
-        let tds : [Nat8] = [10, 116, 105, 100]; //b"\x0Atid"
-        let theID = Array.append<Nat8>(
-            Array.append<Nat8>(tds, Blob.toArray(Principal.toBlob(Principal.fromActor(this)))),
-            Conversions.valueToBytes(#Nat32(Text.hash(token_id))));
-
-        return Principal.toText(Principal.fromBlob(Blob.fromArray(theID)));
-    };
+   
 
     // Lets users query for a token id
     public query(msg) func getEXTTokenIdentifier(token_id: Text) : async Text{
        debug if(debug_channel.function_announce) D.print("in getEXTTokenIdentifier");
-        return _getEXTTokenIdentifier(token_id);
+        return Types._getEXTTokenIdentifier(token_id, Principal.fromActor(this));
     };
     
     // Builds the balance object showing what resources an account holds on the server.
