@@ -2600,11 +2600,11 @@ module {
         switch(withdraw){
           case(#deposit(details)){
             D.print("in deposit withdraw");
-                                debug if(debug_channel.withdraw_deposit) D.print("an escrow withdraw");
+                                debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
                                 debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
             if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false){
                 //cant withdraw for someone else
-                return #err(Types.errors(#unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match" , ?caller));
+                return #err(Types.errors(#unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller));
             };
 
                                 debug if(debug_channel.withdraw_deposit) D.print("about to verify");
@@ -2618,11 +2618,11 @@ module {
                 case(#ic(token)){
 
                     if(details.amount <= token.fee){
-                        return #err(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
+                        return #err(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
                     };
                     token.fee;
                 };
-                case(_){return #err(Types.errors(#nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller));
+                case(_){return #err(Types.errors(#nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller));
                                 };
             };
 
@@ -2646,23 +2646,23 @@ module {
                                         ?val;
                                     };
                                     case(#err(err)){
-                                        return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller));
+                                        return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller));
                                     };
                                 };
                             } catch (e){
                                 
-                                return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller));
+                                return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller));
                                     
                             };
 
                         };
                         case(_){
-                            return #err(Types.errors(#nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show(details), ?caller));
+                            return #err(Types.errors(#nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller));
                         };
                     };
                 };
                 case(#extensible(val)){
-                    return #err(Types.errors(#nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show(details), ?caller));
+                    return #err(Types.errors(#nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller));
                 };
             };
 
@@ -2672,7 +2672,7 @@ module {
             switch(transaction_id){
                 case(null){
                     //really should have failed already
-                    return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
+                    return #err(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit -  payment failed txid null" , ?caller));
                 };
                 case(?transaction_id){
                     switch(Metadata.add_transaction_record(state,{
@@ -2693,7 +2693,7 @@ module {
                             return #ok(#withdraw(val));
                         };
                         case(#err(err)){
-                            return #err(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
+                            return #err(Types.errors(err.error, "withdraw_nft_origyn - deposit - ledger not updated" # debug_show(transaction_id) , ?caller));
                         };
                     };
 
