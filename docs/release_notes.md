@@ -35,7 +35,15 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
+v0.1.2-2
 
+* Adds gateway principal to the storage_info_nft_origyn query
+* EXT - Adds compatibility for stoic wallet.  query getEXTTokenIdentifier(token_id) to get the identifier necessary to add an NFT to a wallet.
+
+v0.1.2-1
+
+* Fixes a bug where two buyers within a few blocks(while token send in flight) could give both set of tokens to the seller. The first to be processed now locks the NFT until the transaction success or fails.
+* Also adds royalty_originator_override = "com.origyn.originator.override" that allows a minter to override the collection level originator when minting an nft.
 
 v0.1.2
 

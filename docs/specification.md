@@ -901,6 +901,7 @@ Storage info can be pulled with the code below:
         allocated_storage: Nat;
         available_space: Nat;
         allocations: [AllocationRecordStable];
+        gateway: Principal;
     };
 
     public type AllocationRecordStable = {
@@ -2000,23 +2001,26 @@ Features:
 
 ### HTTP NFT Information
 
-exos.host/_/canister_id/_/token_id - Returns the primary asset
+prptl.io/_/canister_id/_/token_id - Returns the primary asset
 
-exos.host/_/canister_id/_/token_id/preview - Returns the preview asset
+prptl.io/_/canister_id/_/token_id/preview - Returns the preview asset
 
-exos.host/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
+prptl.io/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
 
-exos.host/_/canister_id/_/token_id/_/library_id - Returns the asset in the library
+prptl.io/_/canister_id/_/token_id/_/library_id - Returns the asset in the library
 
-exos.host/_/canister_id/_/token_id/_/library_id/info - Returns a json representation of assets in the library
+prptl.io/_/canister_id/_/token_id/_/library_id/info - Returns a json representation of assets in the library
 
-exos.host/_/canister_id/_/token_id/info - Returns a json representation of the metadata, including the library items
+prptl.io/_/canister_id/_/token_id/info - Returns a json representation of the metadata, including the library items
 
-exos.host/_/canister_id/_/token_id/info?query=[Query] - Returns a json representation of the metadata passed through a query
+prptl.io/_/canister_id/_/token_id/info?query=[Query] - Returns a json representation of the metadata passed through a query
 
 ### Collection Information
 
-exos.host/_/canister_id/collection - Returns a json representation of collection information
+prptl.io/_/canister_id/collection - Returns a json representation of collection information
+
+* http routes - /ledger_info/{page}/{page_size} now returns the ledger json for the collection level
+* http routes - /-/token_id/ledger_info/{page}/{page_size} now returns the ledger json for the token level
 
 
 

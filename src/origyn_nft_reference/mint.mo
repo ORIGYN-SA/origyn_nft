@@ -353,6 +353,7 @@ module {
         };
 
         var found_metadata : CandyTypes.CandyValue = #Empty;
+        
         //try to find existing metadata
         switch(Map.get(state.state.nft_metadata, Map.thash, id_val)){
             case(null){

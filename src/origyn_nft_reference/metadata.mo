@@ -1221,7 +1221,7 @@ module {
     state: Types.State, 
     token_id : Text, 
     caller : Principal, canister : ?Principal, canister_owner: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
-    switch(Map.get(state.state.nft_metadata, Map.thash,token_id)){
+    switch(Map.get(state.state.nft_metadata, Map.thash, token_id)){
       case(null){
         //nft metadata doesn't exist
         return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata- " # token_id, ?caller));

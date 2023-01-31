@@ -445,6 +445,7 @@ module {
         allocated_storage: Nat;
         available_space: Nat;
         allocations: [AllocationRecordStable];
+        gateway: Principal;
     };    
 
     public type BucketData = {

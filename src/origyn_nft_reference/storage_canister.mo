@@ -196,6 +196,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
             allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state_current.allocations),Types.allocation_record_stabalize));
+            gateway = state_current.collection_data.owner ;
         });
     };
 
@@ -204,6 +205,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
+            gateway = state_current.collection_data.owner;
             allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state_current.allocations),Types.allocation_record_stabalize));
         });
     };

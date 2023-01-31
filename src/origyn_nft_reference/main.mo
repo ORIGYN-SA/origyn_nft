@@ -1598,6 +1598,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return #ok({
             allocated_storage = state.state.canister_allocated_storage;
             available_space = state.state.canister_availible_space;
+            gateway = state.canister();
             allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state.state.allocations),Types.allocation_record_stabalize));
         });
     };
