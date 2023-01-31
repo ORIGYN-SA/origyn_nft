@@ -90,6 +90,7 @@ module {
         headers: [HeaderField];
         method: Text;
         url: Text;
+        certificate_version: ?Nat;
     };
 
     // generates a random access key for use with procuring owner's assets
@@ -155,10 +156,7 @@ module {
             };
         };
 
-        var tree_key = "/-/" # token_id # "/-/" # library_id;
-        if(chunk_index > 0) {
-            tree_key := tree_key # "--" # Nat.toText(chunk_index);
-        };
+        var tree_key = "/-/" # token_id # "/-/" # library_id # "--" # Nat.toText(chunk_index);
 
         if(size : Nat > __MAX_STREAM_CHUNK){
             debug if(debug_channel.streaming) D.print("handling big branch");
@@ -179,7 +177,8 @@ module {
                     ("Cache-Control","private"),
                     ("Tree-Key", tree_key),
                     ("chunk-index", Nat.toText(chunk_index)),
-                    certification_header(state.state.certified_assets, tree_key),
+                    //TODO: use version from request
+                    certification_header(state.state.certified_assets, tree_key, ?1),
                     ];
                 body               = cbt.payload;
                 streaming_strategy = switch (cbt.callback) {
@@ -210,7 +209,8 @@ module {
                     ("Cache-Control","private"),
                     ("Tree-Key", tree_key),
                     ("chunk-index", Nat.toText(chunk_index)),
-                    certification_header(state.state.certified_assets, tree_key),
+                    //TODO: use version from request
+                    certification_header(state.state.certified_assets, tree_key, ?1),
                 ];
                 body               = cbt.payload;
                 streaming_strategy = null;
@@ -239,7 +239,8 @@ module {
         var start_range : Nat = 0;
         var end_range : Nat = 0;
 
-        var tree_key = "/-/" # token_id # "/-/" # library_id;
+        let head_index: Nat = 0;
+        var tree_key = "/-/" # token_id # "/-/" # library_id # "--" # Nat.toText(head_index);
         
         //the first item is chunk zero and should have the sha of the entire item.
         //nyi: should the data zone cache this?
@@ -252,7 +253,8 @@ module {
                 ("Cache-Control","private"),
                 ("Tree-Key", tree_key),
                 ("chunk-index", "first chunk - whole sha"),
-                certification_header(state.state.certified_assets, tree_key)
+                //TODO: use version from request
+                certification_header(state.state.certified_assets, tree_key, ?1)
             ];
             body               = result.payload;
             streaming_strategy = switch (result.callback) {
@@ -745,7 +747,8 @@ module {
                                 status_code        = 200;
                                 headers            = [(
                                   "Content-Type", content_type),
-                                  certification_header(state.state.certified_assets, req.url.path.original),];
+                                  //TODO: use version from request
+                                  certification_header(state.state.certified_assets, req.url.path.original, ?1),];
                                 body               = Conversion.valueUnstableToBlob(zone.get(0));
                                 streaming_strategy = null;
                             };
@@ -1600,8 +1603,52 @@ module {
         return _not_found("nyi");
     };
 
+    func pathCBOR(path : { #array: [Text]; #text: Text } ) : Blob {
+        let buf = Buffer.Buffer<Nat8>(100);
+        let array_tag: Nat = 128; //0x80
+        let text_tag: Nat = 96; //0x60
 
-    func certification_header(certified_assets: MerkleTree.Tree, path: Text) : HeaderField {
+        // CBOR self-describing tag
+        buf.add(0xD9);
+        buf.add(0xD9);
+        buf.add(0xF7);
+
+        func add_blob(b: Blob) {
+            // Only works for blobs with less than 256 bytes
+            buf.add(Nat8.fromNat(text_tag + b.size()));
+            for (c in Blob.toArray(b).vals()) {
+                buf.add(c);
+            };
+        };
+
+        func empty() {
+            buf.add(Nat8.fromNat(array_tag + 1));
+            buf.add(0x00);
+        };
+
+        switch(path) {
+            case(#array(data)) {
+                if(data.size() == 0) {
+                    empty();
+                } else {
+                    buf.add(Nat8.fromNat(array_tag + data.size()));
+                    for(key in data.vals()){
+                        add_blob(Text.encodeUtf8(key));
+                    };
+                };
+            };
+            case(#text(data)) {
+                add_blob(Text.encodeUtf8(data));
+            };
+            case(_) {
+                empty();
+            };
+        };
+
+        return Blob.fromArray(buf.toArray());
+    };
+
+    func certification_header(certified_assets: MerkleTree.Tree, expr_path: Text, version: ?Nat) : HeaderField {
         let cert = switch (CertifiedData.getCertificate()) {
             case (?c) c;
             case null {
@@ -1615,15 +1662,28 @@ module {
             }
         };
 
+        let v = switch(version) {
+            case(?v) {
+                Nat.toText(v);
+            };
+            case(_) {
+                "1"; // default_version
+            };
+        };
+
         return
         ("ic-certificate",
+            "version=:" # v # ":, " #
             "certificate=:" # MerkleTree.base64(cert) # ":, " #
             "tree=:" # MerkleTree.base64(MerkleTree.treeCBOR(
                 MerkleTree.witnessUnderLabel(
                     Text.encodeUtf8("http_assets"),
-                    MerkleTree.reveal(certified_assets, Text.encodeUtf8(path))
+                    MerkleTree.reveal(certified_assets, Text.encodeUtf8(expr_path))
                 )
-            ) ) # ":"
+            )) # ":, " #
+            "expr_path: " # MerkleTree.base64(
+                pathCBOR(#text(expr_path))
+            ) # ":"
         )
     };
 

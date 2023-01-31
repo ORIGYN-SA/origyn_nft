@@ -95,6 +95,7 @@ module {
         headers: [HeaderField];
         method: Text;
         url: Text;
+        certificate_version: ?Nat;
     };
 
     public type StreamingCallbackToken =  {
