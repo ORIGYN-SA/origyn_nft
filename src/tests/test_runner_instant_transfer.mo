@@ -1,20 +1,20 @@
-import S "mo:matchers/Suite";
-import T "mo:matchers/Testable";
-import M "mo:matchers/Matchers";
-
-import Conversion "mo:candy/conversion";
-import CandyTypes "mo:candy/types";
-
-import Principal "mo:base/Principal";
-import Time "mo:base/Time";
-import Result "mo:base/Result";
 import Blob "mo:base/Blob";
 import D "mo:base/Debug";
-import DFXTypes "../origyn_nft_reference/dfxtypes";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import Time "mo:base/Time";
+
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
+import CandyTypes "mo:candy/types";
+import Conversion "mo:candy/conversion";
+import M "mo:matchers/Matchers";
+import S "mo:matchers/Suite";
+import T "mo:matchers/Testable";
+
+import DFXTypes "../origyn_nft_reference/dfxtypes";
+import Metadata "../origyn_nft_reference/metadata";
 import TestWalletDef "test_wallet";
 import Types "../origyn_nft_reference/types";
-import Metadata "../origyn_nft_reference/metadata";
 import utils "test_utils";
 
 shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal, dfx_ledger2: Principal) = this {

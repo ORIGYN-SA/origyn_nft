@@ -60,4 +60,4 @@ dfx canister install test_runner_storage --mode=reinstall  --wasm ./.dfx/local/c
 
 #dfx canister  install dfxledger --mode=reinstall --argument "(record { minting_account = \"$ADMIN_ACCOUNTID\"; initial_values = vec { record { \"$TEST_RUNNER__NFT_ACCOUNT_ID\"; record { e8s = 18446744073709551615: nat64 } } }; max_message_size_bytes = null; transaction_window = null; archive_options = opt record { trigger_threshold = 2000: nat64; num_blocks_to_archive = 1000: nat64; node_max_memory_size_bytes = null; max_message_size_bytes = null; controller_id = principal \"$TEST_RUNNER_CANISTER_ID\"  }; send_whitelist = vec {};standard_whitelist = vec {};transfer_fee = null; token_symbol = null; token_name = null;admin = principal \"$TEST_RUNNER_CANISTER_ID\"})"
 
-dfx canister call test_runner test
+# dfx canister call test_runner test
