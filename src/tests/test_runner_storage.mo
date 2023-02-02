@@ -11,7 +11,7 @@ import M "mo:matchers/Matchers";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
 
-import StorageCanisterDef "../origyn_nft_reference/storage_canister";
+import StorageCanisterDef "../origyn_storage_reference/storage_canister";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
 

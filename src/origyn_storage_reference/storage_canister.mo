@@ -23,8 +23,8 @@ import Workspace "mo:candy/workspace";
 
 import DIP721 "../origyn_nft_reference/DIP721";
 import Metadata "../origyn_nft_reference/metadata";
-import MigrationTypes "../origyn_nft_reference//migrations_storage/types";
-import Migrations "../origyn_nft_reference//migrations_storage";
+import MigrationTypes "../origyn_nft_reference/migrations_storage/types";
+import Migrations "../origyn_nft_reference/migrations_storage";
 import Mint "../origyn_nft_reference/mint";
 import NFTUtils "../origyn_nft_reference/utils";
 import Storage_Store "../origyn_nft_reference/storage_store";

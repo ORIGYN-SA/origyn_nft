@@ -8,11 +8,11 @@
         "egg": {
           "main": "src/origyn_nft_reference/main.mo",
           "type": "motoko"
-      },
-      "bmdev": {
-        "main": "src/origyn_nft_reference/main.mo",
-        "type": "motoko"
-      },
+        },
+        "bmdev": {
+            "main": "src/origyn_nft_reference/main.mo",
+            "type": "motoko"
+        },
         "origyn_sale_reference": {
             "main": "src/origyn_sale_reference/main.mo",
             "type": "motoko"
@@ -118,6 +118,15 @@
           "type": "custom",
           "candid": "src/tests/ledger_dfx_v2.did",
           "wasm": "src/tests/ledger-canister-min.wasm"
+        }
+    },
+    "networks": {
+        "local": {
+            "bind": "127.0.0.1:8000",
+            "type": "ephemeral",
+            "replica": {
+                "subnet_type": "system"
+            }
         }
     },
     "defaults": {
