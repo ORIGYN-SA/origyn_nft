@@ -1,6 +1,7 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
@@ -14,13 +15,16 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
+
 import CandyTypes "mo:candy/types";
+import Canistergeek "mo:canistergeek/canistergeek";
 import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import Map "mo:map/Map";
 import Properties "mo:candy/properties";
 import Workspace "mo:candy/workspace";
+
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
@@ -34,8 +38,6 @@ import Owner "owner";
 import Types "./types";
 import data "data";
 import http "http";
-import Char "mo:base/Char";
-import Canistergeek "mo:canistergeek/canistergeek";
 
 
 
@@ -1601,65 +1603,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             }));
     };
 
-    // *************************
-    // * CANDID SERIALIZATION **
-    // *************************
-
-    // public func text_from_blob(blob : Blob) : async Text {
-    //     Text.join(",", Iter.map<Nat8, Text>(blob.vals(), Nat8.toText));
-    // };
-  
-    // public func blob_from_text(t : Text) : async Blob {
-        
-    //     // textToNat8
-    //     // turns "123" into 123
-    //     func textToNat8(txt : Text) : Nat8 {
-    //     var num : Nat32 = 0;
-    //     for (v in txt.chars()) {
-    //         // Debug.print(debug_show(v));
-    //         num := num * 10 + (Char.toNat32(v) - 48);  // 0 in ASCII is 48
-    //         // Debug.print(debug_show(num));
-    //     };
-    //     Nat8.fromNat(Nat32.toNat(num));
-    //     };
-
-    //     let ts = Text.split(t, #char(','));
-    //     let bytes = Array.map<Text, Nat8>(Iter.toArray(ts), textToNat8);
-    //     Blob.fromArray(bytes);
-    // };
-   
-
-    // public func test_candid_serialization() : async () {
-    //     let state = get_state();
-
-    //     // let u : Types.BackupBuckets = state.state.buckets;
-
-    //     // let u : Types.BackupCollectionData = {
-    //     //         logo = state.state.collection_data.logo;
-    //     //         name = state.state.collection_data.name;
-    //     //         symbol = state.state.collection_data.symbol;
-    //     //         metadata = state.state.collection_data.metadata;
-    //     //         owner  = state.state.collection_data.owner;
-    //     //         managers = state.state.collection_data.managers;
-    //     //         network = state.state.collection_data.network;
-    //     //         allocated_storage = state.state.collection_data.allocated_storage;
-    //     //         available_space  = state.state.collection_data.available_space;
-    //     //         active_bucket = state.state.collection_data.active_bucket;
-    //     // };
-    //     let u : Types.TestStable = Types.stabilize_test({hello = "hey"; var allocated_space = 1024;
-    //         var available_space =2048;});
-    //     // [Nat8] to text
-    //     var txt: Text = await text_from_blob(to_candid(u));
-    //     D.print("Txt : " # debug_show(txt)); 
-    //     // text to blob
-    //     let v : ?Types.TestStable = from_candid(await blob_from_text(txt));
-    //     D.print(debug_show(v)); 
-    // };
-
-    // *************************
-    // **** END SERIALIZATION **
-    // *************************
-
+    
     // *************************
     // ******** BACKUP *********
     // *************************
@@ -1893,7 +1837,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       accepted;
     };
 
-     // *************************
+    // *************************
     // ***** CANISTER GEEK *****
     // *************************
 
@@ -1913,42 +1857,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        
         canistergeekLogger.getLog(request);
     };
-    
-    // public shared (msg) func doThis( e : Text ): async () {
-    //     canistergeekLogger.logMessage(
-    //         e,
-    //         #Class([
-    //                 {name = "library_id"; value=#Text("page"); immutable= true},
-    //                 {name = "title"; value=#Text("page"); immutable= true},
-    //                 {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-    //                 {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae"); immutable= true},
-    //                 {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-    //                 {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
-    //                 {name = "size"; value=#Nat(10); immutable= true},
-    //                 {name = "sort"; value=#Nat(0); immutable= true},
-    //                 {name = "read"; value=#Text("public"); immutable=false;},
-    //             ]),
-    //             ?msg.caller    
-    //         );
-    //     // rest part of the your method...
-    // };
-    
-    // public shared (msg) func doThat( e : Text ): async () {
-    //     canistergeekLogger.logMessage(e, #Class([
-    //                 {name = "library_id"; value=#Text("page"); immutable= true},
-    //                 {name = "title"; value=#Text("page"); immutable= true},
-    //                 {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-    //                 {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=biwac-oicms-frnxv-3mcgb-lhfwa-rjl3d-azusa-bb3n6-pihxk-whkya-uae"); immutable= true},
-    //                 {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-    //                 {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
-    //                 {name = "size"; value=#Nat(10); immutable= true},
-    //                 {name = "sort"; value=#Nat(0); immutable= true},
-    //                 {name = "read"; value=#Text("public"); immutable=false;},
-    //             ]),
-    //             ?msg.caller
-    //             );
-    //     // rest part of the your method...
-    // };
+        
 
     // *************************
     // *** END CANISTER GEEK ***
