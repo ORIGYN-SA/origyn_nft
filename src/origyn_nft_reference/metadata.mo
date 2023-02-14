@@ -1238,9 +1238,50 @@ module {
     };
 
     SB.add(ledger, newTrx);
+    
+    // Call for the annouce function
+    announceTransaction(state, rec, caller, newTrx);
 
     return #ok(newTrx);
   };
+
+  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : async Types.TransactionRecord {
+        let subscriberId = caller;
+        let eventName = "transaction";
+
+        // Get the previous subscription from the events repo
+        let prevSubscriptionInfo = Info.getSubscriberInfo(caller, state, (subscriberId, eventName));
+
+        // Check if the subscriber is subscribed to the transaction event
+        let result = switch (prevSubscriptionInfo) {
+            case (null) {
+                return null;
+            };
+            case (?subscriberInfo) {
+                let eventSubscribed = Array.find(subscriberInfo.subscriptions, func s { s == eventName });
+
+                if (eventSubscribed != null) {
+                    // Save the announce transaction
+                    let announcements = switch (Map.get(state.announcements, Map.thash, rec.token_id)) {
+                        case (null) {
+                            let newAnnounce = SB.init<Types.TransactionRecord>();
+                            Map.set(state.announcements, Map.thash, rec.token_id, newAnnounce);
+                            newAnnounce;
+                        };
+                        case (?val) { val };
+                    };
+
+                    SB.add(announcements, newTrx);
+
+                    return announcements
+                } else {
+                    return null;
+                };
+            };
+        };
+
+        return result;
+    };
 
   public func get_nft_library(metadata: CandyType.CandyValue, caller: ?Principal) : Result.Result<CandyType.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
