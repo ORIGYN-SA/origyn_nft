@@ -1066,28 +1066,21 @@ module {
         };
 
         var primary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.primary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+            case(null) #Array(#frozen([]));
+            case(?val) val.value;
         };
+        
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
 
         var secondary_royalties = switch(Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)){
-            case(null){
-                #Array(#frozen([]));
-            };
-            case(?val){
-                val.value;
-            };
+            case(null) #Array(#frozen([]));
+            case(?val) val.value;
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
 
-        
+         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
+
         var node_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_node)){
             case(null){
                 #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund

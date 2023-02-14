@@ -56,6 +56,7 @@ module {
 
   let SB = MigrationTypes.Current.SB;
 
+  let { ihash; nhash; thash; phash; calcHash } = Map;
 
   // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
   public func find_escrow_reciept(
@@ -570,7 +571,7 @@ module {
     //ends a sale if it is past the date or a buy it now has occured
     public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
-        let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+        var metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
           case(#err(err)) return #err(Types.errors(#token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller));
           case(#ok(val)) val;
         };
@@ -736,6 +737,37 @@ module {
               };
 
               debug if(debug_channel.end_sale) D.print("verified is  " # debug_show(verified.found_asset));
+              //reentrancy risk so remove the escrow
+              debug if(debug_channel.end_sale) D.print("putting escrow balance");
+              debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
+
+              if(verified.found_asset.escrow.amount < winning_escrow.amount){
+                  return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
+              } else {
+                  if(verified.found_asset.escrow.amount > winning_escrow.amount ){
+                      let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
+                      Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, {
+                          amount = total_amount;
+                          seller = verified.found_asset.escrow.seller;
+                          balances = null;
+                          buyer = verified.found_asset.escrow.buyer;
+                          token_id = verified.found_asset.escrow.token_id;
+                          token = verified.found_asset.escrow.token;
+                          sale_id = verified.found_asset.escrow.sale_id; //should be null
+                          lock_to_date = verified.found_asset.escrow.lock_to_date;
+                          account_hash = verified.found_asset.escrow.account_hash;
+                          });
+                  } else {
+                      Map.delete(verified.found_asset_list, token_handler,verified.found_asset.token_spec);
+                  };
+              };
+
+
+              //reentancy risk so change the owner to inflight
+              metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, #extensible(#Text("trx in flight")), caller)){
+                case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                case(#ok(new_metadata)) new_metadata;
+              };
 
               //move the payment to the sale revenue account
               //nyi: use transfer batch to split across royalties
@@ -746,12 +778,103 @@ module {
                     case(#Ledger){
                       debug if(debug_channel.end_sale) D.print("found ledger");
                       let checker = Ledger_Interface.Ledger_Interface();
+                                                              try {
                       switch(await checker.transfer_sale(state.canister(), winning_escrow, token_id, caller)){
-                        case(#ok(val)) (val.0,?val.1.account.sub_account, token.fee);
-                        case(#err(err))return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+                          case(#ok(val)){
+                              (val.0,?val.1.account.sub_account, token.fee);
+                          };
+                          case(#err(err)){
+                              //put the escrow back because the payment failed
+                              switch(verify_escrow_receipt(state, winning_escrow, ?owner, null)){
+                                case(#ok(reverify)){
+                                    let target_escrow = {
+                                        account_hash = reverify.found_asset.escrow.account_hash;
+                                        amount = Nat.add(reverify.found_asset.escrow.amount, winning_escrow.amount);
+                                        buyer = reverify.found_asset.escrow.buyer;
+                                        seller = reverify.found_asset.escrow.seller;
+                                        token_id = reverify.found_asset.escrow.token_id;
+                                        token = reverify.found_asset.escrow.token;
+                                        sale_id = reverify.found_asset.escrow.sale_id;
+                                        lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                                    };
+
+                                    
+                                    Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                    
+
+                                };
+                                case(#err(err)){
+                                    let target_escrow = {
+                                        account_hash = verified.found_asset.escrow.account_hash;
+                                        amount =  winning_escrow.amount;
+                                        buyer = verified.found_asset.escrow.buyer;
+                                        seller = verified.found_asset.escrow.seller;
+                                        token_id = verified.found_asset.escrow.token_id;
+                                        token = verified.found_asset.escrow.token;
+                                        sale_id = verified.found_asset.escrow.sale_id;
+                                        lock_to_date = verified.found_asset.escrow.lock_to_date;
+                                    };
+                                    Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                                }
+                            };
+
+                            //put the owner back if the transaction fails
+                            metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, owner, caller)){
+                              case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                              case(#ok(new_metadata)) new_metadata;
+                            };
+
+                            return #err(Types.errors(err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+                          };
                       };
+                    } catch(e){
+                      //put the escrow back because the payment failed
+                        switch(verify_escrow_receipt(state, winning_escrow, ?owner, null)){
+                          case(#ok(reverify)){
+                              let target_escrow = {
+                                  account_hash = reverify.found_asset.escrow.account_hash;
+                                  amount = Nat.add(reverify.found_asset.escrow.amount, winning_escrow.amount);
+                                  buyer = reverify.found_asset.escrow.buyer;
+                                  seller = reverify.found_asset.escrow.seller;
+                                  token_id = reverify.found_asset.escrow.token_id;
+                                  token = reverify.found_asset.escrow.token;
+                                  sale_id = reverify.found_asset.escrow.sale_id;
+                                  lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                              };
+
+                              
+                              Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                              
+
+                          };
+                          case(#err(err)){
+                              let target_escrow = {
+                                  account_hash = verified.found_asset.escrow.account_hash;
+                                  amount =  winning_escrow.amount;
+                                  buyer = verified.found_asset.escrow.buyer;
+                                  seller = verified.found_asset.escrow.seller;
+                                  token_id = verified.found_asset.escrow.token_id;
+                                  token = verified.found_asset.escrow.token;
+                                  sale_id = verified.found_asset.escrow.sale_id;
+                                  lock_to_date = verified.found_asset.escrow.lock_to_date;
+                              };
+                              Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                          }
+                      };
+
+                      //put the owner back if the transaction fails
+                      metadata := switch(Metadata.set_nft_owner(state, token_id, metadata, owner, caller)){
+                        case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                        case(#ok(new_metadata)) new_metadata;
+                      };
+                    
+
+                      return #err(Types.errors(#unauthorized_access, "end_sale_nft_origyn catch branch" # Error.message(e), ?caller));
                     };
-                    case(_)  return #err(Types.errors(#nyi, "end_sale_nft_origyn - ic type nyi - " # debug_show(token), ?caller));
+
+
+                    };
+                    case(_)  return #err(Types.errors(#nyi, "end_sale_nft_origyn - non ic type nyi - " # debug_show(token), ?caller));
                   };
                 };
                 case(#extensible(val)) return #err(Types.errors(#nyi, "end_sale_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
@@ -773,7 +896,11 @@ module {
                 }
               ])){
                 case(#ok(props)) #Class(props);
-                case(#err(err)) return #err(Types.errors(#update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
+                case(#err(err)) {
+                                                //changing owner failed but the tokens are already gone....what to do...leave up to governance
+                              return #err(Types.errors(#update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
+
+                };
               };
 
               debug if(debug_channel.end_sale) D.print("updating metadata");
@@ -786,21 +913,7 @@ module {
               current_sale_state.status := #closed;
               current_sale_state.winner := ?winning_escrow.buyer;
 
-              //remove escrow
-              debug if(debug_channel.end_sale) D.print("putting escrow balance");
-              debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
-              if(verified.found_asset.escrow.amount < winning_escrow.amount) return #err(Types.errors(#no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
-
-              if(verified.found_asset.escrow.amount > winning_escrow.amount ){
-                let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
-                Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, {
-                  verified.found_asset.escrow with
-                  amount = total_amount;
-                  balances = null;
-                });
-              } else {
-                  Map.delete(verified.found_asset_list, token_handler,verified.found_asset.token_spec);
-              };
+              
               
 
               //log royalties
@@ -1234,6 +1347,12 @@ module {
           debug if(debug_channel.market) D.print(debug_show(Map.size(verified.found_asset_list)));
           debug if(debug_channel.market) D.print(debug_show(Iter.toArray(Map.entries(verified.found_asset_list))));
 
+          //reentrancy risk so set the owner to a black hole while transaction is in flight
+          metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, #extensible(#Text("trx in flight")), caller)){
+            case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+            case(#ok(new_metadata)) new_metadata;
+          };
+
           let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(escrow.token){
             case(#ic(token)){
               switch(token.standard){
@@ -1248,19 +1367,50 @@ module {
                       case(#err(err)){
                         //put the escrow back because the payment failed
                         handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
+
+                        //put the owner back if the transaction fails
+                        metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                          case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                          case(#ok(new_metadata)) new_metadata;
+                        };
+
                         return #err(Types.errors(err.error, "market_transfer_nft_origyn instant " # err.flag_point, ?caller));
                       };
                     };
                   } catch (e){
                     //put the escrow back because payment failed
                     handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
+
+                    //put the owner back if the transaction fails
+                    metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                      case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                      case(#ok(new_metadata)) new_metadata;
+                    };
+
                     return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn instant catch branch" # Error.message(e), ?caller));
                   };
                 };
-                case(_)return #err(Types.errors(#nyi, "market_transfer_nft_origyn - ic type nyi - " # debug_show(token), ?caller));
+                case(_) {
+                  //put the owner back if the transaction fails
+                  metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                    case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                    case(#ok(new_metadata)) new_metadata;
+                  };
+
+                  return #err(Types.errors(#nyi, "market_transfer_nft_origyn - ic type nyi - " # debug_show(token), ?caller));
+                };
               };
             };
-            case(#extensible(val))return #err(Types.errors(#nyi, "market_transfer_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
+              
+            case(#extensible(val)){
+              //put the owner back if the transaction fails
+              metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, owner, caller)){
+                case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                case(#ok(new_metadata)) new_metadata;
+              };
+
+              return #err(Types.errors(#nyi, "market_transfer_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
+            };
           };
 
           debug if(debug_channel.market) D.print("transfered to account hash " # debug_show(account_hash));
@@ -1282,51 +1432,93 @@ module {
                 val.2;
               };
             };
-          } else{
+          } else {
 
-            //change owner
-            var new_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
-              {
-                name = Types.metadata.owner;
-                mode = #Set(switch(escrow.buyer){
-                  case(#principal(buyer)){#Principal(buyer);};
-                  case(#account_id(buyer)){#Text(buyer);};
-                  case(#extensible(buyer)){buyer;};
-                  case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), #Option(switch(buyer.sub_account){case(null){null}; case(?val){?#Blob(val);}})]))};
-                });
-              }
-            ])){
-              case(#ok(props)){
-                #Class(props);
-              };
+            metadata := switch(Metadata.set_nft_owner(state, request.token_id, metadata, escrow.buyer, caller)){
+                case(#err(err)) {
+                  //ownership change failed, but we already have tokens...what to do...leave in flight and let governance fix
+                  /* switch(verify_escrow_reciept(state, escrow, ?owner, null)){
+                    case(#ok(reverify)){
+                        let target_escrow = {
+                            account_hash = reverify.found_asset.escrow.account_hash;
+                            amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
+                            buyer = reverify.found_asset.escrow.buyer;
+                            seller = reverify.found_asset.escrow.seller;
+                            token_id = reverify.found_asset.escrow.token_id;
+                            token = reverify.found_asset.escrow.token;
+                            sale_id = reverify.found_asset.escrow.sale_id;
+                            lock_to_date = reverify.found_asset.escrow.lock_to_date;
+                        };
+                        Map.set(reverify.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                    };
+
+                  //D.print("updating metadata");
+                  Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, new_metadata);
+                  metadata := new_metadata;
+                  //no need to mint
+                  switch(Metadata.add_transaction_record(state,{
+                    token_id = request.token_id;
+                    index = 0; //mint should always be 0
+                    txn_type = #sale_ended({
+                      escrow with
+                      seller = owner;
+                      sale_id = null;
+                      extensible = #Empty;
+                    });
+                    timestamp = Time.now();
+                  }, caller)){
+                    case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn adding transaction" # err.flag_point, ?caller));
+                    case(#ok(val)) val;
+                  };
+                };
               case(#err(err)){
-                //put the escrow back because the ownership change failed
-                handle_escrow_update_error(state, escrow, ?owner, verified.found_asset, verified.found_asset_list);
-                return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner " # escrow.token_id, ?caller));
+                let target_escrow = {
+                    account_hash = verified.found_asset.escrow.account_hash;
+                    amount =  escrow.amount;
+                    buyer = verified.found_asset.escrow.buyer;
+                    seller = verified.found_asset.escrow.seller;
+                    token_id = verified.found_asset.escrow.token_id;
+                    token = verified.found_asset.escrow.token;
+                    sale_id = verified.found_asset.escrow.sale_id;
+                    lock_to_date = verified.found_asset.escrow.lock_to_date;
+                };
+                Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
+                }
+              }; */
+                    return #err(Types.errors(#update_class_error, "Market transfer Origyn - error setting owner item is now in limbo, use governance to fix" # escrow.token_id, ?caller));
               };
+
+              case(#ok(new_metadata)) new_metadata;
             };
 
-            new_metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Empty);
+            //reset the system wallet shares
+            metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Empty);
+          
 
             //D.print("updating metadata");
-            Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, new_metadata);
-            metadata := new_metadata;
+            Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, metadata);
             //no need to mint
             switch(Metadata.add_transaction_record(state,{
-              token_id = request.token_id;
-              index = 0; //mint should always be 0
-              txn_type = #sale_ended({
-                escrow with
-                seller = owner;
-                sale_id = null;
-                extensible = #Empty;
-              });
-              timestamp = Time.now();
+                token_id = request.token_id;
+                index = 0; //mint should always be 0
+                txn_type = #sale_ended({
+                    seller = owner;
+                    buyer = escrow.buyer;
+                    token = escrow.token;
+                    amount = escrow.amount;
+                    sale_id = null;
+                    extensible = #Empty;
+                });
+                timestamp = Time.now();
             }, caller)){
-              case(#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn adding transaction" # err.flag_point, ?caller));
-              case(#ok(val)) val;
+                case(#err(err)){return #err(Types.errors(err.error, "market_transfer_nft_origyn adding transaction" # err.flag_point, ?caller));};
+                case(#ok(val)){val};
             };
+
+
           };
+
+         Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, metadata);
 
           //escrow already invalidated
           //calculate royalties
@@ -1409,9 +1601,9 @@ module {
 
           return #ok(txn_record);
         };
+
         case(_) return #err(Types.errors(#nyi, "market_transfer_nft_origyn nyi pricing type async", ?caller));
       };
-      return #err(Types.errors(#nyi, "market_transfer_nft_origyn nyi ", ?caller));
     };
 
     //handles royalty distribution
@@ -1478,8 +1670,8 @@ module {
                   case(_) [dev_fund];
                 };
               } else if(tag == Types.metadata.royalty_originator){
-                let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
-                switch(Metadata.get_system_var(request.metadata, Types.metadata.__system_originator)){
+                let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
+                switch(val){
                   case(#Empty) [dev_fund]; //dev fund
                   case(#Principal(val)) [val];
                   case(_) [dev_fund] ;
@@ -2672,6 +2864,7 @@ module {
               current_sale_state.min_next_bid := newMinBid;
               current_sale_state.current_escrow := ?request.escrow_receipt;
               current_sale_state.current_broker_id := request.broker_id;
+              ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
             };
             case(?val){
 
@@ -2681,11 +2874,12 @@ module {
               current_sale_state.min_next_bid := newMinBid;
               current_sale_state.current_escrow := ?request.escrow_receipt;
               current_sale_state.current_broker_id := request.broker_id;
-                                  debug if(debug_channel.bid) D.print("After" # debug_show(val.amount) # debug_show(val));
+              ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
+              debug if(debug_channel.bid) D.print("After" # debug_show(val.amount) # debug_show(val));
               //refund the escrow
               //nyi: this would be better triggered by an event
               //if this fails they can still manually withdraw the escrow.
-                                  debug if(debug_channel.bid) D.print("Trying refund escrow " # debug_show(val.amount) # debug_show(val));
+              debug if(debug_channel.bid) D.print("Trying refund escrow " # debug_show(val.amount) # debug_show(val));
               let service : Types.Service = actor((Principal.toText(state.canister())));
               let refund_id =  service.sale_nft_origyn(#withdraw(
                 #escrow({

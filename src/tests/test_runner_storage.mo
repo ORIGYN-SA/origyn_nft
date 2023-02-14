@@ -99,7 +99,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("calling storage stuff");
 
        
-        let standardStage = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
         //let standardStage2 = await utils.buildStandardNFT("2", canister_b, Principal.fromActor(canister_b), 2048000, false);
         //let standardStage3 = await utils.buildStandardNFT("3", canister_b, Principal.fromActor(canister_b), 2048000, false);
         //let standardStage4 = await utils.buildStandardNFT("4", canister_b, Principal.fromActor(canister_b), 2048000, false);
@@ -452,7 +452,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let initialCanisterSpace = await canister.storage_info_nft_origyn(); 
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 2048000, false, Principal.fromActor(this));
+
 
         D.print("standardStage" # debug_show(standardStage));
 
@@ -465,7 +466,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("new_storage_request" # debug_show(new_storage_request));
 
         D.print("staging b");
-        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
+
         D.print("DONE staging b " # debug_show(standardStage_b));
         let currentStateToken = await canister.nft_origyn("1");
 
@@ -771,7 +773,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let initialCanisterSpace = await canister.storage_info_nft_origyn(); 
 
-        let standardStage = await utils.buildStandardNFT("", canister, Principal.fromActor(canister), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("", canister, Principal.fromActor(canister), 2048000, false, Principal.fromActor(this));
 
 
         
@@ -780,7 +782,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         ]));
 
         //D.print("staging b");
-        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
+
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
         let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000);

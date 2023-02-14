@@ -26,14 +26,16 @@ import Conversion "mo:candy/conversion";
 
 module {
 
-    public func buildStandardNFT(token_id: Text, canister: Types.Service, app: Principal, file_size: Nat, is_soulbound: Bool) : async (
+    public func buildStandardNFT(token_id: Text, canister: Types.Service, app: Principal, file_size: Nat, is_soulbound: Bool, nft_originator: Principal) : async (
+
             Result.Result<Text,Types.OrigynError>, 
             Result.Result<Principal,Types.OrigynError>, 
             Result.Result<Principal,Types.OrigynError>,
             Result.Result<Principal,Types.OrigynError>) {
         //D.print("calling stage in build standard");
 
-        let stage = await canister.stage_nft_origyn(standardNFT(token_id, Principal.fromActor(canister), app, file_size, is_soulbound));
+        let stage = await canister.stage_nft_origyn(standardNFT(token_id, Principal.fromActor(canister), app, file_size, is_soulbound, nft_originator));
+
         //D.print(debug_show(stage));
         //D.print("finished stage in build standard");
 
@@ -76,7 +78,8 @@ module {
         canister : Principal, 
         app: Principal,
         file_size: Nat,
-        is_soulbound: Bool) : {metadata : CandyTypes.CandyValue} {
+        is_soulbound: Bool,
+        originator: Principal) : {metadata : CandyTypes.CandyValue} {
         {metadata = #Class([
             {name = "id"; value=#Text(token_id); immutable= true},
             {name = "primary_asset"; value=#Text("page"); immutable=false},
@@ -236,6 +239,7 @@ module {
             {name = "primary_protocol"; value=#Text("http"); immutable= false},
            
             {name = "owner"; value=#Principal(canister); immutable= false},
+            {name = "com.origyn.originator.override"; value=#Principal(originator); immutable=true;},
             {name = "is_soulbound"; value=#Bool(is_soulbound); immutable = is_soulbound},
         ])}
     };

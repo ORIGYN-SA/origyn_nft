@@ -112,10 +112,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
-        
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+
         //mint 2
         let mint_attempt = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this)));
         let mint_attempt2 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(this)));
@@ -416,9 +416,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         D.print("finished stage");
         D.print(debug_show(standardStage.0));
@@ -890,7 +890,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             canister, 
             Principal.fromActor(canister), 
             Principal.fromActor(n_wallet),
-            Principal.fromActor(o_wallet),
+            Principal.fromActor(this),
+
             2048000);
 
         let updateNetwork = canister.collection_update_nft_origyn(#UpdateNetwork(?Principal.fromActor(net_wallet)));
@@ -899,9 +900,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("calling stage");
 
     
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(o_wallet));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(o_wallet));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(o_wallet));
 
         let mint_attempt3 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this)));
         let mint_attempt4 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(this)));
@@ -1181,7 +1182,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let canister : Types.Service =  actor(Principal.toText(newPrincipal));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(a_wallet)));
@@ -1275,8 +1276,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let mode = canister.__set_time_mode(#test);
         let atime = canister.__advance_time(Time.now());
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false); //for auctioning a minted item
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false); //for auctioning an unminted item
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
 
         D.print("Minting");
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account
@@ -2464,9 +2465,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false);
-        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
         D.print("finished stage");
         D.print(debug_show(standardStage.0));
@@ -2854,7 +2855,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("calling stage");
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(c_wallet))); //mint to c_wallet
         
         D.print("finished stage");
