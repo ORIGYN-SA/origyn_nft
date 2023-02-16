@@ -42,6 +42,7 @@ v0.1.3
 * Refactor - Data API cleaned up and de-nested
 * Refactor - Market - standardized code for handling ledger errors
 * DIP721 - Added v2 functions that seem to be supported by plug
+* EXT and DIP721 - Added endpoint at /collection/translate and /-/{token_id}/translate to retrieve ext and dip721 token id mappings.
 
 v0.1.2-2
 

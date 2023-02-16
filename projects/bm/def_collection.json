@@ -627,11 +627,11 @@
         },
         {
             "library_id": "data",
-            "library_file": "./dapps-latest-build/dist/nftData.html"
+            "library_file": "./dapps-latest-build/dist/data.html"
         },
         {
-            "library_id": "wallet",
-            "library_file": "./dapps-latest-build/dist/wallet.html"
+            "library_id": "vault",
+            "library_file": "./dapps-latest-build/dist/vault.html"
         },
         {
             "library_id": "dapp_library",
