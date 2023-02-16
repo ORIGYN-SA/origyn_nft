@@ -524,7 +524,8 @@ module {
 
     //sets the owner on the nft
   //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
-  public func set_nft_owner(state: Types.State, token_id: Text, metadata: CandyTypes.CandyValue, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
+  public func set_nft_owner(state: Types.State, token_id: Text, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
+
 
     let current_state = state.refresh_state();
 
@@ -553,7 +554,8 @@ module {
               #Class(props);
           };
           case(#err(err)){
-              return #err(Types.errors(#update_class_error, "set_nft_owner - error setting owner " # debug_show((metadata, new_owner)), ?caller));
+              return #err(Types.errors(#update_class_error, "set_nft_owner - error setting owner " # debug_show((token_id, new_owner, fresh_metadata)), ?caller));
+
           };
       };
 
@@ -573,7 +575,16 @@ module {
         return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case(#ok(val)){
+        switch(val){
+          case(#extensible(ex)){
+            if(Conversions.valueToText(ex) == "trx in flight"){
+              return(#ok(false));
+            }
+          };
+          case(_){};
+        };
         val;
+
       };
     };
 

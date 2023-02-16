@@ -164,7 +164,7 @@ module {
     };
 
 
-    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async DIP721.Result{
+    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async* DIP721.Result{
         //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
         //if the escrow doesn't exist then we should fail
         
@@ -191,7 +191,7 @@ module {
             return #Err(#Other("escrow required for DIP721 transfer - failure of DIP721 transferFrom due to sale_id in escrow reciept" # debug_show(first_asset)));
         };
 
-        let result = await Market.market_transfer_nft_origyn_async(state, {
+        let result = await* Market.market_transfer_nft_origyn_async(state, {
             token_id = token_id;
             sales_config = 
               {
@@ -215,7 +215,7 @@ module {
         };
     };
 
-    public func transferExt(state: StateAccess, request: EXT.TransferRequest, caller : Principal) : async EXT.TransferResponse {
+    public func transferExt(state: StateAccess, request: EXT.TransferRequest, caller : Principal) : async* EXT.TransferResponse {
       //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
       //if the escrow doesn't exist then we should fail
 
@@ -257,22 +257,22 @@ module {
                             }, data)){
                     case(#ok(val)){val};
                     case(#err(err)){
-                        return #err(#Other("escrow required for EXT transfer - failure of EXT tranfer " # err.flag_point));
+                      return #err(#Other("escrow required for EXT transfer - failure of EXT tranfer - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer" # err.flag_point));
                     };
                 };
 
                 if(Map.size(escrows) == 0 ){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer"));
+                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer"));
                 };
 
                 //dip721 is not discerning. If it finds a first asset it will use that for the transfer
                 let first_asset = Iter.toArray(Map.entries(escrows))[0];
 
                 if(first_asset.1.sale_id != null){
-                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer due to sale_id in escrow reciept" # debug_show(first_asset)));
+                    return #err(#Other("escrow required of EXT tranfer transfer - failure of EXT tranfer due to sale_id in escrow reciept - have receiver visit https://prptl.io/-/" # Principal.toText(state.canister()) # "/-/" # data # "/-/vault?make-offer=true to make an offer. " # debug_show(first_asset)));
                 };
 
-                let result = await Market.market_transfer_nft_origyn_async(state, {
+                let result = await* Market.market_transfer_nft_origyn_async(state, {
                     token_id = data;
                     sales_config = 
                     {

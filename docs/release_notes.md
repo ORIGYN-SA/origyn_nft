@@ -41,6 +41,18 @@ v0.1.3
 * dfx - upgrade to dfx 0.12.1
 * Refactor - Data API cleaned up and de-nested
 * Refactor - Market - standardized code for handling ledger errors
+* DIP721 - Added v2 functions that seem to be supported by plug
+
+v0.1.2-2
+
+* Adds gateway principal to the storage_info_nft_origyn query
+* EXT - Adds compatibility for stoic wallet.  query getEXTTokenIdentifier(token_id) to get the identifier necessary to add an NFT to a wallet.
+
+v0.1.2-1
+
+* Fixes a bug where two buyers within a few blocks(while token send in flight) could give both set of tokens to the seller. The first to be processed now locks the NFT until the transaction success or fails.
+* Also adds royalty_originator_override = "com.origyn.originator.override" that allows a minter to override the collection level originator when minting an nft.
+
 
 v0.1.2
 

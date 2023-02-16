@@ -242,7 +242,7 @@ module {
     };
 
     //mints an NFT
-    public func mint_nft_origyn(state : Types.State, token_id : Text, new_owner : Types.Account, caller : Principal) : async Result.Result<Text,Types.OrigynError> {
+    public func mint_nft_origyn(state : Types.State, token_id : Text, new_owner : Types.Account, caller : Principal) : async* Result.Result<Text,Types.OrigynError> {
         if(NFTUtils.is_owner_manager_network(state, caller) == false){return #err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?caller))};
 
         let result =  execute_mint(state, token_id, new_owner, null, caller);
@@ -941,7 +941,7 @@ module {
         chunk : Types.StageChunkArg,
         allocation : Types.AllocationRecord,
         metadata : CandyTypes.CandyValue,
-        caller : Principal) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
+        caller : Principal) : async* Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
         
 
@@ -1079,7 +1079,7 @@ module {
         };
 
 
-         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
 
         var node_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_node)){
             case(null){
@@ -1092,14 +1092,20 @@ module {
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_node, node_principal);
 
-        var originator_principal = switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
-            case(null){
-                #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+        var originator_principal = switch(Properties.getClassProperty(metadata, Types.metadata.originator_override)){
+          case(null){
+            switch(Properties.getClassProperty(collection, Types.metadata.__system_originator)){
+              case(null){
+                  #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+              };
+              case(?val){
+                  val.value;
+              };
             };
-            case(?val){
-                val.value;
-            };
+          };
+          case(?val) val.value;
         };
+
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_originator, originator_principal);
 

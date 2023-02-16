@@ -33,7 +33,7 @@ module {
     chunk : Types.StageChunkArg,
     source_allocation : Types.AllocationRecordStable,
     metadata: CandyTypes.CandyValue, //do we need metadata here? probably for http request...surely for file data
-    caller : Principal) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
+    caller : Principal) : async* Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
     if(state.state.collection_data.owner != caller){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - storage - not the gateway", ?caller))};
 

@@ -78,7 +78,7 @@ module {
     };
 
     // generates a random access key for use with procuring owner's assets
-    public func gen_access_key(): async Text {
+    public func gen_access_key(): async* Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");

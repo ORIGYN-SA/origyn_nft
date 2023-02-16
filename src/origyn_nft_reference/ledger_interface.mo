@@ -87,7 +87,7 @@ class Ledger_Interface() {
   }; */
 
   //moves a deposit from a deposit subaccount to an escrow subaccount
-  public func transfer_deposit(host: Principal, escrow : Types.EscrowRequest, caller: Principal) : async Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
+  public func transfer_deposit(host: Principal, escrow : Types.EscrowRequest, caller: Principal) : async* Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
     debug if(debug_channel.deposit) D.print("in transfer_deposit ledger deposit");
     debug if(debug_channel.deposit) D.print(Principal.toText(host));
     debug if(debug_channel.deposit) D.print(debug_show(escrow));
@@ -111,7 +111,7 @@ class Ledger_Interface() {
     try {
        //D.print("sending transfer blocks # " # debug_show(escrow.deposit.amount - ledger.fee));
 
-      let result = await transfer({
+      let result = await* transfer({
           ledger = ledger.canister;
           to = host;
           //do not subract the fee...you need the full amount in the account. User needs to send in the fee as extra.
@@ -135,7 +135,7 @@ class Ledger_Interface() {
   };
 
   //allows a user to withdraw money from a sale
-  public func transfer_sale(host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+  public func transfer_sale(host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
                     debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
                     debug if(debug_channel.sale) D.print(Principal.toText(host));
                     debug if(debug_channel.sale) D.print(debug_show(escrow));
@@ -176,7 +176,7 @@ class Ledger_Interface() {
                          debug if(debug_channel.sale) D.print("sending transfer blocks # " # debug_show((Nat.sub(escrow.amount,ledger.fee), sale_account_info.account.sub_account) ));
 
         D.print("memo will be com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id);
-        let result = await transfer({
+        let result = await* transfer({
             ledger = ledger.canister;
             to = host;
             amount = Nat64.fromNat(escrow.amount - ledger.fee);
@@ -216,7 +216,7 @@ class Ledger_Interface() {
     fee: Nat64;
     memo: Nat64;
     caller: Principal
-    }) : async Result.Result<Types.TransactionID, Types.OrigynError> {
+    }) : async* Result.Result<Types.TransactionID, Types.OrigynError> {
      D.print("in transfeledger");
      D.print(Principal.toText(request.ledger));
 
@@ -259,7 +259,7 @@ class Ledger_Interface() {
   };
 
   //sends a payment and withdraws a fee
-  public func send_payment_minus_fee(account: Types.Account, token: Types.ICTokenSpec, amount : Nat, sub_account: ?Blob, caller: Principal) : async Result.Result<{trx_id: Types.TransactionID; fee: Nat}, Types.OrigynError> {
+  public func send_payment_minus_fee(account: Types.Account, token: Types.ICTokenSpec, amount : Nat, sub_account: ?Blob, caller: Principal) : async* Result.Result<{trx_id: Types.TransactionID; fee: Nat}, Types.OrigynError> {
     debug if(debug_channel.transfer) D.print("in send payment deposit");
      
     let ledger : DFXTypes.Service = actor(Principal.toText(token.canister));

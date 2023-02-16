@@ -136,7 +136,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     //stores the chunk for a library
     public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg, allocation: Types.AllocationRecordStable, metadata : CandyTypes.CandyValue) : async Result.Result<Types.StageLibraryResponse,Types.OrigynError> {
 
-        return await Storage_Store.stage_library_nft_origyn(
+        return await* Storage_Store.stage_library_nft_origyn(
             get_state(),
             chunk,
             allocation,
@@ -193,6 +193,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
+            gateway = state_current.collection_data.owner  ;
+
             allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state_current.allocations),Types.allocation_record_stabalize));
         });
     };
@@ -202,6 +204,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
+            gateway = state_current.collection_data.owner  ;
+
             allocations = Iter.toArray<Types.AllocationRecordStable>(Iter.map<Types.AllocationRecord,Types.AllocationRecordStable>(Map.vals<(Text,Text),Types.AllocationRecord>(state_current.allocations),Types.allocation_record_stabalize));
         });
     };

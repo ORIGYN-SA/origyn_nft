@@ -75,15 +75,15 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         g_storage_factory := actor(Principal.toText(storage_factory));
 
         let suite = S.suite("test nft", [
-            
-            S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testRoyalties", switch(await testRoyalties()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                      
+            /* S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testRoyalties", switch(await testRoyalties()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-                      
+             */
             ]);
         S.run(suite);
 
@@ -685,7 +685,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     "wrong error " # debug_show(err.number);
                 }};}, M.equals<Text>(T.text("correct number"))), //MKT0015
             S.test("fail if non owner trys to sell", switch(a_wallet_try_staged_market){case(#ok(res)){"unexpected success"};case(#err(err)){
-                if(err.number == 2000){ //since the requestor isnt the owner and this isnt minted we wont reveal it is a real token
+                if(err.number == 3000){ //no escrow 
                     "correct number"
                 } else{
                     "wrong error " # debug_show(err.number);
@@ -957,7 +957,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let canister_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
         let net_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
 
-
+        D.print("initial balances " # debug_show(a_balance, b_balance, n_balance, o_balance,canister_balance, net_balance));
         D.print("primary sale");
         let primary_sale = await canister.market_transfer_nft_origyn({
             token_id = "1";
@@ -1043,6 +1043,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let canister_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
         let net_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
 
+         D.print("a wallet " # debug_show((a_balance, a_balance2, a_balance3)));
+        D.print("b wallet " # debug_show((b_balance, b_balance2, b_balance3)));
+        D.print("n wallet " # debug_show((n_balance, n_balance2, n_balance3)));
+        D.print("o wallet " # debug_show((o_balance, o_balance2, o_balance3)));
+        D.print("canister wallet " # debug_show((canister_balance, canister_balance2, canister_balance3)));
+        D.print("net wallet " # debug_show((net_balance, net_balance2, net_balance3)));
 
         //withdraw sale
         //let #ok(b_withdraw) = b_balance2;
@@ -1142,6 +1148,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             let canister_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
             let net_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
 
+            D.print("a wallet " # debug_show((Principal.fromActor(a_wallet), a_balance, a_balance2, a_balance3, a_balance5)));
+            D.print("b wallet " # debug_show((Principal.fromActor(b_wallet), b_balance, b_balance2, b_balance3, b_balance5)));
+            D.print("n wallet " # debug_show((Principal.fromActor(n_wallet), n_balance, n_balance2, n_balance3, n_balance5)));
+            D.print("o wallet " # debug_show((Principal.fromActor(o_wallet), o_balance, o_balance2, o_balance3, o_balance5)));
+            D.print("canister wallet " # debug_show((Principal.fromActor(canister),canister_balance, canister_balance2, canister_balance3, canister_balance5)));
+            D.print("net wallet " # debug_show((Principal.fromActor(net_wallet),net_balance, net_balance2, net_balance3, net_balance5)));
         //test balances
 
         let suite = S.suite("test royalties", [

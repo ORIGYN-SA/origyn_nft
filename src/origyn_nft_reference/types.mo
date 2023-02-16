@@ -1,5 +1,6 @@
 
 import Blob "mo:base/Blob";
+import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
@@ -466,6 +467,8 @@ module {
         allocated_storage: Nat;
         available_space: Nat;
         allocations: [AllocationRecordStable];
+        gateway: Principal;
+
     };    
 
     public type BucketData = {
@@ -652,6 +655,10 @@ module {
         metadata: ?CandyTypes.CandyValue;
         allocated_storage : ?Nat;
         available_space : ?Nat;
+        created_at : ?Nat64;
+        upgraded_at : ?Nat64;
+        unique_holders : ?Nat;
+        transaction_count : ?Nat;
     };
 
     public type CollectionData = {
@@ -1440,6 +1447,19 @@ module {
         
     };
 
+    public type EXTTokensResult = (Nat32, ?{locked: ?Int; seller : Principal; price : Nat64}, ?[Nat8]);
+
+
+    // Converts a token id into a reversable ext token id
+    public func _getEXTTokenIdentifier(token_id: Text, canister: Principal) : Text{
+        let tds : [Nat8] = [10, 116, 105, 100]; //b"\x0Atid"
+        let theID = Array.append<Nat8>(
+            Array.append<Nat8>(tds, Blob.toArray(Principal.toBlob(canister))),
+            Conversions.valueToBytes(#Nat32(Text.hash(token_id))));
+
+        return Principal.toText(Principal.fromBlob(Blob.fromArray(theID)));
+    };
+
     public let account_handler = (account_hash, account_eq);
 
     public let token_handler = (token_hash, token_eq);
@@ -1468,6 +1488,16 @@ module {
         chunk_nft_origyn : shared query ChunkRequest -> async Result.Result<ChunkContent, OrigynError>;
         refresh_metadata_nft_origyn : (token_id: Text, metadata: CandyTypes.CandyValue) -> async Result.Result<Bool, OrigynError>
     };
+
+    public func force_account_to_account_id(request : Account) : Result.Result<Account, OrigynError>{
+      switch(request){
+        case(#principal(principal)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(principal, null))));
+        case(#account(account)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(account.owner, null))));
+        case(#account_id(account_id)) #ok(request);
+        case(#extensible(ex)) return #err(errors(#nyi, "force_account_to_account_id", null));
+      }
+    };
+
 
     public type Service = actor {
         __advance_time : shared Int -> async Int;
@@ -1512,7 +1542,6 @@ module {
         mint_nft_origyn : shared (Text, Account) -> async Result.Result<Text,OrigynError>;
         mint_batch_nft_origyn : shared (tokens: [(Text, Account)]) -> async [Result.Result<Text, OrigynError>];
         nftStreamingCallback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
-        
         nft_origyn : shared query Text -> async Result.Result<NFTInfoStable, OrigynError>;
         nft_batch_origyn: shared query (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
         nft_batch_secure_origyn: shared (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
