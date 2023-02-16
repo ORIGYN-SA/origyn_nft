@@ -13,6 +13,11 @@ let additions =
     , version = "v0.1.10"
     , dependencies = ["base"]
    },
+   { name = "candy_0_1_12"
+    , repo = "https://github.com/aramakme/candy_library.git"
+    , version = "v0.1.12"
+    , dependencies = ["base"]
+   },
    {
        name="principalmo",
        repo = "https://github.com/aviate-labs/principal.mo.git",

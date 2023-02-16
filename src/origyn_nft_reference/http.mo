@@ -1582,6 +1582,22 @@ module {
 
                           return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
                         };
+
+                        if(path_array[2] == "translate"){
+
+                          debug if(debug_channel.request) D.print("render translate "  # token_id );
+
+                          let translation =  #Class([
+                              {name="origyn_nft"; value=#Text(token_id); immutable=true;},
+                              {name="ext"; value=#Text(Types._getEXTTokenIdentifier(token_id, state.canister())); immutable=true;},
+                              {name="dip721"; value=#Text(Nat.toText(NFTUtils.get_token_id_as_nat(token_id))); immutable=true;}
+                            ]);
+                      
+
+                          
+                          return json(translation, null);
+                        };
+
                         
                     
                         if(path_size > 3){
@@ -1763,7 +1779,30 @@ module {
 
                         return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
                     };
+                    if(path_array[1]== "translate"){
+                      let rawkeys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
+                          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""}));
+                          
+                        } else {
+                          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""}));
+                        };
+                          
+                          let translation = Array.map<Text, CandyTypes.CandyValue>(rawkeys, func(x){
+                            
+                          return #Class([
+                            {name="origyn_nft"; value=#Text(x); immutable=true;},
+                            {name="ext"; value=#Text(Types._getEXTTokenIdentifier(x, state.canister())); immutable=true;},
+                            {name="dip721"; value=#Text(Nat.toText(NFTUtils.get_token_id_as_nat(x))); immutable=true;}
+                          ]);
+                        });
+
+                        
+                        return json(#Array(#frozen(translation)), null);
+                            
+                    };
+
                 } else {
+                  
                   debug if(debug_channel.request) D.print("collection info");
                   let keys = let keys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
                     Array.map<Text, CandyTypes.CandyValue>(Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""})), func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
