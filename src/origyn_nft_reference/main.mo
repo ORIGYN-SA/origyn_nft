@@ -1858,6 +1858,18 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       };
     };
 
+    public query func dip721_metadata() : async DIP721.Metadata{
+      let state = get_state();
+      return  {
+        logo = state.state.collection_data.logo;
+        name = state.state.collection_data.name;
+        created_at = created_at;
+        upgraded_at = upgraded_at;
+        custodians = state.state.collection_data.managers;
+        symbol = state.state.collection_data.symbol;
+      };
+    };
+
     public query(msg) func dip721_total_supply() : async Nat{
 
       let state = get_state();
