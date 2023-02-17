@@ -1441,13 +1441,13 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
-        private func _dip_721_metadata(caller: Principal, token_id : Nat) : Result.Result<DIP721.TokenMetadata, DIP721.NftError> {
+        private func _dip_721_metadata(caller: Principal, token_id : Nat) : DIP721.Metadata_3 {
 
       let token_id_raw = NFTUtils.get_nat_as_token_id(token_id);
 
       let nft = switch(_nft_origyn(token_id_raw, caller)){
         case(#ok(nft)) nft;
-        case(#err(e)) return #err(#TokenNotFound);
+        case(#err(e)) return #Err(#TokenNotFound);
       };
 
       let state = get_state();
@@ -1464,7 +1464,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
           case(#err(e)) null;
         };
 
-      return #ok({transferred_at = null;
+      return #Ok({transferred_at = null;
         transferred_by = null;
         owner = owner;
         operator = owner;
@@ -1484,7 +1484,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       });
     };
 
-    private func _dip_721_metadata_for_principal(caller: Principal, principal : Principal) : Result.Result<[DIP721.TokenMetadata], DIP721.NftError>{
+    private func _dip_721_metadata_for_principal(caller: Principal, principal : Principal) :DIP721.Metadata_2{
       // D.print("nft origyn :" # debug_show(token_id));
         
         debug if(debug_channel.function_announce) D.print("in nft_origyn");
@@ -1497,8 +1497,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                     if(val == true and this_nft.0 != ""){
                       let thismetadata = _dip_721_metadata(caller, NFTUtils.get_token_id_as_nat(this_nft.0));
                       switch(thismetadata){
-                        case(#ok(data)){ resultBuffer.add(data);};
-                        case(#err(err)){return #err(err)};
+                        case(#Ok(data)){ resultBuffer.add(data);};
+                        case(#Err(err)){return #Err(err)};
                       };
                       
                     };
@@ -1509,30 +1509,41 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        return #ok(resultBuffer.toArray());
+        return #Ok(resultBuffer.toArray());
     } ;
 
 
-     public query (msg) func dip721_owner_token_metadata(owner : Principal) : async Result.Result<[DIP721.TokenMetadata], DIP721.NftError>{
+     public query (msg) func dip721_owner_token_metadata(owner : Principal) : async DIP721.Metadata_2{
 
         _dip_721_metadata_for_principal(msg.caller, owner);
     };
 
-    public query (msg) func dip721_operator_token_metadata(operator : Principal) : async Result.Result<[DIP721.TokenMetadata], DIP721.NftError>{
+    public query (msg) func dip721_operator_token_metadata(operator : Principal) : async DIP721.Metadata_2{
 
        _dip_721_metadata_for_principal(msg.caller, operator);
     };
 
-    public query(msg) func dip721_token_metadata(token_id : Nat) : async Result.Result<DIP721.TokenMetadata, DIP721.NftError>{
+    public query(msg) func dip721_token_metadata(token_id : Nat) : async DIP721.Metadata_3{
 
        _dip_721_metadata(msg.caller, token_id);
     };
 
-    public query(msg) func dip721_is_approved_for_all(owner: Principal, operator: Principal) : async Result.Result<Bool, DIP721.NftError>{
-      return(#ok(false));
+        public query (msg) func ownerTokenMetadata(owner : Principal) : async DIP721.Metadata_2{
+
+        _dip_721_metadata_for_principal(msg.caller, owner);
     };
 
-    private func _dip_721_get_tokens(caller: Principal, owner: Principal) : Result.Result<[Nat], DIP721.NftError>{
+    public query (msg) func operaterTokenMetadata(operator : Principal) : async DIP721.Metadata_2{
+
+       _dip_721_metadata_for_principal(msg.caller, operator);
+    };
+
+    public query(msg) func dip721_is_approved_for_all(token_id : Nat) : async DIP721.Result_1{
+
+      return(#Ok(false));
+    };
+
+    private func _dip_721_get_tokens(caller: Principal, owner: Principal) : DIP721.Metadata_1{
       let nft_results = Buffer.Buffer<Text>(1);
         let state = get_state();
 
@@ -1550,14 +1561,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         };
 
-        #ok(Iter.toArray<Nat>(Iter.map<Text, Nat>(nft_results.vals(), func(x){NFTUtils.get_token_id_as_nat(x)})));
+        #Ok(Iter.toArray<Nat>(Iter.map<Text, Nat>(nft_results.vals(), func(x){NFTUtils.get_token_id_as_nat(x)})));
     };
 
-    public query (msg) func dip721_owner_token_identifiers(owner : Principal) : async Result.Result<[Nat], DIP721.NftError>{
+    public query (msg) func dip721_owner_token_identifiers(owner : Principal) : async DIP721.Metadata_1{
         _dip_721_get_tokens(msg.caller, owner);
     };
 
-    public query (msg) func dip721_operator_token_identifiers(operator : Principal) : async Result.Result<[Nat], DIP721.NftError>{
+    public query (msg) func dip721_operator_token_identifiers(operator : Principal) : async DIP721.Metadata_1{
         _dip_721_get_tokens(msg.caller, operator);
     };
 
@@ -1787,7 +1798,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
      
 
     // Metadata for ext
-    public query func metadata(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
+    public query func metadataEXT(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in metadata");
@@ -1912,7 +1923,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return  get_state().state.collection_data.managers;
     };
 
-    public query func dip721_get_metadata() : async DIP721.Metadata{
+    public query func dip721_metadata() : async DIP721.Metadata{
+      let state = get_state();
+      return  {
+        logo = state.state.collection_data.logo;
+        name = state.state.collection_data.name;
+        created_at = created_at;
+        upgraded_at = upgraded_at;
+        custodians = state.state.collection_data.managers;
+        symbol = state.state.collection_data.symbol;
+      };
+    };
+
+    public query func metadata() : async DIP721.Metadata{
       let state = get_state();
       return  {
         logo = state.state.collection_data.logo;
