@@ -5,6 +5,10 @@
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko"
         },
+        "droute": {
+          "main": ".vessel/events/59c71a3d9ea5ef39027067f4fa309bf85c8c953f/src/actors/Main/main.mo",
+          "type": "motoko"
+      },
         "egg": {
           "main": "src/origyn_nft_reference/main.mo",
           "type": "motoko"
@@ -129,6 +133,6 @@
             "subnet_type": "system"
         }
     },
-    "dfx": "0.12.1",
+    "dfx": "0.13.1",
     "version": 1
 }

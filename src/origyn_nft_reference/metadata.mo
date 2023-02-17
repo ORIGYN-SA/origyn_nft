@@ -1292,8 +1292,32 @@ module {
 
     SB.add(ledger, newTrx);
 
+    //todo: broadcast the event
+    announceTransaction(state, rec, caller, newTrx);
+
     return #ok(newTrx);
   };
+
+  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : async Nat {
+
+        let eventNamespace = "com.origyn.nft.event";
+        let (eventType, payload) = switch (rec.type_) {
+          case (#auction_bid(data)) { ("auction_bid", #Class([
+            {name="token_id"; value = #Text(rec.token_id); immutable=true;},
+            {name="canister"; value = #Principal(state.canister());immutable=true;},
+            {name="sale_id"; value = #Text(data.sale_id); immutable=true;}
+          ]) )};
+          case (#mint) { "mint" };
+          case (#sale_ended) { "sale_ended" };
+        };
+
+        let eventName = eventNamespace # "." # eventType;
+
+        let event = state.droute_client.publish(eventName, payload);
+
+        return event.event_id;
+    };
+
 
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){

@@ -1,6 +1,6 @@
 let aviate_labs = https://github.com/aviate-labs/package-set/releases/download/v0.1.3/package-set.dhall sha256:ca68dad1e4a68319d44c587f505176963615d533b8ac98bdb534f37d1d6a5b47
 
-let upstream = https://github.com/dfinity/vessel-package-set/releases/download/mo-0.6.21-20220215/package-set.dhall sha256:b46f30e811fe5085741be01e126629c2a55d4c3d6ebf49408fb3b4a98e37589b
+let upstream = https://github.com/dfinity/vessel-package-set/releases/download/mo-0.7.3-20221102/package-set.dhall sha256:9c989bdc496cf03b7d2b976d5bf547cfc6125f8d9bb2ed784815191bd518a7b9
 
 let Package =
     { name : Text, version : Text, repo : Text, dependencies : List Text }
@@ -106,7 +106,23 @@ let additions =
   , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
   , version = "v0.0.1"
   , dependencies = ["base", "candy_0_1_10" ]
-  }
+  },
+  { name = "events"
+  , repo = "https://github.com/origyn-sa/events"
+  , version = "59c71a3d9ea5ef39027067f4fa309bf85c8c953f"
+  , dependencies = ["base" ]
+  }, 
+  { name = "droute_client"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/droute-client"
+  , version = "c7b6b7483f9117275a178d4e12e803817d24bb0b"
+  , dependencies = ["base" ]
+  },
+  { name = "map_8_0_0_rc_2", repo = "https://github.com/ZhenyaUsenko/motoko-hash-map.git", version = "v8.0.0-rc.2", dependencies = ["base"] },
+  { name = "candy_0_1_9", repo = "https://github.com/aramakme/candy_library.git", version = "v0.1.9", dependencies = ["base"] },
+  { name = "candy_utils_0_2_1", repo = "https://github.com/ZhenyaUsenko/motoko-candy-utils.git", version = "v0.2.1", dependencies = ["base"] },
+  { name = "candy_utils", repo = "https://github.com/ZhenyaUsenko/motoko-candy-utils.git", version = "v0.2.1", dependencies = ["base"] }
+  
+  
   ] : List Package
 let
   {- This is where you can override existing packages in the package-set

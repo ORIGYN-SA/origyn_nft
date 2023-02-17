@@ -40,6 +40,7 @@ import http "http";
 import Char "mo:base/Char";
 import Canistergeek "mo:canistergeek/canistergeek";
 import JSON "mo:candy/json";
+import DROUTE "mo:droute_client/Droute";
 
 
 
@@ -144,6 +145,17 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
     };
 
+    stable var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    stable var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    stable var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+
+    let droute_client = DROUTE.Droute({
+      mainId = ?Principal;
+      publishersIndexId= ?Principal;
+      subscribersIndexId= ?Principal;
+    }
+    );
+
     // Let us access state and pass it to other modules
     let get_state : () -> Types.State  = func (){
         {
@@ -152,6 +164,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             get_time = get_time;
             nft_library = nft_library;
             refresh_state = get_state;
+            droute_client = droute_client;
         };
     };
 
