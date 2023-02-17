@@ -1,0 +1,42 @@
+type UpgradeStatusResponse = 
+ record {
+   main: CanisterStatus;
+   running: nat;
+   stopped: nat;
+   total: nat;
+   upgraded: nat;
+   upgrading: nat;
+ };
+type UpgradeStatusParams = null;
+type RemoveAdminResponse = null;
+type RemoveAdminParams = principal;
+type Main = 
+ service {
+   addAdmin: (AddAdminParams) -> (AddAdminResponse) query;
+   finishUpgrade: (FinishUpgradeParams) -> (FinishUpgradeResponse);
+   getAdmins: (GetAdminsParams) -> (GetAdminsResponse) query;
+   getBroadcastIds: (BroadcastIdsParams) -> (BroadcastIdsResponse) query;
+   getUpgradeStatus: (UpgradeStatusParams) -> (UpgradeStatusResponse) query;
+   removeAdmin: (RemoveAdminParams) -> (RemoveAdminResponse) query;
+ };
+type GetAdminsResponse = vec principal;
+type GetAdminsParams = null;
+type FinishUpgradeResponse = null;
+type FinishUpgradeParams = null;
+type CanisterStatus = 
+ variant {
+   Running;
+   Stopped;
+   UpgradeFailed;
+   Upgraded;
+   Upgrading;
+ };
+type BroadcastIdsResponse = 
+ record {
+   broadcastIds: vec principal;
+   broadcastVersion: nat64;
+ };
+type BroadcastIdsParams = null;
+type AddAdminResponse = null;
+type AddAdminParams = principal;
+service : () -> Main
