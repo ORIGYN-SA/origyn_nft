@@ -29,7 +29,10 @@ type BalanceResult = {
 
 * alternative mappings
     * query balanceOfDip721(user: principal) -> Nat64; - only supports principals
+    * query balanceOf(user: principal) -> Nat64; - only supports principals - dip721 legacy
+    * query dip721_balanceOf(user: principal) -> Nat64; - only supports principals - dip721 v2
     * query balanceEXT(request: EXTBalanceRequest) -> EXTBalanceResponse; Token Identifier is a text from Principal of [10, 116, 105, 100] + CanisterID as [Nat8] + Nat32 as bytes of Text.hash of token_id as each canister has only one token identifier
+    * query balance(request: EXTBalanceRequest) -> EXTBalanceResponse; Token Identifier is a text from Principal of [10, 116, 105, 100] + CanisterID as [Nat8] + Nat32 as bytes of Text.hash of token_id as each canister has only one token identifier
 
 ## Owner
 
@@ -43,7 +46,8 @@ Returns the owner of the NFT indicated by token_id.
 
 * Alternative mappings
     * query ownerOfDip721(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id
-    * query ownerOf(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id //for questionable "v2" upgrade where the standard is now compatable with fewer web 3 tools
+    * query ownerOf(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id //legacy
+    * query dip721_ownerOf(token_id: Nat) -> DIP721OwnerResult; - will compare Nat64 hash of text token IDs to the token_id //for questionable "v2" upgrade where the standard is now compatable with fewer web 3 tools
     * query bearerEXT(token: TokenIdentifier) -> Result<EXTAccountIdentifier, EXTCommonError>; bearer() also exists for legacy native ext support
     * query bearer(token: TokenIdentifier) -> Result<EXTAccountIdentifier, EXTCommonError>; bearer() also exists for legacy native ext support //for legacy support
     
@@ -175,7 +179,9 @@ Note: For alternative mappings the existence of an escrow is the approval for th
 * alternative mappings
     * transferFromDip721(from: principal, to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.  
     * transferFrom(from: principal, to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.  //v2
+    * dip721_transferFrom(from: principal, to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.  //v2
     * transferDip721(to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.
+    * dip721_transfer(to: principal, tokenAsNat: nat) -> Result; - token_id will be converted from the Nat representation.
     * transferEXT(request : EXTTransferRequest) -> EXTTransferResponse; transfer() also exists for legacy native ext support
     * transfer(request : EXTTransferRequest) -> EXTTransferResponse; transfer() also exists for legacy native ext support
 
@@ -410,6 +416,12 @@ owner - required - principal - the owner of the NFT.
 
 is_soulbound - optional - #Bool(true) if you don't want the NFT to change owners
 
+
+##### Alternative mappings
+
+* dip721_token_metadata(token_id : Nat) : async DIP721.Metadata_3 query; //token metadata for dip721
+* tokenMetadata(token_id : Nat) : async DIP721.Metadata_3 query; //token metadata for dip721
+
 #### Collection Level Metadata
 
 com.origyn.node  - suggested - Node that endorses and authenticates NFTs minted from this collection - used for paying node royalties
@@ -470,8 +482,14 @@ com.origyn.royalties.secondary.default - Array(frozen) - List of Classes of rate
 ```
 
 * alternative mappings
-    * getMetaDataDip721() -> DIP721MetadataResult query //nyi
+    * metadata() -> DIP721MetadataResult query //metadata for plug
+    * dip721_metadata() -> DIP721MetadataResult query //metadata for plug
+    * dip721_owner_token_metadata(owner : Principal) : async DIP721.Metadata_2 query; //gets owner token info
+    * ownerTokenMetadata(owner : Principal) : async DIP721.Metadata_2 //gets owner token info
+    * dip721_operator_token_metadata(owner : Principal) : async DIP721.Metadata_2 query; //gets owner token info
+    * operatorTokenMetadata(owner : Principal) : async DIP721.Metadata_2 //gets owner token info
     * metadataEXT(Text) -> ?Blob - supports metadata() for legacy support. - the collection properties should be converted to a blob standard that a client can decipher(cbor?/protobuf?); //will have to manage multi chunks //nyi
+    * tokens_ext(request: Text) : async Result.Result<[Types.EXTTokensResult]; //used by stoic to get tokens for a principal.
 
 
 ### Large NFT Assets
@@ -1997,27 +2015,31 @@ Features:
     };
 
 ```
-
-
 ### HTTP NFT Information
 
-prptl.io/_/canister_id/_/token_id - Returns the primary asset
+prptl.io/-/canister-id/-/token_id - Returns the primary asset
 
-prptl.io/_/canister_id/_/token_id/preview - Returns the preview asset
+prptl.io/-/canister_id/-/token_id/preview - Returns the preview asset
 
-prptl.io/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
+prptl.io/-/canister_id/-/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
 
-prptl.io/_/canister_id/_/token_id/_/library_id - Returns the asset in the library
+prptl.io/-/canister_id/-/token_id/-/library_id - Returns the asset in the library
 
-prptl.io/_/canister_id/_/token_id/_/library_id/info - Returns a json representation of assets in the library
+prptl.io/-/canister_id/-/token_id/-/library_id/info - Returns a json representation of assets in the library
 
-prptl.io/_/canister_id/_/token_id/info - Returns a json representation of the metadata, including the library items
+prptl.io/-/canister_id/-/token_id/info - Returns a json representation of the metadata, including the library items
 
-prptl.io/_/canister_id/_/token_id/info?query=[Query] - Returns a json representation of the metadata passed through a query
+prptl.io/-/canister_id/-/token_id/info?query=[Query] - Returns a json representation of the metadata passed through a query
+
+prptl.io/-/canister_id/-/token_id/translate - Returns a json representation of translations to ext and dip721
 
 ### Collection Information
 
-prptl.io/_/canister_id/collection - Returns a json representation of collection information
+prptl.io/-/canister_id/collection - Returns a json representation of collection information
+
+prptl.io/-/canister_id/collection/translate - Returns a json representation of token ids with translations to ext and dip721
+
+
 
 * http routes - /ledger_info/{page}/{page_size} now returns the ledger json for the collection level
 * http routes - /-/token_id/ledger_info/{page}/{page_size} now returns the ledger json for the token level

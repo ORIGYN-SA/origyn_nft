@@ -35,6 +35,12 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
+v0.1.2-3
+
+* DIP721 - Added v2 functions that seem to be supported by plug
+* EXT and DIP721 - Added endpoint at /collection/translate and /-/{token_id}/translate to retrieve ext and dip721 token id mappings.
+* Collection Info - added created_at, upgrade_at_unique_holder count, and transaction_count
+
 v0.1.2-2
 
 * Adds gateway principal to the storage_info_nft_origyn query

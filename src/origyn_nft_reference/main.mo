@@ -5,20 +5,24 @@ import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
+import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat8 "mo:base/Nat8";
+import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
 import TrieMap "mo:base/TrieMap";
 import CandyTypes "mo:candy_0_1_10/types";
 import Conversions "mo:candy_0_1_10/conversion";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import Map "mo:map_6_0_0/Map";
+import Set "mo:map_6_0_0/Set";
 import Properties "mo:candy_0_1_10/properties";
 import Workspace "mo:candy_0_1_10/workspace";
 import Current "migrations/v000_001_000/types";
@@ -36,6 +40,8 @@ import data "data";
 import http "http";
 import Char "mo:base/Char";
 import Canistergeek "mo:canistergeek/canistergeek";
+import JSON "mo:candy_0_1_12/json";
+
 
 
 
@@ -54,6 +60,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                             
     // A standard file chunk size.  The IC limits intercanister messages to ~2MB+ so we set that here
     stable var SIZE_CHUNK = 2048000; //max message size
+    stable let created_at = Nat64.fromNat(Int.abs(Time.now()));
+    stable var upgraded_at = Nat64.fromNat(Int.abs(Time.now()));
+
+    let {thash} = Map;
+
 
     // Canisters can support multiple storage nodes
     // If you have a small collection you don't need to use a storage collection
@@ -415,43 +426,49 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return Governance.governance_nft_origyn(get_state(), request, msg.caller);
     };
 
-    // Dip721 transferFrom - must have a valid escrow
-    public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
-        canistergeekLogger.logMessage("transferFromDip721",#Text(log_data),?msg.caller);
+      private func _dip_721_transfer(caller: Principal, to: Principal, tokenAsNat: Nat) : async* DIP721.Result{
+        let log_data : Text = "To :" # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
+        canistergeekLogger.logMessage("transferDip721",#Text("transferDip721"),?caller);
         canistergeekMonitor.collectMetrics();
         debug if(debug_channel.function_announce) D.print("in transferFromDip721");
         // Existing escrow acts as approval
-        if(msg.caller != to){
-            return #Err(#UnauthorizedOperator);
-        };
-        return await Owner.transferDip721(get_state(),from, to, tokenAsNat, msg.caller);
+        return await Owner.transferDip721(get_state(), caller, to, tokenAsNat, caller);
+      };
+
+
+    // Dip721 transferFrom - must have a valid escrow
+    public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
+      if(halt == true){throw Error.reject("canister is in maintenance mode");};
+      await* _dip_721_transfer(msg.caller, to, tokenAsNat);
     };
 
     // Dip721 transfer - must have a valid escrow
     public shared (msg) func transferDip721(to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        let log_data : Text = "To :" # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
-        canistergeekLogger.logMessage("transferDip721",#Text("transferDip721"),?msg.caller);
-        canistergeekMonitor.collectMetrics();
-        debug if(debug_channel.function_announce) D.print("in transferFromDip721");
-        // Existing escrow acts as approval
-        return await Owner.transferDip721(get_state(),msg.caller, to, tokenAsNat, msg.caller);
+      if(halt == true){throw Error.reject("canister is in maintenance mode");};
+      await* _dip_721_transfer(msg.caller, to, tokenAsNat);
+    };   
+    
+    public shared (msg) func dip721_transfer(to: Principal, tokenAsNat: Nat) : async DIP721.Result{
+      if(halt == true){throw Error.reject("canister is in maintenance mode");};
+      await* _dip_721_transfer(msg.caller, to, tokenAsNat);
     };
 
-    // Dip721 transferFrom "v2" downgrade - must have a valid escrow
+    private func _dip_721_transferFrom(caller: Principal, from: Principal, to: Principal, tokenAsNat: Nat) : async* DIP721.Result{
+      let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
+      canistergeekLogger.logMessage("transferFrom", #Text("transferFrom"),?caller);
+      canistergeekMonitor.collectMetrics();
+      debug if(debug_channel.function_announce) D.print("in transferFrom");
+      if(caller != to){
+          return #Err(#UnauthorizedOperator);
+      };
+      // Existing escrow acts as approval
+      return await Owner.transferDip721(get_state(),from, to, tokenAsNat, caller);
+    };
+
+    // Dip721 transferFrom legacy - must have a valid escrow
     public shared (msg) func transferFrom(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
-        canistergeekLogger.logMessage("transferFrom",#Text("transferFrom"),?msg.caller);
-        canistergeekMonitor.collectMetrics();
-        debug if(debug_channel.function_announce) D.print("in transferFrom");
-        if(msg.caller != to){
-            return #Err(#UnauthorizedOperator);
-        };
-        // Existing escrow acts as approval
-        return await Owner.transferDip721(get_state(),from, to, tokenAsNat, msg.caller);
+      if(halt == true){throw Error.reject("canister is in maintenance mode");};
+      await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat);
     };
 
 
@@ -921,31 +938,59 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in collection_nft_origyn");        
 
         let state = get_state();
-        let keys = if(NFTUtils.is_owner_manager_network(get_state(), msg.caller) == true){
-          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""})); // Should always have the "" item and need to remove it
+        let keys = if(NFTUtils.is_owner_manager_network(state, msg.caller) == true){
+          Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""}); // Should always have the "" item and need to remove it
         } else {
-          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})); // Should always have the "" item and need to remove it
+          Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""}); // Should always have the "" item and need to remove it
         };
+        
+        let ownerSet = Set.new<MigrationTypes.Current.Account>();
+        for(thisItem in keys){
+          let entry = switch(Map.get<Text,CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)){
+            case(?val) val;
+            case(null) #Empty;
+          };
+
+          switch(Metadata.get_nft_owner(entry)){
+            case(#ok(account)){
+              Set.add<MigrationTypes.Current.Account>(ownerSet, (Types.account_hash, Types.account_eq), account);
+            };
+            case(#err(err)){};
+          };
+        };
+        
+        let vals = Map.vals(state.state.nft_ledgers);
+        var transaction_count = 0;
+        Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
+
         let multi_canister = Iter.toArray<Principal>(Map.keys<Principal, Types.BucketData>(state.state.buckets));
+
+        let keysArray = Iter.toArray<Text>(keys);
+
 
         
         return #ok({
-                fields = fields;
-                logo = state.state.collection_data.logo;
-                name = state.state.collection_data.name;
-                symbol = state.state.collection_data.symbol;
-                total_supply = ?keys.size();
-                owner = ?state.state.collection_data.owner;
-                managers = ?state.state.collection_data.managers;
-                network = state.state.collection_data.network;
-                token_ids = ?keys;
-                token_ids_count = ?keys.size();
-                multi_canister = ?multi_canister;
-                multi_canister_count = ?multi_canister.size();
-                metadata = Map.get(state.state.nft_metadata, Map.thash, "");
-                allocated_storage = ?state.state.collection_data.allocated_storage;
-                available_space = ?state.state.collection_data.available_space;
-            }
+            fields = fields;
+            logo = state.state.collection_data.logo;
+            name = state.state.collection_data.name;
+            symbol = state.state.collection_data.symbol;
+            total_supply = ?keysArray.size();
+            owner = ?state.state.collection_data.owner;
+            managers = ?state.state.collection_data.managers;
+            network = state.state.collection_data.network;
+            token_ids = ?keysArray;
+            token_ids_count = ?keysArray.size();
+            multi_canister = ?multi_canister;
+            multi_canister_count = ?multi_canister.size();
+            metadata = Map.get(state.state.nft_metadata, Map.thash, "");
+            allocated_storage = ?state.state.collection_data.allocated_storage;
+            available_space = ?state.state.collection_data.available_space;
+            created_at = ?created_at;
+            upgraded_at = ?upgraded_at;
+            unique_holders = ?Set.size(ownerSet);
+            transaction_count = ?transaction_count;
+          }
+
         );
 
 
@@ -1060,7 +1105,20 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
     };
 
-    // Dip721 balance
+    // Dip721 balance legacy
+    public query(msg) func balanceOf(user: Principal) : async Nat{
+       
+       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
+       return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
+    };
+
+    // Dip721 balance legacy
+    public query(msg) func dip721_balanceOf(user: Principal) : async Nat{
+       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
+       return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
+    };
+
+    // EXT balance
     public query(msg) func balance(request: EXT.BalanceRequest) : async EXT.BalanceResponse{ //legacy ext
         
         debug if(debug_channel.function_announce) D.print("in balance");
@@ -1074,7 +1132,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return  _getEXTBalance(request);
     };
 
-    // Ext balance
+    // used by stoic
     public query(msg) func tokens_ext(request: Text) : async Result.Result<[Types.EXTTokensResult], EXT.CommonError> {
         
         debug if(debug_channel.function_announce) D.print("in tokens_ext");
@@ -1380,13 +1438,158 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
 
-    // For dip721 "v2" downgrade in usability
+    public query(msg) func dip721_owner_of(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in ownerOfDIP721");        
+        return _ownerOfDip721(tokenAsNat, msg.caller);
+    };
+
+
+    // For dip721 "v2" legacy
     public query(msg) func ownerOf(tokenAsNat: Nat) : async DIP721.OwnerOfResponse{
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in ownerOf");
         return _ownerOfDip721(tokenAsNat, msg.caller);
     };
+
+        private func _dip_721_metadata(caller: Principal, token_id : Nat) : DIP721.Metadata_3 {
+
+      let token_id_raw = NFTUtils.get_nat_as_token_id(token_id);
+
+      let nft = switch(_nft_origyn(token_id_raw, caller)){
+        case(#ok(nft)) nft;
+        case(#err(e)) return #Err(#TokenNotFound);
+      };
+
+      let state = get_state();
+
+      let owner = switch(Metadata.get_nft_owner(nft.metadata)){
+          case(#ok(owner)){
+            switch(owner){
+              case(#principal(p)) ?p;
+              case(#account_id(a)) null;
+              case(#account(a)) ?a.owner;
+              case(#extensible(e)) null;
+            };
+          };
+          case(#err(e)) null;
+        };
+
+      return #Ok({transferred_at = null;
+        transferred_by = null;
+        owner = owner;
+        operator = owner;
+        approved_at = null;
+        approved_by = null;
+        properties = [
+          ("location", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.ic0.app/-/" # token_id_raw)),
+          ("thumbnail", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.ic0.app/-/" # token_id_raw # "/preview")),
+          ("com.origyn.data", #TextContent(JSON.value_to_json(nft.metadata)))
+        ];
+        is_burned = false;
+        token_identifier = token_id;
+        burned_at = null;
+        burned_by = null;
+        minted_at = 0;
+        minted_by = state.state.collection_data.owner;
+      });
+    };
+
+    private func _dip_721_metadata_for_principal(caller: Principal, principal : Principal) :DIP721.Metadata_2{
+      // D.print("nft origyn :" # debug_show(token_id));
+        
+        debug if(debug_channel.function_announce) D.print("in nft_origyn");
+        let resultBuffer = Buffer.Buffer<DIP721.TokenMetadata>(1);
+        let state = get_state();
+
+        for(this_nft in Map.entries(state.state.nft_metadata)){
+            switch(Metadata.is_nft_owner(this_nft.1, #principal(principal))){
+                case(#ok(val)){
+                    if(val == true and this_nft.0 != ""){
+                      let thismetadata = _dip_721_metadata(caller, NFTUtils.get_token_id_as_nat(this_nft.0));
+                      switch(thismetadata){
+                        case(#Ok(data)){ resultBuffer.add(data);};
+                        case(#Err(err)){return #Err(err)};
+                      };
+                      
+                    };
+                };
+                case(#err(err)){
+
+                };
+            };
+        };
+
+        return #Ok(resultBuffer.toArray());
+    } ;
+
+
+     public query (msg) func dip721_owner_token_metadata(owner : Principal) : async DIP721.Metadata_2{
+
+        _dip_721_metadata_for_principal(msg.caller, owner);
+    };
+
+    public query (msg) func dip721_operator_token_metadata(operator : Principal) : async DIP721.Metadata_2{
+
+       _dip_721_metadata_for_principal(msg.caller, operator);
+    };
+
+    public query(msg) func dip721_token_metadata(token_id : Nat) : async DIP721.Metadata_3{
+
+       _dip_721_metadata(msg.caller, token_id);
+    };
+
+    public query(msg) func tokenMetadata(token_id : Nat) : async DIP721.Metadata_3{
+
+       _dip_721_metadata(msg.caller, token_id);
+    };
+
+        public query (msg) func ownerTokenMetadata(owner : Principal) : async DIP721.Metadata_2{
+
+        _dip_721_metadata_for_principal(msg.caller, owner);
+    };
+
+    public query (msg) func operaterTokenMetadata(operator : Principal) : async DIP721.Metadata_2{
+
+       _dip_721_metadata_for_principal(msg.caller, operator);
+    };
+
+    public query(msg) func dip721_is_approved_for_all(token_id : Nat) : async DIP721.Result_1{
+
+      return(#Ok(false));
+    };
+
+    private func _dip_721_get_tokens(caller: Principal, owner: Principal) : DIP721.Metadata_1{
+      let nft_results = Buffer.Buffer<Text>(1);
+        let state = get_state();
+
+        // nyi: check the mint status and compare to msg.caller
+        // nyi: indexing of NFTs, Escrows, Sales, Offers if this is a performance drain
+        for(this_nft in Map.entries(state.state.nft_metadata)){
+            switch(Metadata.is_nft_owner(this_nft.1, #principal(owner))){
+                case(#ok(val)){
+                    if(val == true and this_nft.0 != ""){
+                        nft_results.add(this_nft.0);
+                    };
+                };
+                case(_){};
+            };
+
+        };
+
+        #Ok(Iter.toArray<Nat>(Iter.map<Text, Nat>(nft_results.vals(), func(x){NFTUtils.get_token_id_as_nat(x)})));
+    };
+
+    public query (msg) func dip721_owner_token_identifiers(owner : Principal) : async DIP721.Metadata_1{
+        _dip_721_get_tokens(msg.caller, owner);
+    };
+
+    public query (msg) func dip721_operator_token_identifiers(operator : Principal) : async DIP721.Metadata_1{
+        _dip_721_get_tokens(msg.caller, operator);
+    };
+
 
     // Supports EXT Bearer
     public query(msg) func bearerEXT(tokenIdentifier: EXT.TokenIdentifier) : async Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
@@ -1613,7 +1816,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
      
 
     // Metadata for ext
-    public query func metadata(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
+    public query func metadataEXT(token : EXT.TokenIdentifier) : async Result.Result<EXTCommon.Metadata,EXT.CommonError>{
 
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in metadata");
@@ -1720,6 +1923,111 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         return SB.toArray(state.state.log);
     };
+
+        //metadata for DIP721
+    public query func dip721_name() : async ?Text{
+        return  get_state().state.collection_data.name;
+    };
+
+    public query func dip721_logo() : async ?Text{
+        return  get_state().state.collection_data.logo;
+    };
+
+    public query func dip721_symbol() : async ?Text{
+        return  get_state().state.collection_data.symbol;
+    };
+
+    public query func dip721_custodians() : async [Principal]{
+        return  get_state().state.collection_data.managers;
+    };
+
+    public query func dip721_metadata() : async DIP721.Metadata{
+      let state = get_state();
+      return  {
+        logo = state.state.collection_data.logo;
+        name = state.state.collection_data.name;
+        created_at = created_at;
+        upgraded_at = upgraded_at;
+        custodians = state.state.collection_data.managers;
+        symbol = state.state.collection_data.symbol;
+      };
+    };
+
+    public query func metadata() : async DIP721.Metadata{
+      let state = get_state();
+      return  {
+        logo = state.state.collection_data.logo;
+        name = state.state.collection_data.name;
+        created_at = created_at;
+        upgraded_at = upgraded_at;
+        custodians = state.state.collection_data.managers;
+        symbol = state.state.collection_data.symbol;
+      };
+    };
+
+    public query(msg) func dip721_total_supply() : async Nat{
+
+      let state = get_state();
+      let keys = if(NFTUtils.is_owner_manager_network(get_state(), msg.caller) == true){
+        Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""})); // Should always have the "" item and need to remove it
+      } else {
+        Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""})); // Should always have the "" item and need to remove it
+      };
+      return  keys.size();
+    };
+
+    public query(msg) func dip721_total_transactions() : async Nat{
+      let state = get_state();
+      let vals = Map.vals(state.state.nft_ledgers);
+      var count = 0;
+      Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ count += SB.size(x)});
+      return count;
+    };
+
+    public query(msg) func dip721_stats() : async DIP721.Stats {
+      if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        debug if(debug_channel.function_announce) D.print("in collection_nft_origyn");        
+
+        let state = get_state();
+        let keys = if(NFTUtils.is_owner_manager_network(state, msg.caller) == true){
+          Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""}); // Should always have the "" item and need to remove it
+        } else {
+          Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""}); // Should always have the "" item and need to remove it
+        };
+
+        let ownerSet = Set.new<MigrationTypes.Current.Account>();
+        for(thisItem in keys){
+          let entry = switch(Map.get<Text,CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)){
+            case(?val) val;
+            case(null) #Empty;
+          };
+
+          switch(Metadata.get_nft_owner(entry)){
+            case(#ok(account)){
+              Set.add<MigrationTypes.Current.Account>(ownerSet, (Types.account_hash, Types.account_eq), account);
+            };
+            case(#err(err)){};
+          };
+        };
+        
+        let vals = Map.vals(state.state.nft_ledgers);
+        var transaction_count = 0;
+        Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
+
+        let keysArray = Iter.toArray<Text>(keys);
+
+        return {
+          cycles = Cycles.balance();
+          total_supply = keysArray.size();
+          total_unique_holders = Set.size(ownerSet);
+          total_transactions = transaction_count;
+        };
+    };
+
+    public query(msg) func dip721_supported_interfaces() : async [DIP721.SupportedInterface] {
+      return [#TransactionHistory];
+    };
+
 
     // *************************
     // * CANDID SERIALIZATION **
@@ -2111,6 +2419,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         //Optional: override default number of log messages to your value
         canistergeekLogger.setMaxMessagesCount(3000);
+
+        upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
+
 
         // End Canistergeek
     };
