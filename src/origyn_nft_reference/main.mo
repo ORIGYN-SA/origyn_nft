@@ -1105,7 +1105,20 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
        return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
     };
 
-    // Dip721 balance
+    // Dip721 balance legacy
+    public query(msg) func balanceOf(user: Principal) : async Nat{
+       
+       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
+       return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
+    };
+
+    // Dip721 balance legacy
+    public query(msg) func dip721_balanceOf(user: Principal) : async Nat{
+       debug if(debug_channel.function_announce) D.print("in balanceOfDip721");
+       return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
+    };
+
+    // EXT balance
     public query(msg) func balance(request: EXT.BalanceRequest) : async EXT.BalanceResponse{ //legacy ext
         
         debug if(debug_channel.function_announce) D.print("in balance");
@@ -1119,7 +1132,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return  _getEXTBalance(request);
     };
 
-    // Ext balance
+    // used by stoic
     public query(msg) func tokens_ext(request: Text) : async Result.Result<[Types.EXTTokensResult], EXT.CommonError> {
         
         debug if(debug_channel.function_announce) D.print("in tokens_ext");
@@ -1524,6 +1537,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     };
 
     public query(msg) func dip721_token_metadata(token_id : Nat) : async DIP721.Metadata_3{
+
+       _dip_721_metadata(msg.caller, token_id);
+    };
+
+    public query(msg) func tokenMetadata(token_id : Nat) : async DIP721.Metadata_3{
 
        _dip_721_metadata(msg.caller, token_id);
     };
