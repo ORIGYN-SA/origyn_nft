@@ -1,6 +1,7 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
@@ -16,14 +17,19 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
+
 import CandyTypes "mo:candy/types";
+import Canistergeek "mo:canistergeek/canistergeek";
 import Conversions "mo:candy/conversion";
+import DROUTE "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
+import JSON "mo:candy/json";
 import Map "mo:map/Map";
-import Set "mo:map/Set";
 import Properties "mo:candy/properties";
+import Set "mo:map/Set";
 import Workspace "mo:candy/workspace";
+
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
@@ -37,10 +43,6 @@ import Owner "owner";
 import Types "./types";
 import data "data";
 import http "http";
-import Char "mo:base/Char";
-import Canistergeek "mo:canistergeek/canistergeek";
-import JSON "mo:candy/json";
-import DROUTE "mo:droute_client/Droute";
 
 
 
@@ -145,14 +147,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
     };
 
-    stable var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    stable var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    stable var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
 
     let droute_client = DROUTE.Droute({
-      mainId = ?Principal;
-      publishersIndexId= ?Principal;
-      subscribersIndexId= ?Principal;
+      mainId = ?droute_main_id;
+      publishersIndexId= ?droute_publisher_id;
+      subscribersIndexId= ?droute_suscriber_id;
     }
     );
 

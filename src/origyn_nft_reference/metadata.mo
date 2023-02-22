@@ -13,7 +13,7 @@ import TrieMap "mo:base/TrieMap";
 
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
-
+import DROUTE "mo:droute_client/Droute";
 import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import Workspace "mo:candy/workspace";
@@ -1298,7 +1298,7 @@ module {
     return #ok(newTrx);
   };
 
-  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : async Nat {
+  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord, droute : DROUTE.Droute) : async Nat {
 
         let eventNamespace = "com.origyn.nft.event";
         let (eventType, payload) = switch (rec.type_) {
@@ -1313,7 +1313,7 @@ module {
 
         let eventName = eventNamespace # "." # eventType;
 
-        let event = state.droute_client.publish(eventName, payload);
+        let event = droute.publish(eventName, payload);
 
         return event.event_id;
     };
