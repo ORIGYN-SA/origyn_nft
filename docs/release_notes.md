@@ -38,11 +38,12 @@ Library-id - Each library item in your token's asset library has a unique text-b
 v0.1.3
 
 * Upgrade - Upgrading to Map v7.0.0
-* dfx - upgrade to dfx 0.12.1
+* dfx - upgrade to dfx 0.13.1
 * Refactor - Data API cleaned up and de-nested
 * Refactor - Market - standardized code for handling ledger errors
 * DIP721 - Added v2 functions that seem to be supported by plug
 * EXT and DIP721 - Added endpoint at /collection/translate and /-/{token_id}/translate to retrieve ext and dip721 token id mappings.
+* Added unique_holders and transaction_count to collection_nft_origyn
 
 v0.1.2-2
 

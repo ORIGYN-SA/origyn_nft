@@ -9,7 +9,7 @@ ADMIN_ACCOUNTID=$(dfx ledger account-id)
 echo $ADMIN_PRINCIPAL
 echo $ADMIN_ACCOUNTID
 
-
+dfx canister create test_runner
 dfx canister create test_runner_collection
 dfx canister create dfxledger
 dfx canister create dfxledger2

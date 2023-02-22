@@ -15,8 +15,8 @@ module {
   let CandyTypes = MigrationTypes.Current.CandyTypes;
 
   let debug_channel = {
-      function_announce = true;
-      data_access = true;
+      function_announce = false;
+      data_access = false;
   };
 
   //gets a text attribute out of a class

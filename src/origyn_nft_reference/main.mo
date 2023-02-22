@@ -47,9 +47,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Lets user turn debug messages on and off for local replica
     let debug_channel = {
-        instantiation = true;
+        instantiation = false;
         upgrade = false;
-        function_announce = true;
+        function_announce = false;
         storage = false;
         streaming = false;
     };
@@ -939,7 +939,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
 
         let ownerSet = Set.new<MigrationTypes.Current.Account>();
+        let keysBuffer = Buffer.Buffer<Text>(Map.size(state.state.nft_metadata));
         for(thisItem in keys){
+          keysBuffer.add(thisItem);
           let entry = switch(Map.get<Text,CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)){
             case(?val) val;
             case(null) #Empty;
@@ -958,7 +960,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
         let multi_canister = Iter.toArray<Principal>(Map.keys<Principal, Types.BucketData>(state.state.buckets));
 
-        let keysArray = Iter.toArray<Text>(keys);
+        let keysArray = keysBuffer.toArray();
 
         return #ok({
             fields = fields;
@@ -1901,7 +1903,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
 
         let ownerSet = Set.new<MigrationTypes.Current.Account>();
+        let keysBuffer = Buffer.Buffer<Text>(Map.size(state.state.nft_metadata));
         for(thisItem in keys){
+          keysBuffer.add(thisItem);
           let entry = switch(Map.get<Text,CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)){
             case(?val) val;
             case(null) #Empty;
@@ -1919,7 +1923,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         var transaction_count = 0;
         Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
 
-        let keysArray = Iter.toArray<Text>(keys);
+        let keysArray = keysBuffer.toArray();
 
         return {
           cycles = Cycles.balance();

@@ -29,7 +29,6 @@ module {
 
     let debug_channel = {
         owner = false;
-       
     };
 
     public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
