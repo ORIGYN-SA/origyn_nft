@@ -107,11 +107,6 @@ let additions =
   , version = "v0.0.1"
   , dependencies = ["base", "candy_0_1_10" ]
   },
-  { name = "events"
-  , repo = "https://github.com/origyn-sa/events"
-  , version = "59c71a3d9ea5ef39027067f4fa309bf85c8c953f"
-  , dependencies = ["base" ]
-  }, 
   { name = "droute_client"
   , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/droute-client"
   , version = "c7b6b7483f9117275a178d4e12e803817d24bb0b"

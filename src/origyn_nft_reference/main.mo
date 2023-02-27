@@ -147,6 +147,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         }
     };
 
+    ///DROUTE
+
     var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
     var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
     var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
@@ -157,6 +159,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
       subscribersIndexId= ?droute_suscriber_id;
     }
     );
+
+     ignore setTimer(0, false, func(): async () {
+    await* Droute.init();
+
+    ignore await* Droute.registerPublication("com.origyn.nft.event.auction_bid", null);
+    ignore await* Droute.registerPublication("com.origyn.nft.event.mint", null);
+    ignore await* Droute.registerPublication("com.origyn.nft.event.sale_ended", null);
+  });
 
     // Let us access state and pass it to other modules
     let get_state : () -> Types.State  = func (){

@@ -1259,7 +1259,7 @@ module {
   };
 
   //adds a transaction record to the ledger
-  public func add_transaction_record(state : Types.State, rec: Types.TransactionRecord, caller: Principal) : Result.Result<Types.TransactionRecord, Types.OrigynError>{
+  public func add_transaction_record(state : Types.State, rec: Types.TransactionRecord, caller: Principal, droute : DROUTE.Droute) : async* Result.Result<Types.TransactionRecord, Types.OrigynError>{
     //nyi: add indexes
     //only allow transactions for existing tokens
     let metadata = if(rec.token_id == ""){
@@ -1293,29 +1293,29 @@ module {
     SB.add(ledger, newTrx);
 
     //todo: broadcast the event
-    announceTransaction(state, rec, caller, newTrx);
+    let announce = await* announceTransaction(state, rec, caller, newTrx, droute);
 
     return #ok(newTrx);
   };
 
-  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord, droute : DROUTE.Droute) : async Nat {
+  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord, droute : DROUTE.Droute) : async* Nat {
 
         let eventNamespace = "com.origyn.nft.event";
-        let (eventType, payload) = switch (rec.type_) {
+        let (eventType, payload) = switch (rec.txn_type) {
           case (#auction_bid(data)) { ("auction_bid", #Class([
             {name="token_id"; value = #Text(rec.token_id); immutable=true;},
             {name="canister"; value = #Principal(state.canister());immutable=true;},
             {name="sale_id"; value = #Text(data.sale_id); immutable=true;}
           ]) )};
-          case (#mint) { "mint" };
-          case (#sale_ended) { "sale_ended" };
+          case (#mint _) { ("mint", #Text("mint")) };
+          case (#sale_ended _) {( "sale_ended", #Text("sale_ended")) };
         };
 
         let eventName = eventNamespace # "." # eventType;
 
-        let event = droute.publish(eventName, payload);
+        let event = await* droute.publish(eventName, payload);
 
-        return event.event_id;
+        return event.eventInfo.id;
     };
 
 
