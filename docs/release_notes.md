@@ -35,6 +35,12 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
+
+v0.1.3-1
+
+* added balance_of_batch_nft_origyn
+* added balance_of_secure_batch_nft_origyn
+
 v0.1.3
 
 * Upgrade - Upgrading to Map v7.0.0
