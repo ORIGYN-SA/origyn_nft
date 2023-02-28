@@ -1277,6 +1277,16 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return _balance_of_nft_origyn(account, msg.caller);
     };
 
+     public query(msg) func balance_of_batch_nft_origyn(requests: [Types.Account]) : async [Result.Result<Types.BalanceResponse, Types.OrigynError>]{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        let results = Buffer.Buffer<Result.Result<Types.BalanceResponse, Types.OrigynError>>(requests.size());
+        for(thisItem in requests.vals()){
+          results.add(_balance_of_nft_origyn(thisItem, msg.caller));
+        };
+        return results.toArray();
+    };
+
 
 
     // Allows secure access to balance
@@ -1302,6 +1312,20 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         canistergeekMonitor.collectMetrics();
         return _balance_of_nft_origyn(account, msg.caller);
+    };
+
+    public shared(msg) func balance_of_secure_batch_nft_origyn(requests: [Types.Account]) : async [Result.Result<Types.BalanceResponse, Types.OrigynError>]{
+
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+
+         
+        canistergeekLogger.logMessage("balance_of_secure_batch_nft_origyn",#Text("Size : " # debug_show(requests.size())),?msg.caller);
+
+        let results = Buffer.Buffer<Result.Result<Types.BalanceResponse, Types.OrigynError>>(requests.size());
+        for(thisItem in requests.vals()){
+          results.add(_balance_of_nft_origyn(thisItem, msg.caller));
+        };
+        return results.toArray();
     };
 
 
