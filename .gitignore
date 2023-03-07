@@ -18,6 +18,9 @@ dapps-latest-build.zip
 # dfx temporary files
 .dfx/
 
+# Local deploy origyn nft
+./run.sh
+
 # mint script output files
 **/__*/
 
