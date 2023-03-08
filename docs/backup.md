@@ -50,7 +50,7 @@ PAGES=31
 
 for (( i=1; i<=$PAGES; i++ ))
 do
-    dfx canister --network ic call 3e73x-nqaaa-aaaaj-azrma-cai back_up "($i)" >> backup_result
+    dfx canister --network ic call rrkah-fqaaa-aaaaa-aaaaq-cai back_up "($i)" >> backup_result
     echo "done with page $i"
 done
 ```
