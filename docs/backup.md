@@ -5,7 +5,7 @@ For the moment there's no rehydration function written yet but we are working to
 
 - To see state balances of different data structures that make up the Origyn NFT, we first call the function `state_size`. See below candid example and output.
 ```
-dfx canister --network ic call s5eo5-gqaaa-aaaag-qa3za-cai state_size
+dfx canister --network ic call rrkah-fqaaa-aaaaa-aaaaq-cai state_size
 
 (
   record {
@@ -24,7 +24,7 @@ The previous data gives an overview of the stored data in a canister. For exampl
 
 - The `back_up` function in the Origyn NFT canister can backup all the data shown above, however, we might need to separate the data in several chunks as we have restrictions on how much data can be returned on one call. See below a simple call.
 ```
-dfx canister --network ic call s5eo5-gqaaa-aaaag-qa3za-cai back_up '(0)'
+dfx canister --network ic call rrkah-fqaaa-aaaaa-aaaaq-cai back_up '(0)'
 ```
 - To be able to backup all the data without the need of manually call the backup function `x` amount of times we can create a bash script that does this in a loop.
   - First you need to find out the amount of pages we have. To do that we can simply come up the number by adding all the numbers from the result of the function `state_size`. From our example above we have the following:
@@ -57,7 +57,7 @@ done
 
 - Here are the instructions of what to change and how to run the script:
   - Make sure you change the `PAGES` number to reflect the total number of data pages you script need to collect.
-  - Change the canister id that starts with `3e73x...` with your canister id.
+  - Change the canister id that starts with `rrkah...` with your canister id.
   - Make sure the script has execute permissions `sudo chmod +x back_up.sh`
   - Run the script from the root directory of your project `./backup.sh` or `bash backup.sh`
 
