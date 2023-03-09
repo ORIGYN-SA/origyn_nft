@@ -1040,7 +1040,7 @@ module {
           Map.set<Types.Account, MigrationTypes.Current.EscrowTokenIDTrie>(a_from, account_handler, escrow.seller, newTo);
 
           //add this item to the offer index
-          if(escrow.token_id != ""){
+          if(escrow.token_id != "" and escrow.sale_id == null){
             switch(Map.get<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, escrow.seller)){
               case(null){
                 var aTree = Map.new<Types.Account,Int>();
