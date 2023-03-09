@@ -1144,6 +1144,7 @@ module {
         library_location_type: Text;
         owner : Text;
         id: Text;
+        kyc_collection : Text;
         primary_asset: Text;
         preview_asset: Text;
         experience_asset: Text;
@@ -1163,6 +1164,7 @@ module {
         royalty_network : Text;
         royalty_custom : Text;
         secondary_royalties_default : Text;
+
         __apps_app_id : Text;
         __system_current_sale_id : Text
     } = {
@@ -1183,6 +1185,7 @@ module {
         owner = "owner";
         id = "id";
         immutable_library = "com.origyn.immutable_library";
+        kyc_collection = "com.origyn.settings.collection.kyc_canister";
         physical = "com.origyn.physical";
         primary_asset = "primary_asset";
         preview_asset = "preview_asset";
