@@ -23,6 +23,11 @@ let additions =
     , version = "v0.1.12"
     , dependencies = ["base"]
    },
+   { name = "candy_0_2_0"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "0.2.0"
+    , dependencies = ["base"]
+   },
    {
        name="principalmo",
        repo = "https://github.com/aviate-labs/principal.mo.git",
@@ -112,7 +117,13 @@ let additions =
   , version = "c7b6b7483f9117275a178d4e12e803817d24bb0b"
   , dependencies = ["base" ]
   }
-  ] : List Package
+  { name = "icrc17_kyc"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/kyc.mo"
+  , version = "master"
+  , dependencies = ["base" ]
+  },
+
+    ] : List Package
 let
   {- This is where you can override existing packages in the package-set
 
