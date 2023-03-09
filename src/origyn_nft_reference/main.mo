@@ -1288,7 +1288,9 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                                 case(?found_seller){
                                      for(this_token in Map.entries(found_seller)){
                                          for(this_ledger in Map.entries(this_token.1)){
-                                             offer_results.add(this_ledger.1);
+                                             if(this_ledger.1.sale_id == null){
+                                              offer_results.add(this_ledger.1);
+                                             };
                                          };
                                      };
                                 };
