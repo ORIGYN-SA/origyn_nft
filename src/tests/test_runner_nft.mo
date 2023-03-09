@@ -85,7 +85,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-             */,
+             */
             ],
         );
         S.run(suite);
@@ -3746,7 +3746,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         "correct amount";
                     } else {
                         "wrong amount " # Nat.toText(Nat64.toNat(a_ledger_balance_before_escrow.e8s)) # " " # Nat.toText(Nat64.toNat(a_ledger_balance3.e8s));
-                    },,
+                    },
                     M.equals<Text>(T.text("correct amount")),
                 ),
                 S.test(
@@ -3756,7 +3756,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         "correct amount";
                     } else {
                         "wrong amount " # Nat.toText(Nat64.toNat(a_ledger_balance_before_escrow.e8s)) # " " # Nat.toText(Nat64.toNat(a_ledger_balance3.e8s));
-                    },,
+                    },
                     M.equals<Text>(T.text("correct amount")),
                 ),
 

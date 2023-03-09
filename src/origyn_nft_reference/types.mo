@@ -462,6 +462,8 @@ module {
         get_time : () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         refresh_state : () -> StorageState_v_0_1_3;
+        btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+        use_stable_storage : Bool;
     };
 
     public type StorageMetrics = {
