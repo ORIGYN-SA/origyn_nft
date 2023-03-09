@@ -1,6 +1,7 @@
 let aviate_labs = https://github.com/aviate-labs/package-set/releases/download/v0.1.3/package-set.dhall sha256:ca68dad1e4a68319d44c587f505176963615d533b8ac98bdb534f37d1d6a5b47
 
-let upstream = https://github.com/dfinity/vessel-package-set/releases/download/mo-0.6.21-20220215/package-set.dhall sha256:b46f30e811fe5085741be01e126629c2a55d4c3d6ebf49408fb3b4a98e37589b
+let upstream =
+      https://github.com/dfinity/vessel-package-set/releases/download/mo-0.8.3-20230224/package-set.dhall
 
 let Package =
     { name : Text, version : Text, repo : Text, dependencies : List Text }
@@ -21,6 +22,11 @@ let additions =
     { name = "candy"
     , repo = "https://github.com/icdevs/candy_library.git"
     , version = "v0.1.12"
+    , dependencies = ["base"]
+   },
+   { name = "candy_0_2_0"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "0.2.0"
     , dependencies = ["base"]
    },
    {
@@ -106,7 +112,14 @@ let additions =
   , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
   , version = "v0.0.1"
   , dependencies = ["base", "candy_0_1_10" ]
-  }
+  },
+  { name = "icrc17_kyc"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/kyc.mo"
+  , version = "master"
+  , dependencies = ["base" ]
+  },
+
+  
   ] : List Package
 let
   {- This is where you can override existing packages in the package-set
