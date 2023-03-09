@@ -29,22 +29,18 @@ module {
 
   public type HttpAccess= v0_1_3.HttpAccess;
 
-  public func compare_library = v0_1_3.compare_library;
+  public let compare_library = v0_1_3.compare_library;
 
-  public func library_equal = v0_1_3.library_equal;
+  public let library_equal : ((Text, Text), (Text, Text)) -> Bool = v0_1_3.library_equal;
 
-  public func library_hash= v0_1_3.library_hash;
+  public let library_hash : ((Text, Text)) -> Nat = v0_1_3.library_hash;
 
   public type State = {
     // this is the data you previously had as stable variables inside your actor class
     var nft_metadata : Map.Map<Text, CandyTypes_lib.CandyValue>;
     var collection_data : CollectionData;
     var allocations : Map.Map<(Text, Text), AllocationRecord>;
-    var kyc_cache : Map.Map<Nat32, 
-      {
-        result : KYC.KYCResponseFuture; 
-        timeout: Nat; //nanoseconds
-      }>;
+    var kyc_cache : Map.Map<KYC.KYCRequest,KYC.KYCResultFuture>;
     var canister_availible_space : Nat;
     var canister_allocated_storage : Nat;
     var access_tokens : Map.Map<Text, HttpAccess>; 

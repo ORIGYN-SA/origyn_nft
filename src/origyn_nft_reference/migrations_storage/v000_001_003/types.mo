@@ -18,6 +18,7 @@ module {
   
 
   public let SB = v0_1_0.SB;
+  public let Map = Map_lib;
 
   public type CollectionData = v0_1_0.CollectionData;
 
