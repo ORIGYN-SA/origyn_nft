@@ -116,7 +116,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     migration_state := Migrations.migrate(migration_state, #v0_1_3(#id), { owner = __initargs.owner; storage_space = initial_storage });
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_3(#data(state_current)) = migration_state;
+    let #v0_1_4(#data(state_current)) = migration_state;
                         
     debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );

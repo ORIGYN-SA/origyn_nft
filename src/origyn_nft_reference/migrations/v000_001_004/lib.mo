@@ -5,6 +5,7 @@ import CandyTypes_lib "mo:candy_0_1_12/types";
 import D "mo:base/Debug"; 
 import v0_1_3_types "../v000_001_003/types";
 import v0_1_4_types = "types";
+import KYCTypes = "mo:icrc17_kyc/types";
 
 module {
 
@@ -17,18 +18,20 @@ module {
 
     let state = switch (prev_migration_state) { case (#v0_1_3(#data(state))) state; case (_) D.trap("Unexpected migration state") };
 
-    let nft_metadata = Map_lib.fromIter<Text, CandyTypes_lib.CandyValue>(Map_6.entries<Text, CandyTypes_lib.CandyValue>(state.nft_metadata), thash);
-
-    let allocations  = Map_lib.fromIter<(Text, Text), v0_1_0_types.AllocationRecord>(Map_6.entries<(Text, Text), v0_1_0_types.AllocationRecord>(state.allocations),(v0_1_3_types.library_hash, v0_1_3_types.library_equal));
-
-
-    return #v0_1_3(#data({
-      var nft_metadata : Map_lib.Map<Text, CandyTypes_lib.CandyValue> = Map_lib.new<Text, CandyTypes_lib.CandyValue>();
-      var collection_data = state.collection_data;
+    return #v0_1_4(#data({
+       var collection_data = state.collection_data;
+      var buckets = state.buckets;
+      var allocations = state.allocations;
       var canister_availible_space = state.canister_availible_space;
       var canister_allocated_storage = state.canister_allocated_storage;
-      var allocations = allocations;
-      var access_tokens = Map_lib.new<Text, v0_1_3_types.HttpAccess>();
+      var offers = state.offers;
+      var nft_metadata = state.nft_metadata;
+      var escrow_balances = state.escrow_balances;
+      var sales_balances = state.sales_balances;
+      var nft_ledgers = state.nft_ledgers;
+      var nft_sales = state.nft_sales;
+      var access_tokens = state.access_tokens;
+      var kyc_cache = Map_lib.new<KYCTypes.KYCRequest, KYCTypes.KYCResultFuture>();
    }));
   };
 
