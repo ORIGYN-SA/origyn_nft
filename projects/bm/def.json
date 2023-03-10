@@ -157,7 +157,165 @@
                     ]
                 }}, "immutable":true},
                 {"name":"owner", "value":{"Principal":"CANISTER-ID"}, "immutable":false},
-                {"name":"is_soulbound", "value":{"Bool":YYYYYY}, "immutable":YYYYYY}
+                {"name":"is_soulbound", "value":{"Bool":YYYYYY}, "immutable":YYYYYY},
+                {
+                    "name": "default_royalty_primary",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": false
+                },
+                {
+                    "name": "default_royalty_secondary",
+                    "value": {
+                        "Array": {
+                            "thawed": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.originator"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.custom"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "immutable": false
+                }
 
             ]
         }
