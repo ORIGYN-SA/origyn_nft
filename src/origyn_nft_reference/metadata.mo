@@ -11,13 +11,12 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyType "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
-import Workspace "mo:candy_0_1_10/workspace";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+
+import Properties "mo:candy/properties";
+import SB "mo:stablebuffer/StableBuffer";
+import Workspace "mo:candy/workspace";
 
 import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
@@ -69,6 +68,29 @@ module {
     switch (property) {
       case(null) {return false};
       case(?p) {return Conversions.valueToBool(p.value)};
+    };
+  };  
+
+  //confirms if a token is a physical item
+  public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_physical);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
+    };
+  };
+
+
+  //confirms if a token is a physical item
+  public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
+  {
+    let property = get_system_var(metadata, Types.metadata.__system_escrowed);
+
+    switch (property) {
+      case(#Empty) {return false};
+      case(_) {return Conversions.valueToBool(property)};
     };
   };  
 
@@ -243,6 +265,24 @@ module {
     };
   };
 
+  //gets a bool property out of the metadata
+  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
+    switch(Properties.getClassProperty(metadata, prop)){
+      case(null){
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+      };
+      case(?val){
+         return #ok(
+           switch(val.value){
+             case(#Bool(val)){return #ok(val)};
+             case(_){
+               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+             }
+           });
+      };
+    };
+  };
+
   //gets a Nat property out of the metadata
    public func get_nft_nat_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Nat, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
@@ -342,7 +382,7 @@ module {
     };
   };
 
-  public func account_to_candy(val : Types.Account) : CandyType.CandyValue{
+  public func account_to_candy(val : Types.Account) : CandyTypes.CandyValue{
     switch(val){
           case(#principal(newOwner)){#Principal(newOwner);};
           case(#account_id(newOwner)){#Text(newOwner);};
@@ -354,7 +394,82 @@ module {
       }
   };
 
-  public func candy_to_account(val : CandyType.CandyValue) :Result.Result<Types.Account, Types.OrigynError> {
+  public func token_spec_to_candy(val : Types.TokenSpec) : CandyTypes.CandyValue{
+    switch(val){
+          case(#ic(val)){#Class([
+            {name="type"; value=#Text("IC"); immutable = true;},
+            {name="data"; value=#Class([
+              {name="canister"; value=#Principal(val.canister); immutable = true;},
+              {name="fee"; value=#Nat(val.fee); immutable = true;},
+              {name="symbol"; value=#Text(val.symbol); immutable = true;},
+              {name="decimals"; value=#Nat(val.decimals); immutable = true;},
+              {name="standard"; value= switch(val.standard){
+                case(#DIP20){#Text("DIP20")};
+                case(#Ledger){#Text("Ledger")};
+                case(#EXTFungible){#Text("EXTFungible")};
+                case(#ICRC1){#Text("ICRC1")};
+              }; immutable = true;}
+            ]); immutable = true;},
+          ]);};
+          case(#extensible(val)){#Class([
+            {name="type"; value=#Text("extensible"); immutable = true;},
+            {name="data"; value=val; immutable = true;},
+          ]);};
+      }
+  };
+
+  public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyValue{
+    switch(val){
+          case(#instant(val)){#Text("instant");};
+          case(#flat(val)){#Class([
+            {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+            {name="amount"; value=#Nat(val.amount); immutable = true;},
+          ])};
+          case(#auction(val)){auction_config_to_candy(val)};
+          case(_){#Text("NYI")};
+    };
+  };
+
+  public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyValue{
+
+    #Class([
+      {name="reserve"; value=switch(val.reserve){
+                  case(null){#Empty;};
+                  case(?val){#Nat(val)};
+                  
+        }; immutable = true;},
+      {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+      {name="buy_now"; value=switch(val.buy_now){
+                  case(null){#Empty;};
+                  case(?val){#Nat(val)};
+                  
+        }; immutable = true;},
+      {name="start_price"; value=#Nat(val.start_price); immutable = true;},
+      {name="start_date"; value=#Int(val.start_date); immutable = true;},
+      {name="ending"; value=switch(val.ending){
+                  case(#date(val)){#Int(val);};
+                  case(#waitForQuiet(val)){#Class([
+                    {name="date"; value=#Int(val.date); immutable = true;},
+                    {name="extention"; value=#Nat64(val.extention); immutable = true;},
+                    {name="fade"; value=#Float(val.fade); immutable = true;},
+                    {name="max"; value=#Nat(val.max); immutable = true;},
+                  ])};
+                  
+        }; immutable = true;},
+        {name="min_increase"; value=switch(val.min_increase){
+                  case(#percentage(val)){#Float(val);};
+                  case(#amount(val)){#Nat(val)};
+        }; immutable = true;},
+      {name="allow_list"; value=switch(val.allow_list){
+                  case(null){#Empty;};
+                  case(?val){#Array(#frozen( Array.map<Principal, CandyTypes.CandyValue>(val, func(x:Principal){#Principal(x)})))};
+        }; immutable = true;},
+
+    ]);
+    
+  };
+
+  public func candy_to_account(val : CandyTypes.CandyValue) :Result.Result<Types.Account, Types.OrigynError> {
     switch(val){
       case(#Principal(val)){#ok(#principal(val))};
       case(#Text(val)){#ok(#account_id(val))};
@@ -407,6 +522,52 @@ module {
     };
   };
 
+    //sets the owner on the nft
+  //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+  public func set_nft_owner(state: Types.State, token_id: Text, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
+
+
+    let current_state = state.refresh_state();
+
+    //make sure we always have fresh meta data incase something has changed
+    var fresh_metadata = switch(get_metadata_for_token(current_state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+        case(#err(err)){
+            return #err(Types.errors(#token_not_found, "set_nft_owner can't get metadata " # err.flag_point, ?caller));
+        };
+        case(#ok(val)){
+            val;
+        };
+    };
+
+    var temp_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(fresh_metadata), [
+          {
+              name = Types.metadata.owner;
+              mode = #Set(switch(new_owner){
+                  case(#principal(buyer)){#Principal(buyer);};
+                  case(#account_id(buyer)){#Text(buyer);};
+                  case(#extensible(buyer)){buyer;};
+                  case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), #Option(switch(buyer.sub_account){case(null){null}; case(?val){?#Blob(val);}})]))};
+              });
+          }
+      ])){
+          case(#ok(props)){
+              #Class(props);
+          };
+          case(#err(err)){
+              return #err(Types.errors(#update_class_error, "set_nft_owner - error setting owner " # debug_show((token_id, new_owner, fresh_metadata)), ?caller));
+
+          };
+      };
+
+      Map.set(current_state.state.nft_metadata, Map.thash, token_id, temp_metadata);
+
+      #ok(temp_metadata);
+  };
+
+
+
+  let account_handler = MigrationTypes.Current.account_handler;
+
   public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Result.Result<Bool, Types.OrigynError>{
     
     let owner = switch(get_nft_owner(metadata)){
@@ -414,7 +575,16 @@ module {
         return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case(#ok(val)){
+        switch(val){
+          case(#extensible(ex)){
+            if(Conversions.valueToText(ex) == "trx in flight"){
+              return(#ok(false));
+            }
+          };
+          case(_){};
+        };
         val;
+
       };
     };
 
@@ -434,7 +604,7 @@ module {
             
                   };
                 };
-                Map.set<Types.Account, Bool>(result, Types.account_handler, anAccount, true);
+                Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
               };
               result;
             };
@@ -449,7 +619,7 @@ module {
                   };
                 };
 
-                Map.set<Types.Account, Bool>(result, Types.account_handler, anAccount, true);
+                Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
               };
               result;
             };
@@ -458,7 +628,7 @@ module {
             };
         };
 
-      let foundOwner = switch(Map.get<Types.Account, Bool>(wallet_shares, Types.account_handler, anAccount)){
+      let foundOwner = switch(Map.get<Types.Account, Bool>(wallet_shares, account_handler, anAccount)){
         case(?val){
           return#ok(val);
         };
@@ -548,7 +718,7 @@ module {
       case(#ok(val)){val};
     };
     //D.print("have meta protocol");
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protcol)){
+    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protocol)){
       case(null){
          D.print("have err1 protocol");
         return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
@@ -1015,7 +1185,7 @@ module {
               };
             };
           };
-          case(null, null, null, null, null,_){
+          case(null, null, null, null, _, _){
             //D.print("cleaning a non-permissioned node");
             let collection = Buffer.Buffer<CandyTypes.Property>(item.size());
             //D.print("processing" # debug_show(item.size()));
@@ -1071,7 +1241,7 @@ module {
               //D.print(debug_show(val));
               //D.print(debug_show(caller));
               //D.print(debug_show(canister));
-              if(Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller)))){
+              if(Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller))) and NFTUtils.is_owner_manager_network(state, caller) == false){
                 return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata - owners not equal" # token_id, ?caller));
               };
             };
@@ -1406,32 +1576,17 @@ module {
       };
       case(#UpdateManagers(data)){
         //D.print("updateing manager" # debug_show(data));
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.updateManagers";
-          timestamp = state.get_time();
-          data = #Array(#frozen(Array.map<Principal,CandyTypes.CandyValue>(data, func(item){#Principal(item)})));
-          caller = ?caller;
-        });
+        
         state.state.collection_data.managers := data;
         return #ok(true);
       };
       case(#UpdateOwner(data)){
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.updateOwner";
-          timestamp = state.get_time();
-          data = #Principal(data);
-          caller = ?caller;
-        });
-         state.state.collection_data.owner := data;
+        
+        state.state.collection_data.owner := data;
         return #ok(true);
       };
       case(#UpdateNetwork(data)){
-        NFTUtils.add_log(state, {
-          event = "collection_update_nft_origyn.UpdateNetwork";
-          timestamp = state.get_time();
-          data = #Option( switch(data){case(null){null};case(?data){?#Principal(data)};});
-          caller = ?caller;
-        });
+        
          state.state.collection_data.network := data;
         return #ok(true);
       };
@@ -1441,5 +1596,226 @@ module {
   };
 
 
+  public func ledger_to_candy(ledger : SB.StableBuffer<Types.TransactionRecord>, page: Nat, size: Nat) : [CandyTypes.CandyValue]{
+
+    var tracker = 0;
+
+    let results  = Buffer.Buffer<CandyTypes.CandyValue>(1);
+
+    label search for(thisItem in SB.vals(ledger)){
+      if(tracker < page * size){
+        tracker += 1;
+        continue search;
+      };
+
+      results.add(
+        #Class([
+          {name="token_id"; value=#Text(thisItem.token_id); immutable = true;},
+          {name="index"; value=#Nat(thisItem.index); immutable = true;},
+          {name="timestamp"; value=#Int(thisItem.timestamp); immutable = true;},
+          {name="txn_type"; value=switch(thisItem.txn_type){
+            case(#auction_bid(val)){
+              #Class([
+                  {name="type"; value=#Text("auction_bid"); immutable = true;},
+                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                  {name="amount"; value=#Nat(val.amount); immutable = true;},
+                  
+                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                
+                  {name="sale_id"; value=#Text(val.sale_id); immutable = true;},
+                  {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#mint(val)){
+              #Class([
+                  {name="type"; value=#Text("mint"); immutable = true;},
+                  {name="from"; value=account_to_candy(val.from); immutable = true;},
+                  {name="to"; value=account_to_candy(val.to); immutable = true;},
+                  {name="sale"; value=switch(val.sale){
+                    case(null){#Empty};
+                    case(?val){#Class([
+                      {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                      {name="amount"; value=#Nat(val.amount); immutable = true;},
+                      ])
+                    }
+                    };  immutable = true;},
+                  {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#sale_ended(val)){
+              #Class([
+                  {name="type"; value=#Text("sale_ended"); immutable = true;},
+                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                  {name="seller"; value=account_to_candy(val.seller); immutable = true;},
+                  
+                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                
+                  { name="sale_id"; value=switch(val.sale_id){
+                    case(null){#Empty};
+                    case(?val){#Text(val)};
+                    
+                    };  immutable = true;},
+                  {name="amount"; value=#Nat(val.amount); immutable = true;},
+                  
+                  {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#royalty_paid(val)){
+              #Class([
+                  {name="type"; value=#Text("royalty_paid"); immutable = true;},
+                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                  {name="seller"; value=account_to_candy(val.seller); immutable = true;},
+                  {name="reciever"; value=account_to_candy(val.reciever); immutable = true;},
+                  {name="tag"; value=#Text(val.tag); immutable = true;},
+                  
+                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                
+                  { name="sale_id"; value=switch(val.sale_id){
+                    case(null){#Empty};
+                    case(?val){#Text(val)};
+                    
+                    };  immutable = true;},
+                  {name="amount"; value=#Nat(val.amount); immutable = true;},
+                  
+                  {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#sale_opened(val)){
+              #Class([
+                  {name="type"; value=#Text("sale_opened"); immutable = true;},
+                  {name="pricing"; value=pricing_to_candy(val.pricing); immutable = true;},
+
+                  { name="sale_id"; value=#Text(val.sale_id);immutable = true;},
+                  
+                  {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#owner_transfer(val)){
+              #Class([
+                {name="type"; value=#Text("owner_transfer"); immutable = true;},
+                {name="from"; value=account_to_candy(val.from); immutable = true;},
+                {name="to"; value=account_to_candy(val.to); immutable = true;},
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#escrow_deposit(val)){
+              #Class([
+                {name="type"; value=#Text("escrow_deposit"); immutable = true;},
+                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
+                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                {name="token_id"; value=#Text(val.token_id); immutable = true;},
+                {name="amount"; value=#Nat(val.amount); immutable = true;},
+                {name="trx_id"; value=switch(val.trx_id){
+                    case(#nat(val)){#Nat(val)};
+                    case(#text(val)){#Text(val)};
+                    case(#extensible(val)){val};
+                    
+                    }; immutable = true;},
+                
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#escrow_withdraw(val)){
+              #Class([
+                {name="type"; value=#Text("escrow_withdraw"); immutable = true;},
+                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
+                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                {name="token_id"; value=#Text(val.token_id); immutable = true;},
+                {name="amount"; value=#Nat(val.amount); immutable = true;},
+                {name="fee"; value=#Nat(val.fee); immutable = true;},
+                {name="trx_id"; value=switch(val.trx_id){
+                    case(#nat(val)){#Nat(val)};
+                    case(#text(val)){#Text(val)};
+                    case(#extensible(val)){val};
+                    
+                    }; immutable = true;},
+                
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+
+            case(#deposit_withdraw(val)){
+              #Class([
+
+                {name="type"; value=#Text("deposit_withdraw"); immutable = true;},
+                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                
+                {name="amount"; value=#Nat(val.amount); immutable = true;},
+                {name="fee"; value=#Nat(val.fee); immutable = true;},
+                {name="trx_id"; value=switch(val.trx_id){
+                    case(#nat(val)){#Nat(val)};
+                    case(#text(val)){#Text(val)};
+                    case(#extensible(val)){val};
+                    
+                    }; immutable = true;},
+                
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#sale_withdraw(val)){
+              #Class([
+                {name="type"; value=#Text("sale_withdraw"); immutable = true;},
+                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
+                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
+                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
+                {name="token_id"; value=#Text(val.token_id); immutable = true;},
+                {name="amount"; value=#Nat(val.amount); immutable = true;},
+                {name="fee"; value=#Nat(val.fee); immutable = true;},
+                {name="trx_id"; value=switch(val.trx_id){
+                    case(#nat(val)){#Nat(val)};
+                    case(#text(val)){#Text(val)};
+                    case(#extensible(val)){val};
+                    
+                    }; immutable = true;},
+                
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#canister_owner_updated(val)){
+              #Class([
+                {name="type"; value=#Text("canister_owner_updated"); immutable = true;},
+                {name="owner"; value=#Principal(val.owner); immutable = true;},
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#canister_managers_updated(val)){
+              #Class([
+                {name="type"; value=#Text("canister_managers_updated"); immutable = true;},
+                {name="managers"; value=#Array(#frozen( Array.map<Principal, CandyTypes.CandyValue>(val.managers, func(x:Principal){#Principal(x)}))); immutable=true;},
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#canister_network_updated(val)){
+              #Class([
+                {name="type"; value=#Text("canister_network_updated"); immutable = true;},
+                {name="network"; value=#Principal(val.network); immutable = true;},
+                {name="extensible"; value=val.extensible; immutable = true;},
+              ])
+            };
+            case(#data){
+              #Text("data");
+            };
+            case(#burn){
+              #Text("burn");
+            };
+            case(#extensible(val)){#Class([
+              {name="type"; value=#Text("extensible"); immutable = true;},
+              {name="data"; value=val; immutable = true;},
+            ])};
+              
+          }; immutable=true;},
+        ]));
+      
+      tracker += 1;
+      if(tracker >= (page * size) + size){break search};
+    };
+
+    results.toArray();
+  };
+
+  
 
 }

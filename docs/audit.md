@@ -160,4 +160,3 @@ We will be expanding logging and refactoring in the next version of the referenc
 22. The two functions handle_library and mint_nft_origyn (in src/origyn_nft_reference/mint.mo) swallow errors from Metadata.getNFTLibrary.
 
 This is intended functionality as we only want to handle the return from these items if the values are returned without error.
-

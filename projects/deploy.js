@@ -49,8 +49,8 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8000';
-    console.log('arge is ', argv.prod);
+    var ICP_ENDPOINT = 'http://localhost:8080';
+    console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
         ICP_ENDPOINT = 'https://boundary.ic0.app';
@@ -62,7 +62,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
         agent.fetchRootKey();
     }
 
-    console.log(agent);
+    //console.log(agent);
     //const actorClass = ICAgent.Actor.createActorClass(did);
 
     console.log('canister id', Principal.fromText(NFT_ID));

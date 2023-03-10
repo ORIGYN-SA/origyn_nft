@@ -2,8 +2,8 @@ import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
 import M "mo:matchers/Matchers";
 
-import Conversion "mo:candy_0_1_10/conversion";
-import CandyTypes "mo:candy_0_1_10/types";
+import Conversion "mo:candy/conversion";
+import CandyTypes "mo:candy/types";
 
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
@@ -83,9 +83,9 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         let canister_principal = Principal.fromActor(canister);
 
         //stage unminted and minted NFTs
-        let stage_minted_nft = await utils.buildStandardNFT("first", canister, this_principal, 1024, false);  //this sets the owner of the nft to the canister change later on mint
-        let stage_unminted_nft = await utils.buildStandardNFT("second", canister, this_principal, 1024, false); //this sets the owner of th nft to the canister
-        
+        let stage_minted_nft = await utils.buildStandardNFT("first", canister, this_principal, 1024, false, Principal.fromActor(this));  //this sets the owner of the nft to the canister change later on mint
+        let stage_unminted_nft = await utils.buildStandardNFT("second", canister, this_principal, 1024, false, Principal.fromActor(this)); //this sets the owner of th nft to the canister
+
         //mint first staged NFT
         let mint_nft = await canister.mint_nft_origyn("first", #principal(this_principal));//changing owner of first to this
 
@@ -638,8 +638,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         let canister_principal = Principal.fromActor(canister);
         
         //stage unminted and minted NFTs
-        let stage_soulbound_nft = await utils.buildStandardNFT("soulbound", canister, this_principal, 1024, true);
-
+        let stage_soulbound_nft = await utils.buildStandardNFT("soulbound", canister, this_principal, 1024, true, Principal.fromActor(this));
         let mint_nft = await canister.mint_nft_origyn("soulbound", #principal(this_principal));
 
         //create an escrow by sending tokens to the ledger

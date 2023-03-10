@@ -1,6 +1,6 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import C "mo:matchers/Canister";
-import Conversion "mo:candy_0_1_10/conversion";
+import Conversion "mo:candy/conversion";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
@@ -10,7 +10,7 @@ import Metadata "../origyn_nft_reference/metadata";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
+import Properties "mo:candy/properties";
 import Result "mo:base/Result";
 import Nat "mo:base/Nat";
 import S "mo:matchers/Suite";
@@ -130,11 +130,14 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("calling stage");
 
         //MINT0007, MINT0008
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
-       D.print("finished stage");
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
+        D.print("finished stage");
         D.print(debug_show(standardStage.0));
 
         let test_metadata = await canister.nft_origyn("1");
+
+
+        
 
 
         //MINT0016
@@ -238,8 +241,6 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("fail_stage_because_system result finished");
 
-
-        //MINT0005
         let test_metadata_replace_command = await canister.stage_nft_origyn({metadata = #Class([
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page2"); immutable= true},
@@ -340,14 +341,16 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 case(#ok(res)){
                     switch(res.metadata){
                         case(#Class(data)){
-                            if(data.size() ==12){ //check if a top level element was added to the structure
+                            if(data.size() ==13){ //check if a top level element was added to the structure
+
                                 "Ok";
                             } else {
                                 D.print("testing size");
                                 D.print(debug_show(test_metadata));
                                 D.print(debug_show(data));
                                 D.print(debug_show(data.size()));
-                                "data elements don't match wanted 9 found " # debug_show(data.size());
+                                "data elements don't match wanted 13 found " # debug_show(data.size());
+
                             }
                         };
                         case (_){
@@ -438,7 +441,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("a mint canister");
         D.print(debug_show(Principal.fromActor(canister)));
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this));
 
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
@@ -469,6 +472,94 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         D.print("view after mint");
 
+        //try to have awallet stage a post mint change
+
+        let a_wallet_try_publish_change = await a_wallet.try_publish_change(Principal.fromActor(canister));
+
+        //try to have canister change the primary asset...should work
+
+        let test_metadata_replace_command = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page2"); immutable= true}
+        ])});
+
+        let test_metadata_replace_command_with_system = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page6"); immutable= true},
+            
+            {name = "__system"; value=#Array(#thawed([
+                #Class([
+                    {name = "library_id"; value=#Text("page2"); immutable= true},
+                    {name = "title"; value=#Text("page"); immutable= true},
+                    {name = "location_type"; value=#Text("canister"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
+                    {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "size"; value=#Nat(4); immutable= true},
+                    {name = "sort"; value=#Nat(0); immutable= true},
+                    {name = "read"; value=#Text("public"); immutable= false},
+
+                ])
+            ])); immutable= true},
+            {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
+        ])});
+
+        let test_metadata_replace_command_with_library = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page3"); immutable= true},
+            
+            {name = "library"; value=#Array(#thawed([
+                #Class([
+                    {name = "library_id"; value=#Text("page2"); immutable= true},
+                    {name = "title"; value=#Text("page"); immutable= true},
+                    {name = "location_type"; value=#Text("canister"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
+                    {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "size"; value=#Nat(4); immutable= true},
+                    {name = "sort"; value=#Nat(0); immutable= true},
+                    {name = "read"; value=#Text("public"); immutable= false},
+
+                ])
+            ])); immutable= true},
+            {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
+        ])});
+
+         let test_metadata_replace_command_with_owner = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page4"); immutable= true},
+            {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
+        ])});
+
+         let test_metadata_replace_command_with_apps = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "primary_asset"; value=#Text("page5"); immutable= true},
+            {name = "__apps"; value=#Array(#thawed([
+                #Class([
+                    {name = "app_id"; value=#Text("page2"); immutable= true},
+                    {name = "title"; value=#Text("page"); immutable= true},
+                    {name = "location_type"; value=#Text("canister"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
+                    {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
+                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "size"; value=#Nat(4); immutable= true},
+                    {name = "sort"; value=#Nat(0); immutable= true},
+                    {name = "read"; value=#Text("public"); immutable= false},
+
+                ])
+            ])); immutable= true},
+            
+        ])});
+
+        let test_metadata_replace_command_with_immutable = await canister.stage_nft_origyn({metadata = #Class([
+            {name = "id"; value=#Text("1"); immutable= true},
+            {name = "preview"; value=#Text("page2"); immutable= true},
+        ])});
+
+        
+        let view_after_update_attempt = await canister.nft_origyn("1");
+
+
         let suite = S.suite("test staged Nft", [
 
             S.test("fail if non owner mints", switch(a_wallet_try_mint){case(#ok(res)){"unexpected success"};case(#err(err)){
@@ -485,6 +576,63 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(_){"unexpected account type" # debug_show(res)};
                 };}
                     ;case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text(Principal.toText(Principal.fromActor(a_wallet))))), //MINT0024
+            S.test("fail if a_wallet_try_publish_change", switch(a_wallet_try_publish_change){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 2000){
+                    "correct number"
+                } else{
+                    "wrong error";
+                }};}, M.equals<Text>(T.text("correct number"))),
+
+
+            S.test("owner can update", switch(test_metadata_replace_command){case(#ok(res)){res};case(#err(err)){"unexpected error: " # debug_show(err)};}, M.equals<Text>(T.text("1"))), //MINT0001
+            
+            S.test("user can see nft after update", switch(view_after_update_attempt){case(#ok(res)){
+              
+              
+
+              switch(Properties.getClassProperty(res.metadata, "primary_asset")){
+                case(null){"cant find primary"};
+                case(?val){Conversion.valueToText(val.value)};
+              };
+              
+              };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("page2"))), 
+            
+
+             S.test("fail if test_metadata_replace_command_with_system", switch(test_metadata_replace_command_with_system){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 2){
+                    "correct number"
+                } else{
+                    "wrong error" # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))),
+
+
+             S.test("fail if test_metadata_replace_command_with_library", switch(test_metadata_replace_command_with_library){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 1002){
+                    "correct number"
+                } else{
+                    "wrong error" # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))),
+            
+            S.test("fail if test_metadata_replace_command_with_owner", switch(test_metadata_replace_command_with_owner){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 1002){
+                    "correct number"
+                } else{
+                    "wrong error" # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))),
+
+            S.test("fail if test_metadata_replace_command_with_apps", switch(test_metadata_replace_command_with_apps){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 1002){
+                    "correct number"
+                } else{
+                    "wrong error" # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))),
+
+            S.test("fail if test_metadata_replace_command_with_immutable", switch(test_metadata_replace_command_with_immutable){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 1000){
+                    "correct number"
+                } else{
+                    "wrong error" # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))),
             
         ]);
 
@@ -548,8 +696,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let mode = canister.__set_time_mode(#test);
         let atime = canister.__advance_time(Time.now());
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false); //for auctioning a minted item
-        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false); //for auctioning an unminted item
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
 
         D.print("Minting");
         let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account

@@ -5,7 +5,7 @@ import os
 dapps_folder="./dapps-latest-build/dist/"
 dapps = [
     {
-        "file_name": "wallet.html",
+        "file_name": "vault.html",
         "key_size": "dapp_wallet_size",
         "key_hash": "dapp_wallet_hash",
     },
@@ -25,7 +25,7 @@ dapps = [
         "key_hash": "dapp_library_hash",
     },
     {
-        "file_name": "nftData.html",
+        "file_name": "data.html",
         "key_size": "dapp_nftdata_size",
         "key_hash": "dapp_nftdata_hash",
     },

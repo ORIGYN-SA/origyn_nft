@@ -7,11 +7,34 @@ let Package =
 
 
 let additions =
-[
-  {  name = "candy_0_1_10"
-  , repo = "https://github.com/aramakme/candy_library.git"
-  , version = "v0.1.10"
-  , dependencies = ["base"]
+
+    [
+   { name = "candy_0_1_10"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "v0.1.10"
+    , dependencies = ["base"]
+   },
+   { name = "candy_0_1_12"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "v0.1.12"
+    , dependencies = ["base"]
+   },
+    { name = "candy"
+    , repo = "https://github.com/icdevs/candy_library.git"
+    , version = "v0.1.12"
+    , dependencies = ["base"]
+   },
+   {
+       name="principalmo",
+       repo = "https://github.com/aviate-labs/principal.mo.git",
+       version = "v0.2.5",
+       dependencies = ["base"]
+   },
+   { name = "crypto"
+    , repo = "https://github.com/aviate-labs/crypto.mo"
+    , version = "v0.2.0"
+    , dependencies = [ "base", "encoding" ]
+
   },
   { name="principalmo"
   , repo = "https://github.com/aviate-labs/principal.mo.git"
@@ -63,11 +86,7 @@ let additions =
   , version = "v0.1.0"
   , dependencies = [ "base", "parser-combinators" ]
   },
-  { name = "stablerbtree_0_6_1"
-  , repo = "https://github.com/skilesare/StableRBTree"
-  , version = "v0.6.1"
-  , dependencies = [ "base"]
-  },
+  
   { name = "stablebuffer_0_2_0"
   , repo = "https://github.com/skilesare/StableBuffer"
   , version = "v0.2.0"
@@ -78,6 +97,11 @@ let additions =
   , version = "v0.2.0"
   , dependencies = [ "base"]
   },
+  { name = "map_7_0_0"
+  , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
+  , version = "v7.0.0"
+  , dependencies = [ "base"]
+  },
   { name = "map_6_0_0"
   , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
   , version = "v6.0.0"
@@ -85,10 +109,17 @@ let additions =
   },
   { name = "map"
   , repo = "https://github.com/ZhenyaUsenko/motoko-hash-map"
-  , version = "v6.0.0"
+  , version = "v7.0.0"
   , dependencies = [ "base"]
+
+  },
+  { name = "canistergeek"
+  , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
+  , version = "v0.0.1"
+  , dependencies = ["base", "candy_0_1_10" ]
   }
-] : List Package
+  ] : List Package
+
 let
   {- This is where you can override existing packages in the package-set
 

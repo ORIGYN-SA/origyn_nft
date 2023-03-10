@@ -76,8 +76,8 @@ module {
                                             Map.Map<TokenSpec,EscrowRecord>>>>;
 
     public type EscrowSellerTrie = Map.Map<Account,
-                                Map.Map<Text,
-                                    Map.Map<TokenSpec,EscrowRecord>>>;
+                                    Map.Map<Text,
+                                        Map.Map<TokenSpec,EscrowRecord>>>;
     
     public type EscrowTokenIDTrie = Map.Map<Text,
                                         Map.Map<TokenSpec,EscrowRecord>>;

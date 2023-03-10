@@ -1,22 +1,14 @@
-import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import C "mo:matchers/Canister";
-import Conversion "mo:candy_0_1_10/conversion";
-import DFXTypes "../origyn_nft_reference/dfxtypes";
+import Conversion "mo:candy/conversion";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
 import M "mo:matchers/Matchers";
 import StorageCanisterDef "../origyn_nft_reference/storage_canister";
-import NFTUtils "../origyn_nft_reference/utils";
-import Metadata "../origyn_nft_reference/metadata";
-import Nat64 "mo:base/Nat64";
-import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
 import Result "mo:base/Result";
 import Nat "mo:base/Nat";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
-import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
@@ -107,7 +99,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("calling storage stuff");
 
        
-        let standardStage = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
         //let standardStage2 = await utils.buildStandardNFT("2", canister_b, Principal.fromActor(canister_b), 2048000, false);
         //let standardStage3 = await utils.buildStandardNFT("3", canister_b, Principal.fromActor(canister_b), 2048000, false);
         //let standardStage4 = await utils.buildStandardNFT("4", canister_b, Principal.fromActor(canister_b), 2048000, false);
@@ -460,7 +452,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let initialCanisterSpace = await canister.storage_info_nft_origyn(); 
 
-        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 2048000, false, Principal.fromActor(this));
+
 
         D.print("standardStage" # debug_show(standardStage));
 
@@ -473,7 +466,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("new_storage_request" # debug_show(new_storage_request));
 
         D.print("staging b");
-        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
+
         D.print("DONE staging b " # debug_show(standardStage_b));
         let currentStateToken = await canister.nft_origyn("1");
 
@@ -604,12 +598,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
                 }, M.equals<Text>(T.text("expected success"))),
                 
-            S.test("available space on sorage should be 2048000", 
+            S.test("available space on storage should be 0", 
                 
                 switch(storage_metrics_canister_b_after_stage){
                     case(#ok(res)){
                         if(res.allocated_storage == 4096000 and
-                            res.available_space == 2048000){
+                            res.available_space == 0){
                             "expected success";
                         }else {
                             "wrong space " # debug_show(res);
@@ -648,10 +642,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res.allocated_storage, res.available_space){
                             case(?res1, ?res2){
                                 if(res1 == 8192000 and
-                                    res2 == 2048000){
+                                    res2 == 0){
                                     "expected success";
                                 } else {
-                                    "nope "
+                                    "nope " # debug_show((res1, res2));
                                 };
                             };
                             case(_,_){
@@ -770,7 +764,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let storage_b = await StorageCanisterDef.Storage_Canister({
             gateway_canister = Principal.fromActor(canister_b);
             network = null;
-            storage_space = ?4096000;
+            storage_space = ?8192000;
         });
 
 
@@ -779,16 +773,17 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let initialCanisterSpace = await canister.storage_info_nft_origyn(); 
 
-        let standardStage = await utils.buildStandardNFT("", canister, Principal.fromActor(canister), 2048000, false);
+        let standardStage = await utils.buildStandardNFT("", canister, Principal.fromActor(canister), 2048000, false, Principal.fromActor(this));
 
 
         
         let new_storage_request = await canister_b.manage_storage_nft_origyn(#add_storage_canisters([
-            (Principal.fromActor(storage_b), 4096000, (0,0,1))
+            (Principal.fromActor(storage_b), 8192000, (0,0,1))
         ]));
 
         //D.print("staging b");
-        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false);
+        let standardStage_b = await utils.buildStandardNFT("1", canister_b, Principal.fromActor(canister_b), 2048000, false, Principal.fromActor(this));
+
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
         let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000);
@@ -868,7 +863,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 //D.print(debug_show(res));
                     switch(res){
                         case(#add_storage_canisters(val)){
-                            if(val.0 == 8192000 and val.1 == 8192000){
+                            if(val.0 == 12_288_000 and val.1 == 12_288_000){
                                 "space matches"
                             } else {
                                 "bad size " # debug_show(new_storage_request);
@@ -883,12 +878,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 case(#err(err)){"unexpected error: " # err.flag_point # debug_show(err)};}
                 , M.equals<Text>(T.text("space matches"))), //MKT0007, MKT0014
              
-            S.test("allocated space should be 8192000 collection", switch(currentStateCanister_b){case(
+            S.test("allocated space should be 12_288_000 collection", switch(currentStateCanister_b){case(
                 #ok(res)){
                     Nat.toText(switch(res.allocated_storage){case(null){0};case(?val){val}})};
                 case(#err(err)){
                     "error " # debug_show(err);
-                }}, M.equals<Text>(T.text("8192000"))), //NFT-225
+                }}, M.equals<Text>(T.text("12288000"))), //NFT-225
             S.test("staging with  enough space should pass collection", 
                 
                 switch(standardStage_b.0){
@@ -942,8 +937,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 
                 switch(storage_metrics_canister_b_after_stage){
                     case(#ok(res)){
-                        if(res.allocated_storage == 4096000 and
-                            res.available_space == 0){
+                        if(res.allocated_storage == 8_192_000 and
+                            res.available_space == 2_048_000){
                             "expected success";
                         }else {
                             "wrong space " # debug_show(res);
@@ -981,11 +976,11 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(#ok(res)){
                         switch(res.allocated_storage, res.available_space){
                             case(?res1, ?res2){
-                                if(res1 == 8192000 and
-                                    res2 == 0){
+                                if(res1 == 12_288_000 and
+                                    res2 == 2_048_000){
                                     "expected success";
                                 } else {
-                                    "nope "
+                                    "nope " # debug_show((res1, res2))
                                 };
                             };
                             case(_,_){
@@ -1119,7 +1114,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     };
                     case(#err(err)){
                        
-                            "wrong content " # debug_show(get_gatway_chunks);
+                            "wrong content " # debug_show(get_storage_chunks_banner);
 
                     };
 

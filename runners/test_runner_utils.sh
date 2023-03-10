@@ -38,6 +38,8 @@ dfx build test_runner
 dfx build test_runner_utils
 dfx build test_canister_factory
 dfx build test_storage_factory
+dfx build dfxledger
+dfx build dfxledger2
 
 gzip ./.dfx/local/canisters/test_runner_utils/test_runner_utils.wasm -f
 gzip ./.dfx/local/canisters/test_runner/test_runner.wasm -f

@@ -8,6 +8,7 @@ import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
+import Hex "mo:encoding/Hex";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -19,15 +20,17 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import Candy "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversions "mo:candy_0_1_10/conversion";
-import Properties "mo:candy_0_1_10/properties";
-import SB "mo:stablebuffer_0_2_0/StableBuffer";
+import Candy "mo:candy/types";
+import CandyTypes "mo:candy/types";
+import Conversions "mo:candy/conversion";
+import Properties "mo:candy/properties";
+import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
-import Workspace "mo:candy_0_1_10/workspace";
+import Workspace "mo:candy/workspace";
 
 import Types "types";
+
+import MigrationTypes "./migrations/types";
 
 
 module {
@@ -70,14 +73,6 @@ module {
         return false;
     };
 
-     public func add_log(state: Types.State, entry : Types.LogEntry){
-        if(SB.size(state.state.log) >= 1000){
-            SB.add<[Types.LogEntry]>(state.state.log_history, SB.toArray(state.state.log));
-            state.state.log := SB.initPresized<Types.LogEntry>(1000);
-        };
-        SB.add<Types.LogEntry>(state.state.log, entry);
-    };
-
     public func get_auction_state_from_status(current_sale : Types.SaleStatus ) : Result.Result<Types.AuctionState, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
@@ -102,10 +97,6 @@ module {
         };
     };
 
-
-  
-   
-
     public func build_library(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
         
         let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal,Text.hash);
@@ -120,34 +111,11 @@ module {
         return aMap;
     };
 
-    public func compare_library(x : (Text, Text), y: (Text, Text)) : Order.Order {
-        let a = Text.compare(x.0, y.0);
-        switch(a){
-            case(#equal){
-                return  Text.compare(x.1,y.1);
-            };
-            case(_){
-                return a;
-            };
-        };
-    };
+    public let compare_library  = MigrationTypes.Current.compare_library;
 
-    public func library_equal(x : (Text, Text), y: (Text, Text)) : Bool {
-        
-        switch(compare_library(x, y)){
-            case(#equal){
-                return  true;
-            };
-            case(_){
-                return false;
-            };
-        };
-    };
+    public let library_equal = MigrationTypes.Current.library_equal;
 
-    public func library_hash(x : (Text, Text)) : Nat {
-        return Nat32.toNat(Text.hash("token_id" # x.0 # "library_id" # x.1));
-        
-    };
+    public let library_hash = MigrationTypes.Current.library_hash;
 
     public func get_deposit_info(depositor_account : Types.Account, host: Principal) : Types.SubAccountInfo{
         D.print("getting deposit info");
@@ -161,20 +129,20 @@ module {
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Text("com.origyn.nft.escrow")));
         h.write(Conversions.valueToBytes(#Text("buyer")));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
         h.write(Conversions.valueToBytes(#Text("seller")));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
         h.write(Conversions.valueToBytes(#Text(("tokenid"))));
         h.write(Conversions.valueToBytes(#Text(request.token_id)));
         h.write(Conversions.valueToBytes(#Text("ledger")));
-        h.write(Conversions.valueToBytes(#Nat(Types.token_hash_uncompressed(request.token))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
                    
         return {
             principal = host;
-            account_id_text = AccountIdentifier.toText(to);
+            account_id_text = Hex.encode(to);
             account_id = Blob.fromArray(to);
             account = {
                 principal = host;
@@ -195,13 +163,13 @@ module {
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("buyer"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("seller"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("tokenid"))));
         h.write(Conversions.valueToBytes(#Text(request.token_id)));
         h.write(Conversions.valueToBytes(#Nat32(Text.hash("ledger"))));
-        h.write(Conversions.valueToBytes(#Nat(Types.token_hash_uncompressed(request.token))));
+        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
@@ -209,7 +177,7 @@ module {
 
         return {
             principal = host;
-            account_id_text = AccountIdentifier.toText(to);
+            account_id_text = Hex.encode(to);
             account_id = Blob.fromArray(to);
             account = {
                 principal = host;
@@ -235,7 +203,7 @@ module {
          
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -263,7 +231,7 @@ module {
          
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -293,7 +261,7 @@ module {
                     
                 return {
                     principal = host;
-                    account_id_text = AccountIdentifier.toText(to);
+                    account_id_text = Hex.encode(to);
                     account_id = Blob.fromArray(to);
                     account = {
                         principal = host;
@@ -306,13 +274,5 @@ module {
             }
         };
     };
-    
-
-    
-
-    
-
-    
-
 
 }

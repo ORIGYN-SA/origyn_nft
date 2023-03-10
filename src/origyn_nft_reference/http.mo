@@ -3,10 +3,20 @@ import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Char "mo:base/Char";
 import Bool "mo:base/Bool";
+import Float "mo:base/Float";
 import D "mo:base/Debug";
+import Int "mo:base/Int";
+import Int64 "mo:base/Int64";
+import Int32 "mo:base/Int32";
+import Int16 "mo:base/Int16";
+import Int8 "mo:base/Int8";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
+import Nat64 "mo:base/Nat64";
+import Nat32 "mo:base/Nat32";
+import Nat16 "mo:base/Nat16";
+import Nat8 "mo:base/Nat8";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Random "mo:base/Random";
@@ -15,10 +25,12 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversion "mo:candy_0_1_10/conversion";
-import Map "mo:map_6_0_0/Map";
-import Properties "mo:candy_0_1_10/properties";
+import CandyTypes "mo:candy/types";
+import CandyHex "mo:candy/hex";
+import Conversion "mo:candy/conversion";
+import JSON "mo:candy/json";
+import Map "mo:map/Map";
+import Properties "mo:candy/properties";
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
@@ -34,6 +46,8 @@ module {
         library = false;
         request = false;
     };
+
+    let { ihash; nhash; thash; phash; calcHash } = Map;
 
     //the max size of a streaming chunk
     private let __MAX_STREAM_CHUNK = 2048000;
@@ -73,7 +87,7 @@ module {
     };
 
     // generates a random access key for use with procuring owner's assets
-    public func gen_access_key(): async Text {
+    public func gen_access_key(): async* Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");
@@ -1000,7 +1014,7 @@ module {
         };
 
         return {
-            body = Text.encodeUtf8(value_to_json(message_response));
+            body = Text.encodeUtf8(JSON.value_to_json(message_response));
             headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
             status_code = 200;
             streaming_strategy = null;
@@ -1169,68 +1183,6 @@ module {
         };
     };
 
-    //converst a candu value to JSON
-    public func value_to_json(val: CandyTypes.CandyValue): Text {
-        switch(val){
-            //nat
-            case(#Nat(val)){ Nat.toText(val)};
-            //text
-            case(#Text(val)){ "\"" # val # "\""; };
-            //class
-            case(#Class(val)){
-                var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                for(this_item in val.vals()){
-                    body.add("\"" # this_item.name # "\"" # ":" # value_to_json(this_item.value));
-                };
-
-                return "{" # Text.join(",", body.vals()) # "}";
-            };
-            //array
-            case(#Array(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                    case(#thawed(val)){
-                        var body: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-                        for(this_item in val.vals()){
-                            body.add(value_to_json(this_item));
-                        };
-
-                        return "[" # Text.join(",", body.vals()) # "]";
-                    };
-                };
-            };
-            //bytes
-            case(#Bytes(val)){
-                switch(val){
-                    case(#frozen(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-                    };
-                    case(#thawed(val)){
-                        return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-                    };
-                };
-            };
-            //bytes
-            case(#Blob(val)){
-                
-                return "\"" # "CandyHex.encode" # "\"";//CandyHex.encode(val);
-               
-            };
-            //principal	
-            case(#Principal(val)){ "\"" # Principal.toText(val) # "\"";};	
-            //bool	
-            case(#Bool(val)){ "\"" # Bool.toText(val) # "\"";};	
-            case(_){"";};
-        };
-    };
-
     public func split_text(q: Text, p: Char): [Text] {
         var queries: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
         var key : Text = "";
@@ -1252,66 +1204,48 @@ module {
     //checks that a access token holder is the collection owner
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        if(stateBody.state.collection_data.owner != identity) {
-                            return #err("not an owner");
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+      switch(req.url.queryObj.get("access")) {
+        case(null) {
+          return #err("no access code in request when nft not minted");
         };
+        case(?access_token) {
+          switch(Map.get(stateBody.state.access_tokens, thash, access_token)) {
+            case(null) return #err("identity not found by access_token : " # access_token);
+            case(?info) {
+              let { identity; expires; } = info;
 
-        #ok();
+              if(stateBody.state.collection_data.owner != identity) return #err("not an owner");
+            
+              if(expires < Time.now()) return #err("access expired");
+            };
+          };
+        };
+      };
+      #ok();
     };
 
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_nft_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
-        switch(req.url.queryObj.get("access")) {
-            case(null) {
-                return #err("no access code in request when nft not minted");
-            };
-            case(?access_token) {
-                switch(stateBody.access_tokens.get(access_token)) {
-                    case(null) {
-                        return #err("identity not found by access_token : " # access_token);
-                    };
-                    case(?info) {
-                        let { identity; expires; } = info;
-
-                        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
-                          case(#ok(val)){
-                            if(val == false){
-                              return #err("not an owner");
-                            };
-                          };
-                          case(#err(err)){
-                            return #err("identity not found by access_token : " # access_token);
-                          };
-                        };
-
-                        if(expires < Time.now()) {
-                            return #err("access expired");
-                        };
-                    };
-                };
-            };
+        let access_token = switch(req.url.queryObj.get("access")) {
+            case(null) return #err("no access code in request when nft not minted");
+            case(?access_token) access_token;
         };
+
+        let info = switch(Map.get(stateBody.state.access_tokens, thash,access_token)) {
+          case(null) return #err("identity not found by access_token : " # access_token);
+          case(?info) info;
+        };
+        let { identity; expires; } = info;
+
+        switch(Metadata.is_nft_owner(metadata, #principal(identity))){
+          case(#ok(val)){
+            if(val == false) return #err("not an owner");
+          };
+          case(#err(err)) return #err("identity not found by access_token : " # access_token);
+        };
+
+        if(expires < Time.now()) return #err("access expired");
 
         #ok();
     };
@@ -1335,6 +1269,82 @@ module {
                         debug if(debug_channel.request) D.print(debug_show(rawReq));
         
         if(path_size == 0) {
+            switch(queryObj.get("tokenid")){
+            case(null){};
+            case(?found_ext_id){
+
+              var metadata : CandyTypes.CandyValue = #Empty;
+              if(found_ext_id == "") return {
+                  body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                  headers = [];
+                  status_code = 200;
+                  streaming_strategy = null;
+              };
+
+              label search for(this_nft in Map.entries(state.state.nft_metadata)){
+                  if(Types._getEXTTokenIdentifier(this_nft.0, state.canister()) == found_ext_id) {
+                    metadata := this_nft.1;
+                    break search;
+                  };
+              };
+
+              if(metadata == #Empty){
+                return {
+                  body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                  headers = [];
+                  status_code = 200;
+                  streaming_strategy = null;
+                };
+              };
+              let token_id = Conversion.valueToText(
+                switch(Properties.getClassProperty(metadata, "id")){
+                    case(null){
+                        return {
+                          body = Text.encodeUtf8 ("<html><head><title>Bad NFT ID</title></head><body></body></html>\n");
+                          headers = [];
+                          status_code = 200;
+                          streaming_strategy = null;
+                        };
+                    };
+                    case(?found){
+                        found.value;
+                    };
+                });
+              let is_minted = Metadata.is_minted(metadata);
+
+              switch(queryObj.get("type")){
+                case(null){
+                  //return primary
+                  if(is_minted == false){
+                      return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                  };
+                  return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
+                };
+                case(?val){
+                  if(val=="thumbnail"){
+                    //return preview
+                    if(is_minted == false){
+                        return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                    };
+                    var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
+                    if(aResponse.status_code==404){
+                        //default to primary asset
+                        aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
+                    };
+                    return aResponse;
+                  } else {
+                    //return primary
+                    if(is_minted == false){
+                        return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
+                    };
+                    return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
+                  };
+                };
+              }
+            };
+          };
+          
+
             return {
                 body = Text.encodeUtf8 ("<html><head><title> An Origyn NFT Canister </title></head><body></body></html>\n");
                 headers = [];
@@ -1368,7 +1378,7 @@ module {
                         };
                         return renderSmartRoute(state, req, metadata, token_id, Types.metadata.primary_asset);
                     };
-                    if(path_size == 3){
+                    if(path_size >= 3){
                         if(path_array[2] == "ex"){
                             var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
                             if(aResponse.status_code==404){
@@ -1410,31 +1420,95 @@ module {
                             };
                             return json(libraries, null);
                         };
-                    };
-                    if(path_size > 3){
-                        if(path_array[2] == "-") {
-                            let library_id = path_array[3];
-                            if(path_size == 4){
-                                if (is_minted == false) {
-                                    switch(http_owner_check(state, req)) {
-                                        case(#err(err)) {
-                                            return _not_found(err);
-                                        };
-                                        case(#ok()) {};
-                                    };
-                                };
+                        if(path_array[2] == "ledger_info"){
+                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                                return renderLibrary(state, req, metadata, token_id, library_id);
+                          let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
+                            case(null){
+                              return json(#Empty, null);
                             };
-                            if(path_size == 5){
-                                if(path_array[4] == "info"){
-                                    let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                        case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                        case(#ok(val)){val};
-                                    };
-                                    return json(library_meta, queryObj.get("query"));
+                            case(?val){val};
+                          };
+                          
+                          let page = if(path_array.size() > 3){
+                            switch(Conversion.textToNat(path_array[3])){
+                              case(null){0};
+                              case(?val){val;};
+                            }
+                          } else {0};
+
+                          let size = if(path_array.size() > 4){
+                            switch(Conversion.textToNat(path_array[4])){
+                              case(null){10000};
+                              case(?val){val;};
+                            }
+                          } else {10000};
+
+
+                          return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
+                        };
+
+                        if(path_array[2] == "translate"){
+
+                          debug if(debug_channel.request) D.print("render translate "  # token_id );
+
+                          let translation =  #Class([
+                              {name="origyn_nft"; value=#Text(token_id); immutable=true;},
+                              {name="ext"; value=#Text(Types._getEXTTokenIdentifier(token_id, state.canister())); immutable=true;},
+                              {name="dip721"; value=#Text(Nat.toText(NFTUtils.get_token_id_as_nat(token_id))); immutable=true;}
+                            ]);
+                      
+
+                          
+                          return json(translation, null);
+                        };
+                        
+                    
+                        if(path_size > 3){
+                          if(path_array[2] == "-") {
+
+                              if (is_minted == false) {
+                                switch(http_owner_check(state, req)) {
+                                  case(#err(err)) {
+                                    return _not_found(err);
+                                  };
+                                  case(#ok()) {};
                                 };
-                            };
+                              };
+                              let library_id_buffer = Buffer.Buffer<Text>(1);
+                              let bIsInfo = path_array[path_array.size()-1] == "info";
+
+                              var tracker : Nat = 0;
+                              
+                              for(thisItem in path_array.vals()){
+                                if(tracker > 2){
+                                  if(bIsInfo and tracker == Nat.sub(path_array.size(),1)){
+
+                                  } else {
+                                    library_id_buffer.add(thisItem)
+                                  };
+                                };
+                                tracker += 1;
+                              };
+
+                                let library_id =if(library_id_buffer.size() > 1){
+                                Text.join("/", library_id_buffer.toArray().vals());
+                              } else {
+                                library_id_buffer.get(0);
+                              };
+
+                              if(path_size >= 5 and path_array[path_array.size()-1] == "info"){
+                                let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
+                                    case(#err(err)){return _not_found("library by " # library_id # " not found");};
+                                    case(#ok(val)){val};
+                                };
+                                return json(library_meta, queryObj.get("query"));
+                              };
+
+                              return renderLibrary(state, req, metadata, token_id, library_id);
+                              
+                              
+                          };
                         };
                     };
                 };
@@ -1462,29 +1536,46 @@ module {
                         if(path_size == 2){
                             // https://exos.surf/-/canister_id/collection/
                                             debug if(debug_channel.request) D.print("render smart route 2 collection" # token_id);
-
+                            debug if(debug_channel.request) D.print("primary asset");
                             return renderSmartRoute(state, req, metadata, token_id, Types.metadata.primary_asset);
                         };
                         if(path_size > 2){
 
-                            let library_id = path_array[2];
-                            if(path_size == 3){
-                                                    debug if(debug_channel.request) D.print("render library "  # token_id # " " # library_id);
-                                // https://exos.surf/-/canister_id/collection/-/library_id
-                                return renderLibrary(state, req, metadata, token_id, library_id);
-                            };
-                            if(path_size == 4){
-                                if(path_array[4] == "info"){
-                                    /// https://exos.surf/-/canister_id/collection/-/library_id/info
-                                                    debug if(debug_channel.request) D.print("render info "  # token_id # " " # library_id);
+                          debug if(debug_channel.request) D.print("building library id");
+                          let library_id_buffer = Buffer.Buffer<Text>(1);
+                          let bIsInfo = path_array[path_array.size()-1] == "info";
 
-                                    let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                        case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                        case(#ok(val)){val};
-                                    };
-                                    return json(library_meta, queryObj.get("query"));
-                                };
+                          var tracker : Nat = 0;
+                          
+                          for(thisItem in path_array.vals()){
+                            if(tracker > 1){
+                              if(bIsInfo and tracker == Nat.sub(path_array.size(),1)){
+
+                              } else {
+                                library_id_buffer.add(thisItem)
+                              };
                             };
+                            tracker += 1;
+                          };
+
+                            let library_id = if(library_id_buffer.size() > 1){
+                            Text.join("/", library_id_buffer.toArray().vals());
+                          } else {
+                            library_id_buffer.get(0);
+                          };
+
+                          if(path_size >= 3 and path_array[path_array.size()-1] == "info"){
+                            let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
+                                case(#err(err)){return _not_found("library by " # library_id # " not found");};
+                                case(#ok(val)){val};
+                            };
+                            return json(library_meta, queryObj.get("query"));
+                          };
+                          debug if(debug_channel.request) D.print("library id "  # library_id);
+
+                          return renderLibrary(state, req, metadata, token_id, library_id);
+
+                        
 
                         };
                     };
@@ -1525,6 +1616,74 @@ module {
                         };
                         return json(libraries, null);
                     };
+                    if(path_array[1] == "ledger_info"){
+                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
+
+                        let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
+                          case(null){
+                            return json(#Empty, null);
+                          };
+                          case(?val){val};
+                        };
+                        
+                        let page = if(path_array.size() > 2){
+                          switch(Conversion.textToNat(path_array[2])){
+                              case(null){0};
+                              case(?val){val;};
+                            }
+                        } else {0};
+
+                        let size = if(path_array.size() > 3){
+                          switch(Conversion.textToNat(path_array[3])){
+                              case(null){10000};
+                              case(?val){val;};
+                            }
+                        } else {10000};
+
+
+                        return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
+                    };
+                    if(path_array[1]== "translate"){
+                      let rawkeys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
+                          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""}));
+                          
+                        } else {
+                          Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""}));
+                        };
+                          
+                          let translation = Array.map<Text, CandyTypes.CandyValue>(rawkeys, func(x){
+                            
+                          return #Class([
+                            {name="origyn_nft"; value=#Text(x); immutable=true;},
+                            {name="ext"; value=#Text(Types._getEXTTokenIdentifier(x, state.canister())); immutable=true;},
+                            {name="dip721"; value=#Text(Nat.toText(NFTUtils.get_token_id_as_nat(x))); immutable=true;}
+                          ]);
+                        });
+
+                        
+                        return json(#Array(#frozen(translation)), null);
+                            
+                    };
+                      
+
+                    
+                } else {
+                  debug if(debug_channel.request) D.print("collection info");
+                  let rawkeys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
+                    Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func (x : Text){ x != ""}));
+                    
+                  } else {
+                    Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func (x : Text){ x != ""}));
+                  };
+
+                  let keys = let keys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
+                    Array.map<Text, CandyTypes.CandyValue>(rawkeys, func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  } else {
+                    Array.map<Text, CandyTypes.CandyValue>(rawkeys, func (x:Text){#Text(x)}); // Should always have the "" item and need to remove it
+                  };
+                  
+                  return json(#Array(#frozen(keys)), null);
+                 
                 };
             } else if(path_array[0] == "metrics"){
                 return {

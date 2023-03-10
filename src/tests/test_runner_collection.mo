@@ -3,8 +3,8 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import C "mo:matchers/Canister";
-import CandyTypes "mo:candy_0_1_10/types";
-import Conversion "mo:candy_0_1_10/conversion";
+import CandyTypes "mo:candy/types";
+import Conversion "mo:candy/conversion";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
@@ -13,13 +13,14 @@ import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy_0_1_10/properties";
+import Properties "mo:candy/properties";
 import Result "mo:base/Result";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
 import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
+import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
 
 
@@ -111,7 +112,27 @@ shared (deployer) actor class test_runner_collection(dfx_ledger: Principal, dfx_
             };
             case(#ok(val)){val};
         };
-         
+
+        //test collection info
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+
+        //mint 2
+        let mint_attempt = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(canister)));
+        let mint_attempt2 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(canister)));
+
+
+         let collection_info_after_mint = switch(await canister.collection_nft_origyn(null)){
+            case(#err(err)){
+                //throw an error
+                //D.print(debug_show(err));
+                throw(Error.reject("couldn't get canister info after mint "));
+            };
+            case(#ok(val)){val};
+        };
+
         let suite = S.suite("test owner and manager", [
 
             S.test("owner is set on default", 
@@ -166,6 +187,19 @@ shared (deployer) actor class test_runner_collection(dfx_ledger: Principal, dfx_
                     case(null){"didn't find data"};
                     case(?val){"found data"};
             }, M.equals<Text>(T.text("found data"))),
+            S.test("unique holders is set",  switch(collection_info_after_mint.unique_holders){
+                    case(null){0};
+                    case(?val){val};
+            }, M.equals<Nat>(T.nat(1))),
+            
+            S.test("transaction count is correct",  switch(collection_info_after_mint.transaction_count){
+                    case(null){0};
+                    case(?val){val};
+            }, M.equals<Nat>(T.nat(2))),
+            S.test("tokenid count is correct",  switch(collection_info_after_mint.token_ids){
+                    case(null){0};
+                    case(?val){val.size()};
+            }, M.equals<Nat>(T.nat(3))),
         ]);
 
         S.run(suite);

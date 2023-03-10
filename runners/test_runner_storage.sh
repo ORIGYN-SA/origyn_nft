@@ -9,7 +9,7 @@ ADMIN_ACCOUNTID=$(dfx ledger account-id)
 echo $ADMIN_PRINCIPAL
 echo $ADMIN_ACCOUNTID
 
-dfx canister create test_runner
+dfx canister create test_runner --with-cycles 100000000000000
 dfx canister create test_runner_storage
 dfx canister create dfxledger
 dfx canister create dfxledger2
@@ -40,6 +40,8 @@ dfx build test_runner
 dfx build test_runner_storage
 dfx build test_canister_factory
 dfx build test_storage_factory
+dfx build dfxledger
+dfx build dfxledger2
 
 gzip ./.dfx/local/canisters/test_runner/test_runner.wasm -f
 gzip ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm -f

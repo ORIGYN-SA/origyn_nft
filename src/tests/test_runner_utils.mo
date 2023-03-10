@@ -2,8 +2,8 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import C "mo:matchers/Canister";
-//import CandyType "mo:candy_0_1_10/types";
-import CandyTypes "mo:candy_0_1_10/types";
+//import CandyType "mo:candy/types";
+import CandyTypes "mo:candy/types";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
 import M "mo:matchers/Matchers";
