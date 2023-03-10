@@ -43,6 +43,7 @@ import JSON "mo:candy/json";
 
 
 
+
 shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // Lets user turn debug messages on and off for local replica
@@ -62,6 +63,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     stable var SIZE_CHUNK = 2048000; //max message size
     stable let created_at = Nat64.fromNat(Int.abs(Time.now()));
     stable var upgraded_at = Nat64.fromNat(Int.abs(Time.now()));
+
+    let OneDay = 60 * 60 * 24 * 1000000000;
 
     // Canisters can support multiple storage nodes
     // If you have a small collection you don't need to use a storage collection
@@ -111,13 +114,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-    migration_state := Migrations.migrate(migration_state, #v0_1_3(#id), { owner = __initargs.owner; storage_space = initial_storage });
+    migration_state := Migrations.migrate(migration_state, #v0_1_4(#id), { owner = __initargs.owner; storage_space = initial_storage });
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_4(#data(state_current)) = migration_state;
                         
     debug if(debug_channel.instantiation) D.print("done initing migration_state" # debug_show(state_current.collection_data.owner) # " " # debug_show(deployer.caller));
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
+
+    
     
     // Used to get status of the canister and report it
     stable var ic : Types.IC = actor("aaaaa-aa");
@@ -152,6 +157,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             get_time = get_time;
             nft_library = nft_library;
             refresh_state = get_state;
+            kyc_client = kyc_client;
         };
     };
 

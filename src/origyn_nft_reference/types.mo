@@ -1136,6 +1136,7 @@ module {
         __system_physical : Text;
         __system_escrowed : Text;
         __apps :Text;
+        collection_kyc_canister : Text;
         library : Text;
         library_id : Text;
         library_size : Text;
@@ -1176,6 +1177,7 @@ module {
         __system_physical = "com.origyn.physical";
         __system_escrowed = "com.origyn.escrow_node";
         __apps = "__apps";
+        collection_kyc_canister = "com.origyn.kyc_canister";
         library = "library";
         library_id = "library_id";
         library_size = "size";

@@ -26,6 +26,7 @@ import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Migrations "migrations/types";
 import Mint "mint";
+import KYC "kyc";
 import NFTUtils "utils";
 import Types "types";
 
@@ -1320,6 +1321,13 @@ module {
               return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
             };
             case(#ok(res)) res;
+          };
+
+          switch(KYC.pass_kyc(state, escrow, caller)){
+            case(#ok(val)){};
+            case(#err(err)){
+              return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
+            };
           };
 
           //reentrancy risk so we remove the credit from the escrow

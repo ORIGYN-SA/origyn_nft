@@ -77,6 +77,9 @@ module {
   public let Conversions = v0_1_3.Conversions;
   public let Properties = v0_1_3.Properties;
 
+  public type KYCRequest = KYC.KYCRequest;
+  public type KYCResult = KYC.KYCResult;
+
   public type State  = {
     // this is the data you previously had as stable variables inside your actor class
     var collection_data : CollectionData;

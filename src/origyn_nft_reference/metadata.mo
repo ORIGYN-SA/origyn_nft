@@ -265,6 +265,24 @@ module {
     };
   };
 
+  //gets a text property out of the metadata
+  public func get_nft_principal_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Principal, Types.OrigynError>{
+    switch(Properties.getClassProperty(metadata, prop)){
+      case(null){
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+      };
+      case(?val){
+         return #ok(
+           switch(val.value){
+             case(#Principal(val)){return #ok(val)};
+             case(_){
+               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+             }
+           });
+      };
+    };
+  };
+
   //gets a bool property out of the metadata
   public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
