@@ -112,6 +112,11 @@ let additions =
   , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
   , version = "v0.0.1"
   , dependencies = ["base", "candy_0_1_10" ]
+  },
+   { name = "droute_client"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/droute-client"
+  , version = "v0.1.0"
+  , dependencies = ["base" ]
   }
   ] : List Package
   ] : List Package

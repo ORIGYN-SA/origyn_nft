@@ -152,7 +152,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
     var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
 
-    let droute_client = DROUTE.Droute({
+    let droute_client = DROUTE.new(?{
       mainId = ?droute_main_id;
       publishersIndexId= ?droute_publisher_id;
       subscribersIndexId= ?droute_suscriber_id;
@@ -160,27 +160,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     );
 
      ignore Timer.setTimer(0, false, func(): async () {
-    await* Droute.init();
+    await* DROUTE.init();
 
-    ignore await* Droute.registerPublication("com.origyn.nft.event.auction_bid", null);
-    ignore await* Droute.registerPublication("com.origyn.nft.event.mint", null);
-    ignore await* Droute.registerPublication("com.origyn.nft.event.sale_ended", null);
+    ignore await* DROUTE.registerPublication("com.origyn.nft.event.auction_bid", null);
+    ignore await* DROUTE.registerPublication("com.origyn.nft.event.mint", null);
+    ignore await* DROUTE.registerPublication("com.origyn.nft.event.sale_ended", null);
   });
-
- public func setTimeCall(): async (){
-          let solarYearSeconds = 356_925_216;
-
-             func remind() : async () {
-            Debug.print("Happy New Year!");
-            };
-
-        ignore Timer.setTimer(#seconds (solarYearSeconds - abs(now() / 1_000_000_000) % solarYearSeconds),
-        func () : async () {
-        ignore recurringTimer(#seconds solarYearSeconds, remind);
-        await remind();
-        });
-        return ()
-    };
 
 
     // Let us access state and pass it to other modules
