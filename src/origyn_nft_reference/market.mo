@@ -440,7 +440,7 @@ module {
       };
 
       return #ok(#active({
-          records = results.toArray();
+          records = Buffer.toArray(results);
           eof = eof;
           count = foundTotal;
       }));
@@ -518,7 +518,7 @@ module {
         };
 
         return #ok(#history({
-          records = results.toArray();
+          records = Buffer.toArray(results);
           eof = eof;
           count = total;
         }));
@@ -930,8 +930,8 @@ module {
                     thisRoyalty with
                     withdraw_to = thisRoyalty.seller;})));
                 };
-                D.print("attempt to distribute royalties request auction" # debug_show(request_buffer.toArray()));
-                let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+                D.print("attempt to distribute royalties request auction" # debug_show(Buffer.toArray(request_buffer)));
+                let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
                 D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
@@ -979,7 +979,7 @@ module {
       };
 
       let service : Types.Service = actor((Principal.toText(state.canister())));
-      let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+      let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
       return #ok(#distribute_sale(future));
     };
 
@@ -1588,9 +1588,9 @@ module {
                 thisRoyalty with
                 withdraw_to = thisRoyalty.seller;})));
             };
-            D.print("attempt to distribute royalties request instant" # debug_show(request_buffer.toArray()));
+            D.print("attempt to distribute royalties request instant" # debug_show(Buffer.toArray(request_buffer)));
 
-            let future = await service.sale_batch_nft_origyn(request_buffer.toArray());
+            let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
             D.print("attempt to distribute royalties instant" # debug_show(future));
           };
 
@@ -1740,7 +1740,7 @@ module {
           };
         };
       };
-      return (request.remaining, results.toArray());
+      return (request.remaining, Buffer.toArray(results));
     };
 
     //handles non-async market functions like starting an auction
@@ -1981,7 +1981,7 @@ module {
         Map.delete<Types.Account, Map.Map<Types.Account, Int>>(state.state.offers, account_handler, seller);
       };
 
-      return #ok(#refresh_offers(offer_results.toArray()));
+      return #ok(#refresh_offers(Buffer.toArray(offer_results)));
     };
 
     //moves tokens from a deposit into an escrow

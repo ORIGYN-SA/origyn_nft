@@ -182,7 +182,7 @@ module {
       };
     };
 
-    found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(#thawed(new_list.toArray())))}])){
+    found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(#thawed(Buffer.toArray(new_list))))}])){
         case(#err(errType)){
             return #err(Types.errors(#update_class_error, "update_app_nft_origyn - set metadata status", ?caller));
         };

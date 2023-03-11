@@ -682,7 +682,7 @@ module {
           };
 
 
-          var found_metadata = #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.library; mode=#Set(#Array(#thawed(new_library.toArray())))}])){
+          var found_metadata = #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.library; mode=#Set(#Array(#thawed(Buffer.toArray(new_library))))}])){
               case(#err(errType)){
                   switch(errType){
                       case(_){

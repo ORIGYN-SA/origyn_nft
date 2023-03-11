@@ -323,7 +323,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
        return #ok({
            total_size = Map.size(state.nft_inventory);
-           items = results.toArray()
+           items = Buffer.toArray(results)
         });
     };
 
@@ -478,7 +478,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         
 
-        return results.toArray();
+        return Buffer.toArray(results);
         // return #err(Types.errors(#nyi, "manage_group_sale_nft_origyn nyi", ?msg.caller));
     };
 
@@ -556,7 +556,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                                     nftsToBe.add(this_item);
                                 };
                             };
-                            let nftsArray =  nftsToBe.toArray();
+                            let nftsArray =  Buffer.toArray(nftsToBe);
 
                             let insert  = {                        
                                 namespace = v.namespace;
@@ -612,7 +612,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                                 };
                             };
 
-                            let nftsArray =  nftsToBe.toArray();
+                            let nftsArray =  Buffer.toArray(nftsToBe);
                             let insert  = {                        
                                     namespace = v.namespace;
                                     reservation_type =  v.reservation_type;
@@ -685,7 +685,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
        return #ok({
            total_size = results.size();
-           items = results.toArray();
+           items = Buffer.toArray(results);
        }); 
     //    return #err(Types.errors(#nyi, "manage_reservation nyi", ?msg.caller));
     };
@@ -751,8 +751,8 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         return{
             groups = user_groups;
-            personal_reservations = personal_reservations.toArray();
-            group_reservations = group_reservations.toArray();
+            personal_reservations = Buffer.toArray(personal_reservations);
+            group_reservations = Buffer.toArray(group_reservations);
         };
     };
 
@@ -1221,7 +1221,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                 };
             };
 
-            Array.sort<(Nat,?Nat)>(result.toArray(), func(a : (Nat, ?Nat),b:(Nat, ?Nat)) : Order.Order{ return Nat.compare(a.0,b.0)});
+            Array.sort<(Nat,?Nat)>(Buffer.toArray(result), func(a : (Nat, ?Nat),b:(Nat, ?Nat)) : Order.Order{ return Nat.compare(a.0,b.0)});
         };
 
         D.print("have flat price" # debug_show(flat_price));
@@ -1309,8 +1309,8 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         };
 
         //try the purchase
-        D.print("about to send transfer" # debug_show(transfers.toArray()));
-        let transfer_result = await nft_gateway.market_transfer_batch_nft_origyn(transfers.toArray());
+        D.print("about to send transfer" # debug_show(Buffer.toArray(transfers)));
+        let transfer_result = await nft_gateway.market_transfer_batch_nft_origyn(Buffer.toArray(transfers));
         D.print("result was" # debug_show(transfer_result));
 
         //process the results
@@ -1354,7 +1354,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         };
 
         return #ok({
-            nfts = results.toArray();
+            nfts = Buffer.toArray(results);
         });
         
         // return #err(Types.errors(#nyi, "redeem_allocation nyi", ?msg.caller));
@@ -1661,7 +1661,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         return #ok({
             total_size = Map.size(state.nft_inventory);
-            items = results.toArray();
+            items = Buffer.toArray(results);
             start = this_start;
         });
     };

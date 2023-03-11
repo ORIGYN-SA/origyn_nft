@@ -196,7 +196,7 @@ module {
       };
 
     };
-    return nft_results.toArray();
+    return Buffer.toArray(nft_results);
   };
 
 
@@ -814,7 +814,7 @@ module {
           };
         };
         if(app_nodes.size() > 0){
-          final_object.add({name=this_entry.name; value=#Array(#thawed(app_nodes.toArray())); immutable=false});
+          final_object.add({name=this_entry.name; value=#Array(#thawed(Buffer.toArray(app_nodes))); immutable=false});
         };
       } 
       
@@ -824,7 +824,7 @@ module {
     };
 
     return #Class(
-      final_object.toArray()
+      Buffer.toArray(final_object)
        );
   };
 
@@ -1222,7 +1222,7 @@ module {
             };
             if(collection.size() > 0){
               //D.print("returning a class because we found child public nodes");
-              return #Class(collection.toArray());
+              return #Class(Buffer.toArray(collection));
             } else {
               //D.print("returning a empty because there were no public child nodes");
               return #Empty;
@@ -1469,7 +1469,7 @@ module {
                         switch(wval){
                           case(#thawed(val)){
                             return #ok(#chunk({
-                              content = Blob.fromArray(val.toArray());
+                              content = Blob.fromArray(Buffer.toArray(val));
                               total_chunks = zone.size();
                               current_chunk = request.chunk;
                               storage_allocation = Types.allocation_record_stabalize(allocation);
@@ -1831,7 +1831,7 @@ module {
       if(tracker >= (page * size) + size){break search};
     };
 
-    results.toArray();
+    Buffer.toArray(results);
   };
 
   

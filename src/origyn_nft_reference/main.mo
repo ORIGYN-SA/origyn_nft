@@ -247,7 +247,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add(Mint.stage_nft_origyn(get_state(), this_item.metadata, msg.caller));
         };
         canistergeekMonitor.collectMetrics();
-        return results.toArray();
+        return Buffer.toArray(results);
 
     };
 
@@ -329,7 +329,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         canistergeekMonitor.collectMetrics();
 
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     // Mints a NFT and assigns it to the new owner
@@ -389,7 +389,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
           results.add(await* thisItem);
         };
         canistergeekMonitor.collectMetrics();
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     // Allows an owner to transfer a NFT from one of their wallets to another
@@ -595,7 +595,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         };
         //D.print("made it");
         canistergeekMonitor.collectMetrics();
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     private func _sale_nft_origyn(request: Types.ManageSaleRequest, caller : Principal): async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
@@ -745,7 +745,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
           result.add(await* thisItem);
         };
         canistergeekMonitor.collectMetrics();
-        return result.toArray();
+        return Buffer.toArray(result);
     };
 
 
@@ -793,7 +793,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         for(this_item in requests.vals()){
             result.add(_sale_info_nft_origyn(this_item, msg.caller));
         };
-        return result.toArray();
+        return Buffer.toArray(result);
 
     };
 
@@ -813,7 +813,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             canistergeekLogger.logMessage("sale_info_batch_secure_nft_origyn",#Text(log_data),?msg.caller);   
             result.add(_sale_info_nft_origyn(this_item, msg.caller));
         };
-        return result.toArray();
+        return Buffer.toArray(result);
     };
 
     // Allows an owner to update information about a collection
@@ -861,7 +861,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add(Metadata.collection_update_nft_origyn(get_state(), this_item, msg.caller));
         };
 
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     
@@ -974,7 +974,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
         let multi_canister = Iter.toArray<Principal>(Map.keys<Principal, Types.BucketData>(state.state.buckets));
 
-        let keysArray = keysBuffer.toArray();
+        let keysArray = Buffer.toArray(keysBuffer);
 
         return #ok({
             fields = fields;
@@ -1045,7 +1045,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                     }});
                 };
 
-                return #ok(result.toArray());
+                return #ok(Buffer.toArray(result));
             } else {
                 // Enable revrange
                 return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?caller));
@@ -1085,7 +1085,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         label search for(thisitem in tokens.vals()){
             results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2, msg.caller));           
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     // Secure access to history batch
@@ -1098,7 +1098,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add( _history_nft_origyn(thisitem.0, thisitem.1, thisitem.2,msg.caller));
            
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
 
@@ -1153,7 +1153,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
               result.add((Text.hash(this_nft.0), null, null));
             };
         };
-        return  #ok(result.toArray());
+        return  #ok(Buffer.toArray(result));
     };
 
 
@@ -1277,11 +1277,11 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
         return #ok{
             multi_canister = null; //nyi
-            nfts = nft_results.toArray();
-            escrow = escrowResults.toArray();
-            sales = salesResults.toArray();
+            nfts = Buffer.toArray(nft_results);
+            escrow = Buffer.toArray(escrowResults);
+            sales = Buffer.toArray(salesResults);
             stake = [];
-            offers = offer_results.toArray();
+            offers = Buffer.toArray(offer_results);
         };
     };
 
@@ -1300,7 +1300,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         for(thisItem in requests.vals()){
           results.add(_balance_of_nft_origyn(thisItem, msg.caller));
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
 
@@ -1341,7 +1341,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         for(thisItem in requests.vals()){
           results.add(_balance_of_nft_origyn(thisItem, msg.caller));
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
 
@@ -1392,7 +1392,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         label search for(thisitem in tokens.vals()){
             results.add( _bearer_of_nft_origyn(thisitem, msg.caller));           
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     // Secure access to bearer batch
@@ -1405,7 +1405,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add( _bearer_of_nft_origyn(thisitem, msg.caller));
            
         };
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     // Conversts a token id to a Nat for use in dip721
@@ -1548,7 +1548,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add(_nft_origyn(thisitem, msg.caller));
         };
 
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     public shared (msg) func nft_batch_secure_origyn(token_ids : [Text]) : async [Result.Result<Types.NFTInfoStable, Types.OrigynError>]{
@@ -1560,7 +1560,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             results.add( _nft_origyn(thisitem, msg.caller));
         };
 
-        return results.toArray();
+        return Buffer.toArray(results);
     };
 
     private func _dip_721_metadata(caller: Principal, token_id : Nat) : DIP721.Metadata_3 {
@@ -1630,7 +1630,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        return #Ok(resultBuffer.toArray());
+        return #Ok(Buffer.toArray(resultBuffer));
     } ;
 
 
@@ -1963,7 +1963,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         var transaction_count = 0;
         Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x: SB.StableBuffer<MigrationTypes.Current.TransactionRecord>,_index){ transaction_count += SB.size(x)});
 
-        let keysArray = keysBuffer.toArray();
+        let keysArray = Buffer.toArray(keysBuffer);
 
         return {
           cycles = Cycles.balance();
@@ -2081,7 +2081,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            buckets := buckets_buffer.toArray();
+            buckets := Buffer.toArray(buckets_buffer);
         } else {
             globalTracker += buckets_size;
         };
@@ -2101,7 +2101,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            allocations := allocations_buffer.toArray();
+            allocations := Buffer.toArray(allocations_buffer);
         } else {
             globalTracker += allocations_size;
         };
@@ -2127,7 +2127,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 
                 globalTracker += 1;
             };
-            escrows := escrows_buffer.toArray();
+            escrows := Buffer.toArray(escrows_buffer);
         }else{
             globalTracker += escrows_size;
         };
@@ -2152,7 +2152,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            sales := sales_buffer.toArray();
+            sales := Buffer.toArray(sales_buffer);
         } else { 
             globalTracker += sales_size;
         };
@@ -2172,7 +2172,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            offers := offers_buffer.toArray();
+            offers := Buffer.toArray(offers_buffer);
        } else {
              globalTracker += offers_size;
        };
@@ -2193,7 +2193,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            nft_ledgers := nft_ledgers_buffer.toArray();
+            nft_ledgers := Buffer.toArray(nft_ledgers_buffer);
        } else {
             globalTracker +=nft_ledgers_size;
        };
@@ -2212,7 +2212,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 };
                 globalTracker += 1;
             };
-            nft_sales := nft_sales_buffer.toArray();
+            nft_sales := Buffer.toArray(nft_sales_buffer);
        } else {
             globalTracker +=nft_sales_size;
        };
@@ -2346,10 +2346,10 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             for(this_item in thisKey.1.entries()){
                 this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)) );
             };
-            nft_library_stable_buffer.add((thisKey.0, this_library_buffer.toArray()));
+            nft_library_stable_buffer.add((thisKey.0, Buffer.toArray(this_library_buffer)));
         };
 
-        nft_library_stable := nft_library_stable_buffer.toArray();
+        nft_library_stable := Buffer.toArray(nft_library_stable_buffer);
 
     };
 
