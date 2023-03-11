@@ -69,13 +69,10 @@ module {
     , Types.OrigynError> {
 
     //find buyer's escrows
-    let to_list = switch(Map.get(state.state.escrow_balances, account_handler, buyer)){
-      case(null){
+    let ?to_list = Map.get(state.state.escrow_balances, account_handler, buyer) else {
         debug if(debug_channel.verify_escrow) D.print("didnt find asset");
         return #err(Types.errors(#no_escrow_found, "find_escrow_reciept - escrow buyer not found ", null));
       };
-      case(?to_list) to_list;
-    };
 
     debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
             //find sellers deposits
@@ -100,22 +97,16 @@ module {
       state: StateAccess,
       escrow : Types.EscrowReceipt, 
       owner: ?Types.Account, 
-      sale_id: ?Text) : Result.Result<
-      {
-        found_asset : {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord};
-        found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
-      }, Types.OrigynError> {
+      sale_id: ?Text) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
 
-      let to_list = switch(Map.get(state.state.escrow_balances, account_handler, escrow.buyer)){
-        case(null){
+      let ?to_list = Map.get(state.state.escrow_balances, account_handler, escrow.buyer) else {
           debug if(debug_channel.verify_escrow) D.print("didnt find asset");
           return #err(Types.errors(#no_escrow_found, "verify_escrow_receipt - escrow buyer not found " # debug_show(escrow.buyer), null));
         };
-        case(?to_list) to_list;
-      };
 
       //only the owner can sell it
       debug if(debug_channel.verify_escrow) D.print("found to list" # debug_show(owner) # debug_show(escrow.seller));
+      
       switch(owner){
         case(null){};
         case(?owner){
@@ -124,11 +115,11 @@ module {
       };
 
       debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
-      let token_list = switch(Map.get(to_list, account_handler, escrow.seller)){
-        case(null){
+
+      let ?token_list = Map.get(to_list, account_handler, escrow.seller) else {
           debug if(debug_channel.verify_escrow) D.print("no escrow seller");
-          return #err(Types.errors(#no_escrow_found, "verify_escrow_receipt - escrow seller not found  " # debug_show(escrow.seller), null));};
-        case(?token_list) token_list;
+
+          return #err(Types.errors(#no_escrow_found, "verify_escrow_receipt - escrow seller not found  " # debug_show(escrow.seller), null));
       };
 
       debug if(debug_channel.verify_escrow) D.print("looking for to list");
@@ -138,10 +129,7 @@ module {
         case(?asset_list, _ ) asset_list;
       };
               
-      let balance = switch(Map.get(asset_list, token_handler, escrow.token)){
-        case(null) return #err(Types.errors(#no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
-        case(?balance) balance;
-      };
+      let ?balance = Map.get(asset_list, token_handler, escrow.token) else  return #err(Types.errors(#no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
 
       let found_asset = ?{token_spec = escrow.token; escrow = balance};
 
@@ -180,42 +168,29 @@ module {
     //verifies that a revenue reciept is in the NFT Canister
     public func verify_sales_reciept(
       state: StateAccess,
-      escrow : Types.EscrowReceipt) : Result.Result<
-      {
-          found_asset : {token_spec: Types.TokenSpec; escrow: Types.EscrowRecord};
-          found_asset_list : MigrationTypes.Current.EscrowLedgerTrie;
-      }, Types.OrigynError> {
+      escrow : Types.EscrowReceipt) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
 
-      let to_list = switch(Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller)){
-        case(null){
+      let ?to_list = Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller) else {
           debug if(debug_channel.verify_sale) D.print("sale seller not found");
           return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow seller not found ", null));
         };
-        case(?to_list) to_list;
-      };
+
               //only the owner can sell it
 
-      let token_list = switch(Map.get(to_list, account_handler, escrow.buyer)){
-        case(null){
+      let ?token_list = Map.get(to_list, account_handler, escrow.buyer) else {
           debug if(debug_channel.verify_sale) D.print("sale byer not found");
-          return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow buyer not found ", null));};
-        case(?token_list) token_list;
+          return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow buyer not found ", null));
       };
 
-      let asset_list = switch(Map.get(token_list, Map.thash, escrow.token_id)){
-        case(null){
+      let ?asset_list = Map.get(token_list, Map.thash, escrow.token_id) else {
           debug if(debug_channel.verify_sale) D.print("sale token id not found");
           return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow token_id not found ", null));
         };
-        case(?asset_list) asset_list;
-      };
               
-      let balance = switch(Map.get(asset_list, token_handler,escrow.token)){
-        case(null){
+      let ?balance = Map.get(asset_list, token_handler,escrow.token) else {
           debug if(debug_channel.verify_sale) D.print("sale token not found");
           return #err(Types.errors(#no_escrow_found, "verify_sales_reciept - escrow token spec not found ", null));};
-        case(?balance)balance;
-      };
+       
 
       let found_asset = ?{token_spec = escrow.token; escrow = balance};
       debug if(debug_channel.verify_sale) D.print("issue with balances");
@@ -242,10 +217,7 @@ module {
       caller: Principal) : Result.Result<Bool,Types.OrigynError>{
 
                       debug if(debug_channel.ensure) D.print("in ensure");
-      let token_id = switch(Metadata.get_nft_id(metadata)){
-          case(#err(err_)) return #err(Types.errors(#token_not_found, "is_token_on_sale - could not find token_id ", ?caller));
-          case(#ok(val)) val;
-      };
+      let #ok(token_id) =Metadata.get_nft_id(metadata) else  return #err(Types.errors(#token_not_found, "is_token_on_sale - could not find token_id ", ?caller));
 
       //look for an existing sale
       debug if(debug_channel.verify_sale) D.print("geting sale");
@@ -258,10 +230,7 @@ module {
                           
       debug if(debug_channel.verify_sale) D.print("found sale" # sale_id);
               
-      let current_sale = switch(Map.get(state.state.nft_sales, Map.thash, sale_id)){
-          case(?status) status;
-          case(null)return #err(Types.errors(#sale_not_found, "is_token_on_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));
-      };
+      let ?current_sale = Map.get(state.state.nft_sales, Map.thash, sale_id) else return #err(Types.errors(#sale_not_found, "is_token_on_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));
 
       debug if(debug_channel.verify_sale) D.print("checking state");
       let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
@@ -1323,9 +1292,30 @@ module {
             case(#ok(res)) res;
           };
 
-          switch(KYC.pass_kyc(state, escrow, caller)){
-            case(#ok(val)){};
+          let kyc_result = try{
+            await* KYC.pass_kyc(state, verified.found_asset.escrow, caller);
+          } catch(e){
+            return #err(Types.errors(#kyc_error, "market_transfer_nft_origyn auto try escrow failed " # Error.message(e), ?caller))
+          };
+
+          switch(kyc_result){
+            case(#ok(val)){
+
+              if(val.kyc == #Fail or val.aml == #Fail){
+                //returns the failed escrow to the user
+                //ignore refund_failed_bid(state, verified, escrow);
+                return #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
+              };
+              let kycamount = Option.get(val.amount, 0);
+
+              if((kycamount > 0) and (escrow.amount > kycamount)){
+                //ignore refund_failed_bid(state, verified, escrow);
+                return #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml amount too large " # debug_show((val, kycamount, escrow)), ?caller))
+              };
+
+            };
             case(#err(err)){
+              //ignore refund_failed_bid(state, verified, escrow);
               return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
             };
           };
@@ -1819,6 +1809,10 @@ module {
 
         switch(request.sales_config.pricing){
           case(#auction(auction_details)){
+
+            
+
+            
             //what does an escrow reciept do for an auction? Place a bid?
             //for now ignore
             switch(request.sales_config.escrow_receipt){
@@ -2679,6 +2673,20 @@ module {
       return #err(Types.errors(#nyi, "withdraw_nft_origyn  - nyi - " , ?caller));
     };
 
+    private func refund_failed_bid(state : Types.State, verified: MigrationTypes.Current.VerifiedReciept, escrow: MigrationTypes.Current.EscrowReceipt) : async* Bool{
+       //we will close later after we try to refund a valid bid
+      debug if(debug_channel.bid) D.print("refunding"  # debug_show(verified.found_asset.escrow.amount));
+      let service : Types.Service = actor((Principal.toText(state.canister())));
+      let refund_id = service.sale_nft_origyn(#withdraw(
+        #escrow({
+          escrow with
+          amount = verified.found_asset.escrow.amount; //return back the whole escrow
+          withdraw_to = escrow.buyer;}
+        )));
+
+      return true;
+    };
+
     //allows bids on auctons
     public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
@@ -2783,14 +2791,7 @@ module {
       switch(current_sale_state.status){
         case(#closed){
           //we will close later after we try to refund a valid bid
-          debug if(debug_channel.bid) D.print("refunding closed "  # debug_show(verified.found_asset.escrow.amount));
-          let service : Types.Service = actor((Principal.toText(state.canister())));
-          let refund_id = service.sale_nft_origyn(#withdraw(
-            #escrow({
-              request.escrow_receipt with
-              amount = verified.found_asset.escrow.amount; //return back the whole escrow
-              withdraw_to = request.escrow_receipt.buyer;}
-            )));
+          ignore refund_failed_bid(state, verified, request.escrow_receipt);
           //last_withdraw_result := ?refund_id;
 
           //debug if(debug_channel.bid) D.print(debug_show(refund_id));
@@ -2824,6 +2825,41 @@ module {
           } else {
             false;
           };
+        };
+      };
+
+      //kyc
+
+      let kyc_result = try{
+        await* KYC.pass_kyc(state, verified.found_asset.escrow, caller);
+      } catch(e){
+        return #err(Types.errors(#kyc_error, "bid_nft_origyn auto try escrow failed " # Error.message(e), ?caller))
+      };
+
+      switch(kyc_result){
+        case(#ok(val)){
+
+          if(val.kyc == #Fail or val.aml == #Fail){
+            ignore refund_failed_bid(state, verified, request.escrow_receipt);
+            //last_withdraw_result := ?refund_id;
+
+            //debug if(debug_channel.bid) D.print(debug_show(refund_id));
+            return #err(Types.errors(#auction_ended, "end_sale_nft_origyn - auction already closed - attempting escrow return ", ?caller));
+            
+            return #err(Types.errors(#kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
+          };
+          let kycamount = Option.get(val.amount, 0);
+
+          if((kycamount > 0) and (request.escrow_receipt.amount > kycamount)){
+            ignore refund_failed_bid(state, verified, request.escrow_receipt);
+
+            return #err(Types.errors(#kyc_fail, "bid_nft_origyn kyc or aml amount too large " # debug_show((val, kycamount, request.escrow_receipt)), ?caller))
+          };
+
+        };
+        case(#err(err)){
+          ignore refund_failed_bid(state, verified, request.escrow_receipt);
+          return #err(Types.errors(err.error, "bid_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
         };
       };
 

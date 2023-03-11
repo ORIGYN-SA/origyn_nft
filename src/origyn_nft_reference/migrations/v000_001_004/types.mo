@@ -6,7 +6,8 @@ import Text "mo:base/Text";
 import Nat32 "mo:base/Nat32";
 import Nat "mo:base/Nat";
 
-import KYC "mo:icrc17_kyc/types";
+import KYCTypes "mo:icrc17_kyc/types";
+import KYCClass "mo:icrc17_kyc";
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
@@ -77,8 +78,17 @@ module {
   public let Conversions = v0_1_3.Conversions;
   public let Properties = v0_1_3.Properties;
 
-  public type KYCRequest = KYC.KYCRequest;
-  public type KYCResult = KYC.KYCResult;
+  public type KYCRequest = KYCTypes.KYCRequest;
+  public type KYCResult = KYCTypes.KYCResult;
+  public type KYCTokenSpec = KYCTypes.TokenSpec;
+  public type KYCCacheMap = KYCTypes.CacheMap;
+
+  public let KYC = KYCClass;
+
+  public type VerifiedReciept = {
+    found_asset : {token_spec: TokenSpec; escrow: EscrowRecord};
+    found_asset_list : EscrowLedgerTrie;
+  };
 
   public type State  = {
     // this is the data you previously had as stable variables inside your actor class
@@ -94,6 +104,6 @@ module {
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var access_tokens : Map.Map<Text, HttpAccess>;
-    var kyc_cache : Map.Map<KYC.KYCRequest,KYC.KYCResultFuture>;
+    var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;
   };
 };

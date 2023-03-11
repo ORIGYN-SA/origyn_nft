@@ -113,7 +113,7 @@ let additions =
   , dependencies = ["base", "candy_0_1_10" ]
   },
   { name = "icrc17_kyc"
-  , repo = "https://gitlab.origyn.ch/origyn/engineering/kyc.mo"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/kyc.mo"
   , version = "master"
   , dependencies = ["base" ]
   },

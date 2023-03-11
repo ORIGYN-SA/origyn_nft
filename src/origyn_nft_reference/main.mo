@@ -123,7 +123,12 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     debug if(debug_channel.instantiation) D.print("initializing from " # debug_show((deployer, __initargs)) );
 
     
-    
+    let kyc_client = MigrationTypes.Current.KYC.kyc({
+      time = null;
+      timeout = ?OneDay;
+      cache = ?state_current.kyc_cache;
+    });
+
     // Used to get status of the canister and report it
     stable var ic : Types.IC = actor("aaaaa-aa");
 
@@ -593,12 +598,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return results.toArray();
     };
 
+    private func _sale_nft_origyn(request: Types.ManageSaleRequest, caller : Principal): async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
 
-    // Allows a user to do a number of functions around a NFT sale including ending a sale, opening a sale, depositing an escrow
-    // refresh_offers, bidding in an auction, withdrawing funds from an escrow or sale
-    public shared (msg) func sale_nft_origyn(request: Types.ManageSaleRequest) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
-        
-        if(halt == true){throw Error.reject("canister is in maintenance mode");};
         var log_data : Text = "";                
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in sale_nft_origyn");
@@ -606,34 +607,34 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         return switch (request) {
             case (#end_sale(val)) {
                  let log_data = "Type : end sale, token id : " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                await* Market.end_sale_nft_origyn(get_state(), val, msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                await* Market.end_sale_nft_origyn(get_state(), val, caller);
             };
             case (#open_sale(val)) {
                 let log_data =  "Type : open sale, token id : " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                Market.open_sale_nft_origyn(get_state(), val, msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                Market.open_sale_nft_origyn(get_state(), val, caller);
             };
             case (#escrow_deposit(val)) {
                  let log_data = "Type : escrow deposit, token id : " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                return await* Market.escrow_nft_origyn(get_state(), val, msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                return await* Market.escrow_nft_origyn(get_state(), val, caller);
             };
             case (#refresh_offers(val)) {
                  let log_data = "Type : refresh offers " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                Market.refresh_offers_nft_origyn(get_state(), val, msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                Market.refresh_offers_nft_origyn(get_state(), val, caller);
             };
             case (#bid(val)) {
                  let log_data = "Type : bid " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                await* Market.bid_nft_origyn(get_state(), val, msg.caller, false);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                await* Market.bid_nft_origyn(get_state(), val, caller, false);
 
             };
             case (#distribute_sale(val)) {
                  let log_data = "Type : distribute sale " # debug_show(val);
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
-                await* Market.distribute_sale(get_state(), val, msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                await* Market.distribute_sale(get_state(), val, caller);
             };
             case (#withdraw(val)) {                
                 let log_data = switch(val){
@@ -650,12 +651,19 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                          "Type : withdraw with deposit " # debug_show(val);
                     };
                 };
-                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?msg.caller);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
                 // D.print("in withdrawl");
-                await* Market.withdraw_nft_origyn(get_state(), val, msg.caller);
+                await* Market.withdraw_nft_origyn(get_state(), val, caller);
             };
         };
+    };
 
+
+    // Allows a user to do a number of functions around a NFT sale including ending a sale, opening a sale, depositing an escrow
+    // refresh_offers, bidding in an auction, withdrawing funds from an escrow or sale
+    public shared (msg) func sale_nft_origyn(request: Types.ManageSaleRequest) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        return await* _sale_nft_origyn(request, msg.caller);
     };
 
     // Allows batch operations
