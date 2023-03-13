@@ -902,7 +902,8 @@ module {
                   sale_id = ?current_sale.sale_id;
                   account_hash = account_hash;
                   metadata = metadata;
-                  token_id = ?token_id
+                  token_id = ?token_id;
+                  token = winning_escrow.token;
                 }, caller);
 
                 remaining := royalty_result.0;
@@ -1561,6 +1562,7 @@ module {
                 account_hash = account_hash;
                 metadata = metadata;
                 token_id = ?request.token_id;
+                token = escrow.token;
             }, caller);
 
             remaining := royalty_result.0;
@@ -1601,6 +1603,14 @@ module {
       };
     };
 
+    public func get_network_royalty_account(principal : Principal) : [Nat8]{
+      let h = SHA256.New();
+      h.write(Conversions.valueToBytes(#Text("com.origyn.network_royalty")));
+      h.write(Conversions.valueToBytes(#Text("canister-id")));
+      h.write(Conversions.valueToBytes(#Text(Principal.toText(principal))));
+      h.sum([]);
+    };
+
     //handles royalty distribution
     private func _process_royalties(state : StateAccess, request : {
         var remaining: Nat;
@@ -1613,7 +1623,8 @@ module {
         original_broker_id: ?Principal;
         sale_id: ?Text;
         metadata : CandyTypes.CandyValue;
-        token_id: ?Text
+        token_id: ?Text;
+        token: Types.TokenSpec
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
       let dev_fund = Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae");
@@ -1650,45 +1661,54 @@ module {
           };
         };
 
-        let principal = switch(Properties.getClassProperty(this_item, "account")){
+        let principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassProperty(this_item, "account")){
             case(null){
+              let #ic(tokenSpec) = request.token else {
+                D.print("not an IC token spec so continuing " # debug_show(request.token));
+                continue royaltyLoop;
+              }; //we only support ic token specs for royalties
               if(tag == Types.metadata.royalty_network){
+
+                
+
+                D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister)));
                 switch(state.state.collection_data.network){
-                  case(null) [dev_fund] ; //dev fund
-                  case(?val) [val] ;
+                  case(null) [{owner = dev_fund; sub_account = null;}] ; //dev fund
+                  case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister)}] ;
                 };
+
               } else if(tag == Types.metadata.royalty_node){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
                 switch(val){
-                  case(#Empty) [dev_fund] ; //dev fund
-                  case(#Principal(val)) [val];
-                  case(_) [dev_fund];
+                  case(#Empty) [{owner = dev_fund; sub_account = null;}] ; //dev fund
+                  case(#Principal(val)) [{owner = val; sub_account = null;}];
+                  case(_) [{owner = dev_fund; sub_account = null;}];
                 };
               } else if(tag == Types.metadata.royalty_originator){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
                 switch(val){
-                  case(#Empty) [dev_fund]; //dev fund
-                  case(#Principal(val)) [val];
-                  case(_) [dev_fund] ;
+                  case(#Empty) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(#Principal(val)) [{owner = val; sub_account = null;}];
+                  case(_) [{owner = dev_fund; sub_account = null;}] ;
                 };
               } else if(tag == Types.metadata.royalty_broker){
                 switch(request.broker_id, request.original_broker_id){
-                  case(null, null) [dev_fund]; //dev fund
-                  case(?val, null) [val];
-                  case(null, ?val2) [val2];
+                  case(null, null) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(?val, null) [{owner = val; sub_account = null;}];
+                  case(null, ?val2) [{owner = val2; sub_account = null;}];
                   case(?val, ?val2){
-                    if(val == val2) [val]
-                    else [val, val2];
+                    if(val == val2) [{owner = val; sub_account = null;}]
+                    else [{owner = val; sub_account = null;}, {owner = val2; sub_account = null;}];
                   };
                 };
               } else { 
-                [dev_fund]; //dev fund
+                [{owner = dev_fund; sub_account = null;}]; //dev fund
               };
             };  //dev fund
             case(?val){
               switch(val.value){
-                  case(#Principal(val)) [val];
-                  case(_) [dev_fund]; //dev fund
+                  case(#Principal(val)) [{owner = val; sub_account = null;}];
+                  case(_) [{owner = dev_fund; sub_account = null;}]; //dev fund
               };
             };
         };
@@ -1713,7 +1733,12 @@ module {
                 request.escrow with 
                 amount = this_royalty;
                 tag = tag;
-                reciever = #principal(this_principal);
+                reciever = #account({ owner = this_principal.owner;
+                sub_account = switch(this_principal.sub_account){
+                    case(null) null;
+                    case(?val) ?Blob.fromArray(val);
+                  }
+                });
                 sale_id = request.sale_id;
                 extensible = switch(request.token_id){
                   case(null) #Empty : CandyTypes.CandyValue;
@@ -1727,7 +1752,13 @@ module {
             let new_sale_balance = put_sales_balance(state, {
               request.escrow with 
               amount = this_royalty;
-              seller = #principal(this_principal);
+              seller = #account(
+                { owner = this_principal.owner;
+                  sub_account = switch(this_principal.sub_account){
+                    case(null) null;
+                    case(?val) ?Blob.fromArray(val);
+                  };
+                });
               sale_id = request.sale_id;
               lock_to_date = null;
               account_hash = request.account_hash;

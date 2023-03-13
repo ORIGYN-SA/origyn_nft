@@ -42,6 +42,28 @@ v0.1.4
 * KYC - Bids and Buy Nows should auto refund failed kyc.
 * Refactor - Buffer.toArrays refactored to new syntax
 * ICRC1 - ICRC1 is now used internally for transfers on the #Ledger Type
+* Network Royalties are now sent to network accounts on a per token basis for better tracking. The hash used is:  
+
+```
+public func get_network_royalty_account(principal : Principal) : [Nat8]{
+      let h = SHA256.New();
+      h.write(Conversions.valueToBytes(#Text("com.origyn.network_royalty")));
+      h.write(Conversions.valueToBytes(#Text("canister-id")));
+      h.write(Conversions.valueToBytes(#Text(Principal.toText(principal))));
+      h.sum([]);
+    };
+```
+
+"ICP" "ryjl3-tyaaa-aaaaa-aaaba-cai", {owner = a3lu7-uiaaa-aaaaj-aadnq-cai; subaccount = ?[172, 255, 169, 103, 157, 15, 63, 92, 98, 171, 192, 27, 17, 244, 117, 8, 84, 178, 124, 170, 65, 96, 138, 84, 211, 239, 22, 67, 74, 174, 213, 253]}
+
+"OGY", "jwcfb-hyaaa-aaaaj-aac4q-cai", {owner = a3lu7-uiaaa-aaaaj-aadnq-cai; subaccount = ?[95, 115, 186, 240, 133, 110, 68, 189, 5, 208, 92, 181, 94, 57, 91, 181, 1, 222, 30, 185, 173, 66, 138, 170, 115, 168, 244, 114, 122, 206, 107, 2]}
+
+"ckBTC", "mxzaz-hqaaa-aaaar-qaada-cai", {owner = a3lu7-uiaaa-aaaaj-aadnq-cai; subaccount = ?[229, 159, 79, 200, 161, 80, 156, 140, 12, 186, 141, 235, 113, 11, 145, 253, 126, 245, 6, 70, 38, 200, 197, 114, 106, 64, 179, 6, 254, 90, 85, 160]}
+
+"CHAT", "2ouva-viaaa-aaaaq-aaamq-cai", {owner = a3lu7-uiaaa-aaaaj-aadnq-cai; subaccount = ?[104, 31, 193, 103, 15, 18, 188, 249, 82, 13, 53, 49, 109, 120, 212, 150, 95, 112, 40, 60, 155, 76, 171, 38, 15, 64, 183, 145, 216, 12, 130, 135]}
+
+"SNS-1", "zfcdd-tqaaa-aaaaq-aaaga-cai", {owner = a3lu7-uiaaa-aaaaj-aadnq-cai; subaccount = ?[19, 239, 169, 124, 238, 36, 197, 24, 185, 239, 208, 48, 152, 137, 26, 237, 189, 142, 210, 165, 177, 51, 198, 107, 106, 114, 188, 195, 18, 99, 71, 177]}
+
 
 v0.1.3-1
 

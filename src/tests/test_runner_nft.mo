@@ -4,6 +4,7 @@ import Conversion "mo:candy/conversion";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
+import Text "mo:base/Text";
 import Int "mo:base/Int";
 import M "mo:matchers/Matchers";
 import NFTUtils "../origyn_nft_reference/utils";
@@ -19,6 +20,7 @@ import T "mo:matchers/Testable";
 import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
+import Market "../origyn_nft_reference/market";
 import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
 
@@ -876,6 +878,29 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let o_wallet = await TestWalletDef.test_wallet(); //originator
         let net_wallet = await TestWalletDef.test_wallet(); //net
 
+        let net_account = {
+          owner = Principal.fromActor(net_wallet);
+          subaccount = ?Market.get_network_royalty_account(Principal.fromActor(dfx))
+        };
+
+        let alist = [
+          ("ICP", "ryjl3-tyaaa-aaaaa-aaaba-cai"),
+          ("OGY", "jwcfb-hyaaa-aaaaj-aac4q-cai"),
+          ("ckBTC", "mxzaz-hqaaa-aaaar-qaada-cai"),
+          ("CHAT", "2ouva-viaaa-aaaaq-aaamq-cai"),
+          ("SNS-1", "zfcdd-tqaaa-aaaaq-aaaga-cai"),
+
+        ];
+
+        for(thisItem in alist.vals()){
+          D.print("codes for network:" # debug_show(
+            (thisItem.0, thisItem.1, {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); subaccount = ?Market.get_network_royalty_account(Principal.fromText(thisItem.1))}, AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"), ?Market.get_network_royalty_account(Principal.fromText(thisItem.1)))))
+
+          ));
+        };
+
+        D.print("have the net account " # debug_show(net_account));
+
         D.print("making factory");
 
         let newPrincipal = await g_canister_factory.create({
@@ -955,7 +980,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let n_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
         let o_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
         let canister_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
-        let net_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
+        D.print("network account is " # debug_show(net_account));
+        let net_balance = await dfx.icrc1_balance_of(net_account);
 
         D.print("initial balances " # debug_show(a_balance, b_balance, n_balance, o_balance,canister_balance, net_balance));
         D.print("primary sale");
@@ -992,7 +1018,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let n_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
         let o_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
         let canister_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
-        let net_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
+        let net_balance2 = await dfx.icrc1_balance_of( net_account);
 
         D.print("a wallet " # debug_show((a_balance, a_balance2)));
         D.print("b wallet " # debug_show((b_balance, b_balance2)));
@@ -1041,7 +1067,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let n_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
         let o_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
         let canister_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
-        let net_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
+        let net_balance3 = await dfx.icrc1_balance_of( net_account);
 
          D.print("a wallet " # debug_show((a_balance, a_balance2, a_balance3)));
         D.print("b wallet " # debug_show((b_balance, b_balance2, b_balance3)));
@@ -1146,7 +1172,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             let n_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
             let o_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
             let canister_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
-            let net_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
+            let net_balance5 = await dfx.icrc1_balance_of(net_account);
 
             D.print("a wallet " # debug_show((Principal.fromActor(a_wallet), a_balance, a_balance2, a_balance3, a_balance5)));
             D.print("b wallet " # debug_show((Principal.fromActor(b_wallet), b_balance, b_balance2, b_balance3, b_balance5)));
