@@ -26,7 +26,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var ledger_fee = 200_000;
+    private var ledger_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();
@@ -656,35 +656,35 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let b_wallet = await TestWalletDef.test_wallet();
         let c_wallet = await TestWalletDef.test_wallet();
         
-        let funding_result_a = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
-        let funding_result_b = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_b = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
-        let funding_result_b2 = await dfx2.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
-        let funding_result_c = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(c_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_c = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);

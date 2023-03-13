@@ -425,7 +425,7 @@ module {
                 case(#DIP20){#Text("DIP20")};
                 case(#Ledger){#Text("Ledger")};
                 case(#EXTFungible){#Text("EXTFungible")};
-                case(#ICRC1){#Text("ICRC1")};
+                case(#ICRC1){#Text("Ledger")};
               }; immutable = true;}
             ]); immutable = true;},
           ]);};

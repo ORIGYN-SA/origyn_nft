@@ -745,7 +745,7 @@ module {
               let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(winning_escrow.token){
                 case(#ic(token)){
                   switch(token.standard){
-                    case(#Ledger){
+                    case(#Ledger or #ICRC1){
                       debug if(debug_channel.end_sale) D.print("found ledger");
                       let checker = Ledger_Interface.Ledger_Interface();
                                                               try {
@@ -1349,7 +1349,7 @@ module {
           let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(escrow.token){
             case(#ic(token)){
               switch(token.standard){
-                case(#Ledger){
+                case(#Ledger or #ICRC1){
                   debug if(debug_channel.market) D.print("found ledger and sending sale " # debug_show(escrow));
                   let checker = Ledger_Interface.Ledger_Interface();
                   try{
@@ -2039,7 +2039,7 @@ module {
         let (trx_id : Types.TransactionID, account_hash : ?Blob) = switch(request.deposit.token){
           case(#ic(token)){
             switch(token.standard){
-              case(#Ledger){
+              case(#Ledger or #ICRC1){
                 debug if(debug_channel.escrow) D.print("found ledger");
                 let checker = Ledger_Interface.Ledger_Interface();
                 switch(await* checker.transfer_deposit(state.canister(), request,  caller)){
@@ -2132,7 +2132,7 @@ module {
           transaction_id := switch(details.token){
             case(#ic(token)){
               switch(token.standard){
-                case(#Ledger){
+                case(#Ledger or #ICRC1){
                   //D.print("found ledger");
                   let checker = Ledger_Interface.Ledger_Interface();
 
@@ -2311,7 +2311,7 @@ module {
             transaction_id := switch(details.token){
               case(#ic(token)){
                 switch(token.standard){
-                  case(#Ledger){
+                  case(#Ledger or #ICRC1){
                     //D.print("found ledger");
                     let checker = Ledger_Interface.Ledger_Interface();
 
@@ -2429,7 +2429,7 @@ module {
           transaction_id := switch(details.token){
             case(#ic(token)){
               switch(token.standard){
-                case(#Ledger){
+                case(#Ledger or #ICRC1){
                     debug if(debug_channel.withdraw_sale) D.print("found ledger sale withdraw");
                     let checker = Ledger_Interface.Ledger_Interface();
                     //if this fails we need to put the escrow back
@@ -2602,7 +2602,7 @@ module {
             transaction_id := switch(details.token){
               case(#ic(token)){
                 switch(token.standard){
-                  case(#Ledger){
+                  case(#Ledger or #ICRC1){
                     //D.print("found ledger");
                     let checker = Ledger_Interface.Ledger_Interface();
 

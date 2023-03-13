@@ -49,13 +49,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal,test_runner_nft:
           //send testrunnner some dfx tokens
           let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
           //D.print("about to send to test canister");
-          let resultdfx = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(NFTTestCanister), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+          let resultdfx = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(NFTTestCanister); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 200_000_000_000_000};});
+            amount =  200_000_000_000_000});
 
           //D.print(debug_show(resultdfx));
 
