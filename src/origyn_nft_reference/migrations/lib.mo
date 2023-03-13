@@ -32,7 +32,7 @@ module {
     args: MigrationTypes.Args
   ): MigrationTypes.State {
 
-    D.print("in migrate" # debug_show(prevState));
+   // D.print("in migrate" # debug_show(prevState));
     var state = prevState;
     var migrationId = getMigrationId(prevState);
     D.print("getting migration id");

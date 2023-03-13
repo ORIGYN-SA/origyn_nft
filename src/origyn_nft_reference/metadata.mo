@@ -11,8 +11,7 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
-import DROUTE "mo:droute_client/Droute";
-
+import Droute "mo:droute_client/Droute";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 
@@ -1300,8 +1299,8 @@ module {
     return #ok(newTrx);
   };
 
-   public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : Nat {
-        let droute = DROUTE.new;
+   public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
+        
         let eventNamespace = "com.origyn.nft.event";
         let (eventType, payload) = switch (rec.txn_type) {
           case (#auction_bid(data)) { ("auction_bid", #Class([
@@ -1315,11 +1314,10 @@ module {
 
         let eventName = eventNamespace # "." # eventType;
 
-        ignore Timer.setTimer(#seconds(0), func () : async* () {
-          let event = await* droute.publish(eventName, payload);
+        ignore Timer.setTimer(#seconds(0), func () : async () {
+          let event = await* Droute.publish(state.state.droute,eventName, payload);
         });
 
-        return event.eventInfo.id;
     };
 
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
