@@ -117,7 +117,12 @@ let additions =
   , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/droute-client"
   , version = "v0.1.0"
   , dependencies = ["base" ]
-  }
+  },
+   { name = "icrc17_kyc"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/kyc.mo"
+  , version = "master"
+  , dependencies = ["base" ]
+  },
   ] : List Package
   ] : List Package
 let
