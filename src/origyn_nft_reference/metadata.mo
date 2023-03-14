@@ -1302,12 +1302,12 @@ module {
   };
 
    public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
-        let events = EventUtils.EventUtils(state, caller);
+        let tx_events = EventUtils.TransactionEvents(state, caller);
 
         let (eventName, payload) = switch (rec.txn_type) {
-          case (#auction_bid(data)) { events.auction_bid(rec.token_id, data.sale_id) };
-          case (#mint _) { events.mint() };
-          case (#sale_ended _) { events.sale_ended() };
+          case (#auction_bid(data)) { tx_events.auction_bid(rec.token_id, data.sale_id) };
+          case (#mint _) { tx_events.mint() };
+          case (#sale_ended _) { tx_events.sale_ended() };
         };
 
         ignore Timer.setTimer(#seconds(0), func () : async () {

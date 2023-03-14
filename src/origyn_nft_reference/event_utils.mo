@@ -3,8 +3,7 @@ import CandyTypes "mo:candy/types";
 import Types "types";
 
 module {
-
-	public class EventUtils(state : Types.State, caller : Principal) {
+	public class TransactionEvents(state : Types.State, caller : Principal) {
 
 		let state : Types.State = state;
 		let caller : Principal = caller;
@@ -33,7 +32,7 @@ module {
 			return get_event(event_name, #Class([]));
 		};
 
-		public func sale(): (Text, CandyTypes.CandyValue) {
+		public func sale_ended(): (Text, CandyTypes.CandyValue) {
 			let event_name = events_namespace # ".sale_ended";
 			return get_event(event_name, #Class([]));
 		};
