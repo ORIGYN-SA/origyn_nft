@@ -23,6 +23,8 @@ import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
 
+import EventUtils "./event_utils";
+
 module {
 
   let SB = MigrationTypes.Current.SB;
@@ -1300,19 +1302,13 @@ module {
   };
 
    public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
-        
-        let eventNamespace = "com.origyn.nft.event";
-        let (eventType, payload) = switch (rec.txn_type) {
-          case (#auction_bid(data)) { ("auction_bid", #Class([
-            {name="token_id"; value = #Text(rec.token_id); immutable=true;},
-            {name="canister"; value = #Principal(state.canister());immutable=true;},
-            {name="sale_id"; value = #Text(data.sale_id); immutable=true;}
-          ]) )};
-          case (#mint _) { ("mint", #Text("mint")) };
-          case (#sale_ended _) {( "sale_ended", #Text("sale_ended")) };
-        };
+        let events = EventUtils.EventUtils(state, caller);
 
-        let eventName = eventNamespace # "." # eventType;
+        let (eventName, payload) = switch (rec.txn_type) {
+          case (#auction_bid(data)) { events.auction_bid(rec.token_id, data.sale_id) };
+          case (#mint _) { events.mint() };
+          case (#sale_ended _) { events.sale_ended() };
+        };
 
         ignore Timer.setTimer(#seconds(0), func () : async () {
           let event = await* Droute.publish(state.state.droute,eventName, payload);
