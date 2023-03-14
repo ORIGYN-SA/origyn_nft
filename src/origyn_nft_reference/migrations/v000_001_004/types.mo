@@ -7,6 +7,9 @@ import Nat32 "mo:base/Nat32";
 import Nat "mo:base/Nat";
 
 import KYC "mo:icrc17_kyc/types";
+
+import Droute "mo:droute_client/Droute";
+
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
@@ -92,5 +95,6 @@ module {
     var nft_sales : Map.Map<Text, SaleStatus>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var kyc_cache : Map.Map<KYC.KYCRequest,KYC.KYCResultFuture>;
+    var droute: Droute.Droute;
   };
 };

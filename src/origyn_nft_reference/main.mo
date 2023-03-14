@@ -19,7 +19,7 @@ import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
-import DROUTE "mo:droute_client/Droute";
+import Droute "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import Map "mo:map/Map";
@@ -148,39 +148,13 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
      ///DROUTE
 
-    var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    ignore Timer.setTimer(#seconds(0), func(): async () {
+    await* Droute.init(state_current.droute);
 
-    let droute_client = DROUTE.Droute({
-      mainId = ?droute_main_id;
-      publishersIndexId= ?droute_publisher_id;
-      subscribersIndexId= ?droute_suscriber_id;
-    }
-    );
-
-     ignore Timer.setTimer(0, false, func(): async () {
-    await* Droute.init();
-
-    ignore await* Droute.registerPublication("com.origyn.nft.event.auction_bid", null);
-    ignore await* Droute.registerPublication("com.origyn.nft.event.mint", null);
-    ignore await* Droute.registerPublication("com.origyn.nft.event.sale_ended", null);
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.auction_bid", null);
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.mint", null);
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.sale_ended", null);
   });
-
- public func setTimeCall(): async (){
-          let solarYearSeconds = 356_925_216;
-
-             func remind() : async () {
-            Debug.print("Happy New Year!");
-            };
-
-        ignore Timer.setTimer(#seconds (solarYearSeconds - abs(now() / 1_000_000_000) % solarYearSeconds),
-        func () : async () {
-        ignore recurringTimer(#seconds solarYearSeconds, remind);
-        await remind();
-        });
-        return ()
-    };
 
 
     // Let us access state and pass it to other modules
@@ -191,7 +165,6 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             get_time = get_time;
             nft_library = nft_library;
             refresh_state = get_state;
-            droute_client = droute_client;
         };
     };
 
