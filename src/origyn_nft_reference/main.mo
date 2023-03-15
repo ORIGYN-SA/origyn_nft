@@ -15,9 +15,11 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
+import Droute "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import Map "mo:map/Map";
@@ -153,6 +155,17 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             }
         }
     };
+
+     ///DROUTE
+
+    ignore Timer.setTimer(#seconds(0), func(): async () {
+    await* Droute.init(state_current.droute);
+
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.auction_bid", null);
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.mint", null);
+    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.sale_ended", null);
+  });
+
 
     // Let us access state and pass it to other modules
     let get_state : () -> Types.State  = func (){

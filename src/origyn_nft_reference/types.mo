@@ -26,7 +26,9 @@ import CandyTypes_lib "mo:candy/types";
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
+import DROUTE "mo:droute_client/Droute";
 import KYC "mo:icrc17_kyc";
+
 
 module {
 
@@ -359,7 +361,9 @@ module {
         get_time: () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         refresh_state: () -> State;
+        droute_client : DROUTE.Droute;
         kyc_client: KYC.kyc;
+
     };
 
     public type BucketDat = {

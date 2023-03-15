@@ -6,12 +6,26 @@ import D "mo:base/Debug";
 import v0_1_3_types "../v000_001_003/types";
 import v0_1_4_types = "types";
 import KYCTypes = "mo:icrc17_kyc/types";
+import Droute "mo:droute_client/Droute";
+import Principal "mo:base/Principal";
+
 
 module {
 
   let { ihash; nhash; thash; phash; calcHash } = Map_lib;
 
   public func upgrade(prev_migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {
+
+    var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+
+    let droute_client = Droute.new(?{
+      mainId = ?droute_main_id;
+      publishersIndexId= ?droute_publisher_id;
+      subscribersIndexId= ?droute_suscriber_id;
+    });
+
     
 
     D.print("in upgrade v0.1.4");
@@ -32,6 +46,8 @@ module {
       var nft_sales = state.nft_sales;
       var access_tokens = state.access_tokens;
       var kyc_cache = Map_lib.new<KYCTypes.KYCRequest, KYCTypes.KYCResultFuture>();
+      var droute = droute_client;
+
    }));
   };
 

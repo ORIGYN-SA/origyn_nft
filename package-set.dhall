@@ -112,14 +112,20 @@ let additions =
   , version = "v0.0.1"
   , dependencies = ["base", "candy_0_1_10" ]
   },
-  { name = "icrc17_kyc"
-  , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/kyc.mo"
+
+   { name = "droute_client"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/proprietary/droute-client"
+  , version = "v0.1.0"
+  , dependencies = ["base" ]
+  },
+   { name = "icrc17_kyc"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/kyc.mo"
   , version = "master"
   , dependencies = ["base" ]
   },
 
-  
   ] : List Package
+
 let
   {- This is where you can override existing packages in the package-set
 
