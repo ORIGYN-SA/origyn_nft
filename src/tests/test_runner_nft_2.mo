@@ -1307,6 +1307,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
        
         //place escrow
         D.print("sending tokens to canisters");
+
         let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (20 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("does a have tokens" # debug_show(a_wallet_send_tokens_to_canister));
@@ -1414,7 +1415,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                  D.print(debug_show(b_wallet_try_bid_valid));
                switch(res.txn_type){
                    case(#sale_ended(details)){
-                       if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
+                       if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
                             details.amount == ((10*10**8) + 1) and
                             (switch(details.sale_id){case(null){"x"};case(?val){val}}) == current_sales_id and
                             Types.account_eq(details.seller, #principal(Principal.fromActor(this))) and
@@ -1435,7 +1436,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                    };
                }; 
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //MKT0027
-            S.test("transaction history has the bid", switch(a_history_1){case(#ok(res)){
+            S.test("transaction history has the bid", switch(a_history_3){case(#ok(res)){
                
                D.print("where ismy history");
                D.print(debug_show(a_history_1));

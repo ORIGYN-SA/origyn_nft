@@ -47,7 +47,8 @@ module {
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      bid = false;
+      bid = true;
+      kyc = true;
   };
 
   let account_handler = MigrationTypes.Current.account_handler;
@@ -1296,6 +1297,7 @@ module {
           let kyc_result = try{
             await* KYC.pass_kyc(state, verified.found_asset.escrow, caller);
           } catch(e){
+            debug if(debug_channel.kyc) D.print("KYC error on await* " # Error.message(e));
             return #err(Types.errors(#kyc_error, "market_transfer_nft_origyn auto try escrow failed " # Error.message(e), ?caller))
           };
 
@@ -1317,6 +1319,7 @@ module {
             };
             case(#err(err)){
               //ignore refund_failed_bid(state, verified, escrow);
+              debug if(debug_channel.kyc) D.print("KYC error on reading return " # debug_show(err));
               return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
             };
           };
@@ -2860,6 +2863,7 @@ module {
       };
 
       //kyc
+      debug if(debug_channel.bid) D.print("tying kyc" # debug_show("")); 
 
       let kyc_result = try{
         await* KYC.pass_kyc(state, verified.found_asset.escrow, caller);
@@ -2871,11 +2875,11 @@ module {
         case(#ok(val)){
 
           if(val.kyc == #Fail or val.aml == #Fail){
+            debug if(debug_channel.bid) D.print("faild...returning bid" # debug_show(val));
+            
             ignore refund_failed_bid(state, verified, request.escrow_receipt);
             //last_withdraw_result := ?refund_id;
 
-            //debug if(debug_channel.bid) D.print(debug_show(refund_id));
-            return #err(Types.errors(#auction_ended, "end_sale_nft_origyn - auction already closed - attempting escrow return ", ?caller));
             
             return #err(Types.errors(#kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
           };
