@@ -8,6 +8,7 @@ import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
+import utils "test_utils";
 
 
 
@@ -67,7 +68,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx = await dfx.icrc1_transfer({
               to =  {owner = Principal.fromActor(SaleTestCanister); subaccount= null};
               fee = ?200_000;
-              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+              memo = utils.memo_one;
               from_subaccount = null;
               created_at_time = null;
               amount = 200_000_000_000_000;});
@@ -78,7 +79,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx2 = await dfx2.icrc1_transfer({
               to =  {owner = Principal.fromActor(SaleTestCanister); subaccount= null};
               fee = ?200_000;
-              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+              memo = utils.memo_one;
               from_subaccount = null;
               created_at_time = null;
               amount = 200_000_000_000_000;});
@@ -124,7 +125,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx2 = await dfx2.icrc1_transfer({
                to =  {owner = Principal.fromActor(NFTTestCanister); subaccount= null};
               fee = ?200_000;
-              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+              memo = utils.memo_one;
               from_subaccount = null;
               created_at_time = null;
               amount = 200_000_000_000_000;});
@@ -155,7 +156,7 @@ shared (deployer) actor class test_runner(tests : {
               let resultdfx = await dfx.icrc1_transfer({
                 to =  {owner = Principal.fromActor(NFTTestCanister2); subaccount= null};
                 fee = ?200_000;
-                memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+                memo = utils.memo_one;
                 from_subaccount = null;
                 created_at_time = null;
                 amount = 200_000_000_000_000;});
@@ -165,7 +166,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx2 = await dfx2.icrc1_transfer({
               to =  {owner = Principal.fromActor(NFTTestCanister2); subaccount= null};
               fee = ?200_000;
-              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+              memo = utils.memo_one;
               from_subaccount = null;
               created_at_time = null;
               amount = 200_000_000_000_000;});
@@ -233,7 +234,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx = await dfx.icrc1_transfer({
                to =  {owner = Principal.fromActor(InstantTestCanister); subaccount= null};
               fee = ?200_000;
-              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+              memo = utils.memo_one;
               from_subaccount = null;
               created_at_time = null;
               amount = 200_000_000_000_000;});
@@ -243,7 +244,7 @@ shared (deployer) actor class test_runner(tests : {
             let resultdfx2 = await dfx2.icrc1_transfer({
                to =  {owner = Principal.fromActor(InstantTestCanister); subaccount= null};
                 fee = ?200_000;
-                memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+                memo = utils.memo_one;
                 from_subaccount = null;
                 created_at_time = null;
                 amount = 200_000_000_000_000;});

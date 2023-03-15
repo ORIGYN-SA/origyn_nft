@@ -1610,7 +1610,7 @@ Features:
     public type ManageSaleRequest = {
         #end_sale : Text; //token_id
         #open_sale: Text; //token_id;
-        #escrow_deposit: EscrowRequest;
+        #escrow_deposit: EscrowRequest; //<-- Use this to make an offer
         #refresh_offers: ?Account;
         #bid: BidRequest;
         #withdraw: WithdrawRequest;
@@ -1688,8 +1688,9 @@ Features:
 
     public type WithdrawRequest = { 
         #escrow: WithdrawDescription;
-        #sale: WithdrawDescription;
+        #sale: WithdrawDescription; //<-- Only used if autopayout of sale breaks
         #reject:RejectDescription;
+        #deposit:RejectDescription;
     };
     
 

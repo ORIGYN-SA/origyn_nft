@@ -66,7 +66,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         let fund_a_wallet = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8});
@@ -622,7 +622,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
        let fund_a_wallet = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8 });

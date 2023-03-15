@@ -95,7 +95,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -103,7 +103,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_2 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -111,7 +111,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_5 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -119,7 +119,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_3 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -127,7 +127,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_4 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -135,7 +135,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_6 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -730,7 +730,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -738,7 +738,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_2 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -746,7 +746,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_5 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -754,7 +754,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_3 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -762,7 +762,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_4 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -770,7 +770,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_6 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1381,7 +1381,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1389,7 +1389,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_2 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1397,7 +1397,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_5 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1405,7 +1405,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_3 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1413,7 +1413,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_4 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -1421,7 +1421,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_6 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  100 * 10 ** 8;});
@@ -2002,7 +2002,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  1000 * 10 ** 8;});
@@ -2012,7 +2012,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let funding_result_2 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
             fee = ?200_000;
-            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
             amount =  1000 * 10 ** 8;});

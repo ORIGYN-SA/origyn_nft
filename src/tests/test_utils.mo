@@ -56,6 +56,8 @@ module {
         return (stage, switch(fileStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(previewStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};},  switch(hiddenStage){case(#ok(val)){#ok(val.canister)};case(#err(err)){#err(err)};});
     };
 
+    public let memo_one : ?[Nat8] = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+
 
     public func buildCollection(canister: Types.Service, app: Principal, node: Principal, originator: Principal, file_size: Nat) : async (
             Result.Result<Text,Types.OrigynError>, 

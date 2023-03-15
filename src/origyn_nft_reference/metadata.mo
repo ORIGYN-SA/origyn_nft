@@ -1541,7 +1541,7 @@ module {
             return #err(Types.errors(#malformed_metadata, "collection_update_origyn - bad key " # key, ?caller));
           };
 
-        let current_metadata = switch(Map.get(state.state.nft_metadata,Map.thash, "")){
+        let current_metadata = switch(Map.get(state.state.nft_metadata, Map.thash, "")){
             case(null){
               #Class([]);
             };
