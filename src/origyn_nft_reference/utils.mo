@@ -48,7 +48,7 @@ module {
         else {CandyTypes.toBuffer<Nat8>([0])};
         
         prefixBuffer.append(stagedBuffer);
-         return Conversions.bytesToText((prefixBuffer.toArray()));
+         return Conversions.bytesToText((Buffer.toArray(prefixBuffer)));
     };
 
     public func get_token_id_as_nat(token_id : Text) : Nat{
@@ -194,7 +194,7 @@ module {
                 buffer.append(CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(principal))));
 
                 let h = SHA256.New();
-                h.write(buffer.toArray());
+                h.write(Buffer.toArray(buffer));
                 let sha = h.sum([]);
 
                 
@@ -223,7 +223,7 @@ module {
                 };
                 
                 let h = SHA256.New();
-                h.write(buffer.toArray());
+                h.write(Buffer.toArray(buffer));
                 let sha = h.sum([]);
 
                 
@@ -252,7 +252,7 @@ module {
                 };
                 
                 let h = SHA256.New();
-                h.write(buffer.toArray());
+                h.write(Buffer.toArray(buffer));
                 let sha = h.sum([]);
 
                 

@@ -1,18 +1,20 @@
-import C "mo:matchers/Canister";
-import Conversion "mo:candy/conversion";
-import D "mo:base/Debug";
 import Blob "mo:base/Blob";
-import M "mo:matchers/Matchers";
-import StorageCanisterDef "../origyn_nft_reference/storage_canister";
+import D "mo:base/Debug";
+import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Nat "mo:base/Nat";
+import Time "mo:base/Time";
+
+import C "mo:matchers/Canister";
+import Conversion "mo:candy/conversion";
+import M "mo:matchers/Matchers";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
-import Time "mo:base/Time";
+
+import Instant "test_runner_instant_transfer";
+import StorageCanisterDef "../origyn_storage_reference/storage_canister";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
-//import Instant "test_runner_instant_transfer";
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
@@ -20,7 +22,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();

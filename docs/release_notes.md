@@ -36,6 +36,13 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
 
+v0.1.4
+
+* KYC - Collection level KYC available through the top level collection attribute com.origyn.kyc_canister=#Principal(canister that implements icrc17_kyc)
+* KYC - Bids and Buy Nows should auto refund failed kyc.
+* Refactor - Buffer.toArrays refactored to new syntax
+* ICRC1 - ICRC1 is now used internally for transfers on the #Ledger Type
+
 v0.1.3-1
 
 * added balance_of_batch_nft_origyn

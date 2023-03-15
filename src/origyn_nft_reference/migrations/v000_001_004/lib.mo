@@ -9,10 +9,10 @@ import KYCTypes = "mo:icrc17_kyc/types";
 import Droute "mo:droute_client/Droute";
 import Principal "mo:base/Principal";
 
+
 module {
 
   let { ihash; nhash; thash; phash; calcHash } = Map_lib;
-
 
   public func upgrade(prev_migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {
 
@@ -25,6 +25,7 @@ module {
       publishersIndexId= ?droute_publisher_id;
       subscribersIndexId= ?droute_suscriber_id;
     });
+
     
 
     D.print("in upgrade v0.1.4");
@@ -46,6 +47,7 @@ module {
       var access_tokens = state.access_tokens;
       var kyc_cache = Map_lib.new<KYCTypes.KYCRequest, KYCTypes.KYCResultFuture>();
       var droute = droute_client;
+
    }));
   };
 

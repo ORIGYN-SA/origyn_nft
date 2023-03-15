@@ -1,6 +1,7 @@
 
 
 import CandyType "mo:candy/types";
+import Conversion "mo:candy_0_1_12/conversion";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import D "mo:base/Debug";
@@ -592,7 +593,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
     
-    public shared(msg) func send_ledger_payment(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<DFXTypes.BlockIndex, DFXTypes.TransferError> {
+    public shared(msg) func send_ledger_payment(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<Nat, DFXTypes.ICRC1TransferError> {
 
       let dfx : DFXTypes.Service = actor(Principal.toText(ledger));
 
@@ -605,13 +606,14 @@ shared (deployer) actor class test_wallet() = this {
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have deposit info: " # debug_show(deposit_info))}};
 
-      let funding_result = await dfx.transfer({
-            to =  deposit_info.account_id;
-            fee = {e8s = 200_000 : Nat64};
-            memo = Nat64.fromNat(Nat32.toNat(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
+      let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = deposit_info.account.principal;
+            subaccount = ?Blob.toArray(deposit_info.account.sub_account)};
+            fee = ?200_000;
+            memo = ?Conversion.valueToBytes(#Nat32(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
             from_subaccount = null;
-            created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-            amount = {e8s = Nat64.fromNat(amount)};});
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount = amount;});
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have funding result: " # debug_show(funding_result))}};
 

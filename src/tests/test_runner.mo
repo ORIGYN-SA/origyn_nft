@@ -3,6 +3,7 @@ import C "mo:matchers/Canister";
 import M "mo:matchers/Matchers";
 import T "mo:matchers/Testable";
 import D "mo:base/Debug";
+import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
@@ -63,24 +64,24 @@ shared (deployer) actor class test_runner(tests : {
             D.print("int the it");
             let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
             D.print("about to send to test canister" # debug_show(dfx_ledger));
-            let resultdfx = await dfx.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(SaleTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx = await dfx.icrc1_transfer({
+              to =  {owner = Principal.fromActor(SaleTestCanister); subaccount= null};
+              fee = ?200_000;
+              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
 
 
               let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
             D.print("about to send to test canister" # debug_show(dfx_ledger2));
-            let resultdfx2 = await dfx2.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(SaleTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx2 = await dfx2.icrc1_transfer({
+              to =  {owner = Principal.fromActor(SaleTestCanister); subaccount= null};
+              fee = ?200_000;
+              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
 
             D.print(debug_show(resultdfx));
 
@@ -104,23 +105,29 @@ shared (deployer) actor class test_runner(tests : {
             //send testrunnner some dfx tokens
             let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
             D.print("about to send to test canister nft" # debug_show(dfx_ledger));
-            let resultdfx = await dfx.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(NFTTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx = try{
+              await dfx.icrc1_transfer({
+              to =  {owner = Principal.fromActor(NFTTestCanister); subaccount= null};
+              fee = ?200_000;
+              memo = null;
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
+            } catch(e){
+              
+              D.print(Error.message(e));
+              D.trap(Error.message(e));
+            };
 
             let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
             D.print("about to send to test canister nft 2 " # debug_show(dfx_ledger2));
-            let resultdfx2 = await dfx2.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(NFTTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx2 = await dfx2.icrc1_transfer({
+               to =  {owner = Principal.fromActor(NFTTestCanister); subaccount= null};
+              fee = ?200_000;
+              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
 
             D.print(debug_show(resultdfx));
 
@@ -145,23 +152,23 @@ shared (deployer) actor class test_runner(tests : {
               //send testrunnner some dfx tokens
               let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
               D.print("about to send to test canister" # debug_show(dfx_ledger));
-              let resultdfx = await dfx.transfer({
-                to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(NFTTestCanister2), null)));
-                fee = {e8s = 200_000};
-                memo = 1;
+              let resultdfx = await dfx.icrc1_transfer({
+                to =  {owner = Principal.fromActor(NFTTestCanister2); subaccount= null};
+                fee = ?200_000;
+                memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
                 from_subaccount = null;
                 created_at_time = null;
-                amount = {e8s = 200_000_000_000_000};});
+                amount = 200_000_000_000_000;});
 
                 let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
             //D.print("about to send to test canister");
-            let resultdfx2 = await dfx2.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(NFTTestCanister2), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx2 = await dfx2.icrc1_transfer({
+              to =  {owner = Principal.fromActor(NFTTestCanister2); subaccount= null};
+              fee = ?200_000;
+              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
 
               //D.print(debug_show(resultdfx));
 
@@ -223,23 +230,23 @@ shared (deployer) actor class test_runner(tests : {
             //send testrunnner some dfx tokens
             let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
             //D.print("about to send to test canister");
-            let resultdfx = await dfx.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(InstantTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
+            let resultdfx = await dfx.icrc1_transfer({
+               to =  {owner = Principal.fromActor(InstantTestCanister); subaccount= null};
+              fee = ?200_000;
+              memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
               from_subaccount = null;
               created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+              amount = 200_000_000_000_000;});
 
               let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
             //D.print("about to send to test canister");
-            let resultdfx2 = await dfx2.transfer({
-              to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(InstantTestCanister), null)));
-              fee = {e8s = 200_000};
-              memo = 1;
-              from_subaccount = null;
-              created_at_time = null;
-              amount = {e8s = 200_000_000_000_000};});
+            let resultdfx2 = await dfx2.icrc1_transfer({
+               to =  {owner = Principal.fromActor(InstantTestCanister); subaccount= null};
+                fee = ?200_000;
+                memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
+                from_subaccount = null;
+                created_at_time = null;
+                amount = 200_000_000_000_000;});
 
             //D.print(debug_show(resultdfx));
 

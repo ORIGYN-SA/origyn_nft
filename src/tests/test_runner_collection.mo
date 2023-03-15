@@ -29,7 +29,7 @@ shared (deployer) actor class test_runner_collection(dfx_ledger: Principal, dfx_
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();

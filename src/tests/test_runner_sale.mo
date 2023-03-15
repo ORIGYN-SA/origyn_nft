@@ -30,7 +30,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private var dfx_token_spec = #ic({
             canister= dfx_ledger; 
@@ -92,53 +92,53 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //fund wallets
 
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_5 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(c_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_5 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_3 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(d_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_3 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_4 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(e_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_4 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_6 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(f_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_6 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);
@@ -352,7 +352,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("apayment"# debug_show(aRedeem_payment_2));
 
-        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 30  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 30  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         D.print("about to try registration"# debug_show(a_wallet_try_escrow_general_valid));
         //register escrow for one NFT
@@ -382,7 +382,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("about to escrow b" # debug_show(bRedeem_payment_2));
 
-        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         D.print("about to register b" # debug_show(b_wallet_try_escrow_general_valid));
         let b_wallet_try_register_for_two = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(b_wallet); max_desired = 2; escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
@@ -404,7 +404,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         let d_wallet_try_register_for_two= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_receipt = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
@@ -505,7 +505,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
 
 
@@ -727,53 +727,53 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //fund wallets
 
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_5 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(c_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_5 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_3 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(d_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_3 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_4 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(e_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_4 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_6 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(f_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_6 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);
@@ -990,7 +990,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("apayment"# debug_show(aRedeem_payment_2));
 
-        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 30  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 30  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         D.print("about to try registration"# debug_show(a_wallet_try_escrow_general_valid));
         //register escrow for one NFT
@@ -1021,7 +1021,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("about to escrow b" # debug_show(bRedeem_payment_2));
 
-        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         D.print("about to register b" # debug_show(b_wallet_try_escrow_general_valid));
         
@@ -1050,7 +1050,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
 
         let d_allocate_two = await d_wallet.try_sale_nft_allocation(Principal.fromActor(sale_canister),{
@@ -1156,7 +1156,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
 
 
@@ -1378,53 +1378,53 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //fund wallets
 
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_5 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(c_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_5 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_3 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(d_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_3 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(d_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_4 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(e_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_4 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(e_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
-        let funding_result_6 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(f_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_6 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(f_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);
@@ -1563,7 +1563,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let fRedeem_payment = await f_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let f_wallet_try_escrow_general_no_lock = await f_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(fRedeem_payment){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
+        let f_wallet_try_escrow_general_no_lock = await f_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(fRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
 
 
         //register before open
@@ -1593,7 +1593,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let aRedeem_payment = await a_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let a_wallet_try_escrow_general_no_lock = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
+        let a_wallet_try_escrow_general_no_lock = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
 
         //register escrow with no lock past mint date
 
@@ -1605,7 +1605,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("escrow general valid a" # debug_show(aRedeem_payment_2) );
 
-        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, (20 * 10 ** 8) + 1, ?dfx_token_spec, ?lock_until);
+        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, (20 * 10 ** 8) + 1, ?dfx_token_spec, ?lock_until);
 
         D.print("escrow general valid a" # debug_show(a_wallet_try_escrow_general_valid) );
         //register escrow with not enough payment for at least 1 NFT
@@ -1663,7 +1663,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //register b for 4 with additive
         let bRedeem_payment_2 = await b_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
-        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         let b_wallet_try_register_for_four = await b_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(b_wallet);max_desired = 2; escrow_receipt = switch(b_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
@@ -1683,7 +1683,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
-        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 40 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         let d_wallet_try_register_for_four= await d_wallet.try_sale_registration(Principal.fromActor(sale_canister), {principal = Principal.fromActor(d_wallet); max_desired = 2; escrow_receipt = switch(d_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
@@ -1703,7 +1703,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //register e for 2 with general
         let eRedeem_payment_2 = await e_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let e_wallet_try_escrow_general_valid = await e_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(eRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let e_wallet_try_escrow_general_valid = await e_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(eRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         let e_wallet_try_register_for_two = await e_wallet.try_sale_registration(Principal.fromActor(sale_canister), { principal = Principal.fromActor(e_wallet);max_desired = 2; escrow_receipt = switch(e_wallet_try_escrow_general_valid){case(#ok(val)){
             ?{
@@ -1789,7 +1789,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
 
 
@@ -1999,23 +1999,23 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         //fund wallets
 
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         //D.print("funding a" # debug_show(funding_result));
 
-        let funding_result_2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);
@@ -2157,7 +2157,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         let bRedeem_payment = await b_wallet.send_ledger_payment(dfx_ledger, (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
-        let b_wallet_try_escrow_general = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 10 * 10 ** 8, ?dfx_token_spec, ?lock_until);
+        let b_wallet_try_escrow_general = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 10 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
         let b_wallet_allocation_attempt = await b_wallet.try_sale_nft_redeem(Principal.fromActor(sale_canister), { escrow_receipt = switch(b_wallet_try_escrow_general){case(#ok(val)){val.receipt};case(#err(err)){throw(Error.reject("THROW ----------------- failed to get escrow for b payment in testRedeem"))}}});
 
@@ -2183,7 +2183,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         D.print("attempted payment " # debug_show(aRedeem_payment_2));
 
-        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?Nat64.toNat(val)};case(#err(err)){?0};}, 30 * 10 ** 8, ?dfx_token_spec, null);
+        let a_wallet_try_escrow_general_valid = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 30 * 10 ** 8, ?dfx_token_spec, null);
 
         //redeem escrow with not enough payment for at least 1 NFT
 

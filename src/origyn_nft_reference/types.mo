@@ -27,6 +27,8 @@ import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 import DROUTE "mo:droute_client/Droute";
+import KYC "mo:icrc17_kyc";
+
 
 module {
 
@@ -351,15 +353,17 @@ module {
     
     public type Account = MigrationTypes.Current.Account;
 
-    public type State = State_v0_1_3;
+    public type State = State_v0_1_4;
 
-    public type State_v0_1_3 = {
-        state : GatewayState_v0_1_3;
+    public type State_v0_1_4 = {
+        state : GatewayState_v0_1_4;
         canister : () -> Principal;
         get_time: () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         refresh_state: () -> State;
         droute_client : DROUTE.Droute;
+        kyc_client: KYC.kyc;
+
     };
 
     public type BucketDat = {
@@ -451,9 +455,9 @@ module {
         nft_sales: Nat;
     };
 
-    public type GatewayState = GatewayState_v0_1_3;
+    public type GatewayState = GatewayState_v0_1_4;
 
-    public type GatewayState_v0_1_3 = MigrationTypes.Current.State;
+    public type GatewayState_v0_1_4 = MigrationTypes.Current.State;
 
     public type StorageState = StorageState_v_0_1_3;
 
@@ -746,7 +750,8 @@ module {
         #validate_trx_wrong_host;
         #withdraw_too_large;
         #nyi;
-
+        #kyc_error;
+        #kyc_fail;
     };
 
     public func errors(the_error : Errors, flag_point: Text, caller: ?Principal) : OrigynError {
@@ -1120,7 +1125,21 @@ module {
                     text = "token is soulbound";
                     error = the_error;
                     flag_point = flag_point;}
-            };                
+            }; 
+            case(#kyc_error){
+                return {
+                    number = 4010; 
+                    text = "kyc error";
+                    error = the_error;
+                    flag_point = flag_point;}
+            };  
+            case(#kyc_fail){
+                return {
+                    number = 4011; 
+                    text = "kyc fail";
+                    error = the_error;
+                    flag_point = flag_point;}
+            };              
         };
     };
 
@@ -1138,6 +1157,7 @@ module {
         __system_physical : Text;
         __system_escrowed : Text;
         __apps :Text;
+        collection_kyc_canister : Text;
         library : Text;
         library_id : Text;
         library_size : Text;
@@ -1178,6 +1198,7 @@ module {
         __system_physical = "com.origyn.physical";
         __system_escrowed = "com.origyn.escrow_node";
         __apps = "__apps";
+        collection_kyc_canister = "com.origyn.kyc_canister";
         library = "library";
         library_id = "library_id";
         library_size = "size";

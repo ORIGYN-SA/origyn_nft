@@ -131,7 +131,7 @@ module {
 
         wallets.add(Metadata.account_to_candy(owner));
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(#frozen(wallets.toArray())));
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(#frozen(Buffer.toArray(wallets))));
 
 
                             debug if(debug_channel.owner) D.print("updating metadata");

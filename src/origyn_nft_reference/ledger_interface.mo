@@ -2,6 +2,7 @@ import Blob "mo:base/Blob";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Int "mo:base/Int";
+import Option "mo:base/Option";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
@@ -9,6 +10,8 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+import Conversion "mo:candy_0_1_12/conversion";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Hex "mo:encoding/Hex";
@@ -116,12 +119,12 @@ class Ledger_Interface() {
           to = host;
           //do not subract the fee...you need the full amount in the account. User needs to send in the fee as extra.
           //in the future we may want to actualluy add the fee if the buyer is going to pay all fees.
-          amount = Nat64.fromNat(escrow.deposit.amount);
-          fee = Nat64.fromNat(ledger.fee);
-          memo = Nat64.fromNat(Nat32.toNat(Text.hash("com.origyn.nft.escrow_from_deposit" # debug_show(escrow))));
+          amount = escrow.deposit.amount;
+          fee = ledger.fee;
+          memo = ?Conversion.valueToBytes(#Nat32(Text.hash("com.origyn.nft.escrow_from_deposit" # debug_show(escrow))));
           caller = caller;
-          to_subaccount = ?escrow_account_info.account.sub_account;
-          from_subaccount = ?deposit_account.account.sub_account;
+          to_subaccount = ?Blob.toArray(escrow_account_info.account.sub_account);
+          from_subaccount = ?Blob.toArray(deposit_account.account.sub_account);
       });
 
       let result_block = switch(result){
@@ -179,12 +182,12 @@ class Ledger_Interface() {
         let result = await* transfer({
             ledger = ledger.canister;
             to = host;
-            amount = Nat64.fromNat(escrow.amount - ledger.fee);
-            fee = Nat64.fromNat(ledger.fee);
-            memo = Nat64.fromNat(Nat32.toNat(Text.hash("com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id)));
+            amount = escrow.amount - ledger.fee;
+            fee = ledger.fee;
+            memo = ?Conversion.valueToBytes(#Nat32(Text.hash("com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id)));
             caller = caller;
-            to_subaccount = ?sale_account_info.account.sub_account;
-            from_subaccount = ?escrow_account_info.account.sub_account;
+            to_subaccount = ?Blob.toArray(sale_account_info.account.sub_account);
+            from_subaccount = ?Blob.toArray(escrow_account_info.account.sub_account);
             //created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))}
         });
 
@@ -210,11 +213,11 @@ class Ledger_Interface() {
   private func transfer(request : {
     ledger: Principal;
     to: Principal;
-    to_subaccount: ?Blob;
-    from_subaccount: ?Blob;
-    amount: Nat64;
-    fee: Nat64;
-    memo: Nat64;
+    to_subaccount: ?[Nat8];
+    from_subaccount: ?[Nat8];
+    amount: Nat;
+    fee: Nat;
+    memo: ?[Nat8];
     caller: Principal
     }) : async* Result.Result<Types.TransactionID, Types.OrigynError> {
      D.print("in transfeledger");
@@ -224,21 +227,21 @@ class Ledger_Interface() {
     let ledger_actor : DFXTypes.Service = actor(Principal.toText(request.ledger));
 
     
-    let to_account = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(request.to, switch(request.to_subaccount){case(null){null}; case(?val){?Blob.toArray(val)}}));
+    let to_account = {owner = request.to; subaccount = request.to_subaccount};
     
 
                         debug if(debug_channel.transfer) D.print("transfering");
                         debug if(debug_channel.transfer) D.print("from account" # debug_show(request.from_subaccount));
-                        debug if(debug_channel.transfer) D.print("to account" # debug_show(Blob.fromArray(to_account)));
+                        debug if(debug_channel.transfer) D.print("to account" # debug_show((to_account)));
     try{
                         debug if(debug_channel.transfer) D.print("sending transfer blocks # " # debug_show(request));
-        let result = await ledger_actor.transfer({
-            to = Blob.fromArray(to_account);
-            fee = {e8s = request.fee};
+        let result = await ledger_actor.icrc1_transfer({
+            to = to_account;
+            fee = ?request.fee;
             memo = request.memo; 
-            from_subaccount = switch(request.from_subaccount){ case(null){null;};case(?val){?Blob.toArray(val)}};
-            created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-            amount = {e8s = request.amount}});
+            from_subaccount = request.from_subaccount;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount = request.amount});
 
                             debug if(debug_channel.transfer) D.print("result is " # debug_show(result));
         let result_block = switch(result){
@@ -250,7 +253,7 @@ class Ledger_Interface() {
             };
         };
 
-        return #ok(#nat(Nat64.toNat(result_block)));
+        return #ok(#nat(result_block));
 
     } catch (e){
         return #err(Types.errors(#improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show(request), ?request.caller));
@@ -265,34 +268,46 @@ class Ledger_Interface() {
     let ledger : DFXTypes.Service = actor(Principal.toText(token.canister));
     try{
       debug if(debug_channel.transfer) D.print("sending payment" # debug_show((account, sub_account)));
+
       let account_id = switch(account){
-        case(#account_id(val)){switch(AccountIdentifier.fromText(val)){
-          case(#ok(val)){AccountIdentifier.addHash(val)};
-          case(#err(e)){return #err(Types.errors(#nyi, "ledger_interface - send payment - bad principal" # debug_show(account), ?caller));}
+        case(#account_id(val)){
+          return #err(Types.errors(#nyi, "ledger_interface - send payment - bad account - Account ID no longer supported. use ICRC1 Account" # debug_show(account), ?caller))
+        };
+        case(#principal(val)){{
+          owner = val;
+          subaccount = null;
         }};
-        case(#principal(val)){AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(val ,null))};
-        case(#account(val)){AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(val.owner ,switch(val.sub_account){case(null){null;}; case(?val){ ?Blob.toArray(val);}}))};
-        case(_){return #err(Types.errors(#nyi, "ledger_interface - send payment - bad acount" # debug_show(account), ?caller));}
+        case(#account(val))
+        {
+          {
+            owner = val.owner;
+            subaccount = switch(val.sub_account){
+              case(null) null;
+              case(?val) ?Blob.toArray(val);
+            };
+          };
+        };
+        case(_){return #err(Types.errors(#nyi, "ledger_interface - send payment - bad account" # debug_show(account), ?caller));}
       };
 
-      debug if(debug_channel.transfer) D.print("account_id" # debug_show( Blob.fromArray(account_id)));
+      debug if(debug_channel.transfer) D.print("account_id" # debug_show( account_id));
 
-      let result = await ledger.transfer({
-        to = Blob.fromArray(account_id);
+      let result = await ledger.icrc1_transfer({
+        to = account_id;
         from_subaccount = switch(sub_account){
           case(null) null;
           case(?val) ?Blob.toArray(val)
         };
-        fee = {e8s = Nat64.fromNat(token.fee)};
-        memo = Nat64.fromNat(Nat32.toNat(Text.hash("com.origyn.nft.out_going_payment"))); 
-        created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-        amount = {e8s = Nat64.fromNat(amount - token.fee)}; //many other places assume the token fee is removed here so don't change this
+        fee = ?token.fee;
+        memo = ?Conversion.valueToBytes(#Nat32(Text.hash("com.origyn.nft.out_going_payment"))); 
+        created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+        amount = amount - token.fee; //many other places assume the token fee is removed here so don't change this
       });
 
       debug if(debug_channel.transfer) D.print(debug_show(result));
 
       switch(result){
-          case(#Ok(val)) #ok({trx_id = #nat(Nat64.toNat(val)); fee = token.fee});
+          case(#Ok(val)) #ok({trx_id = #nat(val); fee = token.fee});
           case(#Err(err)) #err(Types.errors(#nyi, "ledger_interface - send payment - payment failed " # debug_show(err), ?caller));
       };
     } catch (e) return #err(Types.errors(#nyi, "ledger_interface - send payment - payment failed " # Error.message(e), ?caller));}

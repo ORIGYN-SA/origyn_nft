@@ -151,22 +151,22 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //funding
         D.print("funding");
         //funding
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
-            created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-            amount = {e8s = 100 * 10 ** 8};});
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount =  100 * 10 ** 8;});
 
         D.print("funding result " # debug_show(funding_result));
-        let funding_result2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
-            created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-            amount = {e8s = 100 * 10 ** 8};});
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount =  100 * 10 ** 8;});
 
 
         D.print("funding result 2 " # debug_show(funding_result2));
@@ -466,13 +466,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //ESC0002. try to escrow for the canister; should succeed
         //fund a_wallet
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
         D.print("funding result");
         D.print(debug_show(funding_result));
 
@@ -606,13 +606,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let b_wallet = await TestWalletDef.test_wallet();
 
         //give b_wallet some tokens
-        let b_funding_result =await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let b_funding_result =await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
         D.print("funding result");
         D.print(debug_show(funding_result));
 
@@ -911,21 +911,21 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print(debug_show(standardStage.0));
 
         //fund a_wallet
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
-        let funding_result2 = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         //send a payment to the ledger
         D.print("sending tokens to canisters");
@@ -950,12 +950,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("try escrow genreal stage");
         D.print(debug_show(a_wallet_try_escrow_general_staged));
 
-        let a_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))});
-        let b_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null))});
-        let n_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(n_wallet), null))});
-        let o_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(o_wallet), null))});
-        let canister_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
-        let net_balance = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
+        let a_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
+        let b_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
+        let n_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
+        let o_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
+        let canister_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
+        let net_balance = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
 
         D.print("initial balances " # debug_show(a_balance, b_balance, n_balance, o_balance,canister_balance, net_balance));
         D.print("primary sale");
@@ -987,12 +987,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //MKT0014 todo: check the transaction record and confirm the gensis reocrd
 
         //BAL0005
-        let a_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))});
-        let b_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null))});
-        let n_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(n_wallet), null))});
-        let o_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(o_wallet), null))});
-        let canister_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
-        let net_balance2 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
+        let a_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
+        let b_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
+        let n_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
+        let o_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
+        let canister_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
+        let net_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
 
         D.print("a wallet " # debug_show((a_balance, a_balance2)));
         D.print("b wallet " # debug_show((b_balance, b_balance2)));
@@ -1036,12 +1036,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("secondary result" # debug_show(specific_market));
 
         
-        let a_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))});
-        let b_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null))});
-        let n_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(n_wallet), null))});
-        let o_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(o_wallet), null))});
-        let canister_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
-        let net_balance3 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
+        let a_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
+        let b_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
+        let n_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
+        let o_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
+        let canister_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
+        let net_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
 
          D.print("a wallet " # debug_show((a_balance, a_balance2, a_balance3)));
         D.print("b wallet " # debug_show((b_balance, b_balance2, b_balance3)));
@@ -1141,12 +1141,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             D.print("end proper");
             D.print(debug_show(end_proper));
 
-            let a_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))});
-            let b_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null))});
-            let n_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(n_wallet), null))});
-            let o_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(o_wallet), null))});
-            let canister_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(canister), null))});
-            let net_balance5 = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(net_wallet), null))});
+            let a_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
+            let b_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
+            let n_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
+            let o_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
+            let canister_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
+            let net_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(net_wallet); subaccount = null});
 
             D.print("a wallet " # debug_show((Principal.fromActor(a_wallet), a_balance, a_balance2, a_balance3, a_balance5)));
             D.print("b wallet " # debug_show((Principal.fromActor(b_wallet), b_balance, b_balance2, b_balance3, b_balance5)));
@@ -1159,18 +1159,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let suite = S.suite("test royalties", [
 
         
-            S.test("fail if node does not get royalty", n_balance2.e8s, M.equals<Nat64>(T.nat64(7561446))), 
-            S.test("fail if broker does not get royalty", b_balance2.e8s, M.equals<Nat64>(T.nat64(100005788000))), 
-            S.test("fail if network does not get royalty", net_balance2.e8s, M.equals<Nat64>(T.nat64(299000))), 
-            S.test("fail if node does not get second royalty", n_balance3.e8s, M.equals<Nat64>(T.nat64(9357446))), 
-            S.test("fail if broker does not get second royalty", b_balance3.e8s, M.equals<Nat64>(T.nat64(100006586000))), 
-            S.test("fail if network does not get second royalty", net_balance3.e8s, M.equals<Nat64>(T.nat64(598000))), 
-            S.test("fail if originator does not get first royalty", o_balance3.e8s, M.equals<Nat64>(T.nat64(3126633))), 
-            //S.test("fail if broker still has balance after withdraw", b_balance4.e8s, M.equals<Nat64>(T.nat64(6))), 
-            S.test("fail if node does not get third royalty", n_balance5.e8s, M.equals<Nat64>(T.nat64(11153446))), 
-            S.test("fail if broker does not get new royalty", b_balance5.e8s, M.equals<Nat64>(T.nat64(100007384000))), 
-            S.test("fail if network does not get third royalty", net_balance5.e8s,  M.equals<Nat64>(T.nat64(897000))), 
-            S.test("fail if originator does not get second royalty", o_balance5.e8s,  M.equals<Nat64>(T.nat64(6253266))), 
+            S.test("fail if node does not get royalty", n_balance2, M.equals<Nat>(T.nat(7561446))), 
+            S.test("fail if broker does not get royalty", b_balance2, M.equals<Nat>(T.nat(100005788000))), 
+            S.test("fail if network does not get royalty", net_balance2, M.equals<Nat>(T.nat(299000))), 
+            S.test("fail if node does not get second royalty", n_balance3, M.equals<Nat>(T.nat(9357446))), 
+            S.test("fail if broker does not get second royalty", b_balance3, M.equals<Nat>(T.nat(100006586000))), 
+            S.test("fail if network does not get second royalty", net_balance3, M.equals<Nat>(T.nat(598000))), 
+            S.test("fail if originator does not get first royalty", o_balance3, M.equals<Nat>(T.nat(3126633))), 
+            //S.test("fail if broker still has balance after withdraw", b_balance4.e8s, M.equals<Nat>(T.nat(6))), 
+            S.test("fail if node does not get third royalty", n_balance5, M.equals<Nat>(T.nat(11153446))), 
+            S.test("fail if broker does not get new royalty", b_balance5, M.equals<Nat>(T.nat(100007384000))), 
+            S.test("fail if network does not get third royalty", net_balance5,  M.equals<Nat>(T.nat(897000))), 
+            S.test("fail if originator does not get second royalty", o_balance5,  M.equals<Nat>(T.nat(6253266))), 
             
 
         ]);
@@ -1251,30 +1251,30 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let a_wallet = await TestWalletDef.test_wallet();
         let b_wallet = await TestWalletDef.test_wallet();
         
-        let funding_result_a = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
             
             
-        let funding_result_b =  await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_b =  await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
-        let funding_result_b2 = await dfx2.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         D.print("funding result b2 " # debug_show(funding_result_b2));
 
@@ -1796,7 +1796,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("Proper amount result balance");
         D.print(debug_show(owner_withdraw_proper_balance));
 
-        let owner_withdraw_proper = await dfx.account_balance_dfx({account = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(this), null))});
+        let owner_withdraw_proper = await dfx.icrc1_balance_of( {owner = Principal.fromActor(this); subaccount = null});
 
         D.print("Proper amount result");
         D.print(debug_show(owner_withdraw_proper));
@@ -2320,7 +2320,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 } else{
                     "wrong error " # debug_show(err);
             }};}, M.equals<Text>(T.text("correct number"))), // NFT-117
-            S.test("sale withdraw works", owner_withdraw_proper.e8s, M.equals<Nat64>(T.nat64(199810099200000))), //NFT-18, NFT-101
+            S.test("sale withdraw works", owner_withdraw_proper, M.equals<Nat>(T.nat(199810099200000))), //NFT-18, NFT-101
             S.test("sales balance after withdraw has no balance in it", switch(owner_balance_after_withdraw){case(#ok(res)){
                 D.print("testing sale balance 2");
                 D.print(debug_show(res));
@@ -2340,7 +2340,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         D.print(debug_show(details));
                         if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                                 Types.account_eq(details.seller, #principal(Principal.fromActor(this))) and
-                                details.amount == (Nat.sub(((101*10**8)-200000),dip20_fee)) and
+                                details.amount == (Nat.sub(((101*10**8)-200000), dip20_fee)) and
                                 details.token_id == "1" and
                                 Types.token_eq(details.token, #ic({
                                     canister = (Principal.fromActor(dfx));
@@ -2487,18 +2487,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //ESC0002. try to escrow for the canister; should succeed
         //fund a_wallet
         D.print("funding result start a_wallet");
-        D.print(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-        D.print(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
+        D.print(debug_show({owner = Principal.fromActor(a_wallet); subaccount = null}));
+        D.print(debug_show({owner = Principal.fromActor(a_wallet); subaccount = null}));
         D.print(debug_show(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))));
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
         
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
         D.print("funding result end");
         D.print(debug_show(funding_result));
 
@@ -2521,7 +2521,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         debug{ if(debug_channel.throws) D.print("checking block_result")};
         let #ok(block_result) = a_wallet_send_tokens_to_canister;
-        let block = Nat64.toNat(block_result);//block is no longer relevant for ledgers
+        let block = block_result;//block is no longer relevant for ledgers
 
         //sent an escrow for a ledger deposit that doesn't exist
         let a_wallet_try_escrow_general_fake_amount = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 2 * 10 ** 8, ?#ic({
@@ -2647,13 +2647,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //give b_wallet some tokens
         D.print("funding result start b_wallet");
-        let b_funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let b_funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
         D.print("funding result");
         D.print(debug_show(funding_result));
 
@@ -2667,7 +2667,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let b_block = switch(b_wallet_send_tokens_to_canister){
             case(#ok(ablock)){
-                Nat64.toNat(ablock);
+              ablock;
             };
             case(#err(other)){
                 D.print("ledger didnt work");
@@ -2879,13 +2879,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("funding result start a_wallet");
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
         
-        let funding_result = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8;});
         D.print("funding result end");
         D.print(debug_show(funding_result));
 

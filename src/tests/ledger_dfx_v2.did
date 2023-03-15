@@ -423,6 +423,30 @@ type Archives = record {
     archives: vec Archive;
 };
 
+type Account = record { owner : principal; subaccount : opt vec nat8 };
+
+type TransferArg = record {
+  to : Account;
+  fee : opt nat;
+  memo : opt vec nat8;
+  from_subaccount : opt vec nat8;
+  created_at_time : opt nat64;
+  amount : nat;
+};
+
+type ResultICRC1 = variant { Ok : nat; Err : TransferErrorICRC1 };
+
+type TransferErrorICRC1 = variant {
+  GenericError : record { message : text; error_code : nat };
+  TemporarilyUnavailable;
+  BadBurn : record { min_burn_amount : nat };
+  Duplicate : record { duplicate_of : nat };
+  BadFee : record { expected_fee : nat };
+  CreatedInFuture : record { ledger_time : nat64 };
+  TooOld;
+  InsufficientFunds : record { balance : nat };
+};
+
 service: (LedgerCanisterInitPayload) -> {
   send_dfx : (SendArgsDFX) -> (BlockHeight);
   notify_dfx: (NotifyCanisterArgs) -> ();
@@ -444,6 +468,8 @@ service: (LedgerCanisterInitPayload) -> {
   tip_of_chain_dfx : (record {}) -> (TipOfChainRes) query;
   transfer : (TransferArgs) -> (TransferResult);
   transfer_standard_stdldg : (TransferStandardArgs) -> (TransferResult);
+  icrc1_balance_of : (Account) -> (nat) query;
+  icrc1_transfer : (TransferArg) -> (ResultICRC1);
 
   // Returns the amount of Tokens on the specified account.
   account_balance : (AccountBalanceArgs) -> (Tokens) query;

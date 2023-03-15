@@ -163,6 +163,36 @@ module {
     created_at_time : ?TimeStamp;
     amount : Tokens;
   };
+
+  public type Subaccount = [Nat8];
+
+  public type Account = {
+    owner : Principal;
+    subaccount: ?Subaccount;
+  };
+
+  public type ICRC1TransferArgs = {
+      from_subaccount : ?Subaccount;
+      to : Account;
+      amount : Nat;
+      fee : ?Nat;
+      memo : ?[Nat8];
+      created_at_time : ?Nat64;
+  };
+
+  public type ICRC1TransferError = {
+    #GenericError : { message : Text; error_code : Nat };
+    #TemporarilyUnavailable;
+    #BadBurn : { min_burn_amount : Nat };
+    #Duplicate : { duplicate_of : Nat };
+    #BadFee : { expected_fee : Nat };
+    #CreatedInFuture :{ ledger_time : Nat64 };
+    #TooOld;
+    #InsufficientFunds : { balance : Nat };
+  };
+
+  public type ICRC1TransferResult = { #Ok : Nat; #Err : ICRC1TransferError };
+
   public type Service = actor {
     account_balance : shared query AccountBalanceArgs -> async Tokens;
     account_balance_dfx : shared query AccountBalanceArgsDFX -> async Tokens;
@@ -185,7 +215,8 @@ module {
     symbol : shared query () -> async { symbol : Text };
     tip_of_chain_dfx : shared query {} -> async TipOfChainRes;
     total_supply_dfx : shared query {} -> async Tokens;
-    transfer : shared TransferArgs -> async TransferResult;
+    icrc1_balance_of : shared query (Account) -> async (Nat);
+    icrc1_transfer : shared (ICRC1TransferArgs) -> async (ICRC1TransferResult);
     transfer_fee : shared query TransferFeeArg -> async TransferFee;
     transfer_standard_stdldg : shared TransferStandardArgs -> async TransferResult;
   };

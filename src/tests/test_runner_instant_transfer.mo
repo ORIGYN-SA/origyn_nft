@@ -63,13 +63,13 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         
         //create and fund wallet
         let a_wallet = await TestWalletDef.test_wallet(); let a_principal = Principal.fromActor(a_wallet); 
-        let fund_a_wallet = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let fund_a_wallet = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8});
         D.print("funding result end");
         D.print(debug_show(fund_a_wallet));        
 
@@ -619,13 +619,13 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         //create and fund wallet
         let a_wallet = await TestWalletDef.test_wallet(); let a_principal = Principal.fromActor(a_wallet); 
      
-       let fund_a_wallet = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+       let fund_a_wallet = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 100 * 10 ** 8};});
+            amount =  100 * 10 ** 8 });
         D.print("funding result end");
         D.print(debug_show(fund_a_wallet));              
         

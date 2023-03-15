@@ -311,7 +311,7 @@ module {
         //D.print("tracker: " # Nat.toText(tracker));
 
         if(blob_payload.size() == 0){
-            blob_payload := Blob.fromArray(payload.toArray());
+            blob_payload := Blob.fromArray(Buffer.toArray(payload));
         };
 
         let token = if(tracker >= size or tracker >= rEnd){
@@ -1102,7 +1102,7 @@ module {
                         };
 
                         if(list.size() == splitMulti.size()) {
-                            return #ok(#Array(#thawed(list.toArray())));
+                            return #ok(#Array(#thawed(Buffer.toArray(list))));
                         } else {
                             return #err();
                         };
@@ -1138,7 +1138,7 @@ module {
             };
         };
         queries.add(key);
-        return queries.toArray();
+        return Buffer.toArray(queries);
     };
 
     //checks that a access token holder is the collection owner
@@ -1299,7 +1299,7 @@ module {
                               };
 
                                 let library_id =if(library_id_buffer.size() > 1){
-                                Text.join("/", library_id_buffer.toArray().vals());
+                                Text.join("/", Buffer.toArray(library_id_buffer).vals());
                               } else {
                                 library_id_buffer.get(0);
                               };
@@ -1362,7 +1362,7 @@ module {
                           };
 
                             let library_id = if(library_id_buffer.size() > 1){
-                            Text.join("/", library_id_buffer.toArray().vals());
+                            Text.join("/", Buffer.toArray(library_id_buffer).vals());
                           } else {
                             library_id_buffer.get(0);
                           };
