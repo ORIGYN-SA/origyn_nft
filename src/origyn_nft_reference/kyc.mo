@@ -116,7 +116,7 @@ module {
                 counterparty = kycBuyer;
                 token = ?kycTokenSpec;
                 amount = ?escrow.amount;
-
+                extensible = null;
               }, null)
             } catch(err){
               #err(Error.message(err));

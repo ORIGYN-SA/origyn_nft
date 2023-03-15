@@ -16,24 +16,34 @@ module {
 
   public func upgrade(prev_migration_state: MigrationTypes.State, args: MigrationTypes.Args): MigrationTypes.State {
 
-    var droute_main_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    var droute_publisher_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
-    var droute_suscriber_id = Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai");
+    let state = switch (prev_migration_state) { case (#v0_1_3(#data(state))) state; case (_) D.trap("Unexpected migration state") };
+
+   
 
     let droute_client = Droute.new(?{
-      mainId = ?droute_main_id;
-      publishersIndexId= ?droute_publisher_id;
-      subscribersIndexId= ?droute_suscriber_id;
+      mainId = null;
+      publishersIndexId= null;
+      subscribersIndexId= null;
     });
 
-    
+    let collection_data : v0_1_4_types.CollectionData  = {
+      var logo = state.collection_data.logo;
+      var name = state.collection_data.name;
+      var symbol = state.collection_data.symbol;
+      var metadata = state.collection_data.metadata;
+      var owner  = state.collection_data.owner;
+      var managers = state.collection_data.managers;
+      var network = state.collection_data.network;
+      var allocated_storage = state.collection_data.allocated_storage;
+      var available_space  = state.collection_data.available_space;
+      var active_bucket = state.collection_data.active_bucket;
+      var announce_canister = null;
+    };
 
     D.print("in upgrade v0.1.4");
 
-    let state = switch (prev_migration_state) { case (#v0_1_3(#data(state))) state; case (_) D.trap("Unexpected migration state") };
-
     return #v0_1_4(#data({
-       var collection_data = state.collection_data;
+       var collection_data = collection_data;
       var buckets = state.buckets;
       var allocations = state.allocations;
       var canister_availible_space = state.canister_availible_space;

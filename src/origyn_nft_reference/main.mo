@@ -176,6 +176,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             nft_library = nft_library;
             refresh_state = get_state;
             kyc_client = kyc_client;
+            //we shouldn't need this if it is in the state
+            droute_client = state_current.droute;
         };
     };
 
@@ -841,6 +843,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             case(#UpdateName(val)){  "Type : UpdateName " # debug_show(val)  };
             case(#UpdateSymbol(val)){  "Type : UpdateSymbol " # debug_show(val)  };
             case(#UpdateMetadata(val)){  "Type : UpdateMetadata" };
+            case(#UpdateAnnounceCanister(val)){  "Type : UpdateAnnounceCanister" };
         };
         canistergeekLogger.logMessage("collection_update_nft_origyn",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();

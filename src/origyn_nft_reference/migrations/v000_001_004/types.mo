@@ -27,7 +27,19 @@ module {
   public let Map = v0_1_3.Map;
   public let CandyTypes = v0_1_3.CandyTypes;
 
-  public type CollectionData = v0_1_3.CollectionData;
+  public type CollectionData = {
+        var logo: ?Text;
+        var name: ?Text;
+        var symbol: ?Text;
+        var metadata: ?CandyTypes.CandyValue;
+        var owner : Principal;
+        var managers: [Principal];
+        var network: ?Principal;
+        var allocated_storage: Nat;
+        var available_space : Nat;
+        var active_bucket: ?Principal;
+        var announce_canister : ?Principal;
+    };
 
   public type AllocationRecord = v0_1_3.AllocationRecord;
 

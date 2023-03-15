@@ -1318,6 +1318,9 @@ module {
   };
 
    public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
+
+
+        if(state.state.collection_data.announce_canister == null){return;};
         
         let eventNamespace = "com.origyn.nft.event";
         let (eventType, payload) = switch (rec.txn_type) {
@@ -1333,7 +1336,7 @@ module {
         let eventName = eventNamespace # "." # eventType;
 
         ignore Timer.setTimer(#seconds(0), func () : async () {
-          let event = await* Droute.publish(state.state.droute,eventName, payload);
+          let event = await* Droute.publish(state.state.droute, eventName, payload);
         });
 
     };
@@ -1631,6 +1634,19 @@ module {
       case(#UpdateNetwork(data)){
         
          state.state.collection_data.network := data;
+        return #ok(true);
+      };
+
+
+      case(#UpdateAnnounceCanister(data)){
+        
+        state.state.collection_data.announce_canister := data;
+
+        let droute_client = Droute.new(?{
+          mainId = data;
+          publishersIndexId= null;
+          subscribersIndexId= null;
+        });
         return #ok(true);
       };
     

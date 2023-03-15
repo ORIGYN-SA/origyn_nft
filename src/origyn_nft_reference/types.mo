@@ -53,6 +53,7 @@ module {
         "UpdateManagers",
         "UpdateOwner",
         "UpdateNetwork",
+        "UpdateAnnounceCanister",
         "UpdateLogo",
         "UpdateName",
         "UpdateSymbol",
@@ -85,6 +86,7 @@ module {
         #UpdateManagers : [Principal];
         #UpdateOwner : Principal;
         #UpdateNetwork : ?Principal;
+        #UpdateAnnounceCanister : ?Principal;
         #UpdateLogo : ?Text;
         #UpdateName : ?Text;
         #UpdateSymbol : ?Text;
