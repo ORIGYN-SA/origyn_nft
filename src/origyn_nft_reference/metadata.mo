@@ -9,8 +9,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
-
+import Droute "mo:droute_client/Droute";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 
@@ -1310,8 +1311,35 @@ module {
 
     SB.add(ledger, newTrx);
 
+    //Announce Trx
+    let announce = announceTransaction(state, rec, caller, newTrx);
+
     return #ok(newTrx);
   };
+
+   public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
+
+
+        if(state.state.collection_data.announce_canister == null){return;};
+        
+        let eventNamespace = "com.origyn.nft.event";
+        let (eventType, payload) = switch (rec.txn_type) {
+          case (#auction_bid(data)) { ("auction_bid", #Class([
+            {name="token_id"; value = #Text(rec.token_id); immutable=true;},
+            {name="canister"; value = #Principal(state.canister());immutable=true;},
+            {name="sale_id"; value = #Text(data.sale_id); immutable=true;}
+          ]) )};
+          case (#mint _) { ("mint", #Text("mint")) };
+          case (#sale_ended _) {( "sale_ended", #Text("sale_ended")) };
+        };
+
+        let eventName = eventNamespace # "." # eventType;
+
+        ignore Timer.setTimer(#seconds(0), func () : async () {
+          let event = await* Droute.publish(state.state.droute, eventName, payload);
+        });
+
+    };
 
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
@@ -1606,6 +1634,19 @@ module {
       case(#UpdateNetwork(data)){
         
          state.state.collection_data.network := data;
+        return #ok(true);
+      };
+
+
+      case(#UpdateAnnounceCanister(data)){
+        
+        state.state.collection_data.announce_canister := data;
+
+        let droute_client = Droute.new(?{
+          mainId = data;
+          publishersIndexId= null;
+          subscribersIndexId= null;
+        });
         return #ok(true);
       };
     

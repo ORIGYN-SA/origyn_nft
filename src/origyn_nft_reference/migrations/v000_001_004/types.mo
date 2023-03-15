@@ -6,8 +6,12 @@ import Text "mo:base/Text";
 import Nat32 "mo:base/Nat32";
 import Nat "mo:base/Nat";
 
+
+import Droute "mo:droute_client/Droute";
+
 import KYCTypes "mo:icrc17_kyc/types";
 import KYCClass "mo:icrc17_kyc";
+
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
@@ -23,7 +27,19 @@ module {
   public let Map = v0_1_3.Map;
   public let CandyTypes = v0_1_3.CandyTypes;
 
-  public type CollectionData = v0_1_3.CollectionData;
+  public type CollectionData = {
+        var logo: ?Text;
+        var name: ?Text;
+        var symbol: ?Text;
+        var metadata: ?CandyTypes.CandyValue;
+        var owner : Principal;
+        var managers: [Principal];
+        var network: ?Principal;
+        var allocated_storage: Nat;
+        var available_space : Nat;
+        var active_bucket: ?Principal;
+        var announce_canister : ?Principal;
+    };
 
   public type AllocationRecord = v0_1_3.AllocationRecord;
 
@@ -78,6 +94,7 @@ module {
   public let Conversions = v0_1_3.Conversions;
   public let Properties = v0_1_3.Properties;
 
+
   public type KYCRequest = KYCTypes.KYCRequest;
   public type KYCResult = KYCTypes.KYCResult;
   public type KYCTokenSpec = KYCTypes.TokenSpec;
@@ -89,6 +106,7 @@ module {
     found_asset : {token_spec: TokenSpec; escrow: EscrowRecord};
     found_asset_list : EscrowLedgerTrie;
   };
+
 
   public type State  = {
     // this is the data you previously had as stable variables inside your actor class
@@ -104,6 +122,8 @@ module {
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var access_tokens : Map.Map<Text, HttpAccess>;
+    var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;
+
   };
 };

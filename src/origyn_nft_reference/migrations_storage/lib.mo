@@ -9,6 +9,7 @@ module {
     // do not forget to add your new migration upgrade method here
     v_0_1_0.upgrade,
     v_0_1_3.upgrade,
+
   ];
 
   let downgrades = [
