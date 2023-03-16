@@ -75,7 +75,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     stable var migrationState : MigrationTypes.State = #v0_0_0(#data);
 
-    migrationState := Migrations.migrate(migrationState, #v0_1_0(#id), { 
+    migrationState := Migrations.migrate(migrationState, #v0_1_3(#id), { 
         owner = deployer.caller;
         network = __initargs.network;
         storage_space = initial_storage; 
