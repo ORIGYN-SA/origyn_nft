@@ -9,9 +9,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import Timer "mo:base/Timer";
+// import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
-import Droute "mo:droute_client/Droute";
+// import Droute "mo:droute_client/Droute";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 
@@ -1296,25 +1296,11 @@ module {
     SB.add(ledger, newTrx);
 
     //Announce Trx
-    let announce = announceTransaction(state, rec, caller, newTrx);
+    EventUtils.TransactionEvents(state, caller).announceTransaction(rec, newTrx);
+    // let announce = announceTransaction(state, rec, caller, newTrx);
 
     return #ok(newTrx);
   };
-
-   public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
-        let tx_events = EventUtils.TransactionEvents(state, caller);
-
-        let (eventName, payload) = switch (rec.txn_type) {
-          case (#auction_bid(data)) { tx_events.auction_bid(rec.token_id, data.sale_id) };
-          case (#mint _) { tx_events.mint() };
-          case (#sale_ended _) { tx_events.sale_ended() };
-        };
-
-        ignore Timer.setTimer(#seconds(0), func () : async () {
-          let event = await* Droute.publish(state.state.droute,eventName, payload);
-        });
-
-    };
 
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
