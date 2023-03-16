@@ -55,10 +55,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let suite = S.suite("test nft", [
            S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-           /*  S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+           S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),       */   
+            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),  
             ]);
         S.run(suite);
 
@@ -1187,6 +1187,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
     };
 
+    public shared func take_a_hot_minute() : async Bool{
+      return true;
+    };
+
     public shared func testKYC() : async {#success; #fail : Text} {
         D.print("running KYC");
 
@@ -1360,7 +1364,6 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //place escrow b
         let new_bid_val = 12*10**8;
 
-        //try a bid in th wrong currency
         //place escrow
         D.print("sending tokens to canisters");
         let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
@@ -1384,8 +1387,27 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("did the deposit work? ");
         D.print(debug_show(b_wallet_try_escrow_correct_currency));
 
+
+        let notification_count1 = await kyc_service.get_notification_counter();
+
         //b should bit and should pass kyc
         let b_wallet_try_bid_valid = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), (10*10**8) + 1, "1", current_sales_id, null);
+
+
+        D.print("waiting");
+        ignore await take_a_hot_minute();
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        let x =  await kyc_service.test(); 
+        //forces a roundtrip;
+        let y =  await canister.sale_info_secure_nft_origyn(#status(current_sales_id));
+        D.print("done waiting");
+
+        let notification_count2 = await kyc_service.get_notification_counter();
+
+        D.print(debug_show(notification_count2));
 
        
         //NFT-94 check ownership
@@ -1436,7 +1458,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                        "bad transaction bid";
                    };
                }; 
-            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //MKT0027
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
             S.test("transaction history has the bid", switch(a_history_3){case(#ok(res)){
                
                D.print("where ismy history");
@@ -1462,7 +1484,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                        "bad history bid";
                    };
                }
-            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //TRX0005, MKT0033
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
             S.test("auction winner is the new owner", switch(a_sale_status_over_new_owner){case(#ok(res)){
 
                 let new_owner = switch(Metadata.get_nft_owner(
@@ -1525,7 +1547,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             "error getting";
                          };
                      };
-                 };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found closed sale"))), // MKT0036
+                 };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found closed sale"))),
+
+              S.test("kyc service is notified", notification_count2, M.equals<Nat>(T.nat(notification_count1 + 1))),
             
             
                 

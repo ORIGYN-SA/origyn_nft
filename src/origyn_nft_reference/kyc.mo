@@ -230,4 +230,91 @@ module {
     };
 
 
+    public func notify_kyc(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* () {
+
+        D.print("in notify kyc");
+
+        let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch(escrow.token){
+          case(#ic(token)){
+            #IC({token with id = null; fee = ?token.fee});
+           };
+          case(_){
+            D.print("no spec...ignoring");
+            return ;
+          };
+        };
+
+        let kycBuyer = switch(escrow.buyer){
+          case(#principal(account)){
+            #ICRC1({
+              owner = account;
+              subaccount = null;
+            });
+          };
+          case(#account(account)){
+            #ICRC1({
+              owner = account.owner;
+              subaccount = switch(account.sub_account){
+                case(null) null;
+                case(?val) ?Blob.toArray(val);
+              };
+            });
+          };
+          case(_){
+            D.print("no buyer ... ignoring");
+            return ;
+          };
+        };
+
+        
+       
+
+        let collection_kyc = get_collection_kyc_canister(state);
+
+        switch(collection_kyc){
+          case(null){};
+          case(?val){
+            D.print("about to call notify");
+            try{
+            ignore await* state.kyc_client.notify({
+                canister = val;
+                counterparty = kycBuyer;
+                token = ?kycTokenSpec;
+                amount = ?escrow.amount;
+                extensible = null;
+              }, {
+                amount = ?escrow.amount;
+                metadata = ?#Class([
+                  {name="sale_id"; value=switch(escrow.sale_id){
+                    case(null)#Option(null);
+                    case(?val)#Option(?#Text(val));
+                  }; immutable=true},
+                  {name="token_id"; value=#Text(escrow.token_id); immutable=true},
+
+                ]);
+              });
+            } catch(e){
+              D.print(Error.message(e));
+            }
+          };
+        };
+        
+
+        let elective_kyc = get_elective_kyc_canister(state, caller);
+
+        let elective_result : MigrationTypes.Current.KYCResult = 
+          //currently nyi
+          {
+            kyc = #NA;
+            aml = #NA;
+            token = ?kycTokenSpec;
+            amount = null;
+            message = null;
+          };
+
+          return;
+
+    };
+
+
 }

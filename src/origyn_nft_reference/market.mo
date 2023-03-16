@@ -871,8 +871,10 @@ module {
               current_sale_state.status := #closed;
               current_sale_state.winner := ?winning_escrow.buyer;
 
-              
-              
+
+              debug if(debug_channel.kyc) D.print("about to notify of kyc");
+              await* KYC.notify_kyc(state, verified.found_asset.escrow, caller);
+              debug if(debug_channel.end_sale) D.print("kyc notify done");
 
               //log royalties
               //currently for auctions there are only secondary royalties
