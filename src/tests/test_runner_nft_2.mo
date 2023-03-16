@@ -1304,9 +1304,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             };
         };
 
-       
+        let current_sale = await canister.sale_info_nft_origyn(#status(current_sales_id));
+
         //place escrow
-        D.print("sending tokens to canisters");
+        D.print("sending tokens to canisters. auction creation: " # debug_show(current_sale));
 
         let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (20 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
