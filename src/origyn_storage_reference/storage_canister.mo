@@ -430,6 +430,19 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         Buffer.toArray(localBuf);
     };
 
+    public query func show_btree_entries_keys() : async [(Nat32)] {
+
+        let vals = btreemap_storage.iter();
+        let localBuf = Buffer.Buffer<(Nat32)>(0);
+
+        for (i in vals) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+
+        Buffer.toArray(localBuf);
+    };
+
     public func remove(key : K) : async ?V {
         btreemap_storage.remove(key);
     };
@@ -445,6 +458,19 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     // *************************
     // **** END STABLEBTREE ****
     // *************************
+
+    public query func show_nft_library_array() : async  [(Text, [(Text, CandyTypes.AddressedChunkArray)])] {
+        let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
+        for(thisKey in nft_library.entries()){
+            let thisLibrary_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+            for(thisItem in thisKey.1.entries()){
+                thisLibrary_buffer.add((thisItem.0, Workspace.workspaceToAddressedChunkArray(thisItem.1)) );
+            };
+            nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
+        };
+        nft_library_stable_buffer.toArray();
+
+    };
 
     system func preupgrade() {
 
