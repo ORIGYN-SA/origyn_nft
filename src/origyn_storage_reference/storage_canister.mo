@@ -31,6 +31,7 @@ import Storage_Store "../origyn_nft_reference/storage_store";
 import Types "../origyn_nft_reference/types";
 import http "../origyn_nft_reference/storage_http";
 
+
 shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArgs) = this {
     stable var SIZE_CHUNK = 2048000; //max message size
 
@@ -154,13 +155,13 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         if (state_current.collection_data.owner != msg.caller) {
-            return #err(Types.errors(#unauthorized_access, "refresh_metadata_nft_origyn - storage - not an owner", ?msg.caller));
+            return #err(Types.errors(null,  #unauthorized_access, "refresh_metadata_nft_origyn - storage - not an owner", ?msg.caller));
         };
 
         switch (Map.get<Text, Candy.CandyValue>(state_current.nft_metadata, Map.thash, token_id)) {
             case (null) {
                 D.print("error");
-                return #err(Types.errors(#token_not_found, "refresh_metadata_nft_origyn - storage - cannot find metadata to replace - " # token_id, ?msg.caller));
+                return #err(Types.errors(null,  #token_not_found, "refresh_metadata_nft_origyn - storage - cannot find metadata to replace - " # token_id, ?msg.caller));
 
             };
             case (_) {};
@@ -221,25 +222,25 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         let allocation = switch (Map.get<(Text, Text), Types.AllocationRecord>(state_current.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (request.token_id, request.library_id))) {
             case (null) {
-                return #err(Types.errors(#library_not_found, "chunk_nft_origyn - allocatio for token, library - " # request.token_id # " " # request.token_id, ?caller));
+                return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - allocatio for token, library - " # request.token_id # " " # request.token_id, ?caller));
             };
             case (?val) { val };
         };
 
         switch (nft_library.get(request.token_id)) {
             case (null) {
-                return #err(Types.errors(#token_not_found, "chunk_nft_origyn - cannot find token id - " # request.token_id, ?caller));
+                return #err(Types.errors(null,  #token_not_found, "chunk_nft_origyn - cannot find token id - " # request.token_id, ?caller));
             };
             case (?token) {
                 switch (token.get(request.library_id)) {
                     case (null) {
-                        return #err(Types.errors(#library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # request.token_id # " library_id - " # request.library_id, ?caller));
+                        return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # request.token_id # " library_id - " # request.library_id, ?caller));
                     };
                     case (?item) {
                         switch (item.getOpt(1)) {
                             case (null) {
                                 //nofiledata
-                                return #err(Types.errors(#library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
+                                return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
                             };
                             case (?zone) {
                                 //D.print("size of zone");
@@ -254,7 +255,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
                                 };
                                 switch (zone.getOpt(requested_chunk)) {
                                     case (null) {
-                                        return #err(Types.errors(#library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
+                                        return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
                                     };
                                     case (?chunk) {
                                         switch (chunk) {
@@ -275,7 +276,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
                                             };
                                             case (_) {
-                                                return #err(Types.errors(#content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
+                                                return #err(Types.errors(null,  #content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
                                             };
                                         };
                                     };
@@ -288,7 +289,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
             };
         };
-        return #err(Types.errors(#nyi, "chunk_nft_origyn - nyi", ?caller));
+        return #err(Types.errors(null,  #nyi, "chunk_nft_origyn - nyi", ?caller));
     };
 
     //gets a chunk for a library

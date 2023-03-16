@@ -50,17 +50,17 @@ module {
                                                         debug if(debug_channel.library) D.print("handling an item " # debug_show(this_item));
                                     //handle each library
                                     let library_id = switch(Metadata.get_nft_text_property(this_item, Types.metadata.library_id)){
-                                        case(#err(err)){return #err(Types.errors(#malformed_metadata, "handle_library - library needs library_id", ?caller))};
+                                        case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "handle_library - library needs library_id", ?caller))};
                                         case(#ok(val)){val};
                                     };
 
                                     let library_size = switch(Metadata.get_nft_nat_property(this_item, Types.metadata.library_size)){
-                                        case(#err(err)){return #err(Types.errors(#malformed_metadata, "handle_library - library needs size", ?caller))};
+                                        case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "handle_library - library needs size", ?caller))};
                                         case(#ok(val)){val};
                                     };
 
                                     let library_type = switch(Metadata.get_nft_text_property(this_item, Types.metadata.library_location_type)){
-                                        case(#err(err)){return #err(Types.errors(#malformed_metadata, "handle_library - library needs type", ?caller))};
+                                        case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "handle_library - library needs type", ?caller))};
                                         case(#ok(val)){val};
                                     };
 
@@ -79,7 +79,7 @@ module {
                                                     state.state.collection_data.active_bucket := ?state.canister();
                                                     state.canister(); 
                                                 } else {
-                                                    return #err(Types.errors(#not_enough_storage, "handle_library - need to initialize storage for collections where gateway has no storage", ?caller));
+                                                    return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "handle_library - need to initialize storage for collections where gateway has no storage", ?caller));
                                                 }
                                             };
                                             case(?val){val};
@@ -133,7 +133,7 @@ module {
                                                     } else {
                                                                         debug if(debug_channel.library) D.print("erroring because " # debug_show((a_bucket.available_space, library_size)));
                                                         //make sure that size isn't bigger than biggest possible size
-                                                        return #err(Types.errors(#not_enough_storage, "stage_nft_origyn - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
+                                                        return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_nft_origyn - need to initialize storage out side of this function, dynamic creation is nyi", ?caller));
                                                     };
                                                 };
                                             };
@@ -163,18 +163,18 @@ module {
                                                 if(canister_bucket.available_space >= library_size){
                                                   canister_bucket.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_nft_origyn - canister_bucket.available_space >= library_size " # debug_show((canister_bucket.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.state.collection_data.available_space >= library_size){
                                                   state.state.collection_data.available_space -= library_size;
                                                 } else {
-                                                  return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
+                                                  return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_nft_origyn - state.state.collection_data.available_space >= library_size " # debug_show((state.state.collection_data.available_space,library_size) ), ?caller));
                                                 };
                                                 if(state.canister() == canister_bucket.principal){
                                                     if(state.state.canister_availible_space >= library_size){
                                                       state.state.canister_availible_space -= library_size;
                                                     } else {
-                                                      return #err(Types.errors(#storage_configuration_error, "stage_nft_origyn - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
+                                                      return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_nft_origyn - state.state.canister_availible_space >= library_size " # debug_show((state.state.canister_availible_space,library_size) ), ?caller));
                                                     }
                                                 };
                                                 a_allocation;
@@ -206,13 +206,13 @@ module {
                                                     if(canister_bucket.available_space >= Nat.sub(library_size ,val.allocated_space)){
                                                       canister_bucket.available_space -= (library_size - val.allocated_space);
                                                     } else {
-                                                      return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - canister_bucket.available_space >= (library_size - val.allocated_space) " # debug_show((canister_bucket.available_space,library_size, val.allocated_space)), ?caller));
+                                                      return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_library_nft_origyn - canister - canister_bucket.available_space >= (library_size - val.allocated_space) " # debug_show((canister_bucket.available_space,library_size, val.allocated_space)), ?caller));
                                                     };
 
                                                     if(state.state.collection_data.available_space >= Nat.sub(library_size, val.allocated_space)){
                                                       state.state.collection_data.available_space -= Nat.sub(library_size, val.allocated_space);
                                                     } else {
-                                                      return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - canister - state.state.collection_data.available_space -= (library_size - val.allocated_space) " # debug_show((state.state.collection_data.available_space,library_size, val.allocated_space)), ?caller));
+                                                      return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_library_nft_origyn - canister - state.state.collection_data.available_space -= (library_size - val.allocated_space) " # debug_show((state.state.collection_data.available_space,library_size, val.allocated_space)), ?caller));
                                                     };
                                                     
                                                     a_allocation;
@@ -228,10 +228,10 @@ module {
                                     //nyi: if it is collection, should we check that it exists?
                                 };
                             };
-                            case(_){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library should be thawed", ?caller));};
+                            case(_){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library should be thawed", ?caller));};
                         };
                     };
-                    case(_){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library should be an array", ?caller));};
+                    case(_){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library should be an array", ?caller));};
                 };
 
             };
@@ -243,7 +243,7 @@ module {
 
     //mints an NFT
     public func mint_nft_origyn(state : Types.State, token_id : Text, new_owner : Types.Account, caller : Principal) : async* Result.Result<Text,Types.OrigynError> {
-        if(NFTUtils.is_owner_manager_network(state, caller) == false){return #err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?caller))};
+        if(NFTUtils.is_owner_manager_network(state, caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "mint_nft_origyn - not an owner", ?caller))};
 
         let result =  execute_mint(state, token_id, new_owner, null, caller);
 
@@ -325,14 +325,14 @@ module {
         caller: Principal): Result.Result<Text, Types.OrigynError>{
                             debug if(debug_channel.stage) D.print("in stage");
         //only an owner can stage
-        if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
+        if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
 
         //ensure id is in the class
                             debug if(debug_channel.stage) D.print("looking for id");
         let id_val = Conversions.valueToText(
             switch(Properties.getClassProperty(metadata, "id")){
                 case(null){
-                    return #err(Types.errors(#id_not_found_in_metadata, "stage_nft_origyn - find id", ?caller));
+                    return #err(Types.errors(?state.canistergeekLogger,  #id_not_found_in_metadata, "stage_nft_origyn - find id", ?caller));
                 };
                 case(?found){
                     found.value;
@@ -348,7 +348,7 @@ module {
         let found_system = switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
             case(null){};
             case(?found){
-                return #err(Types.errors(#attempt_to_stage_system_data, "stage_nft_origyn - find system", ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  #attempt_to_stage_system_data, "stage_nft_origyn - find system", ?caller));
             }
         };
 
@@ -361,7 +361,7 @@ module {
                 //add status "staged"
                 found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(#Class([{name=Types.metadata.__system_status; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
                     case(#err(errType)){
-                        return #err(Types.errors(#update_class_error, "stage_nft_origyn - set staged status", ?caller));
+                        return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_nft_origyn - set staged status", ?caller));
                     };
                     case(#ok(result)){
                         result;
@@ -385,13 +385,13 @@ module {
                                 debug if(debug_channel.stage) D.print("exists");
                 //check to see if it is minted yet.Array
                 let system_node : CandyTypes.CandyValue = switch(Properties.getClassProperty(this_metadata, Types.metadata.__system)){
-                    case(null){return #err(Types.errors(#cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
+                    case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
                     case(?found){found.value};
                 };
 
                 let status : Text = Conversions.valueToText(
                     switch(Properties.getClassProperty(system_node, Types.metadata.__system_status)){
-                        case(null){return #err(Types.errors(#cannot_find_status_in_metadata, "stage_nft_origyn - cannot find status", ?caller));};
+                        case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - cannot find status", ?caller));};
                         case(?found){found.value};
                     });
 
@@ -405,14 +405,14 @@ module {
                     switch(Properties.getClassProperty(this_metadata, Types.metadata.__system)){
                         case(null){
                             //this branch may be an error
-                            return #err(Types.errors(#improper_interface, "stage_nft_origyn - __system node not found", ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "stage_nft_origyn - __system node not found", ?caller));
                         };
                         case(?found){
                             //injects the existing __system vars into new metadata
                                             debug if(debug_channel.stage) D.print("updating metadata to include system");
                             found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(found.value)}])){
                                 case(#err(errType)){
-                                    return #err(Types.errors(#update_class_error, "stage_nft_origyn - set staged status", ?caller));
+                                    return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_nft_origyn - set staged status", ?caller));
                                 };
                                 case(#ok(result)){
                                     result;
@@ -436,27 +436,27 @@ module {
                 } else {
 
                   //only an owner can stage
-                  if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
+                  if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
 
 
                   //check to see if it is minted yet.Array
                   switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
-                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage system node", ?caller));};
+                      case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage system node", ?caller));};
                       case(null){};
                   };
 
                   switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
-                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage owner node after mint", ?caller));};
+                      case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage owner node after mint", ?caller));};
                       case(null){};
                   };
 
                   switch(Properties.getClassProperty(metadata, Types.metadata.library)){
-                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage library node after mint, use stage_library_nft_origyn", ?caller));};
+                      case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage library node after mint, use stage_library_nft_origyn", ?caller));};
                       case(null){};
                   };
 
                   switch(Properties.getClassProperty(metadata, Types.metadata.__apps)){
-                      case(?found){return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - cannot stage dapps after mint, use update_app_nft_origyn", ?caller));};
+                      case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage dapps after mint, use update_app_nft_origyn", ?caller));};
                       case(null){};
                   };
 
@@ -489,7 +489,7 @@ module {
                           #Class(props);
                         };
                         case(#err(err)){
-                          return #err(Types.errors(#update_class_error, "stage_nft_origyn - bad update " # this_item.name # " " #debug_show(err), ?caller));
+                          return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_nft_origyn - bad update " # this_item.name # " " #debug_show(err), ?caller));
                         }
                       };
                   };
@@ -511,13 +511,13 @@ module {
         caller : Principal) : Result.Result<Types.LocalStageLibraryResponse, Types.OrigynError> {
 
         //todo: add ability for nfto owner to upload files to an nft.
-        if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
+        if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
                         debug if(debug_channel.stage) D.print("in stage_library_nft_origyn" # debug_show(chunk));
         var b_updated_meta = false;
         let content_size = chunk.content.size();
         var metadata = switch(Metadata.get_metadata_for_token(state, chunk.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
-                return #err(Types.errors(err.error, "stage_library_nft_origyn " # err.flag_point, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  err.error, "stage_library_nft_origyn " # err.flag_point, ?caller));
             };
             case(#ok(val)){
                 val;
@@ -536,7 +536,7 @@ module {
         
 
         let system_node : CandyTypes.CandyValue = switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
-                    case(null){return #err(Types.errors(#cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
+                    case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
                     case(?found){found.value};
                 };
 
@@ -600,7 +600,7 @@ module {
               case(null){
                   if(bUpdate.size() > 0){
                                       debug if(debug_channel.stage) D.print("library not found");
-                    return #err(Types.errors(#library_not_found, "stage_nft_origyn - provided filedata must be a class with library_id attribute", ?caller));
+                    return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "stage_nft_origyn - provided filedata must be a class with library_id attribute", ?caller));
                   } else {
                     chunk.library_id;
                   };
@@ -610,12 +610,12 @@ module {
                       case(#Text(id)){
 
                           if(id != chunk.library_id){
-                            return #err(Types.errors(#malformed_metadata, "stage_nft_origyn - library_id in metadata does not match chunk", ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library_id in metadata does not match chunk", ?caller));
                           };
                           id;
                       };
                       case(_){
-                          return #err(Types.errors(#library_not_found, "stage_library_nft_origyn - provided filedata must be a claass with library_id as #Text attribute", ?caller));
+                          return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "stage_library_nft_origyn - provided filedata must be a claass with library_id as #Text attribute", ?caller));
                       
                       };
                   }
@@ -630,7 +630,7 @@ module {
           let library = switch(Metadata.get_nft_library(metadata, ?caller)){
               case(#err(err)){
                   //nyi: add libraries after minting
-                  return #err(Types.errors(#library_not_found, "stage_library_nft_origyn - cannot find library"  # err.flag_point, ?caller));
+                  return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "stage_library_nft_origyn - cannot find library"  # err.flag_point, ?caller));
                       
               };
               case(#ok(val)){val};
@@ -653,7 +653,7 @@ module {
                                       debug if(debug_channel.stage) D.print(debug_show((id, library_id)));
                       if(Conversions.valueToText(id.value) == library_id){
                         if(immutable_library_metadata == true and status == "minted"){
-                          return #err(Types.errors(#update_class_error, "stage_library_nft_origyn - cannot update immutable library", ?caller));
+                          return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_library_nft_origyn - cannot update immutable library", ?caller));
                         };
                           
                                           debug if(debug_channel.stage) D.print("replaceing with filechunk");
@@ -686,7 +686,7 @@ module {
               case(#err(errType)){
                   switch(errType){
                       case(_){
-                          return #err(Types.errors(#update_class_error, "stage_library_nft_origyn - cannot update" # debug_show(errType), ?caller));
+                          return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_library_nft_origyn - cannot update" # debug_show(errType), ?caller));
                       };
                   };
               };
@@ -723,7 +723,7 @@ module {
 
           //make sure we have an allocation space for this chunk
           let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
-              case(null){return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
+              case(null){return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
               case(?val)(val);
           };
 
@@ -751,7 +751,7 @@ module {
                           
                           if(content_size > allocation.available_space){
                                                   debug if(debug_channel.stage) D.print("not enough storage in allocation null library " # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
-                              return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
+                              return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
                           };
                           
                           new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
@@ -777,7 +777,7 @@ module {
                                   //nftdoesn't exist;
                                   if(content_size > allocation.available_space){
                                                           debug if(debug_channel.stage) D.print("not enough storage in allocation not null" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
-                                      return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
+                                      return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
                                   };
                                   let new_workspace = Workspace.initWorkspace(2);
 
@@ -844,7 +844,7 @@ module {
                           if(allocation.available_space >= Nat.sub(content_size, current_size)){
                             allocation.available_space -= Nat.sub(content_size, current_size);
                           } else {
-                            return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - already exists - allocation.available_space >= (content_size - current_size)" # debug_show((allocation.available_space, content_size, current_size)), ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_library_nft_origyn - already exists - allocation.available_space >= (content_size - current_size)" # debug_show((allocation.available_space, content_size, current_size)), ?caller));
                           };
                       } else if (content_size >= current_size){
                           //give space back
@@ -860,7 +860,7 @@ module {
                               if(content_size > allocation.available_space){
                                                       debug if(debug_channel.stage) D.print("not enough storage in allocation not branch b" # debug_show(chunk.token_id, chunk.library_id, content_size,allocation.available_space));
                                           
-                                  return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn - chunk bigger than available past workspace" # chunk.token_id # " " # chunk.library_id, ?caller));
+                                  return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn - chunk bigger than available past workspace" # chunk.token_id # " " # chunk.library_id, ?caller));
                               };
                               
                                                   debug if(debug_channel.stage) D.print("branch c" # debug_show(allocation, content_size));
@@ -869,7 +869,7 @@ module {
                               if(allocation.available_space >= content_size){
                                 allocation.available_space -= content_size;
                               } else {
-                                return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - allocation loop - allocation.available_space >= content_size" # debug_show((allocation.available_space, content_size)), ?caller));
+                                return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_library_nft_origyn - allocation loop - allocation.available_space >= content_size" # debug_show((allocation.available_space, content_size)), ?caller));
                               };
                               
                           } else {
@@ -961,7 +961,7 @@ module {
                 let refresh_state = state.refresh_state();
 
                 var fresh_allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(refresh_state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id))){
-                    case(null){return #err(Types.errors(#not_enough_storage, "stage_library_nft_origyn_remote - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
+                    case(null){return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn_remote - allocation not found for " # chunk.token_id # " " # chunk.library_id, ?caller));};
                     case(?val)(val);
                 };
 
@@ -983,7 +983,7 @@ module {
                          if(fresh_allocation.available_space >= Nat.sub(current_size, content_size)){
                             fresh_allocation.available_space -= Nat.sub(current_size, content_size);
                           } else {
-                            return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show((fresh_allocation.available_space,current_size, content_size)), ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger,  #storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show((fresh_allocation.available_space,current_size, content_size)), ?caller));
                           };
                       
                         
@@ -1012,7 +1012,7 @@ module {
                         debug if(debug_channel.mint) D.print("in mint");
          var metadata = switch(Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
             case(#err(err)){
-                return #err(Types.errors(#token_not_found, "execute_mint " # err.flag_point, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "execute_mint " # err.flag_point, ?caller));
             };
             case(#ok(val)){
                 val;
@@ -1031,7 +1031,7 @@ module {
 
         //cant mint if already minted
         if(Metadata.is_minted(metadata)){
-            return #err(Types.errors(#item_already_minted, "execute_mint - already minted", ?caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #item_already_minted, "execute_mint - already minted", ?caller));
         };
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_status, #Text("minted"));
 
@@ -1128,13 +1128,13 @@ module {
                 //maybe the owner is immutable
                 switch(Metadata.is_nft_owner(metadata, newOwner)){
                     case(#err(err)){
-                        return #err(Types.errors(#token_not_found, "mint_nft_origyn retrieve owner " # err.flag_point, ?caller));
+                        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "mint_nft_origyn retrieve owner " # err.flag_point, ?caller));
                     };
                     case(#ok(val)){
 
                         if(val == false){
                             //tried to set an immutable owner;
-                            return #err(Types.errors(#update_class_error, "mint_nft_origyn - error setting owner " # token_id, ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "mint_nft_origyn - error setting owner " # token_id, ?caller));
                         };
                         //owner will be left the same as the immutable
                         metadata;
@@ -1170,7 +1170,7 @@ module {
             }, caller)){
             case(#err(err)){
                 //potentially big error once certified data is in place...may need to throw
-                return #err(Types.errors(err.error, "mint_nft_origyn add_transaction_record" # err.flag_point, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  err.error, "mint_nft_origyn add_transaction_record" # err.flag_point, ?caller));
             };
             case(#ok(val)){val};
         };

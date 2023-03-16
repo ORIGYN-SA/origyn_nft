@@ -13,6 +13,8 @@ import SB "mo:stablebuffer/StableBuffer";
 
 import NFTTypes "../origyn_nft_reference/types";
 
+import Canistergeek "mo:canistergeek/canistergeek";
+
 module {
 
 

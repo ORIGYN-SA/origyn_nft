@@ -176,6 +176,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             nft_library = nft_library;
             refresh_state = get_state;
             kyc_client = kyc_client;
+            canistergeekLogger = canistergeekLogger;
             //we shouldn't need this if it is in the state
             droute_client = state_current.droute;
         };
@@ -250,7 +251,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in stage batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
-            return [#err(Types.errors(#unauthorized_access, "stage_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
+            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "stage_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
         };
 
 
@@ -381,7 +382,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         if(NFTUtils.is_owner_manager_network(get_state(),msg.caller) == false){
-        return [#err(Types.errors(#unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))]
+        return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "mint_nft_origyn - not an owner", ?msg.caller))]
         };
         debug if(debug_channel.function_announce) D.print("in mint batch");
         let results = Buffer.Buffer<Result.Result<Text,Types.OrigynError>>(tokens.size());
@@ -546,7 +547,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
             case(_){
                 //handles #auction types
-                return Market.market_transfer_nft_origyn(get_state(), request, msg.caller);
+                return await* Market.market_transfer_nft_origyn(get_state(), request, msg.caller);
             }
         };
     };
@@ -559,7 +560,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in market transfer batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
-            return [#err(Types.errors(#unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
+            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "market_transfer_batch_nft_origyn - not an owner, manager, or network", ?msg.caller))];
         };
 
         let results = Buffer.Buffer<Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError>>(request.size());
@@ -593,7 +594,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                     result_buffer.add(Market.market_transfer_nft_origyn_async(get_state(), this_item, msg.caller));
                 };
                 case(_){
-                    results.add(Market.market_transfer_nft_origyn(get_state(), this_item, msg.caller));
+                    result_buffer.add(Market.market_transfer_nft_origyn(get_state(), this_item, msg.caller));
                 };
             };
 
@@ -615,7 +616,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     private func _sale_nft_origyn(request: Types.ManageSaleRequest, caller : Principal): async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
 
-        var log_data : Text = "";                
+        var log_data : Text = "";
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in sale_nft_origyn");
 
@@ -687,7 +688,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale_nft_origyn batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false and msg.caller != get_state().canister()){
-            return [#err(Types.errors(#unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch not supported", ?msg.caller))];
+            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch not supported", ?msg.caller))];
         };        
         
         let result = Buffer.Buffer<Result.Result<Types.ManageSaleResponse, Types.OrigynError>>(requests.size());
@@ -859,7 +860,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         debug if(debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
         // We do a first check of caller to avoid cycle drain
         if(NFTUtils.is_owner_network(get_state(), msg.caller) == false){
-            return [#err(Types.errors(#unauthorized_access, "collection_update_batch_nft_ - not a canister owner or network", ?msg.caller))];
+            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "collection_update_batch_nft_ - not a canister owner or network", ?msg.caller))];
         };
 
         let results = Buffer.Buffer<Result.Result<Bool, Types.OrigynError>>(requests.size());
@@ -924,7 +925,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                         case(null){};
                         case(?val){
                             //eventually we can accomidate reallocation, but fail for now
-                            return #err(Types.errors(#storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show(this_item), ?msg.caller));
+                            return #err(Types.errors(?get_state().canistergeekLogger,  #storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show(this_item), ?msg.caller));
 
                         };
                     };
@@ -947,7 +948,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        return #err(Types.errors(#nyi, "manage_storage_nft_origyn nyi ", ?msg.caller));
+        return #err(Types.errors(?get_state().canistergeekLogger,  #nyi, "manage_storage_nft_origyn nyi ", ?msg.caller));
 
     };
 
@@ -998,16 +999,16 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             name = state.state.collection_data.name;
             symbol = state.state.collection_data.symbol;
             total_supply = ?keysArray.size();
-            owner = ?state.state.collection_data.owner;
-            managers = ?state.state.collection_data.managers;
+            owner = ?get_state().state.collection_data.owner;
+            managers = ?get_state().state.collection_data.managers;
             network = state.state.collection_data.network;
             token_ids = ?keysArray;
             token_ids_count = ?keysArray.size();
             multi_canister = ?multi_canister;
             multi_canister_count = ?multi_canister.size();
             metadata = Map.get(state.state.nft_metadata, Map.thash, "");
-            allocated_storage = ?state.state.collection_data.allocated_storage;
-            available_space = ?state.state.collection_data.available_space;
+            allocated_storage = ?get_state().state.collection_data.allocated_storage;
+            available_space = ?get_state().state.collection_data.available_space;
             created_at = ?created_at;
             upgraded_at = ?upgraded_at;
             unique_holders = ?Set.size(ownerSet);
@@ -1056,7 +1057,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 let result = Buffer.Buffer<Types.TransactionRecord>((thisEnd + 1) - thisStart);
                 for(this_item in Iter.range(thisStart, thisEnd)){
                     result.add(switch(SB.getOpt(val, this_item)){case(?item){item};case(null){
-                        return #err(Types.errors(#asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?caller));
+                        return #err(Types.errors(?get_state().canistergeekLogger,  #asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?caller));
 
                     }});
                 };
@@ -1064,7 +1065,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 return #ok(Buffer.toArray(result));
             } else {
                 // Enable revrange
-                return #err(Types.errors(#nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?caller));
+                return #err(Types.errors(?get_state().canistergeekLogger,  #nyi, "history_nft_origyn - rev range nyi  " # debug_show(thisStart) # " " # debug_show(thisEnd), ?caller));
             };
         };
       };
@@ -1366,14 +1367,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             Metadata.get_nft_owner(
                 switch(Metadata.get_metadata_for_token(get_state(),token_id, caller, null, state_current.collection_data.owner)){
                     case(#err(err)){
-                        return #err(Types.errors(#token_not_found, "bearer_nft_origyn " # err.flag_point, ?caller));
+                        return #err(Types.errors(?get_state().canistergeekLogger,  #token_not_found, "bearer_nft_origyn " # err.flag_point, ?caller));
                     };
                     case(#ok(val)){
                         val;
                     };
                 })){
                 case(#err(err)){
-                    return #err(Types.errors(err.error, "bearer_nft_origyn " # err.flag_point, ?caller));
+                    return #err(Types.errors(?get_state().canistergeekLogger,  err.error, "bearer_nft_origyn " # err.flag_point, ?caller));
                 };
                 case(#ok(val)){
                     return #ok(val);
@@ -1755,7 +1756,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in http_access_key");        
         // nyi: spam prevention
-        if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(#unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
+        if(Principal.isAnonymous(msg.caller) ){return #err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "http_access_key - anon not allowed", ?msg.caller))};
         let state = get_state();
         clearAccessKeysExpired(state);
 
@@ -1782,7 +1783,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
           };
         };
 
-        #err(Types.errors(#property_not_found, "access key not found by caller", ?msg.caller));
+        #err(Types.errors(?get_state().canistergeekLogger,  #property_not_found, "access key not found by caller", ?msg.caller));
     };
 
     // Handles http request
@@ -1871,16 +1872,16 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                 name = 
                 symbol = state.state.collection_data.symbol;
                 total_supply = ?keys.size();
-                owner = ?state.state.collection_data.owner;
-                managers = ?state.state.collection_data.managers;
+                owner = ?get_state().state.collection_data.owner;
+                managers = ?get_state().state.collection_data.managers;
                 network = state.state.collection_data.network;
                 token_ids = ?keys;
                 token_ids_count = ?keys.size();
                 multi_canister = ?multi_canister;
                 multi_canister_count = ?multi_canister.size();
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
-                allocated_storage = ?state.state.collection_data.allocated_storage;
-                available_space = ?state.state.collection_data.available_space;
+                allocated_storage = ?get_state().state.collection_data.allocated_storage;
+                available_space = ?get_state().state.collection_data.available_space;
             }
         );
 */

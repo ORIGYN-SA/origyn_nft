@@ -30,6 +30,8 @@ module {
 
   let debug_channel = {
     function_announce = false;
+    update_metadata = true;
+
   };
 
   //builds a library from a stable type
@@ -227,7 +229,7 @@ module {
   public func get_library_meta(metadata: CandyTypes.CandyValue, library_id : Text) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
-        return #err(Types.errors(#library_not_found, "get_library_meta - cannot find library in metadata", null));
+        return #err(Types.errors(null,  #library_not_found, "get_library_meta - cannot find library in metadata", null));
       };
       case(?val){
         for(this_item in Conversions.valueToValueArray(val.value).vals()){
@@ -242,7 +244,7 @@ module {
             };
           };
         };
-        return #err(Types.errors(#property_not_found, "get_library_meta - cannot find library id in library", null));
+        return #err(Types.errors(null,  #property_not_found, "get_library_meta - cannot find library id in library", null));
       };
     };
   };
@@ -252,14 +254,14 @@ module {
   public func get_nft_text_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Text, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
-        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case(?val){
          return #ok(
            switch(val.value){
              case(#Text(val)){return #ok(val)};
              case(_){
-               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+               return #err(Types.errors(null,  #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
              }
            });
       };
@@ -270,14 +272,14 @@ module {
   public func get_nft_principal_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Principal, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
-        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case(?val){
          return #ok(
            switch(val.value){
              case(#Principal(val)){return #ok(val)};
              case(_){
-               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+               return #err(Types.errors(null,  #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
              }
            });
       };
@@ -288,14 +290,14 @@ module {
   public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
-        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case(?val){
          return #ok(
            switch(val.value){
              case(#Bool(val)){return #ok(val)};
              case(_){
-               return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+               return #err(Types.errors(null,  #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
              }
            });
       };
@@ -306,14 +308,14 @@ module {
    public func get_nft_nat_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Nat, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
-        return #err(Types.errors(#property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(null,  #property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
       };
       case(?val){
          return #ok(
            switch(val.value){
              case(#Nat(val)){return #ok(val)};
              case(_){
-               return #err(Types.errors(#property_not_found, "get_nft_nat_property - unknown " # prop # " type", null));
+               return #err(Types.errors(null,  #property_not_found, "get_nft_nat_property - unknown " # prop # " type", null));
              }
            });
       };
@@ -384,14 +386,14 @@ module {
       case(null){
         //no library exists
         D.print("token id empty");
-        return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find token_id in library store", null));
+        return #err(Types.errors(null,  #library_not_found, "getLibraryStore - cannot find token_id in library store", null));
       };
       case(?token){
         D.print("looking for token" # debug_show(Iter.toArray<Text>(token.keys())));
         switch(token.get(library_id)){
           case(null){
             //no libaray exists
-            return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find library_id in library store", null));
+            return #err(Types.errors(null,  #library_not_found, "getLibraryStore - cannot find library_id in library store", null));
           };
           case(?item){
             return #ok(item);
@@ -501,14 +503,14 @@ module {
               owner = switch(items[0]){
                 case(#Principal(val)){val;};
                 case(_){
-                  return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
+                  return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
                 };
               };
               sub_account =  if(items.size() > 1){
                   switch(items[1]){
                     case(#Blob(val)){?val;};
                     case(_){
-                      return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
+                      return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
                     };
                   };
                 }
@@ -517,13 +519,13 @@ module {
                 }
               }));
           } else {
-            return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
+            return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
           };
         };
-        case(_){return #err(Types.errors(#improper_interface, "candy_to_account - send payment - improper interface, not frozen " # debug_show(ary), null));};
+        case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not frozen " # debug_show(ary), null));};
       };
     };
-    case(_){return #err(Types.errors(#improper_interface, "candy_to_account - send payment - improper interface, not an array " , null));};
+    case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not an array " , null));};
     };
   };
 
@@ -533,7 +535,7 @@ module {
   public func get_nft_owner(metadata: CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
       case(null){
-        return #err(Types.errors(#owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
+        return #err(Types.errors(null,  #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
       };
       case(?val){
          return candy_to_account(val.value)
@@ -551,7 +553,7 @@ module {
     //make sure we always have fresh meta data incase something has changed
     var fresh_metadata = switch(get_metadata_for_token(current_state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
         case(#err(err)){
-            return #err(Types.errors(#token_not_found, "set_nft_owner can't get metadata " # err.flag_point, ?caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "set_nft_owner can't get metadata " # err.flag_point, ?caller));
         };
         case(#ok(val)){
             val;
@@ -573,7 +575,7 @@ module {
               #Class(props);
           };
           case(#err(err)){
-              return #err(Types.errors(#update_class_error, "set_nft_owner - error setting owner " # debug_show((token_id, new_owner, fresh_metadata)), ?caller));
+              return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "set_nft_owner - error setting owner " # debug_show((token_id, new_owner, fresh_metadata)), ?caller));
 
           };
       };
@@ -591,7 +593,7 @@ module {
     
     let owner = switch(get_nft_owner(metadata)){
       case(#err(err)){
-        return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
+        return #err(Types.errors(null,  err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case(#ok(val)){
         switch(val){
@@ -619,7 +621,7 @@ module {
                 let anAccount = switch(candy_to_account(thisItem)){
                   case(#ok(val)){val};
                   case(#err(err)){
-                    return #err(Types.errors(err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
+                    return #err(Types.errors(null,  err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
             
                   };
                 };
@@ -633,7 +635,7 @@ module {
                 let anAccount = switch(candy_to_account(thisItem)){
                   case(#ok(val)){val};
                   case(#err(err)){
-                    return #err(Types.errors(err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
+                    return #err(Types.errors(null,  err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
             
                   };
                 };
@@ -643,7 +645,7 @@ module {
               result;
             };
             case(_){
-                return #err(Types.errors(#improper_interface, "share_nft_origyn - wallet_share not an array", null));
+                return #err(Types.errors(null,  #improper_interface, "share_nft_origyn - wallet_share not an array", null));
             };
         };
 
@@ -684,12 +686,12 @@ module {
   //gets the primary host of an NFT - used for testing redirects locally
   public func get_primary_host(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-      case(#err(err)){return #err(Types.errors(err.error, "get_primary_host - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
+      case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_host - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
     };
     switch(Properties.getClassProperty(metadata, Types.metadata.primary_host)){
       case(null){
-        return #err(Types.errors(#owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
+        return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
       };
       case(?val){
          return #ok(
@@ -698,7 +700,7 @@ module {
              case(#Text(val)){val};
              
              case(_){
-               return #err(Types.errors(#owner_not_found, "get_primary_host - unknown host type", null));
+               return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_host - unknown host type", null));
              }
            });
       };
@@ -708,12 +710,12 @@ module {
   //gets the primary ports of an NFT - used for testing redirects locally
   public func get_primary_port(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-      case(#err(err)){return #err(Types.errors(err.error, "get_primary_port - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
+      case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_port - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
     };
     switch(Properties.getClassProperty(metadata, Types.metadata.primary_port)){
       case(null){
-        return #err(Types.errors(#owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
+        return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
       };
       case(?val){
          return #ok(
@@ -722,7 +724,7 @@ module {
              case(#Text(val)){val};
              
              case(_){
-               return #err(Types.errors(#owner_not_found, "get_primary_port - unknown host type", null));
+               return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_port - unknown host type", null));
              }
            });
       };
@@ -733,14 +735,14 @@ module {
   public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-      case(#err(err)){return #err(Types.errors(err.error, "get_primary_protocol - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
+      case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_protocol - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
     };
     //D.print("have meta protocol");
     switch(Properties.getClassProperty(metadata, Types.metadata.primary_protocol)){
       case(null){
          D.print("have err1 protocol");
-        return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
+        return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
       };
       case(?val){
          D.print("have meta protocol23");
@@ -752,7 +754,7 @@ module {
              
              case(_){
                 D.print("err 45 meta protocol");
-               return #err(Types.errors(#owner_not_found, "get_primary_protocol - unknown host type", null));
+               return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_protocol - unknown host type", null));
              }
            });
       };
@@ -1250,7 +1252,7 @@ module {
     switch(Map.get(state.state.nft_metadata, Map.thash,token_id)){
       case(null){
         //nft metadata doesn't exist
-        return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata- " # token_id, ?caller));
+        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "get_metadata_for_token - cannot find token id in metadata- " # token_id, ?caller));
       };
       case(?val){
         if(is_minted(val) == false and caller != canister_owner){
@@ -1261,12 +1263,12 @@ module {
               //D.print(debug_show(caller));
               //D.print(debug_show(canister));
               if(Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller))) and NFTUtils.is_owner_manager_network(state, caller) == false){
-                return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata - owners not equal" # token_id, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "get_metadata_for_token - cannot find token id in metadata - owners not equal" # token_id, ?caller));
               };
             };
             case(#err(err)){
               if(token_id != ""){
-                return #err(Types.errors(err.error, "get_metadata_for_token - cannot find token id in metadata - error getting owner" # token_id # err.flag_point, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_metadata_for_token - cannot find token id in metadata - error getting owner" # token_id # err.flag_point, ?caller));
               };
             };
           };
@@ -1285,7 +1287,7 @@ module {
       #Empty;
     } else {switch(get_metadata_for_token(state, rec.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){
-        return #err(Types.errors(#token_not_found, "add_transaction_record " # err.flag_point, ?caller));
+        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "add_transaction_record " # err.flag_point, ?caller));
       };
       case(#ok(val)){
         val;
@@ -1344,7 +1346,7 @@ module {
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
-        return #err(Types.errors(#library_not_found, "get_library_meta - cannot find library in metadata", caller));
+        return #err(Types.errors(null,  #library_not_found, "get_library_meta - cannot find library in metadata", caller));
       };
       case(?val){
         return #ok(val.value);
@@ -1355,7 +1357,7 @@ module {
   public func get_nft_library_array(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<[CandyTypes.CandyValue], Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
-        return #err(Types.errors(#library_not_found, "get_nft_library_array - cannot find library in metadata", caller));
+        return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata", caller));
       };
       case(?val){
         switch(val.value){
@@ -1365,13 +1367,13 @@ module {
                 return #ok(val);
               };
               case(_){
-                return #err(Types.errors(#library_not_found, "get_nft_library_array - cannot find library in metadata not thawed", caller));
+                return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata not thawed", caller));
        
               };
             }
           };
           case(_){
-            return #err(Types.errors(#library_not_found, "get_nft_library_array - cannot find library in metadata not array", caller));
+            return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata not array", caller));
        
           };
         };
@@ -1389,12 +1391,12 @@ module {
     let metadata = switch(Map.get(state.state.nft_metadata, Map.thash, request.token_id)){
       case(null){
         //nft metadata doesn't exist
-        return #err(Types.errors(#token_not_found, "chunk_nft_origyn - cannot find token id in metadata- " # request.token_id, caller));
+        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "chunk_nft_origyn - cannot find token id in metadata- " # request.token_id, caller));
       };
       case(?val){
         if(is_minted(val) == false){
           if(caller != ?state.state.collection_data.owner){
-            return #err(Types.errors(#token_not_found, "chunk_nft_origyn - cannot find token id in metadata - " # request.token_id, caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "chunk_nft_origyn - cannot find token id in metadata - " # request.token_id, caller));
           };
         };
         val;
@@ -1404,7 +1406,7 @@ module {
 
     let library = switch(get_library_meta(metadata, request.library_id)){
       case(#err(err)){
-        return #err(Types.errors(err.error, "chunk_nft_origyn - cannot find library id in metadata - " # request.token_id # " " # request.library_id # " " # err.flag_point, caller));
+        return #err(Types.errors(?state.canistergeekLogger,  err.error, "chunk_nft_origyn - cannot find library id in metadata - " # request.token_id # " " # request.library_id # " " # err.flag_point, caller));
       };
       case(#ok(val)){
         val;
@@ -1413,7 +1415,7 @@ module {
 
     let library_type = switch(get_nft_text_property(library, Types.metadata.library_location_type)){
       case(#err(err)){
-        return #err(Types.errors(err.error, "chunk_nft_origyn - cannot find library type in metadata - " # request.token_id # " " # request.library_id # " " # err.flag_point, caller));
+        return #err(Types.errors(?state.canistergeekLogger,  err.error, "chunk_nft_origyn - cannot find library type in metadata - " # request.token_id # " " # request.library_id # " " # err.flag_point, caller));
       };
       case(#ok(val)){
         val;
@@ -1425,13 +1427,13 @@ module {
     } else if(library_type == "collection"){
       "";
     } else {
-      return #err(Types.errors(#library_not_found, "chunk_nft_origyn - library hosted off chain - " # request.token_id # " " # request.library_id  # " " # library_type, caller));
+      return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - library hosted off chain - " # request.token_id # " " # request.library_id  # " " # library_type, caller));
     };
 
 
     let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash,NFTUtils.library_equal), (use_token_id, request.library_id))){
       case(null){
-        return #err(Types.errors(#library_not_found, "chunk_nft_origyn - allocatio for token, library - " # use_token_id # " " # request.library_id, caller));
+        return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - allocatio for token, library - " # use_token_id # " " # request.library_id, caller));
       };
       case(?val){val};
     };
@@ -1453,7 +1455,7 @@ module {
 
     switch(state.nft_library.get(allocation.token_id)){
       case(null){
-        return #err(Types.errors(#token_not_found, "chunk_nft_origyn - cannot find token id - " # allocation.token_id, caller));
+        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "chunk_nft_origyn - cannot find token id - " # allocation.token_id, caller));
       };
       case(?token){
         switch(token.get(allocation.library_id)){
@@ -1462,13 +1464,13 @@ module {
             for(this_item in token.entries()){
               //D.print(this_item.0);
             };
-            return #err(Types.errors(#library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id, caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id, caller));
           };
           case(?item){
             switch(item.getOpt(1)){
               case(null){
                 //nofiledata
-                return #err(Types.errors(#library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
+                return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
               };
               case(?zone){
                 //D.print("size of zone");
@@ -1489,7 +1491,7 @@ module {
                 };
                 switch(zone.getOpt(requested_chunk)){
                   case(null){
-                    return #err(Types.errors(#library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id  # " library_id - " # request.library_id # " chunk - " # debug_show(request.chunk), caller));
+                    return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id  # " library_id - " # request.library_id # " chunk - " # debug_show(request.chunk), caller));
                   };
                   case(?chunk){
                     switch(chunk){
@@ -1524,7 +1526,7 @@ module {
                           
                       };
                       case(_){
-                        return #err(Types.errors(#content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
+                        return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
                       };
                     }
                   };
@@ -1537,13 +1539,13 @@ module {
 
       };
     };
-    return #err(Types.errors(#nyi, "chunk_nft_origyn - nyi", caller));
+    return #err(Types.errors(?state.canistergeekLogger,  #nyi, "chunk_nft_origyn - nyi", caller));
   };
 
   //updates collection data
   public func collection_update_nft_origyn(state : Types.State, request: Types.ManageCollectionCommand, caller : Principal) : Result.Result<Bool, Types.OrigynError>{
     
-    if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(#unauthorized_access, "collection_update_origyn - not a canister owner or network", ?caller))};
+    if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "collection_update_origyn - not a canister owner or network", ?caller))};
     
     
     switch(request){
@@ -1561,13 +1563,17 @@ module {
 
       case(#UpdateMetadata(key, val, immutable)){
 
+        debug if(debug_channel.update_metadata) D.print("updating metadata" # debug_show(key, val, immutable));
+
         if( key == "id"
           or key == "library"
           or key == "__system"
           or key == "__apps"
           or key == "owner"){
-            return #err(Types.errors(#malformed_metadata, "collection_update_origyn - bad key " # key, ?caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "collection_update_origyn - bad key " # key, ?caller));
           };
+
+
 
         let current_metadata = switch(Map.get(state.state.nft_metadata, Map.thash, "")){
             case(null){
@@ -1577,6 +1583,8 @@ module {
               val;
             };
         };
+
+        debug if(debug_channel.update_metadata) D.print("current meta" # debug_show(current_metadata));
 
         let clean_val = switch(val){
           case(null){
@@ -1597,7 +1605,7 @@ module {
               }
             ]);
           } else {
-            Properties.updateProperties(Conversions.valueToProperties(#Class([])), [
+            Properties.updateProperties(Conversions.valueToProperties(current_metadata), [
               {
                 name = key;
                 mode = #Set(clean_val);
@@ -1612,7 +1620,7 @@ module {
             Map.set(state.state.nft_metadata, Map.thash, "",#Class(props));
           };
           case(#err(err)){
-            return #err(Types.errors(#property_not_found, "collection_update_origyn - bad update " # key # " " #debug_show(err), ?caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #property_not_found, "collection_update_origyn - bad update " # key # " " #debug_show(err), ?caller));
         
           }
         }

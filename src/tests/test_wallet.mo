@@ -308,7 +308,7 @@ shared (deployer) actor class test_wallet() = this {
              case(_){
                D.print("this should not have happened");
                
-               return #err(Types.errors(#nyi, "this should not have happened", null));
+               return #err(Types.errors(null,  #nyi, "this should not have happened", null));
              }
            }
          };
@@ -358,7 +358,7 @@ shared (deployer) actor class test_wallet() = this {
              case(_){
                D.print("this should not have happened");
                
-               return #err(Types.errors(#nyi, "this should not have happened", null));
+               return #err(Types.errors(null,  #nyi, "this should not have happened", null));
              }
            }
          };
@@ -401,7 +401,7 @@ shared (deployer) actor class test_wallet() = this {
                 return #ok(result);
               };
               case(_){
-                return #err(Types.errors(#nyi,"test", null));
+                return #err(Types.errors(null,  #nyi,"test", null));
               }
               
             };
@@ -452,7 +452,7 @@ shared (deployer) actor class test_wallet() = this {
            return #err(theerror);
          };
          case(_){
-           return #err(Types.errors(#improper_interface, "should not be here", null));
+           return #err(Types.errors(null,  #improper_interface, "should not be here", null));
          }
        };
 
@@ -507,7 +507,7 @@ shared (deployer) actor class test_wallet() = this {
            return #err(theerror);
          };
          case(_){
-           return #err(Types.errors(#improper_interface, "should not be here", null));
+           return #err(Types.errors(null,  #improper_interface, "should not be here", null));
          }
        };
 
@@ -642,7 +642,7 @@ shared (deployer) actor class test_wallet() = this {
             return #ok(result);
          };
          case(#Err(theerror)){
-           return #err(Types.errors( #nyi, debug_show(theerror), ?msg.caller));
+           return #err(Types.errors(null,   #nyi, debug_show(theerror), ?msg.caller));
          };
        };
     };
@@ -669,7 +669,7 @@ shared (deployer) actor class test_wallet() = this {
             return #ok(result);
          };
          case(#Err(theerror)){
-           return #err(Types.errors( #nyi, debug_show(theerror), ?msg.caller));
+           return #err(Types.errors(null,   #nyi, debug_show(theerror), ?msg.caller));
          };
        };
     };
@@ -798,7 +798,7 @@ shared (deployer) actor class test_wallet() = this {
                #ok(result);
              };
              case(_){
-                return #err(Types.errors(#unreachable,"shouldnt be here", ?msg.caller)); 
+                return #err(Types.errors(null,  #unreachable,"shouldnt be here", ?msg.caller)); 
              };
            };
             

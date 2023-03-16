@@ -133,7 +133,7 @@ module {
             reserve: ?Nat;
         };
         #auction: AuctionConfig;
-        #extensible:{
+        #extensible: {
             #candyClass
         }
     };

@@ -42,6 +42,8 @@ v0.1.4
 * KYC - Bids and Buy Nows should auto refund failed kyc.
 * Refactor - Buffer.toArrays refactored to new syntax
 * ICRC1 - ICRC1 is now used internally for transfers on the #Ledger Type
+* Bug Fix - mutable items would overwrite collection data when using #UpdateMetadata on collection
+* Logging - Errors are now reported to canister geek
 * Network Royalties are now sent to network accounts on a per token basis for better tracking. The hash used is:  
 
 ```

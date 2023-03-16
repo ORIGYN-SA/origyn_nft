@@ -35,7 +35,7 @@ module {
     metadata: CandyTypes.CandyValue, //do we need metadata here? probably for http request...surely for file data
     caller : Principal) : async* Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
-    if(state.state.collection_data.owner != caller){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - storage - not the gateway", ?caller))};
+    if(state.state.collection_data.owner != caller){return #err(Types.errors(null, #unauthorized_access, "stage_library_nft_origyn - storage - not the gateway", ?caller))};
 
     debug if(debug_channel.stage) D.print("in the remote canister");
 
@@ -165,7 +165,7 @@ module {
           SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
           if(allocation.available_space >= Nat.sub(chunk.content.size(), current_size)){
             allocation.available_space -= Nat.sub(chunk.content.size(), current_size);
-          } else return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space >= (chunk.content.size() - current_size)" # debug_show((allocation.available_space,chunk.content.size(), current_size)), ?caller));
+          } else return #err(Types.errors(null, #storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space >= (chunk.content.size() - current_size)" # debug_show((allocation.available_space,chunk.content.size(), current_size)), ?caller));
         } else if (chunk.content.size() != current_size){
           //give space back
           SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
@@ -178,7 +178,7 @@ module {
 
             if(allocation.available_space >= chunk.content.size()){
               allocation.available_space -= chunk.content.size();
-            } else return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space -= chunk.content.size()" # debug_show((allocation.available_space,chunk.content.size())), ?caller));
+            } else return #err(Types.errors(null, #storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space -= chunk.content.size()" # debug_show((allocation.available_space,chunk.content.size())), ?caller));
           } else SB.add<Nat>(allocation.chunks, 0);
         };
       };

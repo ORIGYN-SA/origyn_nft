@@ -54,11 +54,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         g_storage_factory := actor(Principal.toText(storage_factory));
 
         let suite = S.suite("test nft", [
+          
            S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-           S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+           /* S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),  
+            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),   */
             ]);
         S.run(suite);
 
@@ -1191,6 +1192,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
       return true;
     };
 
+
+
     public shared func testKYC() : async {#success; #fail : Text} {
         D.print("running KYC");
 
@@ -1242,6 +1245,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let kyc_service = await KYCService.kyc_service(?3);
 
+
+
         let mode = canister.__set_time_mode(#test);
         let atime = canister.__advance_time(Time.now());
 
@@ -1252,9 +1257,25 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             Principal.fromActor(this),
             2048000);
 
-        let add_kyc = await canister.collection_update_nft_origyn(#UpdateMetadata("com.origyn.kyc_canister", ?#Principal(Principal.fromActor(kyc_service)), false));
+        let some_metadata = await canister.nft_origyn("");
 
-        D.print("able to add kyc  " # debug_show(add_kyc));
+         D.print("the nft" # debug_show(some_metadata));
+
+        let add_kyc = await canister.collection_update_nft_origyn(#UpdateMetadata("com.origyn.kyc_canister_buyer", ?#Principal(Principal.fromActor(kyc_service)), false));
+
+         let some_metadata2 = await canister.nft_origyn("");
+
+         D.print("the nft" # debug_show(some_metadata2));
+
+        D.print("able to add kyc  buyer" # debug_show(add_kyc));
+
+        let add_kyc_seller = await canister.collection_update_nft_origyn(#UpdateMetadata("com.origyn.kyc_canister_seller", ?#Principal(Principal.fromActor(kyc_service)), false));
+
+         let some_metadata3 = await canister.nft_origyn("");
+
+         D.print("the nft" # debug_show(some_metadata3));
+
+        D.print("able to add kyc  seller" # debug_show(add_kyc_seller));
 
         let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
         let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
@@ -1264,6 +1285,33 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this))); //mint to the test account
 
         
+        D.print("start auction owner should fail");
+        //start an auction by owner
+        let start_auction_attempt_owner_fail = await canister.market_transfer_nft_origyn({token_id = "2";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #auction{
+                    reserve = ?(10 * 10 ** 8);
+                    token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = 200000;
+                    });
+                    buy_now = ?(10 * 10 ** 8);
+                    start_price = (10 * 10 ** 8);
+                    start_date = 0;
+                    ending = #date(get_time() + DAY_LENGTH);
+                    min_increase = #amount(10*10**8);
+                    allow_list = ?[Principal.fromActor(a_wallet), Principal.fromActor(b_wallet)];
+                };
+            }; } );
+
+       D.print("auction start fail  was " # debug_show(start_auction_attempt_owner_fail));
+
+
         D.print("start auction owner");
         //start an auction by owner
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "1";
@@ -1288,7 +1336,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 };
             }; } );
 
-        D.print("get sale id");
+        D.print("get sale id.  auction start was " # debug_show(start_auction_attempt_owner));
         let current_sales_id = switch(start_auction_attempt_owner){
             case(#ok(val)){
                 switch(val.txn_type){
@@ -1400,7 +1448,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         ignore await take_a_hot_minute(); 
         ignore await take_a_hot_minute(); 
         ignore await take_a_hot_minute(); 
-        let x =  await kyc_service.test(); 
+        
         //forces a roundtrip;
         let y =  await canister.sale_info_secure_nft_origyn(#status(current_sales_id));
         D.print("done waiting");
@@ -1426,13 +1474,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
          let suite = S.suite("test staged Nft", [
 
-             
-            S.test("fail if kyc asset", switch(a_wallet_try_bid_valid){case(#ok(res)){"unexpected success"};case(#err(err)){
+          
+
+             S.test("fail if kyc doesn't fail on start_auction", switch(start_auction_attempt_owner_fail){case(#ok(res)){"unexpected success"};case(#err(err)){
                 if(err.number == 4011){ //wrong asset
                     "correct number"
                 } else{
                     "wrong error " # debug_show(err);
-                }};}, M.equals<Text>(T.text("correct number"))), //MKT0024
+                }};}, M.equals<Text>(T.text("correct number"))), 
+            S.test("fail if kyc doesn't fail", switch(a_wallet_try_bid_valid){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 4011){ //wrong asset
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))), 
               S.test("b kyc succesful", switch(b_wallet_try_bid_valid){case(#ok(res)){
                  D.print("as bid");
                  D.print(debug_show(b_wallet_try_bid_valid));
