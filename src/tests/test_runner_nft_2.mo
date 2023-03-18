@@ -55,7 +55,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let suite = S.suite("test nft", [
           
-           S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+           //S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+           S.test("testAnnounceTransaction", switch(await testAnnounceTransaction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
            /* S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -1617,6 +1618,45 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
           
 
     };
+
+    public shared func testAnnounceTransaction() : async {#success; #fail : Text} {
+    D.print("running AnnounceTransaction");
+      let state: Types.State = {
+        state = {
+            // GatewayState_v0_1_4 TODO
+          
+        };
+        canister = func () : Principal { return Principal.fromText("some-principal-id"); };
+        get_time = func () : Int { return Time.now(); };
+        nft_library = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>();
+        refresh_state = func () : Types.State { return state; };
+        droute_client = DROUTE.mockDroute(); // Pending on check which state
+        kyc_client = KYC.mockKyc(); // Pending on check which state
+        canistergeekLogger = Canistergeek.mockLogger(); // Pending on check which state
+    };
+
+    let rec: Types.TransactionRecord = {
+        token_id = "1";
+        index = 0;
+        txn_type = #mint_event;
+        timestamp = Time.now();
+    };
+
+    let caller = Principal.fromText("some-principal-id");
+    let newTrx = {
+        token_id = rec.token_id;
+        index = 0;
+        txn_type = rec.txn_type;
+        timestamp = rec.timestamp;
+    };
+
+    let testResult = await announceTransaction(state, rec, caller, newTrx);
+    
+    return switch (testResult) {
+        case (#success) { #success };
+        case (_) { #fail };
+    };
+}
 
     
 
