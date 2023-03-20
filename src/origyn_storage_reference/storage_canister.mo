@@ -47,7 +47,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     // ** we need to figure out if initialize it with
     // ** the init arguments
     // **************************************************
-    stable var use_stableBTree_storage : Bool = true;
+    stable var use_stableBTree_storage : Bool = false;
 
     let debug_channel = {
         refresh = false;

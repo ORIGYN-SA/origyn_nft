@@ -73,7 +73,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // ** we need to figure out if initialize it with
     // ** the init arguments
     // **************************************************
-    stable var use_stableBTree : Bool = true;
+    stable var use_stableBTree : Bool = false;
 
     // Canisters can support multiple storage nodes
     // If you have a small collection you don't need to use a storage collection
