@@ -19,10 +19,18 @@ That is why we have opted to add this optional feature of storing these big chun
 
 ![Stable Memrory Graph](../stable_memory_graph.png)
 
+For this specific example I will use our ![Minting Starter Project](https://github.com/ORIGYN-SA/minting-starter).
+
 ### Deploying Origyn NFT with Stable Memory enabled
 
+1. Find `stable var use_stableBTree : Bool = false;` in origyn_nft_refence `main.mo` and change it to `true`. Make sure you save this change
+2. Do you regular deployment.
+
+
+### Deploying Origyn NFT with Stable Memory enabled in Minting Starter
+
 1. Clone `minting_starter branch 0.1.4`
-2. For this tutorial purpose I will deploy locally `brain-matters` project but you can follow these same instructions to deply your own project locally or to the IC
+2. For this tutorial purpose I will deploy locally `brain-matters` project but you can follow these same instructions to deploy your own project locally or to the IC
 3. In `deploy.sh` adjust `IC_NETWORK` and `IDENTITY_NAME` accordingly (local vs IC)
 4. Once the following change is in main you don't need to the following.
    1. `cd origyn_nft`
