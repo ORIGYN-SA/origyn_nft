@@ -1,21 +1,21 @@
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
+import Bool "mo:base/Bool";
 import Buffer "mo:base/Buffer";
 import Char "mo:base/Char";
-import Bool "mo:base/Bool";
-import Float "mo:base/Float";
 import D "mo:base/Debug";
+import Float "mo:base/Float";
 import Int "mo:base/Int";
-import Int64 "mo:base/Int64";
-import Int32 "mo:base/Int32";
 import Int16 "mo:base/Int16";
+import Int32 "mo:base/Int32";
+import Int64 "mo:base/Int64";
 import Int8 "mo:base/Int8";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
-import Nat64 "mo:base/Nat64";
-import Nat32 "mo:base/Nat32";
 import Nat16 "mo:base/Nat16";
+import Nat32 "mo:base/Nat32";
+import Nat64 "mo:base/Nat64";
 import Nat8 "mo:base/Nat8";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
@@ -25,12 +25,13 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy/types";
 import CandyHex "mo:candy/hex";
+import CandyTypes "mo:candy/types";
 import Conversion "mo:candy/conversion";
 import JSON "mo:candy/json";
 import Map "mo:map/Map";
 import Properties "mo:candy/properties";
+import StableBTreeTypes "mo:stableBTree/types";
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
@@ -45,6 +46,7 @@ module {
         large_content = false;
         library = false;
         request = false;
+        stablebtree = false;
     };
 
     let { ihash; nhash; thash; phash; calcHash } = Map;
@@ -125,9 +127,18 @@ module {
                         };
                     };
                 };
-                case(#Blob(bytes)){
-                    
-                    size := size + bytes.size();
+                case(#Blob(bytes)){                    
+                    size := size + bytes.size();                        
+                };
+                case(#Nat32(key)){
+                    // D.print("#use_stablebtree handle_stream_content #Nat32 option");
+                    let result = state.btreemap.get(key);
+                        switch(result){
+                            case null { size := size };
+                            case (?val) { 
+                                 size := size + val.size();
+                            };
+                        };
                         
                 };
                 case(_){};
@@ -213,7 +224,7 @@ module {
         data        : CandyTypes.DataZone,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
-        let result = _stream_content(key, 0, data);
+        let result = _stream_content(key, 0, data, state.use_stable, state.btreemap);
 
                             debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
                            
@@ -343,6 +354,8 @@ module {
         key   : Text,
         index : Nat,
         data  : CandyTypes.DataZone,
+        use_stable : Bool,
+        btreemap : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>,
     ) : {
         payload: Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
@@ -350,10 +363,36 @@ module {
         let payload = data.get(index);
                             debug if(debug_channel.streaming) D.print("in private call back");
                             debug if(debug_channel.streaming)D.print(debug_show(data.size()));
-        if (index + 1 == data.size()) return {payload = Conversion.valueUnstableToBlob(payload); callback = null};
+                            debug if(debug_channel.stablebtree) D.print("#stablebtree - _stream_content");
+        
+        // Stablebtree logic ////////////////////////////////
+        var pay : Blob = "";
+        var k : Nat32 = 0;
+
+        if(use_stable){
+            switch(payload){                
+                case(#Nat32(val)){
+                    k := val;
+                };
+                case (_) { k := 0 };
+            };
+            let result = btreemap.get(k);
+            switch(result){
+                case null { D.print("Could not find data for stabletree - _stream_content") };
+                case (?val) { 
+                    pay := Blob.fromArray(val);
+                };
+            };
+        } else {
+            pay := Conversion.valueUnstableToBlob(payload);
+        };
+        /////////////////////////////////////////////////////
+
+
+        if (index + 1 == data.size()) return {payload = pay; callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
-        {payload = Conversion.valueUnstableToBlob(payload);
+        {payload = pay;
         callback =  ?{
             content_encoding = "gzip";
             index            = index + 1;
@@ -541,6 +580,7 @@ module {
                 };
                 case(?zone){
                                         debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
+                                        debug if(debug_channel.stablebtree)  D.print("#use_stablebtree - zone");
 
                     var split : [Text] = [];
                     var split2 : [Text] = [];
@@ -607,11 +647,38 @@ module {
                                                 debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
+                                                debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 1");
+
+                            // Stablebtree  /////////////
+
+                            var httpbody : Blob = "";
+                            var k : Nat32 = 0;
+
+                            if(state.use_stable){
+                                switch(zone.get(0)){                                    
+                                    case(#Nat32(val)){
+                                        k := val;
+                                    };
+                                    case (_) { k := 0 };
+                                };
+                                let result = state.btreemap.get(k);
+                                switch(result){
+                                    case null { D.print("Could not find data for stabletree - renderLibrary") };
+                                    case (?val) { 
+                                        httpbody := Blob.fromArray(val);                                    
+                                    };
+                                };
+                            } else {
+                                httpbody := Conversion.valueUnstableToBlob(zone.get(0));
+                            };
+                            //////////////////////////////////
+
+
                             //only one chunck
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = httpbody;
                                 streaming_strategy = null;
                             };
                         };
@@ -713,11 +780,35 @@ module {
                                                     debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
+                                                    debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 2");
+                             // Stablebtree  /////////////
+
+                            var httpbody : Blob = "";
+                            var k : Nat32 = 0;
+
+                            if(state.use_stable){
+                                switch(zone.get(0)){                                    
+                                    case(#Nat32(val)){
+                                        k := val;
+                                    };
+                                    case (_) { k := 0 };
+                                };
+                                let result = state.btreemap.get(k);
+                                switch(result){
+                                    case null { D.print("Could not find data for stabletree - renderLibrary") };
+                                    case (?val) { 
+                                        httpbody := Blob.fromArray(val);                                    
+                                    };
+                                };
+                            } else {
+                                httpbody := Conversion.valueUnstableToBlob(zone.get(0));
+                            };
+                            //////////////////////////////////
                             //only one chunck
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = httpbody;
                                 streaming_strategy = null;
                             };
                         };
@@ -809,6 +900,8 @@ module {
                         tk.key,
                         tk.index,
                         zone,
+                        state.use_stable,
+                        state.btreemap,
                     );
                 };
             };
@@ -872,11 +965,15 @@ module {
         key   : Text,
         index : Nat,
         data  : CandyTypes.DataZone,
+        use_stable : Bool,
+        btreemap : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>,
     ) : StreamingCallbackResponse {
         let result = _stream_content(
             key,
             index,
             data,
+            use_stable,
+            btreemap,
         );
 
         D.print("the stream content " # key);
@@ -927,6 +1024,8 @@ module {
                         tk.key,
                         tk.index,
                         zone,
+                        state.use_stable,
+                        state.btreemap,
                     );
                 };
             };

@@ -4,6 +4,7 @@ import Buffer "mo:base/Buffer";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
+import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
@@ -14,11 +15,15 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
+import BytesConverter "mo:stableBTree/bytesConverter";
 import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
+import StableBTree "mo:stableBTree/btreemap";
+import StableBTreeTypes "mo:stableBTree/types";
+import StableMemory "mo:stableBTree/memory";
 import Workspace "mo:candy/workspace";
 
 import DIP721 "../origyn_nft_reference/DIP721";
@@ -36,6 +41,13 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     stable var SIZE_CHUNK = 2048000; //max message size
 
     stable var ic : Types.IC = actor ("aaaaa-aa");
+
+    // **************************************************
+    // ** StableBTree variable only for testing purposes
+    // ** we need to figure out if initialize it with
+    // ** the init arguments
+    // **************************************************
+    stable var use_stableBTree_storage : Bool = false;
 
     let debug_channel = {
         refresh = false;
@@ -63,20 +75,36 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     stable var migrationState : MigrationTypes.State = #v0_0_0(#data);
 
-    migrationState := Migrations.migrate(
-        migrationState,
-        #v0_1_3(#id),
-        {
-            owner = deployer.caller;
-            network = __initargs.network;
-            storage_space = initial_storage;
-            gateway_canister = __initargs.gateway_canister;
-            caller = deployer.caller;
-        },
-    );
+    migrationState := Migrations.migrate(migrationState, #v0_1_3(#id), { 
+        owner = deployer.caller;
+        network = __initargs.network;
+        storage_space = initial_storage; 
+        gateway_canister = __initargs.gateway_canister;
+        caller = deployer.caller ;});
 
     // do not forget to change #state002 when you are adding a new migration
     let #v0_1_3(#data(state_current)) = migrationState;
+
+    // *************************
+    // ****** STABLEBTREE ******
+    // *************************
+
+    // For convenience: from StableBTree types
+    type InsertError = StableBTreeTypes.InsertError;
+    // For convenience: from base module
+    type Result<Ok, Err> = Result.Result<Ok, Err>;
+    // Arbitrary use of (Nat32, Text) for (key, value) types
+    type K = Nat32;
+    type V = [Nat8];
+
+    // Arbitrary limitation on text size (in bytes)
+    let MAX_VALUE_SIZE : Nat32 = 2048000;
+
+    let btreemap_storage = StableBTree.init<K, V>(StableMemory.STABLE_MEMORY, BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(MAX_VALUE_SIZE));
+
+    // *************************
+    // **** END STABLEBTREE ****
+    // *************************
 
     //the library needs to stay unstable for maleable access to the Buffers that make up the file chunks
     private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
@@ -107,6 +135,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
             canister = get_canister;
             refresh_state = get_state;
             tokens = tokens;
+            btreemap_storage = btreemap_storage;
+            use_stable_storage = use_stableBTree_storage;           
         };
     };
 
@@ -331,6 +361,93 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     public query func cycles() : async Nat {
         Cycles.balance();
+    };
+
+     // *************************
+    // ****** STABLEBTREE ******
+    // *************************
+
+    public query func get_btree_hash_id(tokenId : Text, libraryId : Text, i : Nat, chunk : Nat) : async Hash.Hash {
+
+        Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
+    };
+
+    public func insert_btree(tokenId : Text, libraryId : Text, i : Nat, chunk : Nat, value : Blob) : async () {
+        let key = Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
+
+        let bytes = Blob.toArray(value);
+        let result = btreemap_storage.insert(key, bytes);
+
+        ();
+
+    };
+
+    public func get_btree_entry(key : Nat32) : async () {
+        // let k = await hash_id(Nat32.toNat(key));
+        let result = btreemap_storage.get(key);
+        switch (result) {
+            case null { D.print("\00\00\00\66") };
+            case (?val) {
+                D.print(debug_show (Blob.fromArray(val)));
+                // return Blob.fromArray(val)
+            };
+        };
+        ();
+    };
+
+    public query func show_btree_entries() : async [(Nat32, [Nat8])] {
+
+        let vals = btreemap_storage.iter();
+        let localBuf = Buffer.Buffer<(Nat32, [Nat8])>(0);
+
+        for (i in vals) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+
+        Buffer.toArray(localBuf);
+    };
+
+    public query func show_btree_entries_keys() : async [(Nat32)] {
+
+        let vals = btreemap_storage.iter();
+        let localBuf = Buffer.Buffer<(Nat32)>(0);
+
+        for (i in vals) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+
+        Buffer.toArray(localBuf);
+    };
+
+    public func remove(key : K) : async ?V {
+        btreemap_storage.remove(key);
+    };
+
+    // Nuke btree
+    public func nuke_btree() : async () {
+        let entries = Iter.toArray(btreemap_storage.iter());
+        for ((key, _) in Array.vals(entries)) {
+            ignore btreemap_storage.remove(key);
+        };
+    };
+
+    // *************************
+    // **** END STABLEBTREE ****
+    // *************************
+
+    public query func show_nft_library_array() : async  [(Text, [(Text, CandyTypes.AddressedChunkArray)])] {
+        let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
+        for(thisKey in nft_library.entries()){
+            let thisLibrary_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
+            for(thisItem in thisKey.1.entries()){
+                thisLibrary_buffer.add((thisItem.0, Workspace.workspaceToAddressedChunkArray(thisItem.1)) );
+            };
+            nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
+        };
+        nft_library_stable_buffer.toArray();
+
     };
 
     system func preupgrade() {

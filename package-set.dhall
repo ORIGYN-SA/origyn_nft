@@ -7,11 +7,11 @@ let Package =
 
 
 let additions =
-    [
+ [
    { name = "candy_0_1_10"
-    , repo = "https://github.com/icdevs/candy_library.git"
-    , version = "v0.1.10"
-    , dependencies = ["base"]
+   , repo = "https://github.com/icdevs/candy_library.git"
+   , version = "v0.1.10"
+   , dependencies = ["base"]
    },
    { name = "candy_0_1_12"
     , repo = "https://github.com/icdevs/candy_library.git"
@@ -35,10 +35,10 @@ let additions =
        dependencies = ["base"]
    },
    { name = "crypto"
-    , repo = "https://github.com/aviate-labs/crypto.mo"
-    , version = "v0.2.0"
-    , dependencies = [ "base", "encoding" ]
-  },
+   , repo = "https://github.com/aviate-labs/crypto.mo"
+   , version = "v0.2.0"
+   , dependencies = [ "base", "encoding" ]
+   },
    { name = "encoding"
   , repo = "https://github.com/aviate-labs/encoding.mo"
   , version = "v0.3.2"

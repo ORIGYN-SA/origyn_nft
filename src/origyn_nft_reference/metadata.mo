@@ -1,4 +1,3 @@
-
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
@@ -14,7 +13,6 @@ import TrieMap "mo:base/TrieMap";
 import Droute "mo:droute_client/Droute";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
-
 import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import Workspace "mo:candy/workspace";
@@ -55,58 +53,518 @@ module {
     switch(get_library_meta(metaData, library_id)){
       case(#err(err)){
         return false;
-      };
-      case(#ok(val)){
-        return true;
-      };
     };
-    return false;
-  };
 
-  //confirms if a token is soulbound
-  public func is_soulbound(metadata: CandyTypes.CandyValue) : Bool 
-  {
-    let property = Properties.getClassProperty(metadata, Types.metadata.is_soulbound);
+    //confirms if a token is soulbound
+    public func is_soulbound(metadata : CandyTypes.CandyValue) : Bool {
+        let property = Properties.getClassProperty(metadata, Types.metadata.is_soulbound);
 
-    switch (property) {
-      case(null) {return false};
-      case(?p) {return Conversions.valueToBool(p.value)};
+        switch (property) {
+            case (null) { return false };
+            case (?p) { return Conversions.valueToBool(p.value) };
+        };
     };
-  };  
 
-  //confirms if a token is a physical item
-  public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
-  {
-    let property = get_system_var(metadata, Types.metadata.__system_physical);
+    //confirms if a token is a physical item
+    public func is_physical(metadata : CandyTypes.CandyValue) : Bool {
+        let property = get_system_var(metadata, Types.metadata.__system_physical);
 
-    switch (property) {
-      case(#Empty) {return false};
-      case(_) {return Conversions.valueToBool(property)};
+        switch (property) {
+            case (#Empty) { return false };
+            case (_) { return Conversions.valueToBool(property) };
+        };
     };
-  };
 
+    //confirms if a token is a physical item
+    public func is_in_physical_escrow(metadata : CandyTypes.CandyValue) : Bool {
+        let property = get_system_var(metadata, Types.metadata.__system_escrowed);
 
-  //confirms if a token is a physical item
-  public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
-  {
-    let property = get_system_var(metadata, Types.metadata.__system_escrowed);
-
-    switch (property) {
-      case(#Empty) {return false};
-      case(_) {return Conversions.valueToBool(property)};
+        switch (property) {
+            case (#Empty) { return false };
+            case (_) { return Conversions.valueToBool(property) };
+        };
     };
-  };  
 
-  //sets a system variable in the metadata
-  public func set_system_var(metaData: CandyTypes.CandyValue, name: Text, value: CandyTypes.CandyValue) : CandyTypes.CandyValue {
-    var this_metadata = metaData;
-    //D.print("Setting System");
-    switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
-      case(null){
-        let newProp : CandyTypes.CandyValue = #Class([
-          {name = name;
-          value = value;
-          immutable = false;}
+    //sets a system variable in the metadata
+    public func set_system_var(metaData : CandyTypes.CandyValue, name : Text, value : CandyTypes.CandyValue) : CandyTypes.CandyValue {
+        var this_metadata = metaData;
+        //D.print("Setting System");
+        switch (Properties.getClassProperty(metaData, Types.metadata.__system)) {
+            case (null) {
+                let newProp : CandyTypes.CandyValue = #Class([{
+                    name = name;
+                    value = value;
+                    immutable = false;
+                }]);
+                this_metadata := switch (
+                    Properties.updateProperties(
+                        Conversions.valueToProperties(this_metadata),
+                        [
+                            {
+                                name = Types.metadata.__system;
+                                mode = #Set(newProp);
+                            },
+                        ],
+                    ),
+                ) {
+                    case (#ok(props)) {
+                        #Class(props);
+                    };
+                    case (#err(err)) {
+                        //error shouldn't happen
+                        assert (false);
+                        #Empty; //unreachable
+                    };
+                };
+                //D.print("set metadata in the new branch");
+                //D.print(debug_show(this_metadata));
+                return this_metadata;
+            };
+            case (?val) {
+                this_metadata := switch (
+                    Properties.updateProperties(
+                        Conversions.valueToProperties(this_metadata),
+                        [
+                            {
+                                name = Types.metadata.__system;
+                                mode = #Set(
+                                    switch (
+                                        Properties.updateProperties(
+                                            Conversions.valueToProperties(val.value),
+                                            [
+                                                {
+                                                    name = name;
+                                                    mode = #Set(value);
+                                                },
+                                            ],
+                                        ),
+                                    ) {
+                                        case (#ok(props)) {
+                                            #Class(props);
+                                        };
+                                        case (#err(err)) {
+                                            //error shouldn't happen
+                                            assert (false);
+                                            #Empty; //unreachable
+                                        };
+                                    },
+                                );
+                            },
+                        ],
+                    ),
+                ) {
+                    case (#ok(props)) {
+                        #Class(props);
+                    };
+                    case (#err(err)) {
+                        //error shouldn't happen
+                        assert (false);
+                        #Empty; //unreachable
+                    };
+                };
+                //D.print("set metadata in the add on branch");
+                //D.print(debug_show(this_metadata));
+                return this_metadata;
+            };
+        };
+    };
+
+    //checks if an account owns an nft
+    public func is_owner(metaData : CandyTypes.CandyValue, account : Types.Account) : Bool {
+        switch (get_nft_owner(metaData)) {
+            case (#ok(data)) {
+                //D.print(debug_show(data));
+                if (Types.account_eq(data, account)) {
+                    return true;
+                };
+                return false;
+            };
+            case (_) { return false };
+        };
+    };
+
+    //gets all the nfts for a user
+    public func get_NFTs_for_user(state : Types.State, account : Types.Account) : [Text] {
+        let nft_results = Buffer.Buffer<Text>(1);
+
+        //D.print("testing balance");
+        //D.print(debug_show(account));
+        for (this_nft in Map.entries(state.state.nft_metadata)) {
+            //D.print(this_nft.0);
+            switch (get_nft_owner(this_nft.1)) {
+                case (#ok(data)) {
+                    //D.print(debug_show(data));
+                    if (Types.account_eq(data, account)) {
+                        nft_results.add(this_nft.0);
+                    };
+                };
+                case (_) {};
+            };
+
+        };
+        return nft_results.toArray();
+    };
+
+    //gets a system var out of the system class
+    public func get_system_var(metaData : CandyTypes.CandyValue, name : Text) : CandyTypes.CandyValue {
+        var this_metadata = metaData;
+        //D.print("Setting System");
+        switch (Properties.getClassProperty(metaData, Types.metadata.__system)) {
+            case (null) {
+                return #Empty;
+            };
+            case (?val) {
+                switch (Properties.getClassProperty(val.value, name)) {
+                    case (null) {
+                        return #Empty;
+                    };
+                    case (?val) {
+                        return val.value;
+                    };
+                };
+            };
+        };
+    };
+
+    //gets the metadata for a particular library
+    public func get_library_meta(metadata : CandyTypes.CandyValue, library_id : Text) : Result.Result<CandyTypes.CandyValue, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, Types.metadata.library)) {
+            case (null) {
+                return #err(Types.errors(#library_not_found, "get_library_meta - cannot find library in metadata", null));
+            };
+            case (?val) {
+                for (this_item in Conversions.valueToValueArray(val.value).vals()) {
+                    switch (Properties.getClassProperty(this_item, Types.metadata.library_id)) {
+                        case (null) {
+
+                        };
+                        case (?id) {
+                            if (Conversions.valueToText(id.value) == library_id) {
+                                return #ok(this_item);
+                            };
+                        };
+                    };
+                };
+                return #err(Types.errors(#property_not_found, "get_library_meta - cannot find library id in library", null));
+            };
+        };
+    };
+
+    //gets a text property out of the metadata
+    public func get_nft_text_property(metadata : CandyTypes.CandyValue, prop : Text) : Result.Result<Text, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, prop)) {
+            case (null) {
+                return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+                        case (#Text(val)) { return #ok(val) };
+                        case (_) {
+                            return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets a bool property out of the metadata
+    public func get_nft_bool_property(metadata : CandyTypes.CandyValue, prop : Text) : Result.Result<Bool, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, prop)) {
+            case (null) {
+                return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+                        case (#Bool(val)) { return #ok(val) };
+                        case (_) {
+                            return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets a Nat property out of the metadata
+    public func get_nft_nat_property(metadata : CandyTypes.CandyValue, prop : Text) : Result.Result<Nat, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, prop)) {
+            case (null) {
+                return #err(Types.errors(#property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+                        case (#Nat(val)) { return #ok(val) };
+                        case (_) {
+                            return #err(Types.errors(#property_not_found, "get_nft_nat_property - unknown " # prop # " type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //checks if an item is minted
+    public func is_minted(metaData : CandyTypes.CandyValue) : Bool {
+        switch (Properties.getClassProperty(metaData, Types.metadata.__system)) {
+            case (null) {
+                //D.print("not minted, didn't find system");
+                return false;
+            };
+            case (?val) {
+                switch (Properties.getClassProperty(val.value, Types.metadata.__system_status)) {
+                    case (null) {
+                        //D.print("not minted, didn't find status");
+                        return false;
+                    };
+                    case (?status) {
+                        if (Conversions.valueToText(status.value) == Types.nft_status_minted) {
+                            return true;
+                        } else {
+                            //D.print("not minted, didn't find minted");
+                            return false;
+                        };
+                    };
+                };
+
+            };
+        };
+    };
+
+    //gets the id of an nft
+    public func get_nft_id(metadata : CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError> {
+        switch (get_nft_text_property(metadata, Types.metadata.id)) {
+            case (#err(err)) { return #err(err) };
+            case (#ok(val)) { return #ok(val) };
+        };
+    };
+
+    //gets the primary asset for an nft
+    public func get_nft_primary_asset(metadata : CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError> {
+        switch (get_nft_text_property(metadata, Types.metadata.primary_asset)) {
+            case (#err(err)) { return #err(err) };
+            case (#ok(val)) { return #ok(val) };
+        };
+    };
+
+    //gets the preview asset for an nft
+    public func get_nft_preview_asset(metadata : CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError> {
+        switch (get_nft_text_property(metadata, Types.metadata.preview_asset)) {
+            case (#err(err)) { return #err(err) };
+            case (#ok(val)) { return #ok(val) };
+        };
+    };
+
+    //gets the experience asset
+    public func get_nft_experience_asset(metadata : CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError> {
+        switch (get_nft_text_property(metadata, Types.metadata.experience_asset)) {
+            case (#err(err)) { return #err(err) };
+            case (#ok(val)) { return #ok(val) };
+        };
+    };
+
+    //gets a libary item
+    public func get_library_item_from_store(store : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>, token_id : Text, library_id : Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError> {
+        switch (store.get(token_id)) {
+            case (null) {
+                //no library exists
+                D.print("token id empty");
+                return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find token_id in library store", null));
+            };
+            case (?token) {
+                D.print("looking for token" # debug_show (Iter.toArray<Text>(token.keys())));
+                switch (token.get(library_id)) {
+                    case (null) {
+                        //no libaray exists
+                        return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find library_id in library store", null));
+                    };
+                    case (?item) {
+                        return #ok(item);
+                    };
+                };
+            };
+        };
+    };
+
+    public func account_to_candy(val : Types.Account) : CandyTypes.CandyValue {
+        switch (val) {
+            case (#principal(newOwner)) { #Principal(newOwner) };
+            case (#account_id(newOwner)) { #Text(newOwner) };
+            case (#extensible(newOwner)) { newOwner };
+            case (#account(buyer)) {
+                #Array(#frozen([#Principal(buyer.owner), switch (buyer.sub_account) { case (null) { #Option(null) }; case (?val) { #Option(?#Blob(val)) } }]));
+            };
+        };
+    };
+
+    public func token_spec_to_candy(val : Types.TokenSpec) : CandyTypes.CandyValue {
+        switch (val) {
+            case (#ic(val)) {
+                #Class([
+                    { name = "type"; value = #Text("IC"); immutable = true },
+                    {
+                        name = "data";
+                        value = #Class([
+                            {
+                                name = "canister";
+                                value = #Principal(val.canister);
+                                immutable = true;
+                            },
+                            {
+                                name = "fee";
+                                value = #Nat(val.fee);
+                                immutable = true;
+                            },
+                            {
+                                name = "symbol";
+                                value = #Text(val.symbol);
+                                immutable = true;
+                            },
+                            {
+                                name = "decimals";
+                                value = #Nat(val.decimals);
+                                immutable = true;
+                            },
+                            {
+                                name = "standard";
+                                value = switch (val.standard) {
+                                    case (#DIP20) { #Text("DIP20") };
+                                    case (#Ledger) { #Text("Ledger") };
+                                    case (#EXTFungible) { #Text("EXTFungible") };
+                                    case (#ICRC1) { #Text("ICRC1") };
+                                };
+                                immutable = true;
+                            },
+                        ]);
+                        immutable = true;
+                    },
+                ]);
+            };
+            case (#extensible(val)) {
+                #Class([
+                    {
+                        name = "type";
+                        value = #Text("extensible");
+                        immutable = true;
+                    },
+                    { name = "data"; value = val; immutable = true },
+                ]);
+            };
+        };
+    };
+
+    public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyValue {
+        switch (val) {
+            case (#instant(val)) { #Text("instant") };
+            case (#flat(val)) {
+                #Class([
+                    {
+                        name = "token";
+                        value = token_spec_to_candy(val.token);
+                        immutable = true;
+                    },
+                    {
+                        name = "amount";
+                        value = #Nat(val.amount);
+                        immutable = true;
+                    },
+                ]);
+            };
+            case (#auction(val)) { auction_config_to_candy(val) };
+            case (_) { #Text("NYI") };
+        };
+    };
+
+    public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyValue {
+
+        #Class([
+            {
+                name = "reserve";
+                value = switch (val.reserve) {
+                    case (null) { #Empty };
+                    case (?val) { #Nat(val) };
+
+                };
+                immutable = true;
+            },
+            {
+                name = "token";
+                value = token_spec_to_candy(val.token);
+                immutable = true;
+            },
+            {
+                name = "buy_now";
+                value = switch (val.buy_now) {
+                    case (null) { #Empty };
+                    case (?val) { #Nat(val) };
+
+                };
+                immutable = true;
+            },
+            {
+                name = "start_price";
+                value = #Nat(val.start_price);
+                immutable = true;
+            },
+            {
+                name = "start_date";
+                value = #Int(val.start_date);
+                immutable = true;
+            },
+            {
+                name = "ending";
+                value = switch (val.ending) {
+                    case (#date(val)) { #Int(val) };
+                    case (#waitForQuiet(val)) {
+                        #Class([
+                            {
+                                name = "date";
+                                value = #Int(val.date);
+                                immutable = true;
+                            },
+                            {
+                                name = "extention";
+                                value = #Nat64(val.extention);
+                                immutable = true;
+                            },
+                            {
+                                name = "fade";
+                                value = #Float(val.fade);
+                                immutable = true;
+                            },
+                            {
+                                name = "max";
+                                value = #Nat(val.max);
+                                immutable = true;
+                            },
+                        ]);
+                    };
+
+                };
+                immutable = true;
+            },
+            {
+                name = "min_increase";
+                value = switch (val.min_increase) {
+                    case (#percentage(val)) { #Float(val) };
+                    case (#amount(val)) { #Nat(val) };
+                };
+                immutable = true;
+            },
+            {
+                name = "allow_list";
+                value = switch (val.allow_list) {
+                    case (null) { #Empty };
+                    case (?val) {
+                        #Array(#frozen(Array.map<Principal, CandyTypes.CandyValue>(val, func(x : Principal) { #Principal(x) })));
+                    };
+                };
+                immutable = true;
+            },
+
         ]);
         this_metadata := switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [
           {
@@ -522,26 +980,20 @@ module {
             return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
           };
         };
-        case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not frozen " # debug_show(ary), null));};
-      };
     };
-    case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not an array " , null));};
-    };
-  };
 
-  
-  //returns the owner of an NFT in the owner field
-  //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
-  public func get_nft_owner(metadata: CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
-      case(null){
-        return #err(Types.errors(null,  #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
-      };
-      case(?val){
-         return candy_to_account(val.value)
-      };
+    //returns the owner of an NFT in the owner field
+    //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+    public func get_nft_owner(metadata : CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, Types.metadata.owner)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
+            };
+            case (?val) {
+                return candy_to_account(val.value);
+            };
+        };
     };
-  };
 
     //sets the owner on the nft
   //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
@@ -819,11 +1271,7 @@ module {
         if(app_nodes.size() > 0){
           final_object.add({name=this_entry.name; value=#Array(#thawed(Buffer.toArray(app_nodes))); immutable=false});
         };
-      } 
-      
-      else {
-        final_object.add(this_entry);
-      };
+
     };
 
     return #Class(
@@ -1126,68 +1574,146 @@ module {
                         };
                       };
                     };
-                  };
-                } else {
-                  return #Empty
                 };
-              };
-              case(#Class(read_detail)){
-                switch(Properties.getClassProperty(read_node.value, "type")){
-                  case(?read_type){
-                    switch(read_type.value){
-                      case(#Text(read_type_detail)){
-                        if(read_type_detail == "allow"){
-                          switch(Properties.getClassProperty(read_node.value,"list")){
-                            case(?allow_list){
-                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
-                                if(caller == Conversions.valueToPrincipal(this_principal)){
-                                  //D.print("cleaning an allow node");
-                                  //D.print(debug_show(data_node.value));
-                                  let cleaned_node = clean_node(data_node.value, owner, caller);
-                                  switch(cleaned_node){
-                                    case(#Empty){
-                                      //D.print("recieved a cleaned node that was empty");
-                                      //D.print(debug_show(data_node.value));
-                                      //D.print(debug_show(caller));
-                                      return #Empty;
-                                    };
-                                    case(_){
-                                      //D.print("recieved a cleaned node that was not ");
-                                      //D.print(debug_show(cleaned_node));
-                                      //D.print(debug_show(caller));
-                                      switch(permissions_node){
-                                        case(?permissions_node){
-                                          return #Class([
-                                            read_node,
-                                            write_node,
-                                            permissions_node,
-                                            {name="data"; value=cleaned_node; immutable=false;}
 
-                                          ]);
+            };
+        };
+    };
+
+    //gets the primary host of an NFT - used for testing redirects locally
+    public func get_primary_host(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_host - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_host)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            return #err(Types.errors(#owner_not_found, "get_primary_host - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets the primary ports of an NFT - used for testing redirects locally
+    public func get_primary_port(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_port - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_port)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            return #err(Types.errors(#owner_not_found, "get_primary_port - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets the primary protocol of an NFT - used for testing redirects locally
+    public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_protocol - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        //D.print("have meta protocol");
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_protocol)) {
+            case (null) {
+                D.print("have err1 protocol");
+                return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
+            };
+            case (?val) {
+                D.print("have meta protocol23");
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            D.print("err 45 meta protocol");
+                            return #err(Types.errors(#owner_not_found, "get_primary_protocol - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //cleans metadat according to permissions
+    public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue {
+
+        let owner : ?Types.Account = switch (get_nft_owner(metadata)) {
+            case (#err(err)) {
+                null;
+            };
+            case (#ok(val)) {
+                ?val;
+            };
+        };
+
+        let final_object : Buffer.Buffer<CandyTypes.Property> = Buffer.Buffer<CandyTypes.Property>(16);
+        for (this_entry in Conversions.valueToProperties(metadata).vals()) {
+            if (this_entry.name == Types.metadata.__system) {
+                //nyi: what system properties methods need to be hidden
+                final_object.add(this_entry);
+            } else if (this_entry.name == Types.metadata.__apps or this_entry.name == Types.metadata.library) {
+                //do we let apps publish to the main query
+                //D.print("Adding an app node");
+
+                let app_nodes = Buffer.Buffer<CandyTypes.CandyValue>(1);
+                switch (this_entry.value) {
+                    case (#Array(item)) {
+                        switch (item) {
+                            case (#thawed(classes)) {
+                                for (this_item in classes.vals()) {
+                                    //D.print("processing an item");
+                                    //D.print(debug_show(this_item));
+                                    let clean = (clean_node(this_item, owner, caller));
+                                    //D.print(debug_show(clean));
+                                    switch (clean) {
+                                        case (#Empty) {
+                                            //do nothing
                                         };
-                                        case(null){
-                                          return #Class([
-                                            read_node,
-                                            write_node,
-                                            {name="data"; value=cleaned_node; immutable=false;}
-                                          ]);
+                                        case (#Class(theresult)) {
+
+                                            app_nodes.add(clean);
                                         };
-                                      };
+                                        case (_) {
+                                            //do nothing
+                                        };
                                     };
-                                  };
-                                    
-                                  
                                 };
-                              };
-                              //we didnt find the principal
-                              return #Empty;
                             };
-                            case(null){
-                              return #Empty;
-                            }
-                          };
-                        } else {//nyi: implement block list; roles based security
-                          return #Empty;
+                            case (_) {
+
+                            };
                         };
                       };
                     
@@ -1659,225 +2185,569 @@ module {
       };
     
     };
-    return #ok(true);
-  };
 
+    public func ledger_to_candy(ledger : SB.StableBuffer<Types.TransactionRecord>, page : Nat, size : Nat) : [CandyTypes.CandyValue] {
 
-  public func ledger_to_candy(ledger : SB.StableBuffer<Types.TransactionRecord>, page: Nat, size: Nat) : [CandyTypes.CandyValue]{
+        var tracker = 0;
 
-    var tracker = 0;
+        let results = Buffer.Buffer<CandyTypes.CandyValue>(1);
 
-    let results  = Buffer.Buffer<CandyTypes.CandyValue>(1);
-
-    label search for(thisItem in SB.vals(ledger)){
-      if(tracker < page * size){
-        tracker += 1;
-        continue search;
-      };
-
-      results.add(
-        #Class([
-          {name="token_id"; value=#Text(thisItem.token_id); immutable = true;},
-          {name="index"; value=#Nat(thisItem.index); immutable = true;},
-          {name="timestamp"; value=#Int(thisItem.timestamp); immutable = true;},
-          {name="txn_type"; value=switch(thisItem.txn_type){
-            case(#auction_bid(val)){
-              #Class([
-                  {name="type"; value=#Text("auction_bid"); immutable = true;},
-                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                  {name="amount"; value=#Nat(val.amount); immutable = true;},
-                  
-                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                
-                  {name="sale_id"; value=#Text(val.sale_id); immutable = true;},
-                  {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#mint(val)){
-              #Class([
-                  {name="type"; value=#Text("mint"); immutable = true;},
-                  {name="from"; value=account_to_candy(val.from); immutable = true;},
-                  {name="to"; value=account_to_candy(val.to); immutable = true;},
-                  {name="sale"; value=switch(val.sale){
-                    case(null){#Empty};
-                    case(?val){#Class([
-                      {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                      {name="amount"; value=#Nat(val.amount); immutable = true;},
-                      ])
-                    }
-                    };  immutable = true;},
-                  {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#sale_ended(val)){
-              #Class([
-                  {name="type"; value=#Text("sale_ended"); immutable = true;},
-                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                  {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                  
-                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                
-                  { name="sale_id"; value=switch(val.sale_id){
-                    case(null){#Empty};
-                    case(?val){#Text(val)};
-                    
-                    };  immutable = true;},
-                  {name="amount"; value=#Nat(val.amount); immutable = true;},
-                  
-                  {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#royalty_paid(val)){
-              #Class([
-                  {name="type"; value=#Text("royalty_paid"); immutable = true;},
-                  {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                  {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                  {name="reciever"; value=account_to_candy(val.reciever); immutable = true;},
-                  {name="tag"; value=#Text(val.tag); immutable = true;},
-                  
-                  {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                
-                  { name="sale_id"; value=switch(val.sale_id){
-                    case(null){#Empty};
-                    case(?val){#Text(val)};
-                    
-                    };  immutable = true;},
-                  {name="amount"; value=#Nat(val.amount); immutable = true;},
-                  
-                  {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#sale_opened(val)){
-              #Class([
-                  {name="type"; value=#Text("sale_opened"); immutable = true;},
-                  {name="pricing"; value=pricing_to_candy(val.pricing); immutable = true;},
-
-                  { name="sale_id"; value=#Text(val.sale_id);immutable = true;},
-                  
-                  {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#owner_transfer(val)){
-              #Class([
-                {name="type"; value=#Text("owner_transfer"); immutable = true;},
-                {name="from"; value=account_to_candy(val.from); immutable = true;},
-                {name="to"; value=account_to_candy(val.to); immutable = true;},
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#escrow_deposit(val)){
-              #Class([
-                {name="type"; value=#Text("escrow_deposit"); immutable = true;},
-                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                {name="token_id"; value=#Text(val.token_id); immutable = true;},
-                {name="amount"; value=#Nat(val.amount); immutable = true;},
-                {name="trx_id"; value=switch(val.trx_id){
-                    case(#nat(val)){#Nat(val)};
-                    case(#text(val)){#Text(val)};
-                    case(#extensible(val)){val};
-                    
-                    }; immutable = true;},
-                
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#escrow_withdraw(val)){
-              #Class([
-                {name="type"; value=#Text("escrow_withdraw"); immutable = true;},
-                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                {name="token_id"; value=#Text(val.token_id); immutable = true;},
-                {name="amount"; value=#Nat(val.amount); immutable = true;},
-                {name="fee"; value=#Nat(val.fee); immutable = true;},
-                {name="trx_id"; value=switch(val.trx_id){
-                    case(#nat(val)){#Nat(val)};
-                    case(#text(val)){#Text(val)};
-                    case(#extensible(val)){val};
-                    
-                    }; immutable = true;},
-                
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
+        label search for (thisItem in SB.vals(ledger)) {
+            if (tracker < page * size) {
+                tracker += 1;
+                continue search;
             };
 
-            case(#deposit_withdraw(val)){
-              #Class([
+            results.add(
+                #Class([
+                    {
+                        name = "token_id";
+                        value = #Text(thisItem.token_id);
+                        immutable = true;
+                    },
+                    {
+                        name = "index";
+                        value = #Nat(thisItem.index);
+                        immutable = true;
+                    },
+                    {
+                        name = "timestamp";
+                        value = #Int(thisItem.timestamp);
+                        immutable = true;
+                    },
+                    {
+                        name = "txn_type";
+                        value = switch (thisItem.txn_type) {
+                            case (#auction_bid(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("auction_bid");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
 
-                {name="type"; value=#Text("deposit_withdraw"); immutable = true;},
-                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                
-                {name="amount"; value=#Nat(val.amount); immutable = true;},
-                {name="fee"; value=#Nat(val.fee); immutable = true;},
-                {name="trx_id"; value=switch(val.trx_id){
-                    case(#nat(val)){#Nat(val)};
-                    case(#text(val)){#Text(val)};
-                    case(#extensible(val)){val};
-                    
-                    }; immutable = true;},
-                
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#sale_withdraw(val)){
-              #Class([
-                {name="type"; value=#Text("sale_withdraw"); immutable = true;},
-                {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
-                {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-                {name="token_id"; value=#Text(val.token_id); immutable = true;},
-                {name="amount"; value=#Nat(val.amount); immutable = true;},
-                {name="fee"; value=#Nat(val.fee); immutable = true;},
-                {name="trx_id"; value=switch(val.trx_id){
-                    case(#nat(val)){#Nat(val)};
-                    case(#text(val)){#Text(val)};
-                    case(#extensible(val)){val};
-                    
-                    }; immutable = true;},
-                
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#canister_owner_updated(val)){
-              #Class([
-                {name="type"; value=#Text("canister_owner_updated"); immutable = true;},
-                {name="owner"; value=#Principal(val.owner); immutable = true;},
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#canister_managers_updated(val)){
-              #Class([
-                {name="type"; value=#Text("canister_managers_updated"); immutable = true;},
-                {name="managers"; value=#Array(#frozen( Array.map<Principal, CandyTypes.CandyValue>(val.managers, func(x:Principal){#Principal(x)}))); immutable=true;},
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#canister_network_updated(val)){
-              #Class([
-                {name="type"; value=#Text("canister_network_updated"); immutable = true;},
-                {name="network"; value=#Principal(val.network); immutable = true;},
-                {name="extensible"; value=val.extensible; immutable = true;},
-              ])
-            };
-            case(#data){
-              #Text("data");
-            };
-            case(#burn){
-              #Text("burn");
-            };
-            case(#extensible(val)){#Class([
-              {name="type"; value=#Text("extensible"); immutable = true;},
-              {name="data"; value=val; immutable = true;},
-            ])};
-              
-          }; immutable=true;},
-        ]));
-      
-      tracker += 1;
-      if(tracker >= (page * size) + size){break search};
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "sale_id";
+                                        value = #Text(val.sale_id);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#mint(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("mint");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "from";
+                                        value = account_to_candy(val.from);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "to";
+                                        value = account_to_candy(val.to);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "sale";
+                                        value = switch (val.sale) {
+                                            case (null) { #Empty };
+                                            case (?val) {
+                                                #Class([
+                                                    {
+                                                        name = "token";
+                                                        value = token_spec_to_candy(val.token);
+                                                        immutable = true;
+                                                    },
+                                                    {
+                                                        name = "amount";
+                                                        value = #Nat(val.amount);
+                                                        immutable = true;
+                                                    },
+                                                ]);
+                                            };
+                                        };
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#sale_ended(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("sale_ended");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "seller";
+                                        value = account_to_candy(val.seller);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "sale_id";
+                                        value = switch (val.sale_id) {
+                                            case (null) { #Empty };
+                                            case (?val) { #Text(val) };
+
+                                        };
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#royalty_paid(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("royalty_paid");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "seller";
+                                        value = account_to_candy(val.seller);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "reciever";
+                                        value = account_to_candy(val.reciever);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "tag";
+                                        value = #Text(val.tag);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "sale_id";
+                                        value = switch (val.sale_id) {
+                                            case (null) { #Empty };
+                                            case (?val) { #Text(val) };
+
+                                        };
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#sale_opened(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("sale_opened");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "pricing";
+                                        value = pricing_to_candy(val.pricing);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "sale_id";
+                                        value = #Text(val.sale_id);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#owner_transfer(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("owner_transfer");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "from";
+                                        value = account_to_candy(val.from);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "to";
+                                        value = account_to_candy(val.to);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#escrow_deposit(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("escrow_deposit");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "seller";
+                                        value = account_to_candy(val.seller);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token_id";
+                                        value = #Text(val.token_id);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "trx_id";
+                                        value = switch (val.trx_id) {
+                                            case (#nat(val)) { #Nat(val) };
+                                            case (#text(val)) { #Text(val) };
+                                            case (#extensible(val)) { val };
+
+                                        };
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#escrow_withdraw(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("escrow_withdraw");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "seller";
+                                        value = account_to_candy(val.seller);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token_id";
+                                        value = #Text(val.token_id);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "fee";
+                                        value = #Nat(val.fee);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "trx_id";
+                                        value = switch (val.trx_id) {
+                                            case (#nat(val)) { #Nat(val) };
+                                            case (#text(val)) { #Text(val) };
+                                            case (#extensible(val)) { val };
+
+                                        };
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+
+                            case (#deposit_withdraw(val)) {
+                                #Class([
+
+                                    {
+                                        name = "type";
+                                        value = #Text("deposit_withdraw");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "fee";
+                                        value = #Nat(val.fee);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "trx_id";
+                                        value = switch (val.trx_id) {
+                                            case (#nat(val)) { #Nat(val) };
+                                            case (#text(val)) { #Text(val) };
+                                            case (#extensible(val)) { val };
+
+                                        };
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#sale_withdraw(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("sale_withdraw");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "seller";
+                                        value = account_to_candy(val.seller);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "buyer";
+                                        value = account_to_candy(val.buyer);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token";
+                                        value = token_spec_to_candy(val.token);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "token_id";
+                                        value = #Text(val.token_id);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "amount";
+                                        value = #Nat(val.amount);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "fee";
+                                        value = #Nat(val.fee);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "trx_id";
+                                        value = switch (val.trx_id) {
+                                            case (#nat(val)) { #Nat(val) };
+                                            case (#text(val)) { #Text(val) };
+                                            case (#extensible(val)) { val };
+
+                                        };
+                                        immutable = true;
+                                    },
+
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#canister_owner_updated(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("canister_owner_updated");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "owner";
+                                        value = #Principal(val.owner);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#canister_managers_updated(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("canister_managers_updated");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "managers";
+                                        value = #Array(#frozen(Array.map<Principal, CandyTypes.CandyValue>(val.managers, func(x : Principal) { #Principal(x) })));
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#canister_network_updated(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("canister_network_updated");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "network";
+                                        value = #Principal(val.network);
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "extensible";
+                                        value = val.extensible;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+                            case (#data) {
+                                #Text("data");
+                            };
+                            case (#burn) {
+                                #Text("burn");
+                            };
+                            case (#extensible(val)) {
+                                #Class([
+                                    {
+                                        name = "type";
+                                        value = #Text("extensible");
+                                        immutable = true;
+                                    },
+                                    {
+                                        name = "data";
+                                        value = val;
+                                        immutable = true;
+                                    },
+                                ]);
+                            };
+
+                        };
+                        immutable = true;
+                    },
+                ]),
+            );
+
+            tracker += 1;
+            if (tracker >= (page * size) + size) { break search };
+        };
+
+        results.toArray();
     };
 
     Buffer.toArray(results);
@@ -1885,4 +2755,4 @@ module {
 
   
 
-}
+};

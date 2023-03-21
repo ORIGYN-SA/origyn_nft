@@ -183,19 +183,54 @@ module {
         };
       };
 
+       // We need the following code to create unique keys for stablebtree
+        var tokenId = "";
+        var lib = "";
+
+        if (chunk.token_id == "") {
+            tokenId #= "none";
+        } else {
+            tokenId #= chunk.token_id;
+        };
+        if (chunk.library_id == "") {
+            lib #= "none";
+        } else {
+            lib #= chunk.library_id;
+        };
+        /////////////////////////////////////////////
+
       //D.print("putting the chunk");
       if(chunk.chunk + 1 <= file_chunks.size()){
-        file_chunks.put(chunk.chunk, #Blob(chunk.content));
+            if(state.use_stable_storage){
+              let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
+              let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                file_chunks.add(#Nat32(btreeKey));
+            } else {
+              file_chunks.put(chunk.chunk, #Blob(chunk.content));
+            };        
       } else {
         debug if(debug_channel.stage) D.print("in putting the chunk iter");
         debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
         debug if(debug_channel.stage) D.print(debug_show(file_chunks.size()));
 
         for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
+            let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+
             if(this_index == chunk.chunk){
-              file_chunks.add(#Blob(chunk.content));
+              // If flag use_stable_storage is true we insert Blobs into stablebtree
+                if (state.use_stable_storage) {                   
+                    let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                    file_chunks.add(#Nat32(btreeKey));
+                } else {
+                    file_chunks.add(#Blob(chunk.content));
+                };              
             } else {
-              file_chunks.add(#Blob(Blob.fromArray([])));
+              if (state.use_stable_storage) {                 
+                  let insertBtree = state.btreemap_storage.insert(btreeKey, []);
+                  file_chunks.add(#Nat32(btreeKey));
+              } else {
+                  file_chunks.add(#Blob(Blob.fromArray([])));
+              };              
             }
         };
       };
