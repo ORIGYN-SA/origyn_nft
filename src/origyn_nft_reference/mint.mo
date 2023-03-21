@@ -974,7 +974,7 @@ module {
                         if (fresh_allocation.available_space >= Nat.sub(current_size, content_size)) {
                             fresh_allocation.available_space -= Nat.sub(current_size, content_size);
                         } else {
-                            return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show ((fresh_allocation.available_space, current_size, content_size)), ?caller));
+                            return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "stage_library_nft_origyn - gateway - fresh_allocation.available_space -= (current_size - content_size)" # debug_show ((fresh_allocation.available_space, current_size, content_size)), ?caller));
                         };
 
                     } else {};
@@ -1002,7 +1002,7 @@ module {
         debug if (debug_channel.mint) D.print("in mint");
         var metadata = switch (Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
             case (#err(err)) {
-                return #err(Types.errors(#token_not_found, "execute_mint " # err.flag_point, ?caller));
+                return #err(Types.errors(?state.canistergeekLogger, #token_not_found, "execute_mint " # err.flag_point, ?caller));
             };
             case (#ok(val)) {
                 val;
@@ -1021,7 +1021,7 @@ module {
 
         //cant mint if already minted
         if (Metadata.is_minted(metadata)) {
-            return #err(Types.errors(#item_already_minted, "execute_mint - already minted", ?caller));
+            return #err(Types.errors(?state.canistergeekLogger, #item_already_minted, "execute_mint - already minted", ?caller));
         };
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_status, #Text("minted"));
 

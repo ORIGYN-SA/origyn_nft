@@ -573,14 +573,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //ESC0002. try to escrow for the canister; should succeed
         //fund a_wallet
-        let funding_result = await dfx.transfer({
-            to = Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = { e8s = 200_000 };
-            memo = 1;
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = { e8s = 1000 * 10 ** 8 };
-        });
+            amount =  1000 * 10 ** 8;});
         D.print("funding result");
         D.print(debug_show (funding_result));
 
@@ -711,16 +710,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let b_wallet = await TestWalletDef.test_wallet();
 
         //give b_wallet some tokens
-        let b_funding_result = await dfx.transfer({
-            to = Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = { e8s = 200_000 };
-            memo = 1;
+       let b_funding_result =await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = { e8s = 1000 * 10 ** 8 };
-        });
-        D.print("funding result");
-        D.print(debug_show (funding_result));
+            amount =  1000 * 10 ** 8;});
 
         //send a payment to the the new owner(this actor- after mint)
         D.print("sending tokens to canisters");
@@ -3017,7 +3013,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         debug { if (debug_channel.throws) D.print("checking block_result") };
         let #ok(block_result) = a_wallet_send_tokens_to_canister;
-        let block = Nat64.toNat(block_result); //block is no longer relevant for ledgers
+        let block = block_result; //block is no longer relevant for ledgers
 
         //sent an escrow for a ledger deposit that doesn't exist
         let a_wallet_try_escrow_general_fake_amount = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 2 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
@@ -3471,16 +3467,18 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //ESC0002. try to escrow for the canister; should succeed
         //fund a_wallet
         D.print("funding result start a_wallet");
-        let dfx : DFXTypes.Service = actor (Principal.toText(dfx_ledger));
-
-        let funding_result = await dfx.transfer({
-            to = Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = { e8s = 200_000 };
-            memo = 1;
+        D.print(debug_show({owner = Principal.fromActor(a_wallet); subaccount = null}));
+        D.print(debug_show({owner = Principal.fromActor(a_wallet); subaccount = null}));
+        D.print(debug_show(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null))));
+        let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
+        
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = { e8s = 100 * 10 ** 8 };
-        });
+            amount =  100 * 10 ** 8;});
         D.print("funding result end");
         D.print(debug_show (funding_result));
 

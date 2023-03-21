@@ -29,8 +29,9 @@ import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import JSON "mo:candy/json";
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
 import Set "mo:map/Set";
+
+import Properties "mo:candy/properties";
 import StableBTree "mo:stableBTree/btreemap";
 import StableBTreeTypes "mo:stableBTree/types";
 import StableMemory "mo:stableBTree/memory";
@@ -152,7 +153,14 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     migration_state := Migrations.migrate(migration_state, #v0_1_4(#id), { owner = __initargs.owner; storage_space = initial_storage });
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_3(#data(state_current)) = migration_state;
+    let #v0_1_4(#data(state_current)) = migration_state;
+
+    let kyc_client = MigrationTypes.Current.KYC.kyc({
+      time = null;
+      timeout = ?OneDay;
+      cache = ?state_current.kyc_cache;
+    });
+
 
     debug if (debug_channel.instantiation) D.print("done initing migration_state" # debug_show (state_current.collection_data.owner) # " " # debug_show (deployer.caller));
     debug if (debug_channel.instantiation) D.print("initializing from " # debug_show ((deployer, __initargs)));
@@ -202,6 +210,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             btreemap = btreemap_;
             use_stable = use_stableBTree;
             droute_client = state_current.droute;
+            canistergeekLogger = canistergeekLogger;
+            kyc_client = kyc_client;
         };
     };
 
@@ -1017,7 +1027,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                         case (null) {};
                         case (?val) {
                             //eventually we can accomidate reallocation, but fail for now
-                            return #err(Types.errors(#storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show (this_item), ?msg.caller));
+                            return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - principal already exists in buckets  " # debug_show (this_item), ?msg.caller));
 
                         };
                     };
