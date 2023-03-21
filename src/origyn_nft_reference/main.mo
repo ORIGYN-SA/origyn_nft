@@ -1739,7 +1739,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
               case(#account(a)) ?a.owner;
               case(#extensible(e)) null;
             };
-            case (#err(e)) null;
+          };
+          case (#err(e)) null;
         };
 
         return #Ok({

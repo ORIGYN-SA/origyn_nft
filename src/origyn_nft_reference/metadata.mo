@@ -53,7 +53,12 @@ module {
     switch(get_library_meta(metaData, library_id)){
       case(#err(err)){
         return false;
+      };
+       case(#ok(val)){
+        return true;
+      };
     };
+  };
 
     //confirms if a token is soulbound
     public func is_soulbound(metadata : CandyTypes.CandyValue) : Bool {
@@ -566,63 +571,46 @@ module {
             },
 
         ]);
-        this_metadata := switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [
-          {
-            name = Types.metadata.__system;
-            mode = #Set(newProp);
-          }
-        ])){
-          case(#ok(props)){
-            #Class(props);
-          };
-          case(#err(err)){
-            //error shouldn't happen
-            assert(false);
-            #Empty; //unreachable
-          };
-        };
-        //D.print("set metadata in the new branch");
-        //D.print(debug_show(this_metadata));
-        return this_metadata
-      };
-      case(?val){
-        this_metadata := switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [
-          {
-            name = Types.metadata.__system;
-            mode = #Set(
-              switch(Properties.updateProperties(Conversions.valueToProperties(val.value), [
-                {
-                  name = name;
-                  mode = #Set(value);
-                }
-              ])){
-                case(#ok(props)){
-                  #Class(props);
-                };
-                case(#err(err)){
-                  //error shouldn't happen
-                  assert(false);
-                  #Empty; //unreachable
-                };
-              }
-            );
-          }
-        ])){
-          case(#ok(props)){
-            #Class(props);
-          };
-          case(#err(err)){
-            //error shouldn't happen
-            assert(false);
-            #Empty; //unreachable
-          };
-        };
-        //D.print("set metadata in the add on branch");
-        //D.print(debug_show(this_metadata));
-        return this_metadata;
-      };
+
     };
-  };
+
+    public func candy_to_account(val : CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError> {
+        switch (val) {
+            case (#Principal(val)) { #ok(#principal(val)) };
+            case (#Text(val)) { #ok(#account_id(val)) };
+            case (#Class(val)) { #ok(#extensible(#Class(val))) };
+            case (#Array(ary)) {
+                switch (ary) {
+                    case (#frozen(items)) {
+                        if (items.size() > 0) {
+                            #ok(#account({ owner = switch (items[0]) { case (#Principal(val)) { val }; case (_) { return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null)) } }; sub_account = if (items.size() > 1) { switch (items[1]) { case (#Blob(val)) { ?val }; case (_) { return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null)) } } } else { null } }));
+                        } else {
+                            return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show (ary), null));
+                        };
+                    };
+                    case (_) {
+                        return #err(Types.errors(#improper_interface, "candy_to_account - send payment - improper interface, not frozen " # debug_show (ary), null));
+                    };
+                };
+            };
+            case (_) {
+                return #err(Types.errors(#improper_interface, "candy_to_account - send payment - improper interface, not an array ", null));
+            };
+        };
+    };
+
+    //returns the owner of an NFT in the owner field
+    //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+    public func get_nft_owner(metadata : CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError> {
+        switch (Properties.getClassProperty(metadata, Types.metadata.owner)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
+            };
+            case (?val) {
+                return candy_to_account(val.value);
+            };
+        };
+    };
 
   //checks if an account owns an nft
   public func is_owner(metaData: CandyTypes.CandyValue, account: Types.Account) : Bool{
@@ -954,33 +942,37 @@ module {
       case(#Text(val)){#ok(#account_id(val))};
       case(#Class(val)){#ok(#extensible(#Class(val)))};
       case(#Array(ary)){
-      switch(ary){
-        case(#frozen(items)){
-          if(items.size() > 0){
-            #ok(#account({
-              owner = switch(items[0]){
-                case(#Principal(val)){val;};
-                case(_){
-                  return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
-                };
-              };
-              sub_account =  if(items.size() > 1){
-                  switch(items[1]){
-                    case(#Blob(val)){?val;};
-                    case(_){
-                      return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
-                    };
+        switch(ary){
+          case(#frozen(items)){
+            if(items.size() > 0){
+              #ok(#account({
+                owner = switch(items[0]){
+                  case(#Principal(val)){val;};
+                  case(_){
+                    return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
                   };
-                }
-                else {
-                  null;
-                }
-              }));
-          } else {
-            return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
+                };
+                sub_account =  if(items.size() > 1){
+                    switch(items[1]){
+                      case(#Blob(val)){?val;};
+                      case(_){
+                        return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
+                      };
+                    };
+                  }
+                  else {
+                    null;
+                  }
+                }));
+            } else {
+              return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
+            };
           };
         };
+      };
     };
+  };
+
 
     //returns the owner of an NFT in the owner field
     //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
@@ -1272,6 +1264,468 @@ module {
           final_object.add({name=this_entry.name; value=#Array(#thawed(Buffer.toArray(app_nodes))); immutable=false});
         };
 
+      };
+
+      return #Class(
+        Buffer.toArray(final_object)
+        );
+      };
+  };
+
+  //cleans a node in metadata
+  public func clean_node(a_class : CandyTypes.CandyValue, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyValue {
+    switch(a_class){
+      case(#Class(item)){
+        let app_node = Properties.getClassProperty(a_class, Types.metadata.__apps_app_id);
+        let library_node = Properties.getClassProperty(a_class, Types.metadata.library_id);
+        let read_node = Properties.getClassProperty(a_class, "read");
+        let write_node = Properties.getClassProperty(a_class, "write");
+        let permissions_node = Properties.getClassProperty(a_class, "permissions");
+        let data_node = Properties.getClassProperty(a_class, "data");
+        switch(library_node, app_node, read_node, write_node, data_node, permissions_node){
+          case(null, ?app_node, ?read_node, ?write_node, ?data_node, _){
+            //D.print("cleaning an app node " # debug_show(app_node.value));
+            switch(read_node.value){
+              case(#Text(read_detail)){
+                if(read_detail == "public"){
+                  //D.print("cleaning a public node");
+                  //D.print(debug_show(data_node.value));
+                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                  switch(cleaned_node){
+                    case(#Empty){
+                      //D.print("recieved a cleaned node that was empty");
+                      //D.print(debug_show(data_node.value));
+                      //D.print(debug_show(caller));
+                      return #Empty;
+                    };
+                    case(_){
+                      //D.print("recieved a cleaned node that was not empty");
+                      //D.print(debug_show(cleaned_node));
+                      //D.print(debug_show(caller));
+                      switch(permissions_node){
+                        case(?permissions_node){
+                          return #Class([
+                            app_node,
+                            read_node,
+                            write_node,
+                            permissions_node,
+                            {name="data"; value=cleaned_node; immutable=false;}
+
+                          ]);
+                        };
+                        case(null){
+                          return #Class([
+                            app_node,
+                            read_node,
+                            write_node,
+                            {name="data"; value=cleaned_node; immutable=false;}
+                          ]);
+                        };
+                      };
+                    };
+                  };
+                } else if (read_detail == "owner"){
+                  switch(owner){
+                    case(null){return #Empty};
+                    case(?owner){
+                      if(Types.account_eq(owner,#principal(caller))){
+                        //D.print("cleaning an owner node");
+                        //D.print(debug_show(data_node.value));
+                        let cleaned_node = clean_node(data_node.value, ?owner, caller);
+                        switch(cleaned_node){
+                          case(#Empty){
+                            //D.print("recieved a cleaned node that was empty");
+                            //D.print(debug_show(data_node.value));
+                            //D.print(debug_show(caller));
+                            return #Empty;
+                          };
+                          case(_){
+                            //D.print("recieved a cleaned node that was not empty");
+                            //D.print(debug_show(cleaned_node));
+                            //D.print(debug_show(caller));
+                            switch(permissions_node){
+                              case(?permissions_node){
+                                return #Class([
+                                  app_node,
+                                  read_node,
+                                  write_node,
+                                  permissions_node,
+                                  {name="data"; value=cleaned_node; immutable=false;}
+
+                                ]);
+                              };
+                              case(null){
+                                return #Class([
+                                  app_node,
+                                  read_node,
+                                  write_node,
+                                  {name="data"; value=cleaned_node; immutable=false;}
+                                ]);
+                              };
+                            };
+                          };
+                        };
+                      } else {
+                        return #Empty;
+                      };
+                    };
+                  };
+                  
+                } else {
+                  return #Empty
+                };
+              };
+              case(#Class(read_detail)){
+                switch(Properties.getClassProperty(read_node.value, "type")){
+                  case(?read_type){
+                    switch(read_type.value){
+                      case(#Text(read_type_detail)){
+                        if(read_type_detail == "allow"){
+                          switch(Properties.getClassProperty(read_node.value,"list")){
+                            case(?allow_list){
+                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                                  //D.print("cleaning an allow node");
+                                  //D.print(debug_show(data_node.value));
+                                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                                  switch(cleaned_node){
+                                    case(#Empty){
+                                      //D.print("recieved a cleaned node that was empty");
+                                      //D.print(debug_show(data_node.value));
+                                      //D.print(debug_show(caller));
+                                      return #Empty;
+                                    };
+                                    case(_){
+                                      //D.print("recieved a cleaned node that was not ");
+                                      //D.print(debug_show(cleaned_node));
+                                      //D.print(debug_show(caller));
+                                      switch(permissions_node){
+                                        case(?permissions_node){
+                                          return #Class([
+                                            app_node,
+                                            read_node,
+                                            write_node,
+                                            permissions_node,
+                                            {name="data"; value=cleaned_node; immutable=false;}
+
+                                          ]);
+                                        };
+                                        case(null){
+                                          return #Class([
+                                            app_node,
+                                            read_node,
+                                            write_node,
+                                            {name="data"; value=cleaned_node; immutable=false;}
+                                          ]);
+                                        };
+                                      };
+                                    };
+                                  };
+                                    
+                                  
+                                };
+                              };
+                              //we didnt find the principal
+                              //D.print("returning empty because we didnt find the principal");
+                              return #Empty;
+                            };
+                            case(null){
+                              //D.print("returning empty because allow_list is null");
+                              return #Empty;
+                            }
+                          };
+                        } else {//nyi: implement block list; roles based security
+                          //D.print("returning empty because read type detail is not allow");
+                          return #Empty;
+                        };
+                      };
+                    
+                      case(_){
+                        //D.print("returning empty because read_type.value is not text of class");
+                        return #Empty;
+                      };
+                    };
+                  };
+                  case(_){
+                    //D.print("returning empty because read type is null");
+                    return #Empty;
+                  };
+                };
+              };
+              case(_){
+                //D.print("returning empty because read node is not text of class");
+                return #Empty;
+              };
+            };
+          };
+          case(?library_node, null, ?read_node, _, _, _){
+            //D.print("cleaning an library node " # debug_show(library_node.value));
+            switch(read_node.value){
+              case(#Text(read_detail)){
+                if(read_detail == "public"){
+                  //D.print("cleaning a public node");
+                  return a_class;
+                  
+                } else if (read_detail == "owner"){
+                  switch(owner){
+                    case(null){return #Empty};
+                    case(?owner){
+                      if(Types.account_eq(owner,#principal(caller))){
+                        //D.print("cleaning an owner node");
+                        return a_class;
+                      } else {
+                        return #Empty;
+                      };
+                    };
+                  };
+                  
+                } else {
+                  return #Empty
+                };
+              };
+              case(#Class(read_detail)){
+                switch(Properties.getClassProperty(read_node.value, "type")){
+                  case(?read_type){
+                    switch(read_type.value){
+                      case(#Text(read_type_detail)){
+                        if(read_type_detail == "allow"){
+                          switch(Properties.getClassProperty(read_node.value,"list")){
+                            case(?allow_list){
+                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                                  return a_class;
+                                };
+                              };
+                              //we didnt find the principal
+                              //D.print("returning empty because we didnt find the principal");
+                              return #Empty;
+                            };
+                            case(null){
+                              //D.print("returning empty because allow_list is null");
+                              return #Empty;
+                            }
+                          };
+                        } else {//nyi: implement block list; roles based security
+                          //D.print("returning empty because read type detail is not allow");
+                          return #Empty;
+                        };
+                      };
+                    
+                      case(_){
+                        //D.print("returning empty because read_type.value is not text of class");
+                        return #Empty;
+                      };
+                    };
+                  };
+                  case(_){
+                    //D.print("returning empty because read type is null");
+                    return #Empty;
+                  };
+                };
+              };
+              case(_){
+                //D.print("returning empty because read node is not text of class");
+                return #Empty;
+              };
+            };
+          };
+          case(null, null, ?read_node, ?write_node, ?data_node,_){
+            //D.print("cleaning a permissioned node");
+            switch(read_node.value){
+              case(#Text(read_detail)){
+                if(read_detail == "public"){
+                  //D.print("cleaning a public node");
+                  //D.print(debug_show(data_node.value));
+                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                  switch(cleaned_node){
+                    case(#Empty){
+                      //D.print("recieved a cleaned node that was empty");
+                      //D.print(debug_show(data_node.value));
+                      //D.print(debug_show(caller));
+                      return #Empty;
+                    };
+                    case(_){
+                      //D.print("recieved a cleaned node that was not ");
+                      //D.print(debug_show(cleaned_node));
+                      //D.print(debug_show(caller));
+                      switch(permissions_node){
+                        case(?permissions_node){
+                          return #Class([
+                            read_node,
+                            write_node,
+                            permissions_node,
+                            {name="data"; value=cleaned_node; immutable=false;}
+
+                          ]);
+                        };
+                        case(null){
+                          return #Class([
+                            read_node,
+                            write_node,
+                            {name="data"; value=cleaned_node; immutable=false;}
+                          ]);
+                        };
+                      };
+                    };
+                };
+
+            };
+        };
+    };
+          };
+        };
+      };
+    };
+  };
+
+    //gets the primary host of an NFT - used for testing redirects locally
+    public func get_primary_host(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_host - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_host)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            return #err(Types.errors(#owner_not_found, "get_primary_host - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets the primary ports of an NFT - used for testing redirects locally
+    public func get_primary_port(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_port - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_port)) {
+            case (null) {
+                return #err(Types.errors(#owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
+            };
+            case (?val) {
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            return #err(Types.errors(#owner_not_found, "get_primary_port - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    //gets the primary protocol of an NFT - used for testing redirects locally
+    public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+
+        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+            case (#err(err)) {
+                return #err(Types.errors(err.error, "get_primary_protocol - cannot find token_id id in metadata " # err.flag_point, ?caller));
+            };
+            case (#ok(val)) { val };
+        };
+        //D.print("have meta protocol");
+        switch (Properties.getClassProperty(metadata, Types.metadata.primary_protocol)) {
+            case (null) {
+                D.print("have err1 protocol");
+                return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
+            };
+            case (?val) {
+                D.print("have meta protocol23");
+                return #ok(
+                    switch (val.value) {
+
+                        case (#Text(val)) { val };
+
+                        case (_) {
+                            D.print("err 45 meta protocol");
+                            return #err(Types.errors(#owner_not_found, "get_primary_protocol - unknown host type", null));
+                        };
+                    },
+                );
+            };
+        };
+    };
+
+    public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue{
+
+    let owner : ?Types.Account = switch(get_nft_owner(metadata)){
+      case(#err(err)){
+        null;
+      };
+      case(#ok(val)){
+        ?val;
+      };
+    };
+
+    let final_object : Buffer.Buffer<CandyTypes.Property> =  Buffer.Buffer<CandyTypes.Property>(16);
+    for(this_entry in Conversions.valueToProperties(metadata).vals()){
+      if(this_entry.name == Types.metadata.__system){
+        //nyi: what system properties methods need to be hidden
+        final_object.add(this_entry);
+      } else if(this_entry.name == Types.metadata.__apps or this_entry.name == Types.metadata.library){
+        //do we let apps publish to the main query
+        //D.print("Adding an app node");
+        
+        let app_nodes = Buffer.Buffer<CandyTypes.CandyValue>(1);
+        switch(this_entry.value){
+          case(#Array(item)){
+            switch(item){
+              case(#thawed(classes)){
+                for(this_item in classes.vals()){
+                  //D.print("processing an item");
+                  //D.print(debug_show(this_item));
+                  let clean = (clean_node(this_item, owner, caller));
+                  //D.print(debug_show(clean));
+                  switch(clean){
+                    case(#Empty){
+                      //do nothing
+                    };
+                    case(#Class(theresult)){
+                      
+
+                      app_nodes.add(clean);
+                    };
+                    case(_){
+                      //do nothing
+                    };
+                  };
+                };
+              };
+              case(_){
+
+              }
+            };
+          };
+          case(_){
+
+          };
+        };
+        if(app_nodes.size() > 0){
+          final_object.add({name=this_entry.name; value=#Array(#thawed(Buffer.toArray(app_nodes))); immutable=false});
+        };
+      } 
+      
+      else {
+        final_object.add(this_entry);
+      };
     };
 
     return #Class(
@@ -1574,146 +2028,68 @@ module {
                         };
                       };
                     };
+                  };
+                } else {
+                  return #Empty
                 };
-
-            };
-        };
-    };
-
-    //gets the primary host of an NFT - used for testing redirects locally
-    public func get_primary_host(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
-        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
-            case (#err(err)) {
-                return #err(Types.errors(err.error, "get_primary_host - cannot find token_id id in metadata " # err.flag_point, ?caller));
-            };
-            case (#ok(val)) { val };
-        };
-        switch (Properties.getClassProperty(metadata, Types.metadata.primary_host)) {
-            case (null) {
-                return #err(Types.errors(#owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
-            };
-            case (?val) {
-                return #ok(
-                    switch (val.value) {
-
-                        case (#Text(val)) { val };
-
-                        case (_) {
-                            return #err(Types.errors(#owner_not_found, "get_primary_host - unknown host type", null));
-                        };
-                    },
-                );
-            };
-        };
-    };
-
-    //gets the primary ports of an NFT - used for testing redirects locally
-    public func get_primary_port(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
-        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
-            case (#err(err)) {
-                return #err(Types.errors(err.error, "get_primary_port - cannot find token_id id in metadata " # err.flag_point, ?caller));
-            };
-            case (#ok(val)) { val };
-        };
-        switch (Properties.getClassProperty(metadata, Types.metadata.primary_port)) {
-            case (null) {
-                return #err(Types.errors(#owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
-            };
-            case (?val) {
-                return #ok(
-                    switch (val.value) {
-
-                        case (#Text(val)) { val };
-
-                        case (_) {
-                            return #err(Types.errors(#owner_not_found, "get_primary_port - unknown host type", null));
-                        };
-                    },
-                );
-            };
-        };
-    };
-
-    //gets the primary protocol of an NFT - used for testing redirects locally
-    public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError> {
-
-        let metadata = switch (get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
-            case (#err(err)) {
-                return #err(Types.errors(err.error, "get_primary_protocol - cannot find token_id id in metadata " # err.flag_point, ?caller));
-            };
-            case (#ok(val)) { val };
-        };
-        //D.print("have meta protocol");
-        switch (Properties.getClassProperty(metadata, Types.metadata.primary_protocol)) {
-            case (null) {
-                D.print("have err1 protocol");
-                return #err(Types.errors(#owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
-            };
-            case (?val) {
-                D.print("have meta protocol23");
-                return #ok(
-                    switch (val.value) {
-
-                        case (#Text(val)) { val };
-
-                        case (_) {
-                            D.print("err 45 meta protocol");
-                            return #err(Types.errors(#owner_not_found, "get_primary_protocol - unknown host type", null));
-                        };
-                    },
-                );
-            };
-        };
-    };
-
-    //cleans metadat according to permissions
-    public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue {
-
-        let owner : ?Types.Account = switch (get_nft_owner(metadata)) {
-            case (#err(err)) {
-                null;
-            };
-            case (#ok(val)) {
-                ?val;
-            };
-        };
-
-        let final_object : Buffer.Buffer<CandyTypes.Property> = Buffer.Buffer<CandyTypes.Property>(16);
-        for (this_entry in Conversions.valueToProperties(metadata).vals()) {
-            if (this_entry.name == Types.metadata.__system) {
-                //nyi: what system properties methods need to be hidden
-                final_object.add(this_entry);
-            } else if (this_entry.name == Types.metadata.__apps or this_entry.name == Types.metadata.library) {
-                //do we let apps publish to the main query
-                //D.print("Adding an app node");
-
-                let app_nodes = Buffer.Buffer<CandyTypes.CandyValue>(1);
-                switch (this_entry.value) {
-                    case (#Array(item)) {
-                        switch (item) {
-                            case (#thawed(classes)) {
-                                for (this_item in classes.vals()) {
-                                    //D.print("processing an item");
-                                    //D.print(debug_show(this_item));
-                                    let clean = (clean_node(this_item, owner, caller));
-                                    //D.print(debug_show(clean));
-                                    switch (clean) {
-                                        case (#Empty) {
-                                            //do nothing
-                                        };
-                                        case (#Class(theresult)) {
-
-                                            app_nodes.add(clean);
-                                        };
-                                        case (_) {
-                                            //do nothing
-                                        };
+              };
+              case(#Class(read_detail)){
+                switch(Properties.getClassProperty(read_node.value, "type")){
+                  case(?read_type){
+                    switch(read_type.value){
+                      case(#Text(read_type_detail)){
+                        if(read_type_detail == "allow"){
+                          switch(Properties.getClassProperty(read_node.value,"list")){
+                            case(?allow_list){
+                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                                  //D.print("cleaning an allow node");
+                                  //D.print(debug_show(data_node.value));
+                                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                                  switch(cleaned_node){
+                                    case(#Empty){
+                                      //D.print("recieved a cleaned node that was empty");
+                                      //D.print(debug_show(data_node.value));
+                                      //D.print(debug_show(caller));
+                                      return #Empty;
                                     };
-                                };
-                            };
-                            case (_) {
+                                    case(_){
+                                      //D.print("recieved a cleaned node that was not ");
+                                      //D.print(debug_show(cleaned_node));
+                                      //D.print(debug_show(caller));
+                                      switch(permissions_node){
+                                        case(?permissions_node){
+                                          return #Class([
+                                            read_node,
+                                            write_node,
+                                            permissions_node,
+                                            {name="data"; value=cleaned_node; immutable=false;}
 
+                                          ]);
+                                        };
+                                        case(null){
+                                          return #Class([
+                                            read_node,
+                                            write_node,
+                                            {name="data"; value=cleaned_node; immutable=false;}
+                                          ]);
+                                        };
+                                      };
+                                    };
+                                  };
+                                    
+                                  
+                                };
+                              };
+                              //we didnt find the principal
+                              return #Empty;
                             };
+                            case(null){
+                              return #Empty;
+                            }
+                          };
+                        } else {//nyi: implement block list; roles based security
+                          return #Empty;
                         };
                       };
                     

@@ -572,10 +572,6 @@ module {
                     false;
                 };
             };
-            case (_) {
-                false;
-              }
-            };
             case(_){
               false;
             };

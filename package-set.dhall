@@ -123,6 +123,11 @@ let additions =
   , version = "master"
   , dependencies = ["base" ]
   },
+   { name = "stableBTree"
+   , repo = "https://github.com/sardariuss/MotokoStableBTree"
+   , version = "main"
+   , dependencies = ["base", "matchers"]
+   }
 
   ] : List Package
 

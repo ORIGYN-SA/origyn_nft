@@ -1577,7 +1577,7 @@ module {
             case (#principal(principal)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(principal, null))));
             case (#account(account)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(account.owner, null))));
             case (#account_id(account_id)) #ok(request);
-            case (#extensible(ex)) return #err(errors(#nyi, "force_account_to_account_id", null));
+            case (#extensible(ex)) return #err(errors(null, #nyi, "force_account_to_account_id", null));
         };
     };
 
