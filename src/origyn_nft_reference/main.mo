@@ -52,7 +52,7 @@ import data "data";
 import http "http";
 
 
-shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
+shared (deployer) actor class Nft_Canister() = this {
 
     // Lets user turn debug messages on and off for local replica
     let debug_channel = {
@@ -72,31 +72,8 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     stable let created_at = Nat64.fromNat(Int.abs(Time.now()));
     stable var upgraded_at = Nat64.fromNat(Int.abs(Time.now()));
 
-    // **************************************************
-    // ** StableBTree variable only for testing purposes
-    // ** we need to figure out if initialize it with
-    // ** the init arguments
-    // **************************************************
-    stable var use_stableBTree : Bool = false;
-
     let OneDay = 60 * 60 * 24 * 1000000000;
-
-    // Canisters can support multiple storage nodes
-    // If you have a small collection you don't need to use a storage collection
-    // And can have this gateway canister act as your storage.
-    let initial_storage = switch (__initargs.storage_space) {
-        case (null) {
-            SIZE_CHUNK * 500; //default is 1GB
-        };
-        case (?val) {
-            if (val > SIZE_CHUNK * 1000) {
-                //only 2GB useable in a canister - hopefully this changes in the future
-                assert (false);
-            };
-            val;
-        };
-    };
-
+    
     // *************************
     // ***** CANISTER GEEK *****
     // *************************
@@ -111,27 +88,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // *************************
     // *** END CANISTER GEEK ***
     // *************************
-
-    // *************************
-    // ****** STABLEBTREE ******
-    // *************************
-
-    // For convenience: from StableBTree types
-    type InsertError = StableBTreeTypes.InsertError;
-    // For convenience: from base module
-    type Result<Ok, Err> = Result.Result<Ok, Err>;
-    // Arbitrary use of (Nat32, Text) for (key, value) types
-    type K = Nat32;
-    type V = [Nat8];
-
-    // Arbitrary limitation on text size (in bytes)
-    let MAX_VALUE_SIZE : Nat32 = 2048000;
-
-    let btreemap_ = StableBTree.init<K, V>(StableMemory.STABLE_MEMORY, BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(MAX_VALUE_SIZE));
-
-    // *************************
-    // **** END STABLEBTREE ****
-    // *************************
+    
 
     ///for migration information and pattern see
     //https://github.com/ZhenyaUsenko/motoko-migrations
@@ -150,7 +107,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-    migration_state := Migrations.migrate(migration_state, #v0_1_4(#id), { owner = __initargs.owner; storage_space = initial_storage });
+    migration_state := Migrations.migrate(migration_state, #v0_1_4(#id), { owner = deployer.caller; storage_space = 0;});
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_4(#data(state_current)) = migration_state;
@@ -163,7 +120,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
 
     debug if (debug_channel.instantiation) D.print("done initing migration_state" # debug_show (state_current.collection_data.owner) # " " # debug_show (deployer.caller));
-    debug if (debug_channel.instantiation) D.print("initializing from " # debug_show ((deployer, __initargs)));
+    debug if (debug_channel.instantiation) D.print("initializing from " # debug_show ((deployer)));
 
     // Used to get status of the canister and report it
     stable var ic : Types.IC = actor ("aaaaa-aa");
@@ -974,6 +931,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
                     "Type : UpdateSymbol " # debug_show (val);
                 };
                 case (#UpdateMetadata(val)) { "Type : UpdateMetadata" };
+                case(#UpdateAnnounceCanister(val)){  "Type : UpdateAnnounceCanister" };
             };
             canistergeekLogger.logMessage("collection_update_batch_nft_origyn", #Text(log_data), ?msg.caller);
             results.add(Metadata.collection_update_nft_origyn(get_state(), this_item, msg.caller));
@@ -1020,6 +978,23 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
         let state = get_state();
 
         switch (request) {
+            case(#configure_storage(val)){
+              
+                  let ?amount = ?val else 
+                    return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - allocation can't be empty " # debug_show (state.state.collection_data.allocated_storage), ?msg.caller));
+
+                  if(state.state.collection_data.allocated_storage > 0){
+                    return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - allocation has already been made  " # debug_show (state.state.collection_data.allocated_storage), ?msg.caller));
+                  };
+                  state.state.collection_data.allocated_storage := amount;
+                  state.state.collection_data.available_space := amount;
+                return #ok(
+                  #configure_storage(
+                      state.state.collection_data.allocated_storage,
+                      state.state.collection_data.available_space,
+                  )
+                );
+            };
             case (#add_storage_canisters(request)) {
                 for (this_item in request.vals()) {
                     //make sure that if this exists we re allocate or error

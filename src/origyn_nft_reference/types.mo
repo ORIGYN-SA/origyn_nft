@@ -67,11 +67,6 @@ module {
       ]
     };
 
-    public type InitArgs = {
-        owner : Principal.Principal;
-        storage_space : ?Nat;
-    };
-
     public type StorageInitArgs = {
         gateway_canister : Principal;
         network : ?Principal;
@@ -701,10 +696,15 @@ module {
 
     public type ManageStorageRequest = {
         #add_storage_canisters : [(Principal, Nat, (Nat, Nat, Nat))];
+        #configure_storage : {
+          #heap: ?Nat;
+          #stableBtree: ?Nat;
+        };
     };
 
     public type ManageStorageResponse = {
         #add_storage_canisters : (Nat, Nat); //space allocated, space available
+        #configure_storage : (Nat, Nat); //space allocated, space available
     };
 
     public type LogEntry = {

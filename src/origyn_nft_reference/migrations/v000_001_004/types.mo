@@ -12,6 +12,8 @@ import Droute "mo:droute_client/Droute";
 import KYCTypes "mo:icrc17_kyc/types";
 import KYCClass "mo:icrc17_kyc";
 
+import StableBTree "mo:stableBTree/btreemap";
+
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
 // you should also avoid importing these types anywhere in your project directly from here
@@ -124,6 +126,15 @@ module {
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;
-
+    var use_stableBTree : Bool;
+    var stable_memory : {
+      _1 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _4 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _16 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _64 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _256 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _1024 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+      _2048 : StableBTree.BTreeMap<Nat32, [Nat8]>;
+    }
   };
 };

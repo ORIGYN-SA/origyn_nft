@@ -8,6 +8,10 @@ import v0_1_4_types = "types";
 import KYCTypes = "mo:icrc17_kyc/types";
 import Droute "mo:droute_client/Droute";
 import Principal "mo:base/Principal";
+import StableBTree "mo:stableBTree/btreemap";
+import BytesConverter "mo:stableBTree/bytesConverter";
+import MemoryManager "mo:stableBTree/memoryManager";
+import Memory "mo:stableBTree/memory";
 
 
 module {
@@ -40,6 +44,8 @@ module {
       var announce_canister = null;
     };
 
+    let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
+
     D.print("in upgrade v0.1.4");
 
     return #v0_1_4(#data({
@@ -57,6 +63,16 @@ module {
       var access_tokens = state.access_tokens;
       var kyc_cache = Map_lib.new<KYCTypes.KYCRequest, KYCTypes.KYCResultFuture>();
       var droute = droute_client;
+      var use_stableBTree = false;
+      var stable_memory = {
+        _1 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
+        _4 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
+        _16 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
+        _64 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
+        _256 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
+        _1024 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
+        _2048 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
+      };
 
    }));
   };

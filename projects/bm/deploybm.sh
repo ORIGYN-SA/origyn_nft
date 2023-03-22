@@ -120,7 +120,14 @@ gzip .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm -f
 TEST_WALLET=$(echo "coapo-5z5t4-5azo7-idouv-jsvee-vzf6k-33ror-oncap-be2yg-6cavw-pqe")
 
 
-dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall --argument "(record {owner =principal  \"$ADMIN_PRINCIPAL\"; storage_space = null;})"
+dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall
+
+dfx canister --network $env_network call $env_name origyn_nft_reference collection_update_nft_origyn '(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})'
+
+dfx canister --network $env_network call $env_name origyn_nft_reference manage_storage_nft_origyn '(variant {configure_storage = variant {stableBtree = null})'
+
+
+
 dfx canister --network $env_network install $env_name_sale --wasm .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm.gz --mode=reinstall --argument "(record {owner=principal  \"$ADMIN_PRINCIPAL\"; allocation_expiration = 450000000000; nft_gateway= opt principal \"$NFT_CANISTER_ID\"; sale_open_date=null; registration_date = null; end_date = null; required_lock_date=null})"
 
 node ./projects/deploy.js --meta=./projects/bm/def_collection_loaded.json --token_id=""  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod
