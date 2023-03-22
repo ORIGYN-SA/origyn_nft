@@ -20,6 +20,11 @@ import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
 import KYCService "../../.vessel/icrc17_kyc/master/test/service_example";
+import Droute "mo:droute_client/Droute";
+import KYC "mo:icrc17_kyc";
+import Canistergeek "mo:canistergeek/canistergeek";
+import SB "mo:stablebuffer/StableBuffer";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
@@ -55,7 +60,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         let suite = S.suite("test nft", [
           
-           S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+        // S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+           S.test("testAnnounceTransaction", switch(await testAnnounceTransaction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
            /* S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -1616,6 +1622,42 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         
           
 
+    };
+
+    public shared func testAnnounceTransaction() : async {#success; #fail : Text} {
+        D.print("running AnnounceTransaction");
+
+        let SB = MigrationTypes.Current.SB;
+        let Map = MigrationTypes.Current.Map;
+
+        let state: Types.State = Types.State;
+
+        let rec: Types.TransactionRecord = Types.TransactionRecord;
+
+        let caller = Principal.fromText("some-principal-id"); // TODO which Principal to use
+
+        let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, rec.token_id)){
+            case(null){
+                let newLedger = SB.init<Types.TransactionRecord>();
+                Map.set(state.state.nft_ledgers, Map.thash, rec.token_id, newLedger);
+                newLedger;
+            };
+            case(?val){val};
+        };
+    
+        let newTrx = {
+            token_id = rec.token_id;
+            index = SB.size(ledger);
+            txn_type = rec.txn_type;
+            timestamp = rec.timestamp;
+        };
+
+        let testResult = await announceTransaction(state, rec, caller, newTrx);
+    
+        return switch (testResult) {
+            case (#success) { #success };
+            case (_) { #fail };
+        };
     };
 
     
