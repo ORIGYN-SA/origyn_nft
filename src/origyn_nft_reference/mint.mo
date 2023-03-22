@@ -872,56 +872,82 @@ module {
                       };
                   };
 
-                  //D.print("putting the chunk");
-                  if(chunk.chunk + 1 <= file_chunks.size()){
-                      file_chunks.put(chunk.chunk, #Blob(chunk.content));
-                  } else {
-                                      debug if(debug_channel.stage) D.print("in putting the chunk iter");
-                                      debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
-                      //D.print(debug_show(file_chunks.size()));
+                        //D.print("putting the chunk");
+                        if (chunk.chunk + 1 <= file_chunks.size()) {
+                            if (state.use_stable) {
+                                // D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
+                                let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
+                                // D.print(debug_show(btreeKey));
+                                let insertBtree = state.btreemap.insert(btreeKey, Blob.toArray(chunk.content));
+                                file_chunks.add(#Nat32(btreeKey));
+                            } else {
+                                file_chunks.put(chunk.chunk, #Blob(chunk.content));
+                            };
 
-                      for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
-                          //D.print(debug_show(this_index));
-                          if(this_index == chunk.chunk){
-                              //D.print("index was chunk" # debug_show(this_index));
-                              file_chunks.add(#Blob(chunk.content));
-                          } else {
-                              //D.print("index wasnt chunk" # debug_show(this_index));
-                              file_chunks.add(#Blob(Blob.fromArray([])));
-                          }
-                      };
+                        } else {
+                            debug if (debug_channel.stage) D.print("in putting the chunk iter");
+                            debug if (debug_channel.stage) D.print(debug_show (chunk.chunk));
+                            //D.print(debug_show(file_chunks.size()));
 
-                  };
+                            for (this_index in Iter.range(file_chunks.size(), chunk.chunk)) {
+                                //D.print(debug_show(this_index));
+                                let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+
+                                if (this_index == chunk.chunk) {
+                                    //D.print("index was chunk" # debug_show(this_index));
+
+                                    // If flag use_stable is true we insert Blobs into stablebtree
+                                    if (state.use_stable) {
+                                        // D.print("#level 1");
+                                        // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+                                        // D.print(debug_show(btreeKey));
+                                        let insertBtree = state.btreemap.insert(btreeKey, Blob.toArray(chunk.content));
+                                        file_chunks.add(#Nat32(btreeKey));
+                                    } else {
+                                        file_chunks.add(#Blob(chunk.content));
+                                    };
+                                } else {
+                                    //D.print("index wasnt chunk" # debug_show(this_index));
+                                    if (state.use_stable) {
+                                        // D.print("#level 2");
+                                        // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+                                        let insertBtree = state.btreemap.insert(btreeKey, []);
+                                        file_chunks.add(#Nat32(btreeKey));
+                                    } else {
+                                        file_chunks.add(#Blob(Blob.fromArray([])));
+                                    };
+                                };
+                            };
+
+                        };
+                    };
+
+                    //D.print("returning");
+                    return #ok(#staged(state.canister()));
                 };
 
-                //D.print("returning");
-                return #ok(#staged(state.canister()));
-              };
-              
-          } else {
-              //we need to send this chunk to storage
-              //D.print("This needs to be filed elsewhere " # debug_show(allocation));
-              if(bDelete == true){
-                switch(Map.get<Principal,Types.BucketData>(state.state.buckets, Map.phash, allocation.canister)){
-                  case(?aBucket){
-                    aBucket.available_space += allocation.allocated_space;
-                    //aBucket.allocated_space -= allocation.allocated_space;
-                  };
-                  case(null){};
+            } else {
+                //we need to send this chunk to storage
+                //D.print("This needs to be filed elsewhere " # debug_show(allocation));
+                if (bDelete == true) {
+                    switch (Map.get<Principal, Types.BucketData>(state.state.buckets, Map.phash, allocation.canister)) {
+                        case (?aBucket) {
+                            aBucket.available_space += allocation.allocated_space;
+                            //aBucket.allocated_space -= allocation.allocated_space;
+                        };
+                        case (null) {};
+                    };
+                    Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
+                    switch (state.nft_library.get(chunk.token_id)) {
+                        case (null) {};
+                        case (?library) {
+                            library.delete(chunk.library_id);
+                        };
+                    };
+
                 };
-                Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
-                switch(state.nft_library.get(chunk.token_id)){
-                  case(null){};
-                  case(?library){
-                    library.delete(chunk.library_id);
-                  };
-                };
-                
-              };
-              return #ok(#stage_remote({
-                  allocation = allocation;
-                  metadata = metadata;}));
-          };
+                return #ok(#stage_remote({ allocation = allocation; metadata = metadata }));
+            };
         } else {
             return #ok(#staged(state.canister()));
         };
