@@ -1525,6 +1525,32 @@ module {
                         }));
                           
                       };
+                      case (#Nat32(wval)) {
+                          let sizeZone = switch(item.getOpt(2)){
+                            case(null){
+                              return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - could not find size zone - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));};
+                            case(?val) val;
+                          };
+
+                          let size = switch(sizeZone.get(requested_chunk)){
+                            case(#Nat(val)) val;
+                            case(_){
+                              return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - improper size interface - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
+                            };
+                          };
+
+                          let result = NFTUtils.getMemoryBySize(size, state.btreemap).get(wval);
+                          switch (result) {
+                              case null {
+                                  D.print("Metadata option #Nat32 could not find a stablebtree key");
+                              };
+                              case (?val) {
+                                  // D.print(debug_show(Blob.fromArray(val)));
+                                  // return Blob.fromArray(val)
+                                  return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
+                              };
+                          };
+                      };
                       case(_){
                         return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
                       };
