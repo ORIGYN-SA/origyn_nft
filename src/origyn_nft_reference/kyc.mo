@@ -61,7 +61,7 @@ module {
       null;
     };
 
-    public func pass_kyc_buyer(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.KYCResult, Types.OrigynError> {
+    public func pass_kyc_buyer(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError> {
 
         var message : Text = "";
 
@@ -117,18 +117,22 @@ module {
 
         D.print(" canister" # debug_show(collection_kyc));
 
-        let collection_result : MigrationTypes.Current.KYCResult = switch(collection_kyc){
+        let collection_result : MigrationTypes.Current.RunKYCResult = switch(collection_kyc){
           case(null){
-             {
-              kyc = #NA;
-              aml = #NA;
-              token = ?kycTokenSpec;
-              amount = null;
-              message = null;
+            {
+              did_async = false;
+              result = 
+              {
+                kyc = #NA;
+                aml = #NA;
+                token = ?kycTokenSpec;
+                amount = null;
+                message = null;
+              };
             };
           };
           case(?val){
-            let result = try{
+            let result = try {
               await* state.kyc_client.run_kyc({
                 canister = val;
                 counterparty = kycBuyer;
@@ -146,11 +150,15 @@ module {
               };
               case(#err(err)){
                 {
+                did_async = true;
+                result = {
                   kyc = #Fail;
                   aml = #Fail;
                   token = ?kycTokenSpec;
                   amount = null;
                   message = ?err;
+                };
+            
                 };
               };
               
@@ -171,17 +179,17 @@ module {
           };
 
         
-        let kyc_result = if(elective_result.kyc == #Fail or collection_result.kyc == #Fail or sale_result.kyc == #Fail){
+        let kyc_result = if(elective_result.kyc == #Fail or collection_result.result.kyc == #Fail or sale_result.kyc == #Fail){
             #Fail;
-          } else if(elective_result.kyc == #NA or collection_result.kyc == #NA or sale_result.kyc == #NA){
+          } else if(elective_result.kyc == #NA or collection_result.result.kyc == #NA or sale_result.kyc == #NA){
             #NA;
           } else {
             #Pass;
           };
 
-        let aml_result = if(elective_result.aml == #Fail or collection_result.aml == #Fail or sale_result.aml == #Fail){
+        let aml_result = if(elective_result.aml == #Fail or collection_result.result.aml == #Fail or sale_result.aml == #Fail){
             #Fail;
-          } else if(elective_result.aml == #NA or collection_result.aml == #NA or sale_result.aml == #NA){
+          } else if(elective_result.aml == #NA or collection_result.result.aml == #NA or sale_result.aml == #NA){
             #NA;
           } else {
             #Pass;
@@ -189,7 +197,7 @@ module {
 
         var amount : ?Nat = null;
 
-        switch(collection_result.amount){
+        switch(collection_result.result.amount){
           case(null){};
           case(?val){amount := ?val};
         };
@@ -208,7 +216,7 @@ module {
           };
         };
 
-        switch(collection_result.message){
+        switch(collection_result.result.message){
           case(null){};
           case(?val){message := message # "[" # val # "]";};
         };
@@ -228,18 +236,23 @@ module {
           };
         };
 
-        
+        let did_async = if(collection_result.did_async){
+          true;
+        } else false;
 
-        let result : MigrationTypes.Current.KYCResult = {
-          kyc = kyc_result;
-          aml = aml_result;
-          token = ?kycTokenSpec;
-          amount = amount;
-          message = if(message.size() > 0){
-            ?message;
-          } else {
-            null;
-          };
+        let result : MigrationTypes.Current.RunKYCResult = {
+            did_async = did_async;
+            result = {
+              kyc = kyc_result;
+              aml = aml_result;
+              token = ?kycTokenSpec;
+              amount = amount;
+              message = if(message.size() > 0){
+                ?message;
+              } else {
+                null;
+              };
+            };
         };
        
 
@@ -248,7 +261,7 @@ module {
     };
 
 
-    public func pass_kyc_seller(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.KYCResult, Types.OrigynError> {
+    public func pass_kyc_seller(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError> {
 
         var message : Text = "";
 
@@ -299,14 +312,17 @@ module {
 
         let collection_kyc = get_collection_kyc_canister_seller(state);
 
-        let collection_result : MigrationTypes.Current.KYCResult = switch(collection_kyc){
+        let collection_result : MigrationTypes.Current.RunKYCResult = switch(collection_kyc){
           case(null){
-             {
-              kyc = #NA;
-              aml = #NA;
-              token = ?kycTokenSpec;
-              amount = null;
-              message = null;
+            {
+              did_async = false;
+              result = {
+                kyc = #NA;
+                aml = #NA;
+                token = ?kycTokenSpec;
+                amount = null;
+                message = null;
+              };
             };
           };
           case(?val){
@@ -328,11 +344,14 @@ module {
               };
               case(#err(err)){
                 {
-                  kyc = #Fail;
-                  aml = #Fail;
-                  token = ?kycTokenSpec;
-                  amount = null;
-                  message = ?err;
+                  did_async = true;
+                  result = {
+                    kyc = #Fail;
+                    aml = #Fail;
+                    token = ?kycTokenSpec;
+                    amount = null;
+                    message = ?err;
+                  };
                 };
               };
               
@@ -353,17 +372,17 @@ module {
           };
 
         
-        let kyc_result = if(elective_result.kyc == #Fail or collection_result.kyc == #Fail or sale_result.kyc == #Fail){
+        let kyc_result = if(elective_result.kyc == #Fail or collection_result.result.kyc == #Fail or sale_result.kyc == #Fail){
             #Fail;
-          } else if(elective_result.kyc == #NA or collection_result.kyc == #NA or sale_result.kyc == #NA){
+          } else if(elective_result.kyc == #NA or collection_result.result.kyc == #NA or sale_result.kyc == #NA){
             #NA;
           } else {
             #Pass;
           };
 
-        let aml_result = if(elective_result.aml == #Fail or collection_result.aml == #Fail or sale_result.aml == #Fail){
+        let aml_result = if(elective_result.aml == #Fail or collection_result.result.aml == #Fail or sale_result.aml == #Fail){
             #Fail;
-          } else if(elective_result.aml == #NA or collection_result.aml == #NA or sale_result.aml == #NA){
+          } else if(elective_result.aml == #NA or collection_result.result.aml == #NA or sale_result.aml == #NA){
             #NA;
           } else {
             #Pass;
@@ -371,7 +390,7 @@ module {
 
         var amount : ?Nat = null;
 
-        switch(collection_result.amount){
+        switch(collection_result.result.amount){
           case(null){};
           case(?val){amount := ?val};
         };
@@ -390,7 +409,7 @@ module {
           };
         };
 
-        switch(collection_result.message){
+        switch(collection_result.result.message){
           case(null){};
           case(?val){message := message # "[" # val # "]";};
         };
@@ -410,17 +429,22 @@ module {
           };
         };
 
-        
+        let did_async = if(collection_result.did_async){
+          true
+        } else false;
 
-        let result : MigrationTypes.Current.KYCResult = {
-          kyc = kyc_result;
-          aml = aml_result;
-          token = ?kycTokenSpec;
-          amount = amount;
-          message = if(message.size() > 0){
-            ?message;
-          } else {
-            null;
+        let result : MigrationTypes.Current.RunKYCResult = {
+          did_async = did_async;
+          result = {
+            kyc = kyc_result;
+            aml = aml_result;
+            token = ?kycTokenSpec;
+            amount = amount;
+            message = if(message.size() > 0){
+              ?message;
+            } else {
+              null;
+            };
           };
         };
        

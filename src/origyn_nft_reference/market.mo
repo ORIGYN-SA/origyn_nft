@@ -1288,13 +1288,15 @@ module {
           debug if(debug_channel.market) D.print(debug_show(Types.token_hash(escrow.token)));
           debug if(debug_channel.market) D.print(debug_show(escrow.amount));
           
-          let verified = switch(verify_escrow_receipt(state, escrow, ?owner, null)){
+          var verified = switch(verify_escrow_receipt(state, escrow, ?owner, null)){
             case(#err(err)){
               //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
               return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
             };
             case(#ok(res)) res;
           };
+
+          var bRevalidate = false;
 
           //kyc seller
           let kyc_result_seller = try{
@@ -1307,13 +1309,17 @@ module {
           switch(kyc_result_seller){
             case(#ok(val)){
 
-              if(val.kyc == #Fail or val.aml == #Fail){
+              if(val.result.kyc == #Fail or val.result.aml == #Fail){
                 //returns the failed escrow to the user
                 //ignore refund_failed_bid(state, verified, escrow);
                 return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml failed seller " # debug_show(val), ?caller));
               };
               
               //amount is ignored for seller
+
+              if(val.did_async){
+                bRevalidate := true;
+              };
 
             };
             case(#err(err)){
@@ -1335,16 +1341,20 @@ module {
           switch(kyc_result){
             case(#ok(val)){
 
-              if(val.kyc == #Fail or val.aml == #Fail){
+              if(val.result.kyc == #Fail or val.result.aml == #Fail){
                 //returns the failed escrow to the user
                 //ignore refund_failed_bid(state, verified, escrow);
                 return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml failed buyer " # debug_show(val), ?caller));
               };
-              let kycamount = Option.get(val.amount, 0);
+              let kycamount = Option.get(val.result.amount, 0);
 
               if((kycamount > 0) and (escrow.amount > kycamount)){
                 //ignore refund_failed_bid(state, verified, escrow);
                 return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml amount too large buyer " # debug_show((val, kycamount, escrow)), ?caller))
+              };
+
+              if(val.did_async){
+                bRevalidate := true;
               };
 
             };
@@ -1352,6 +1362,17 @@ module {
               //ignore refund_failed_bid(state, verified, escrow);
               debug if(debug_channel.kyc) D.print("KYC error on reading return " # debug_show(err));
               return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try kyc failed buyer " # err.flag_point, ?caller))
+            };
+          };
+
+          //re verify if we did async
+          if(bRevalidate){
+            verified := switch(verify_escrow_receipt(state, escrow, ?owner, null)){
+              case(#err(err)){
+                //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
+                return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+              };
+              case(#ok(res)) res;
             };
           };
 
@@ -1914,7 +1935,7 @@ module {
             switch(kyc_result){
               case(#ok(val)){
 
-                if(val.kyc == #Fail or val.aml == #Fail){
+                if(val.result.kyc == #Fail or val.result.aml == #Fail){
                   
                   return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
                 };
@@ -2850,7 +2871,7 @@ module {
 
       //make sure the receipt is valid
       debug if(debug_channel.bid) D.print("verifying Escrow");
-      let verified = switch(verify_escrow_receipt(state, request.escrow_receipt, null, ?request.sale_id)){
+      var verified = switch(verify_escrow_receipt(state, request.escrow_receipt, null, ?request.sale_id)){
           case(#err(err)){
             //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
             //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
@@ -2922,7 +2943,9 @@ module {
       };
 
       //kyc
-      debug if(debug_channel.bid) D.print("tying kyc" # debug_show("")); 
+      debug if(debug_channel.bid) D.print("trying kyc" # debug_show("")); 
+
+      var bRevalidate = false;
 
       let kyc_result = try{
         await* KYC.pass_kyc_buyer(state, verified.found_asset.escrow, caller);
@@ -2933,7 +2956,7 @@ module {
       switch(kyc_result){
         case(#ok(val)){
 
-          if(val.kyc == #Fail or val.aml == #Fail){
+          if(val.result.kyc == #Fail or val.result.aml == #Fail){
             debug if(debug_channel.bid) D.print("faild...returning bid" # debug_show(val));
             
             ignore refund_failed_bid(state, verified, request.escrow_receipt);
@@ -2942,7 +2965,7 @@ module {
             
             return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
           };
-          let kycamount = Option.get(val.amount, 0);
+          let kycamount = Option.get(val.result.amount, 0);
 
           if((kycamount > 0) and (request.escrow_receipt.amount > kycamount)){
             ignore refund_failed_bid(state, verified, request.escrow_receipt);
@@ -2950,10 +2973,40 @@ module {
             return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml amount too large " # debug_show((val, kycamount, request.escrow_receipt)), ?caller))
           };
 
+          if(val.did_async){
+            bRevalidate := true;
+          }
+
         };
         case(#err(err)){
           ignore refund_failed_bid(state, verified, request.escrow_receipt);
           return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
+        };
+      };
+
+      if(bRevalidate){
+        verified := switch(verify_escrow_receipt(state, request.escrow_receipt, null, ?request.sale_id)){
+            case(#err(err)){
+              //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
+              //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
+
+              if(canister_call == false){
+                switch(await* escrow_nft_origyn(state,
+                    {deposit =
+                      {
+                        request.escrow_receipt with 
+                        sale_id = ?request.sale_id;
+                        trx_id = null;
+                      }; 
+                    lock_to_date = null; token_id = request.escrow_receipt.token_id}
+                  , caller)){
+                    //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
+                    case(#ok(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
+                    case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller));
+                  };
+              } else return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller))
+            };
+            case(#ok(res)) res;
         };
       };
 

@@ -97,6 +97,7 @@ module {
 
   public type KYCRequest = KYCTypes.KYCRequest;
   public type KYCResult = KYCTypes.KYCResult;
+  public type RunKYCResult = KYCTypes.RunKYCResult;
   public type KYCTokenSpec = KYCTypes.TokenSpec;
   public type KYCCacheMap = KYCTypes.CacheMap;
 
