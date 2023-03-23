@@ -351,6 +351,16 @@ module {
 
     public type Account = MigrationTypes.Current.Account;
 
+    public type Stable_Memory = {
+      _1 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _4 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _16 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _64 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _256 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _1024 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _2048 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+    };
+
     public type State = State_v0_1_4;
 
     public type State_v0_1_4 = {
@@ -362,8 +372,7 @@ module {
         droute_client : DROUTE.Droute;
         kyc_client: KYC.kyc;
         canistergeekLogger : Canistergeek.Logger;
-        btreemap : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-        use_stable : Bool;
+        btreemap : Stable_Memory;
 
     };
 

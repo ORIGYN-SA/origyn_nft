@@ -32,6 +32,8 @@ import Types "types";
 
 import MigrationTypes "./migrations/types";
 
+import StableBTreeTypes "mo:stableBTree/types";
+
 
 module {
 
@@ -184,6 +186,24 @@ module {
                 sub_account =(Blob.fromArray(sub_hash));
             }
         };
+    };
+
+    public func getMemoryBySize(size : Nat, memory : Types.Stable_Memory) : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>{
+      if(size <= 1000){
+        return memory._1;
+      } else if(size <= 4000){
+        return memory._4;
+      } else if(size <= 16000){
+        return memory._16;
+      } else if(size <= 64000){
+        return memory._64;
+      } else if(size <= 256000){
+        return memory._256;
+      } else if(size <= 1024000){
+        return memory._1024;
+      } else {
+        return memory._2048;
+      };
     };
 
     private func get_subaccount_info(prefix: Text, account : Types.Account, host: Principal) : Types.SubAccountInfo{

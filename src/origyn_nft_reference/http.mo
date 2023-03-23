@@ -103,7 +103,7 @@ module {
         start       : ?Nat,
         end         : ?Nat,
         contentType : Text,
-        data        : CandyTypes.DataZone,
+        data        : CandyTypes.Workspace,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
 
@@ -115,7 +115,18 @@ module {
                         debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
         var size : Nat = 0;
         //find the right data zone
-        for(this_item in data.vals()){
+        let ?zone = data.getOpt(1) else {
+          debug if(debug_channel.streaming) D.print("Couldn't find the data zone" # debug_show((token_id, library_id, start, end, contentType)));
+          return {
+                status_code        = 500;
+                headers            = [];
+                body               = Text.encodeUtf8("Couldn't find the data zone" # debug_show((token_id, library_id, start, end, contentType)));
+                streaming_strategy = null;
+            };
+        };
+        
+        var zoneTracker = 0;
+        for(this_item in zone.vals()){
             switch(this_item){
                 case(#Bytes(bytes)){
                     switch(bytes){
@@ -132,18 +143,25 @@ module {
                 };
                 case(#Nat32(key)){
                     // D.print("#use_stablebtree handle_stream_content #Nat32 option");
-                    let result = state.btreemap.get(key);
-                        switch(result){
-                            case null { size := size };
-                            case (?val) { 
-                                 size := size + val.size();
+                    let sizeZone = switch(data.getOpt(2)){
+                      case(null){0;};
+                      case(?val){
+                        switch(val.getOpt(zoneTracker)){
+                          case (null)0;
+                          case(?val) {
+                            switch(val){
+                              case(#Nat(val)) val;
+                              case(_) 0;
                             };
-                        };
-                        
+                          }
+                        }
+                      };
+                    };
+                    size := size + sizeZone;
                 };
                 case(_){};
             };
-
+          zoneTracker += 1;
         };
 
         var rEnd = switch(end){
@@ -221,10 +239,10 @@ module {
         state : Types.State,
         key         : Text,
         contentType : Text,
-        data        : CandyTypes.DataZone,
+        data        : CandyTypes.Workspace,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
-        let result = _stream_content(key, 0, data, state.use_stable, state.btreemap);
+        let result = _stream_content(key, 0, data, state.state.use_stableBTree, state.btreemap);
 
                             debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
                            
@@ -261,7 +279,7 @@ module {
         token_id : Text,
         library_id :Text,
         index : Nat,
-        data  : CandyTypes.DataZone,
+        data  : CandyTypes.Workspace,
         rStart : Nat,
         rEnd : Nat,
         size : Nat,
@@ -288,8 +306,19 @@ module {
                             debug if(debug_channel.streaming)D.print("buffer of size " # debug_show(buf_size));
         let payload : Buffer.Buffer<Nat8> =  Buffer.Buffer<Nat8>(buf_size);
         var blob_payload = Blob.fromArray([]);
+
+        let zone = switch(data.getOpt(1)){
+          case(null){
+            debug if(debug_channel.streaming)D.print("zone didn't exist that should have existed " # debug_show(buf_size));
+            return {
+                payload = "" : Blob;                        // Payload based on the index.
+                callback = null // Callback for next chunk (if applicable).
+            }
+          };
+          case(?val) val;
+        };
         
-        label getData for(this_item in data.vals()){
+        label getData for(this_item in zone.vals()){
 
                             debug if(debug_channel.streaming) D.print("zone processing" # debug_show(tracker) # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
             let chunk = Conversion.valueUnstableToBlob(this_item);
@@ -350,17 +379,30 @@ module {
         {payload = blob_payload; callback =token};
     };
 
+    
+
     public func _stream_content(
         key   : Text,
         index : Nat,
-        data  : CandyTypes.DataZone,
+        data  : CandyTypes.Workspace,
         use_stable : Bool,
-        btreemap : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>,
+        btreemap : Types.Stable_Memory,
     ) : {
         payload: Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
     } {
-        let payload = data.get(index);
+
+        let zone = switch(data.getOpt(1)){
+          case(null){
+            return {
+              payload = "" : Blob;
+              callback = null;
+            }
+          };
+          case(?val) val;
+        };
+
+        let payload = zone.get(index);
                             debug if(debug_channel.streaming) D.print("in private call back");
                             debug if(debug_channel.streaming)D.print(debug_show(data.size()));
                             debug if(debug_channel.stablebtree) D.print("#stablebtree - _stream_content");
@@ -369,6 +411,8 @@ module {
         var pay : Blob = "";
         var k : Nat32 = 0;
 
+        
+
         if(use_stable){
             switch(payload){                
                 case(#Nat32(val)){
@@ -376,7 +420,15 @@ module {
                 };
                 case (_) { k := 0 };
             };
-            let result = btreemap.get(k);
+            let size = switch(data.get(2).get(index)){
+              case(#Nat(val)) val;
+              case(_) {
+                D.print("Could not find size for item!");
+                0;
+              };
+            };
+
+            let result = NFTUtils.getMemoryBySize(size, btreemap).get(k);
             switch(result){
                 case null { D.print("Could not find data for stabletree - _stream_content") };
                 case (?val) { 
@@ -405,7 +457,7 @@ module {
         token_id   : Text,
         library_id : Text,
         index : Nat,
-        data  : CandyTypes.DataZone,
+        data  : CandyTypes.Workspace,
         rStart : Nat,
         rEnd : Nat,
         size : Nat
@@ -615,7 +667,7 @@ module {
                                 start,
                                 end,
                                 content_type,
-                                zone,
+                                item,
                                 req
                             );
                                                 debug if(debug_channel.library)D.print("returning with callback:");
@@ -640,7 +692,7 @@ module {
                                 state,
                                 "nft/" # token_id # "|" # library_id,
                                 content_type,
-                                zone,
+                                item,
                                 req
                             );
                                                 debug if(debug_channel.library)D.print("returning with callback");
@@ -654,14 +706,24 @@ module {
                             var httpbody : Blob = "";
                             var k : Nat32 = 0;
 
-                            if(state.use_stable){
+                            if(state.state.use_stableBTree){
                                 switch(zone.get(0)){                                    
                                     case(#Nat32(val)){
                                         k := val;
                                     };
                                     case (_) { k := 0 };
                                 };
-                                let result = state.btreemap.get(k);
+
+                                let size = switch(item.get(2).get(0)){
+                                  case(#Nat(val)) val;
+                                  case(_){
+                                     D.print("Could not find size for stabletree - renderLibrary");
+                                     0;
+                                  };
+                                };
+
+                                let result = NFTUtils.getMemoryBySize(size, state.btreemap).get(k);
+
                                 switch(result){
                                     case null { D.print("Could not find data for stabletree - renderLibrary") };
                                     case (?val) { 
@@ -748,7 +810,7 @@ module {
                                 start,
                                 end,
                                 content_type,
-                                zone,
+                                item,
                                 req
                             );
                                                 debug if(debug_channel.library) D.print("returning with callback:");
@@ -773,7 +835,7 @@ module {
                                 state,
                                 "nft/" # use_token_id # "|" # library_id,
                                 content_type,
-                                zone,
+                                item,
                                 req
                             );
                                                     debug if(debug_channel.library) D.print("returning with callback");
@@ -786,14 +848,24 @@ module {
                             var httpbody : Blob = "";
                             var k : Nat32 = 0;
 
-                            if(state.use_stable){
+                            if(state.state.use_stableBTree){
                                 switch(zone.get(0)){                                    
                                     case(#Nat32(val)){
                                         k := val;
                                     };
                                     case (_) { k := 0 };
                                 };
-                                let result = state.btreemap.get(k);
+
+                                let size = switch(item.get(2).get(0)){
+                                  case(#Nat(val)) val;
+                                  case(_) {
+                                    D.print("Could not find size for item!");
+                                    0;
+                                  };
+                                };
+
+
+                                let result = NFTUtils.getMemoryBySize(size, state.btreemap).get(k);
                                 switch(result){
                                     case null { D.print("Could not find data for stabletree - renderLibrary") };
                                     case (?val) { 
@@ -899,8 +971,8 @@ module {
                     return stream_content(
                         tk.key,
                         tk.index,
-                        zone,
-                        state.use_stable,
+                        item,
+                        state.state.use_stableBTree,
                         state.btreemap,
                     );
                 };
@@ -946,7 +1018,7 @@ module {
                         token_id,
                         library_id,
                         tk.index,
-                        zone,
+                        item,
                         rStart,
                         rEnd,
                         size
@@ -964,9 +1036,9 @@ module {
     private func stream_content(
         key   : Text,
         index : Nat,
-        data  : CandyTypes.DataZone,
+        data  : CandyTypes.Workspace,
         use_stable : Bool,
-        btreemap : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>,
+        btreemap : Types.Stable_Memory,
     ) : StreamingCallbackResponse {
         let result = _stream_content(
             key,
@@ -1023,8 +1095,8 @@ module {
                     return stream_content(
                         tk.key,
                         tk.index,
-                        zone,
-                        state.use_stable,
+                        item,
+                        state.state.use_stableBTree,
                         state.btreemap,
                     );
                 };
@@ -1044,12 +1116,12 @@ module {
             };
 
             let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
-                case(#err(err)){return {
-                        body  = Blob.fromArray([]);
-                        token = null;
-                    };
+              case(#err(err)){return {
+                  body  = Blob.fromArray([]);
+                  token = null;
                 };
-                case(#ok(val)){val};
+              };
+              case(#ok(val)){val};
             };
 
                                 debug if(debug_channel.large_content) //D.print("have item");
@@ -1062,7 +1134,7 @@ module {
                         library_id,
 
                         tk.index,
-                        zone,
+                        item,
                         Option.get(Conversion.textToNat(rStartText),0),//rstart
 
                         Option.get(Conversion.textToNat(rEndText),0),//rend

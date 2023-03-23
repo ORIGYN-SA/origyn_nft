@@ -32,9 +32,6 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 
 import Properties "mo:candy/properties";
-import StableBTree "mo:stableBTree/btreemap";
-import StableBTreeTypes "mo:stableBTree/types";
-import StableMemory "mo:stableBTree/memory";
 import Workspace "mo:candy/workspace";
 
 import Current "migrations/v000_001_000/types";
@@ -51,16 +48,21 @@ import Types "./types";
 import data "data";
 import http "http";
 
+import StableBTree "mo:stableBTree/btreemap";
+import MemoryManager "mo:stableBTree/memoryManager";
+import Memory "mo:stableBTree/memory";
+
 
 shared (deployer) actor class Nft_Canister() = this {
 
     // Lets user turn debug messages on and off for local replica
     let debug_channel = {
-        instantiation = false;
+        instantiation = true;
         upgrade = false;
-        function_announce = false;
+        function_announce = true;
         storage = false;
         streaming = false;
+        manage_storage = true;
     };
 
     debug if (debug_channel.instantiation) D.print("creating a canister");
@@ -104,6 +106,9 @@ shared (deployer) actor class Nft_Canister() = this {
 
     debug if (debug_channel.instantiation) D.print("migrating");
 
+    
+    debug if (debug_channel.instantiation) D.print("migrating");
+
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
@@ -112,11 +117,29 @@ shared (deployer) actor class Nft_Canister() = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     let #v0_1_4(#data(state_current)) = migration_state;
 
+    debug if (debug_channel.instantiation) D.print("finished migration");
+
     let kyc_client = MigrationTypes.Current.KYC.kyc({
       time = null;
       timeout = ?OneDay;
       cache = ?state_current.kyc_cache;
     });
+
+
+    let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
+
+    debug if (debug_channel.instantiation) D.print("have memory_manager");
+
+    var btreemap_ = {
+        _1 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
+        _4 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
+        _16 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
+        _64 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
+        _256 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
+        _1024 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
+        _2048 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
+      };
+
 
 
     debug if (debug_channel.instantiation) D.print("done initing migration_state" # debug_show (state_current.collection_data.owner) # " " # debug_show (deployer.caller));
@@ -165,7 +188,6 @@ shared (deployer) actor class Nft_Canister() = this {
             nft_library = nft_library;
             refresh_state = get_state;
             btreemap = btreemap_;
-            use_stable = use_stableBTree;
             droute_client = state_current.droute;
             canistergeekLogger = canistergeekLogger;
             kyc_client = kyc_client;
@@ -979,8 +1001,17 @@ shared (deployer) actor class Nft_Canister() = this {
 
         switch (request) {
             case(#configure_storage(val)){
+
+              debug if (debug_channel.manage_storage) D.print("configuring staorage");
               
-                  let ?amount = ?val else 
+                  let ?amount = switch(val){
+                    case(#heap(val)){
+                      val;
+                    };
+                    case(#stableBtree(val)){
+                      val;
+                    }
+                  } else 
                     return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - allocation can't be empty " # debug_show (state.state.collection_data.allocated_storage), ?msg.caller));
 
                   if(state.state.collection_data.allocated_storage > 0){
@@ -2397,15 +2428,15 @@ shared (deployer) actor class Nft_Canister() = this {
         let key = Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
 
         let bytes = Blob.toArray(value);
-        let result = btreemap_.insert(key, bytes);
+        let result = NFTUtils.getMemoryBySize(value.size(), btreemap_).insert(key, bytes);
 
         ();
 
     };
 
-    public func get_btree_entry(key : Nat32) : async () {
+    public func get_btree_entry(key : Nat32, size: Nat) : async () {
         // let k = await hash_id(Nat32.toNat(key));
-        let result = btreemap_.get(key);
+        let result = NFTUtils.getMemoryBySize(size, btreemap_).get(key);
         switch (result) {
             case null { D.print("\00\00\00\66") };
             case (?val) {
@@ -2418,23 +2449,73 @@ shared (deployer) actor class Nft_Canister() = this {
 
     public query func show_btree_entries() : async [(Nat32, [Nat8])] {
 
-        let vals = btreemap_.iter();
+       
         let localBuf = Buffer.Buffer<(Nat32, [Nat8])>(0);
 
-        for (i in vals) {
+        for (i in btreemap_._1.iter()) {
             D.print(debug_show (i.0));
             localBuf.add((i.0, i.1));
         };
+        for (i in btreemap_._4.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+        for (i in btreemap_._16.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+        for (i in btreemap_._64.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+        for (i in btreemap_._256.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+        for (i in btreemap_._1024.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+        for (i in btreemap_._2048.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0, i.1));
+        };
+
 
         Buffer.toArray(localBuf);
     };
 
     public query func show_btree_entries_keys() : async [(Nat32)] {
 
-        let vals = btreemap_.iter();
+        
         let localBuf = Buffer.Buffer<(Nat32)>(0);
 
-        for (i in vals) {
+
+        for (i in btreemap_._1.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._4.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._16.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._64.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._256.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._1024.iter()) {
+            D.print(debug_show (i.0));
+            localBuf.add((i.0));
+        };
+        for (i in btreemap_._2048.iter()) {
             D.print(debug_show (i.0));
             localBuf.add((i.0));
         };
@@ -2442,15 +2523,33 @@ shared (deployer) actor class Nft_Canister() = this {
         Buffer.toArray(localBuf);
     };
 
-    public func remove(key : K) : async ?V {
-        btreemap_.remove(key);
+    public func remove(key : Nat32, size: Nat) : async ?[Nat8] {
+        NFTUtils.getMemoryBySize(size, btreemap_).remove(key);
     };
 
     // Nuke btree
     public func nuke_btree() : async () {
-        let entries = Iter.toArray(btreemap_.iter());
-        for ((key, _) in Array.vals(entries)) {
-            ignore btreemap_.remove(key);
+       
+        for (i in btreemap_._1.iter()) {
+            ignore btreemap_._1.remove(i.0);
+        };
+        for (i in btreemap_._4.iter()) {
+            ignore btreemap_._4.remove(i.0);
+        };
+        for (i in btreemap_._16.iter()) {
+           ignore btreemap_._1.remove(i.0);
+        };
+        for (i in btreemap_._64.iter()) {
+            ignore btreemap_._64.remove(i.0);
+        };
+        for (i in btreemap_._256.iter()) {
+            ignore btreemap_._256.remove(i.0);
+        };
+        for (i in btreemap_._1024.iter()) {
+            ignore btreemap_._1024.remove(i.0);
+        };
+        for (i in btreemap_._2048.iter()) {
+            ignore btreemap_._2048.remove(i.0);
         };
     };
 
@@ -2467,8 +2566,7 @@ shared (deployer) actor class Nft_Canister() = this {
             };
             nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
         };
-        nft_library_stable_buffer.toArray();
-
+        Buffer.toArray(nft_library_stable_buffer);
     };
 
     system func preupgrade() {

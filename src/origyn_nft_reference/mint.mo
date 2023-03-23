@@ -824,6 +824,22 @@ module {
                       };
                   };
 
+                  let size_chunks = switch(found_workspace.getOpt(2)){
+                      case(null){
+                          if(found_workspace.size()==0){
+                              //nyi: should be an error because no filedata
+                              found_workspace.add(Workspace.initDataZone(#Empty));
+                          };
+                          if(found_workspace.size()==1){
+                              found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                          };
+                          found_workspace.get(2);
+                      };
+                      case(?dz){
+                          dz;
+                      };
+                  };
+
                                   debug if(debug_channel.stage) D.print("do we have chunks");
                   if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
                       //this chunk already exists in the allocation
@@ -872,16 +888,34 @@ module {
                       };
                   };
 
+                  // We need the following code to create unique keys for stablebtree
+                        var tokenId = "";
+                        var lib = "";
+
+                        if (chunk.token_id == "") {
+                            tokenId #= "none";
+                        } else {
+                            tokenId #= chunk.token_id;
+                        };
+                        if (chunk.library_id == "") {
+                            lib #= "none";
+                        } else {
+                            lib #= chunk.library_id;
+                        };
+                        /////////////////////////////////////////////
+
                         //D.print("putting the chunk");
                         if (chunk.chunk + 1 <= file_chunks.size()) {
-                            if (state.use_stable) {
+                            if (state.state.use_stableBTree) {
                                 // D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
                                 let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
                                 // D.print(debug_show(btreeKey));
-                                let insertBtree = state.btreemap.insert(btreeKey, Blob.toArray(chunk.content));
+                                let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey, Blob.toArray(chunk.content));
                                 file_chunks.add(#Nat32(btreeKey));
+                                size_chunks.add(#Nat(chunk.content.size()))
                             } else {
                                 file_chunks.put(chunk.chunk, #Blob(chunk.content));
+                                size_chunks.add(#Nat(chunk.content.size()))
                             };
 
                         } else {
@@ -897,24 +931,29 @@ module {
                                     //D.print("index was chunk" # debug_show(this_index));
 
                                     // If flag use_stable is true we insert Blobs into stablebtree
-                                    if (state.use_stable) {
+                                    if (state.state.use_stableBTree) {
                                         // D.print("#level 1");
                                         // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
                                         // D.print(debug_show(btreeKey));
-                                        let insertBtree = state.btreemap.insert(btreeKey, Blob.toArray(chunk.content));
+                                        let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey, Blob.toArray(chunk.content));
                                         file_chunks.add(#Nat32(btreeKey));
+                                        size_chunks.add(#Nat(chunk.content.size()))
                                     } else {
                                         file_chunks.add(#Blob(chunk.content));
+                                        size_chunks.add(#Nat(chunk.content.size()))
                                     };
                                 } else {
                                     //D.print("index wasnt chunk" # debug_show(this_index));
-                                    if (state.use_stable) {
+                                    if (state.state.use_stableBTree) {
                                         // D.print("#level 2");
                                         // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
-                                        let insertBtree = state.btreemap.insert(btreeKey, []);
+                                        let insertBtree = NFTUtils.getMemoryBySize(0, state.btreemap).insert(btreeKey, []);
+                                        
                                         file_chunks.add(#Nat32(btreeKey));
+                                        size_chunks.add(#Nat(chunk.content.size()))
                                     } else {
                                         file_chunks.add(#Blob(Blob.fromArray([])));
+                                        size_chunks.add(#Nat(0))
                                     };
                                 };
                             };

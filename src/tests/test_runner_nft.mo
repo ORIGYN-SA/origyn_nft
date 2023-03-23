@@ -1,5 +1,6 @@
 import Blob "mo:base/Blob";
 import D "mo:base/Debug";
+import Error "mo:base/Error";
 import Int "mo:base/Int";
 import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
@@ -80,13 +81,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             [
                 S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
 
-                /* S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-             */
+             
             ],
         );
         S.run(suite);
@@ -514,11 +515,15 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let a_wallet = await TestWalletDef.test_wallet();
 
         D.print("making factory");
-
-        let newPrincipal = await g_canister_factory.create({
+        
+        let newPrincipal = try{await g_canister_factory.create({
             owner = Principal.fromActor(this);
             storage_space = null;
         });
+        } catch(e){
+          D.print(Error.message(e));
+          return #fail(Error.message(e));
+        };
 
         D.print("have canister");
 
@@ -1169,10 +1174,15 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         D.print("making factory");
 
-        let newPrincipal = await g_canister_factory.create({
+        let newPrincipal = try{
+          await g_canister_factory.create({
             owner = Principal.fromActor(this);
             storage_space = null;
         });
+        } catch (e){
+          D.print(Error.message(e));
+          return #fail(Error.message(e));
+        };
 
         D.print("have canister");
 

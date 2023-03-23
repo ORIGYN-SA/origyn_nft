@@ -56,10 +56,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let suite = S.suite("test nft", [
           
            S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-           /* S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),   */
+            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),   
             ]);
         S.run(suite);
 
