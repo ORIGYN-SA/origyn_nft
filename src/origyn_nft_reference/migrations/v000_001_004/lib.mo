@@ -44,20 +44,13 @@ module {
       var announce_canister = null;
     };
 
-    let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
+   
 
     D.print("in upgrade v0.1.4");
 
     //initialize stable memory
 
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
-    ignore  StableBTree.init<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
-
+   
     D.print("did init work?");
 
     return #v0_1_4(#data({

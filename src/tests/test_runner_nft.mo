@@ -120,9 +120,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
         let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
 
+        D.print("stage result" # debug_show(standardStage2));
+
         //mint 2
         let mint_attempt = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this)));
         let mint_attempt2 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(this)));
+
+        D.print("mint result" # debug_show(mint_attempt2));
 
         D.print("starting sale");
         let sale_start = await canister.market_transfer_nft_origyn({
@@ -1596,6 +1600,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             storage_space = null;
         });
 
+        let initialOwnerBalance = await dfx.icrc1_balance_of( {owner = Principal.fromActor(this); subaccount = null});
+
+        D.print("initialOwnerBalance = " # debug_show(initialOwnerBalance));
+
         let canister : Types.Service = actor (Principal.toText(newPrincipal));
 
         let mode = canister.__set_time_mode(#test);
@@ -2830,7 +2838,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 } else{
                     "wrong error " # debug_show(err);
             }};}, M.equals<Text>(T.text("correct number"))), // NFT-117
-            S.test("sale withdraw works", owner_withdraw_proper, M.equals<Nat>(T.nat(199810099200000))), //NFT-18, NFT-101
+            S.test("sale withdraw works", owner_withdraw_proper, M.equals<Nat>(T.nat(initialOwnerBalance + 10099600000))), //NFT-18, NFT-101
             S.test("sales balance after withdraw has no balance in it", switch(owner_balance_after_withdraw){case(#ok(res)){
                 D.print("testing sale balance 2");
                 D.print(debug_show(res));

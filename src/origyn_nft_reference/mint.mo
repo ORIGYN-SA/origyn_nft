@@ -28,7 +28,7 @@ module {
         function_announce = false;
         storage = false;
         library = false;
-        stage = false;
+        stage = true;
         mint = false;
         remote = false;
     };
@@ -807,7 +807,7 @@ module {
               } else {
                 //file the chunk
                 if(chunk.content.size() > 0){
-                                  debug if(debug_channel.stage) D.print("filing the chunk");
+                  debug if(debug_channel.stage) D.print("filing the chunk");
                   let file_chunks = switch(found_workspace.getOpt(1)){
                       case(null){
                           if(found_workspace.size()==0){
@@ -824,6 +824,8 @@ module {
                       };
                   };
 
+                  debug if(debug_channel.stage) D.print("have the chuns zone");
+
                   let size_chunks = switch(found_workspace.getOpt(2)){
                       case(null){
                           if(found_workspace.size()==0){
@@ -833,12 +835,17 @@ module {
                           if(found_workspace.size()==1){
                               found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
                           };
+                          if(found_workspace.size()==2){
+                              found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                          };
                           found_workspace.get(2);
                       };
                       case(?dz){
                           dz;
                       };
                   };
+
+                  debug if(debug_channel.stage) D.print("have the size zone");
 
                                   debug if(debug_channel.stage) D.print("do we have chunks");
                   if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){

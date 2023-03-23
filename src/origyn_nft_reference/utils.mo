@@ -37,10 +37,14 @@ import StableBTreeTypes "mo:stableBTree/types";
 
 module {
 
+    let debug_channel = {
+        announce = false;
+    };
+
 
     public func get_nat_as_token_id(tokenNat : Nat) : Text {
-        D.print("nat as token");
-        D.print(debug_show(Conversions.natToBytes(tokenNat)));
+        debug if (debug_channel.announce) D.print("nat as token");
+        debug if (debug_channel.announce) D.print(debug_show(Conversions.natToBytes(tokenNat)));
         
         var staged = Conversions.natToBytes(tokenNat);
         let stagedBuffer = CandyTypes.toBuffer<Nat8>(staged);
@@ -54,14 +58,14 @@ module {
     };
 
     public func get_token_id_as_nat(token_id : Text) : Nat{
-        D.print("token as nat:" # token_id);
-        D.print(debug_show(Conversions.textToBytes(token_id)));
+        debug if (debug_channel.announce) D.print("token as nat:" # token_id);
+        debug if (debug_channel.announce) D.print(debug_show(Conversions.textToBytes(token_id)));
         Conversions.bytesToNat(Conversions.textToBytes(token_id));
     };
 
     public func is_owner_manager_network(state :Types.State, caller: Principal) : Bool{
 
-        //debug {D.print("checking if " # Principal.toText(caller) # " is network:" # debug_show(state.state.collection_data.network) # " owner: " # debug_show(state.state.collection_data.owner) # " manager: " # debug_show(state.state.collection_data.managers))};
+        debug if (debug_channel.announce) debug {D.print("checking if " # Principal.toText(caller) # " is network:" # debug_show(state.state.collection_data.network) # " owner: " # debug_show(state.state.collection_data.owner) # " manager: " # debug_show(state.state.collection_data.managers))};
         if(caller == state.state.collection_data.owner){return true;};
         if(Array.filter<Principal>(state.state.collection_data.managers, func(item : Principal){item == caller}).size() > 0){return true;};
         if(Option.make(caller) == state.state.collection_data.network){return true;};
@@ -70,6 +74,7 @@ module {
     };
 
     public func is_owner_network(state :Types.State, caller: Principal) : Bool{
+        debug if (debug_channel.announce) D.print("testing is_owner_network owner:" # debug_show(state.state.collection_data.owner) # " network:" # debug_show(state.state.collection_data.network) # " caller: " # debug_show(caller));
         if(caller == state.state.collection_data.owner){return true;};
         if(Option.make(caller) == state.state.collection_data.network){return true;};
         return false;
@@ -120,14 +125,14 @@ module {
     public let library_hash = MigrationTypes.Current.library_hash;
 
     public func get_deposit_info(depositor_account : Types.Account, host: Principal) : Types.SubAccountInfo{
-        D.print("getting deposit info");
+        debug if (debug_channel.announce) D.print("getting deposit info");
         get_subaccount_info("com.origyn.nft.deposit", depositor_account, host);
     };
 
 
     public func get_escrow_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
         
-        D.print("Getting escrow account");
+        debug if (debug_channel.announce) D.print("Getting escrow account");
         let h = SHA256.New();
         h.write(Conversions.valueToBytes(#Text("com.origyn.nft.escrow")));
         h.write(Conversions.valueToBytes(#Text("buyer")));
@@ -207,7 +212,7 @@ module {
     };
 
     private func get_subaccount_info(prefix: Text, account : Types.Account, host: Principal) : Types.SubAccountInfo{
-        D.print("in get subaccount");
+        debug if (debug_channel.announce) D.print("in get subaccount");
         switch(account){
             case(#principal(principal)){
                 let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".principal"))); 

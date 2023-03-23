@@ -21,11 +21,29 @@ shared (deployer) actor class canister_creator() = this {
         D.print("creation error " # Error.message(e));
         D.trap(Error.message(e));
        };
-       D.print("have NFT");
-       ignore await a.collection_update_nft_origyn(#UpdateOwner(data.owner));
-       D.print("owner updated");
-       ignore await a.manage_storage_nft_origyn(#configure_storage(#stableBtree(data.storage_space)));
-       D.print("storage set");
+
+       let b = try{
+        await a.manage_storage_nft_origyn(#configure_storage(#stableBtree(switch(data.storage_space){
+            case(null){?500000000};
+            case(?val) ?val;
+          })
+        ));
+       } catch (e){
+        D.print("creation error " # Error.message(e));
+        D.trap(Error.message(e));
+       };
+       D.print("storage set " # debug_show(b));
+
+
+       D.print("have NFT. make owner: " # debug_show(data.owner) # " current owner should be: " # debug_show(Principal.fromActor(this)));
+       let c = try{
+        ignore await a.collection_update_nft_origyn(#UpdateOwner(data.owner));
+       } catch (e){
+        D.print("creation error " # Error.message(e));
+        D.trap(Error.message(e));
+       };
+       D.print("owner updated" # debug_show(c));
+       
        debug { D.print("should have it....returning" # debug_show(data)) };
        return Principal.fromActor(a);
     };

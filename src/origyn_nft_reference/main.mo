@@ -131,13 +131,13 @@ shared (deployer) actor class Nft_Canister() = this {
     debug if (debug_channel.instantiation) D.print("have memory_manager");
 
     var btreemap_ = {
-        _1 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
-        _4 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
-        _16 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
-        _64 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
-        _256 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
-        _1024 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
-        _2048 = StableBTree.load<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
+        _1 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
+        _4 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
+        _16 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
+        _64 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
+        _256 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
+        _1024 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
+        _2048 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
       };
 
 
@@ -990,7 +990,7 @@ shared (deployer) actor class Nft_Canister() = this {
             throw Error.reject("canister is in maintenance mode");
         };
         if (NFTUtils.is_owner_network(get_state(), msg.caller) == false) {
-            throw Error.reject("not owner or network");
+            throw Error.reject("not owner or network " # debug_show(msg.caller));
         };
         debug if (debug_channel.function_announce) D.print("in collection_update_batch_nft_origyn");
 
@@ -1002,10 +1002,11 @@ shared (deployer) actor class Nft_Canister() = this {
         switch (request) {
             case(#configure_storage(val)){
 
-              debug if (debug_channel.manage_storage) D.print("configuring staorage");
+              debug if (debug_channel.manage_storage) D.print("configuring storage: " # debug_show(val));
               
                   let ?amount = switch(val){
                     case(#heap(val)){
+                    
                       val;
                     };
                     case(#stableBtree(val)){
@@ -1014,11 +1015,24 @@ shared (deployer) actor class Nft_Canister() = this {
                   } else 
                     return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - allocation can't be empty " # debug_show (state.state.collection_data.allocated_storage), ?msg.caller));
 
+                  debug if (debug_channel.manage_storage) D.print("configuring storage current allocated: " # debug_show(state.state.collection_data.allocated_storage));
                   if(state.state.collection_data.allocated_storage > 0){
                     return #err(Types.errors(?state.canistergeekLogger, #storage_configuration_error, "manage_storage_nft_origyn - allocation has already been made  " # debug_show (state.state.collection_data.allocated_storage), ?msg.caller));
                   };
+                  debug if (debug_channel.manage_storage) D.print("configuring storage setting allocation: " # debug_show(state.state.collection_data.allocated_storage));
+
+                  switch(val){
+                    case(#heap(val)){
+                      state.state.use_stableBTree := false;
+                    };
+                    case(#stableBtree(val)){
+                      state.state.use_stableBTree := true;
+                    };
+                  };
                   state.state.collection_data.allocated_storage := amount;
                   state.state.collection_data.available_space := amount;
+                  state.state.canister_availible_space := amount;
+                  state.state.canister_allocated_storage := amount;
                 return #ok(
                   #configure_storage(
                       state.state.collection_data.allocated_storage,

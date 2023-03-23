@@ -16,11 +16,13 @@ else
 
     # Install NFT canister 
     dfx deploy  origyn_nft_reference --mode=reinstall 
-    
-    dfx canister call origyn_nft_reference collection_update_nft_origyn '(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})'
 
     dfx canister call origyn_nft_reference manage_storage_nft_origyn '(variant {configure_storage = variant {stableBtree = null})'
 
+    
+    dfx canister call origyn_nft_reference collection_update_nft_origyn '(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})'
+
+    
     # Get NFT canister id
     NFT_CANISTER_ID=$(dfx canister --network local id origyn_nft_reference)
 
