@@ -824,7 +824,7 @@ module {
                       };
                   };
 
-                  debug if(debug_channel.stage) D.print("have the chuns zone");
+                  debug if(debug_channel.stage) D.print("have the chunks zone");
 
                   let size_chunks = switch(found_workspace.getOpt(2)){
                       case(null){
@@ -847,7 +847,7 @@ module {
 
                   debug if(debug_channel.stage) D.print("have the size zone");
 
-                                  debug if(debug_channel.stage) D.print("do we have chunks");
+                  debug if(debug_channel.stage) D.print("do we have chunks");
                   if(chunk.chunk + 1 <= SB.size<Nat>(allocation.chunks)){
                       //this chunk already exists in the allocation
                       //see what size it is
@@ -911,12 +911,12 @@ module {
                         };
                         /////////////////////////////////////////////
 
-                        //D.print("putting the chunk");
+                        D.print("putting the chunk");
                         if (chunk.chunk + 1 <= file_chunks.size()) {
                             if (state.state.use_stableBTree) {
-                                // D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
+                                 D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
                                 let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
-                                // D.print(debug_show(btreeKey));
+                                 D.print(debug_show(btreeKey));
                                 let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey, Blob.toArray(chunk.content));
                                 file_chunks.add(#Nat32(btreeKey));
                                 size_chunks.add(#Nat(chunk.content.size()))
@@ -931,11 +931,11 @@ module {
                             //D.print(debug_show(file_chunks.size()));
 
                             for (this_index in Iter.range(file_chunks.size(), chunk.chunk)) {
-                                //D.print(debug_show(this_index));
+                                D.print(debug_show(this_index));
                                 let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
 
                                 if (this_index == chunk.chunk) {
-                                    //D.print("index was chunk" # debug_show(this_index));
+                                    D.print("index was chunk" # debug_show(this_index));
 
                                     // If flag use_stable is true we insert Blobs into stablebtree
                                     if (state.state.use_stableBTree) {
@@ -950,10 +950,10 @@ module {
                                         size_chunks.add(#Nat(chunk.content.size()))
                                     };
                                 } else {
-                                    //D.print("index wasnt chunk" # debug_show(this_index));
+                                    D.print("index wasnt chunk" # debug_show(this_index));
                                     if (state.state.use_stableBTree) {
-                                        // D.print("#level 2");
-                                        // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+                                        D.print("#level 2");
+                                        D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
                                         let insertBtree = NFTUtils.getMemoryBySize(0, state.btreemap).insert(btreeKey, []);
                                         
                                         file_chunks.add(#Nat32(btreeKey));
