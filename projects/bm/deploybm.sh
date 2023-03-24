@@ -122,10 +122,10 @@ TEST_WALLET=$(echo "coapo-5z5t4-5azo7-idouv-jsvee-vzf6k-33ror-oncap-be2yg-6cavw-
 
 dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall
 
-dfx canister --network $env_network call $env_name origyn_nft_reference manage_storage_nft_origyn '(variant {configure_storage = variant {stableBtree = 48000000000})'
+dfx canister --network $env_network call $env_name manage_storage_nft_origyn '(variant {configure_storage = variant {stableBtree = opt 48000000000}})'
 
 
-dfx canister --network $env_network call $env_name origyn_nft_reference collection_update_nft_origyn '(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})'
+dfx canister --network $env_network call $env_name collection_update_nft_origyn "(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})"
 
 
 
