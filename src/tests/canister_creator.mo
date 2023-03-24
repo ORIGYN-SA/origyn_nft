@@ -23,7 +23,7 @@ shared (deployer) actor class canister_creator() = this {
        };
 
        let b = try{
-        await a.manage_storage_nft_origyn(#configure_storage(#stableBtree(switch(data.storage_space){
+        await a.manage_storage_nft_origyn(#configure_storage(#heap(switch(data.storage_space){
             case(null){?500000000};
             case(?val) ?val;
           })

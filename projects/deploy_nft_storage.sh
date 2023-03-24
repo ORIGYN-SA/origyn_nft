@@ -17,7 +17,7 @@ else
     # Install NFT canister 
     dfx deploy  origyn_nft_reference --mode=reinstall 
 
-    dfx canister call origyn_nft_reference manage_storage_nft_origyn '(variant {configure_storage = variant {stableBtree = opt 500000000}})'
+    dfx canister call origyn_nft_reference manage_storage_nft_origyn '(variant {configure_storage = variant {heap = opt 500000000}})'
 
     
     dfx canister call origyn_nft_reference collection_update_nft_origyn "(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})"
