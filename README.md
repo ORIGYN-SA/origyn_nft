@@ -91,7 +91,7 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 
 Origyn NFT version 0.1.4 needs Motoko Compiler version >= 0.8.5
 
-Here are the instructions about to do it:
+Here are the instructions about how to do it:
 
 - [Download MOC zip file for your Operating System](https://github.com/dfinity/motoko/releases/tag/0.8.5)
 - Run the following command `dfx cache show` to get Motoko version directory installation
