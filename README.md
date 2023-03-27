@@ -1,6 +1,12 @@
 # origyn_nft_reference
 
-<img src="https://github.com/ORIGYN-SA/origyn_nft/blob/add-origyn-nft-pic/origyn_nft_pic.jpeg" />
+<img src="https://gitlab.origyn.ch/origyn/engineering/opensource/origyn_nft/-/blob/develop/origyn_nft_pic.jpeg" />
+
+### Purpose
+
+This repo contains the refrernce implementation of the ORIGYN NFT in motoko, the sales canister reference implementation, and the storage canister implementation that allows unlimited storage for NFT canisters.
+
+### Usage
 
 ## NFT Canister
 
