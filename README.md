@@ -86,3 +86,16 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 ### Audit
 
 [Audit document](./docs/audit.md)
+
+### How to update Motoko Compiler
+
+Origyn NFT version 0.1.4 needs Motoko Compiler version >= 0.8.5
+
+Here are the instructions about to do it:
+
+- [Download MOC zip file for your Operating System](https://github.com/dfinity/motoko/releases/tag/0.8.5)
+- Run the following command `dfx cache show` to get Motoko version directory installation
+- Unzip file and copy `mo-ide, mo-doc, moc` files to the directory mentioned in step 2
+- Make sure you give the right persmissions to those files
+- Run `$(dfx cache show)/moc --version` to verify you have the downloaded version
+
