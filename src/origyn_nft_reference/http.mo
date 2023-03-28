@@ -432,7 +432,7 @@ module {
             switch(result){
                 case null { D.print("Could not find data for stabletree - _stream_content") };
                 case (?val) { 
-                    pay := Blob.fromArray(val);
+                    pay := val;
                 };
             };
         } else {
@@ -727,7 +727,7 @@ module {
                                 switch(result){
                                     case null { D.print("Could not find data for stabletree - renderLibrary") };
                                     case (?val) { 
-                                        httpbody := Blob.fromArray(val);                                    
+                                        httpbody := val;                                    
                                     };
                                 };
                             } else {
@@ -869,7 +869,7 @@ module {
                                 switch(result){
                                     case null { D.print("Could not find data for stabletree - renderLibrary") };
                                     case (?val) { 
-                                        httpbody := Blob.fromArray(val);                                    
+                                        httpbody := val;                                    
                                     };
                                 };
                             } else {

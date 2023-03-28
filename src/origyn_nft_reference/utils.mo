@@ -8,7 +8,6 @@ import Hash "mo:base/Hash";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
-import Hex "mo:encoding/Hex";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -23,16 +22,15 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
+import Hex "mo:encoding/Hex";
 import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Workspace "mo:candy/workspace";
 
-import Types "types";
-
 import MigrationTypes "./migrations/types";
-
-import StableBTreeTypes "mo:stableBTree/types";
+import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
+import Types "types";
 
 
 module {
@@ -193,7 +191,7 @@ module {
         };
     };
 
-    public func getMemoryBySize(size : Nat, memory : Types.Stable_Memory) : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>{
+    public func getMemoryBySize(size : Nat, memory : Types.Stable_Memory) : StableBTreeTypes.IBTreeMap<Nat32, Blob>{
       if(size <= 1000){
         return memory._1;
       } else if(size <= 4000){

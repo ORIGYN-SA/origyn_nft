@@ -20,7 +20,6 @@ import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 
-import BytesConverter "mo:stableBTree/bytesConverter";
 import CandyTypes "mo:candy/types";
 import Canistergeek "mo:canistergeek/canistergeek";
 import Conversions "mo:candy/conversion";
@@ -29,28 +28,27 @@ import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import JSON "mo:candy/json";
 import Map "mo:map/Map";
-import Set "mo:map/Set";
-
 import Properties "mo:candy/properties";
+import Set "mo:map/Set";
 import Workspace "mo:candy/workspace";
 
+import BytesConverter "../origyn_nft_reference/stablebtree/bytesConverter";
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
 import Market "market";
+import Memory "../origyn_nft_reference/stablebtree/memory";
+import MemoryManager "../origyn_nft_reference/stablebtree/memoryManager";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Migrations "./migrations";
 import Mint "mint";
 import NFTUtils "utils";
 import Owner "owner";
+import StableBTree "../origyn_nft_reference/stablebtree/btreemap";
 import Types "./types";
 import data "data";
 import http "http";
-
-import StableBTree "mo:stableBTree/btreemap";
-import MemoryManager "mo:stableBTree/memoryManager";
-import Memory "mo:stableBTree/memory";
 
 
 shared (deployer) actor class Nft_Canister() = this {
@@ -131,13 +129,13 @@ shared (deployer) actor class Nft_Canister() = this {
     debug if (debug_channel.instantiation) D.print("have memory_manager");
 
     var btreemap_ = {
-        _1 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
-        _4 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
-        _16 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
-        _64 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
-        _256 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
-        _1024 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
-        _2048 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
+        _1 = StableBTree.init<Nat32, Blob>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
+        _4 = StableBTree.init<Nat32, Blob>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
+        _16 = StableBTree.init<Nat32, Blob>(memory_manager.get(2), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(16000));
+        _64 = StableBTree.init<Nat32, Blob>(memory_manager.get(3), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(64000));
+        _256 = StableBTree.init<Nat32, Blob>(memory_manager.get(4), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(256000));
+        _1024 = StableBTree.init<Nat32, Blob>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
+        _2048 = StableBTree.init<Nat32, Blob>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
       };
 
 
@@ -2461,10 +2459,10 @@ shared (deployer) actor class Nft_Canister() = this {
         ();
     };
 
-    public query func show_btree_entries() : async [(Nat32, [Nat8])] {
+    public query func show_btree_entries() : async [(Nat32, Blob)] {
 
        
-        let localBuf = Buffer.Buffer<(Nat32, [Nat8])>(0);
+        let localBuf = Buffer.Buffer<(Nat32, Blob)>(0);
 
         for (i in btreemap_._1.iter()) {
             D.print(debug_show (i.0));
@@ -2537,7 +2535,7 @@ shared (deployer) actor class Nft_Canister() = this {
         Buffer.toArray(localBuf);
     };
 
-    public func remove(key : Nat32, size: Nat) : async ?[Nat8] {
+    public func remove(key : Nat32, size: Nat) : async ?Blob {
         NFTUtils.getMemoryBySize(size, btreemap_).remove(key);
     };
 

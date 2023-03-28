@@ -11,10 +11,10 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
-import Droute "mo:droute_client/Droute";
+
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
-
+import Droute "mo:droute_client/Droute";
 import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import Workspace "mo:candy/workspace";
@@ -1545,9 +1545,8 @@ module {
                                   D.print("Metadata option #Nat32 could not find a stablebtree key");
                               };
                               case (?val) {
-                                  // D.print(debug_show(Blob.fromArray(val)));
-                                  // return Blob.fromArray(val)
-                                  return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
+                                  
+                                  return #ok(#chunk({ content = val; total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
                               };
                           };
                       };

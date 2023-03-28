@@ -15,23 +15,23 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import BytesConverter "mo:stableBTree/bytesConverter";
 import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
-import StableBTree "mo:stableBTree/btreemap";
-import StableBTreeTypes "mo:stableBTree/types";
-import StableMemory "mo:stableBTree/memory";
 import Workspace "mo:candy/workspace";
 
+import BytesConverter "../origyn_nft_reference/stablebtree/bytesConverter";
 import DIP721 "../origyn_nft_reference/DIP721";
 import Metadata "../origyn_nft_reference/metadata";
 import MigrationTypes "../origyn_nft_reference/migrations_storage/types";
 import Migrations "../origyn_nft_reference/migrations_storage";
 import Mint "../origyn_nft_reference/mint";
 import NFTUtils "../origyn_nft_reference/utils";
+import StableBTree "../origyn_nft_reference/stablebtree/btreemap";
+import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
+import StableMemory "../origyn_nft_reference/stablebtree/memory";
 import Storage_Store "../origyn_nft_reference/storage_store";
 import Types "../origyn_nft_reference/types";
 import http "../origyn_nft_reference/storage_http";
@@ -95,7 +95,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     type Result<Ok, Err> = Result.Result<Ok, Err>;
     // Arbitrary use of (Nat32, Text) for (key, value) types
     type K = Nat32;
-    type V = [Nat8];
+    type V = Blob;
 
     // Arbitrary limitation on text size (in bytes)
     let MAX_VALUE_SIZE : Nat32 = 2048000;
@@ -375,8 +375,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     public func insert_btree(tokenId : Text, libraryId : Text, i : Nat, chunk : Nat, value : Blob) : async () {
         let key = Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
 
-        let bytes = Blob.toArray(value);
-        let result = btreemap_storage.insert(key, bytes);
+        // let bytes = Blob.toArray(value);
+        let result = btreemap_storage.insert(key, value);
 
         ();
 
@@ -388,17 +388,17 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         switch (result) {
             case null { D.print("\00\00\00\66") };
             case (?val) {
-                D.print(debug_show (Blob.fromArray(val)));
+                D.print(debug_show (val));
                 // return Blob.fromArray(val)
             };
         };
         ();
     };
 
-    public query func show_btree_entries() : async [(Nat32, [Nat8])] {
+    public query func show_btree_entries() : async [(Nat32, Blob)] {
 
         let vals = btreemap_storage.iter();
-        let localBuf = Buffer.Buffer<(Nat32, [Nat8])>(0);
+        let localBuf = Buffer.Buffer<(Nat32, Blob)>(0);
 
         for (i in vals) {
             D.print(debug_show (i.0));

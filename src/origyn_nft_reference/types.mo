@@ -16,21 +16,21 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
 import CandyTypes_lib "mo:candy/types";
+import Canistergeek "mo:canistergeek/canistergeek";
 import Conversions "mo:candy/conversion";
+import DROUTE "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
+import KYC "mo:icrc17_kyc";
 import Map "mo:map/Map";
 import NFTUtils "mo:map/utils";
 import SB "mo:stablebuffer/StableBuffer";
-import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
 
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
+import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
 import StorageMigrationTypes "./migrations_storage/types";
-import DROUTE "mo:droute_client/Droute";
-import KYC "mo:icrc17_kyc";
-import Canistergeek "mo:canistergeek/canistergeek";
 
 
 module {
@@ -352,13 +352,13 @@ module {
     public type Account = MigrationTypes.Current.Account;
 
     public type Stable_Memory = {
-      _1 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _4 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _16 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _64 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _256 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _1024 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _2048 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      _1 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _4 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _16 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _64 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _256 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _1024 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
+      _2048 : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
     };
 
     public type State = State_v0_1_4;
@@ -477,7 +477,7 @@ module {
         get_time : () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
         refresh_state : () -> StorageState_v_0_1_3;
-        btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+        btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, Blob>;
         use_stable_storage : Bool;
     };
 

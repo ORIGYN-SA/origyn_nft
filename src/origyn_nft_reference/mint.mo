@@ -914,10 +914,10 @@ module {
                         D.print("putting the chunk");
                         if (chunk.chunk + 1 <= file_chunks.size()) {
                             if (state.state.use_stableBTree) {
-                                 D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
+                                //  D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
                                 let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
-                                 D.print(debug_show(btreeKey));
-                                let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey, Blob.toArray(chunk.content));
+                                //  D.print(debug_show(btreeKey));
+                                let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey,chunk.content);
                                 file_chunks.add(#Nat32(btreeKey));
                                 size_chunks.add(#Nat(chunk.content.size()))
                             } else {
@@ -942,7 +942,7 @@ module {
                                         // D.print("#level 1");
                                         // D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
                                         // D.print(debug_show(btreeKey));
-                                        let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey, Blob.toArray(chunk.content));
+                                        let insertBtree = NFTUtils.getMemoryBySize(chunk.content.size(), state.btreemap).insert(btreeKey,chunk.content);
                                         file_chunks.add(#Nat32(btreeKey));
                                         size_chunks.add(#Nat(chunk.content.size()))
                                     } else {
@@ -954,8 +954,7 @@ module {
                                     if (state.state.use_stableBTree) {
                                         D.print("#level 2");
                                         D.print("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
-                                        let insertBtree = NFTUtils.getMemoryBySize(0, state.btreemap).insert(btreeKey, []);
-                                        
+                                        let insertBtree = NFTUtils.getMemoryBySize(0, state.btreemap).insert(btreeKey, Blob.fromArray([]));                                        
                                         file_chunks.add(#Nat32(btreeKey));
                                         size_chunks.add(#Nat(chunk.content.size()))
                                     } else {
