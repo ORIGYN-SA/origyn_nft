@@ -219,14 +219,14 @@ module {
             if(this_index == chunk.chunk){
               // If flag use_stable_storage is true we insert Blobs into stablebtree
                 if (state.use_stable_storage) {                   
-                    let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                    let insertBtree = state.btreemap_storage.insert(btreeKey,chunk.content);
                     file_chunks.add(#Nat32(btreeKey));
                 } else {
                     file_chunks.add(#Blob(chunk.content));
                 };              
             } else {
               if (state.use_stable_storage) {                 
-                  let insertBtree = state.btreemap_storage.insert(btreeKey, []);
+                  let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.fromArray([]));
                   file_chunks.add(#Nat32(btreeKey));
               } else {
                   file_chunks.add(#Blob(Blob.fromArray([])));
