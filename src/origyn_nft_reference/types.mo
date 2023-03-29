@@ -25,11 +25,11 @@ import KYC "mo:icrc17_kyc";
 import Map "mo:map/Map";
 import NFTUtils "mo:map/utils";
 import SB "mo:stablebuffer/StableBuffer";
+import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
 
 import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
-import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
 import StorageMigrationTypes "./migrations_storage/types";
 
 

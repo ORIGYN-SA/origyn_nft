@@ -125,7 +125,7 @@ let additions =
   },
    { name = "stableBTree"
    , repo = "https://github.com/sardariuss/MotokoStableBTree"
-   , version = "main"
+   , version = "c91509efa915ba7996b7f83d27ed9af206b869b1"
    , dependencies = ["base", "matchers"]
    }
 

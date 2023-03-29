@@ -26,10 +26,10 @@ import Hex "mo:encoding/Hex";
 import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
+import StableBTreeTypes "mo:stableBTree/types";
 import Workspace "mo:candy/workspace";
 
 import MigrationTypes "./migrations/types";
-import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
 import Types "types";
 
 

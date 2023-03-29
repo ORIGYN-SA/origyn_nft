@@ -15,23 +15,23 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
+import BytesConverter "mo:stableBTree/bytesConverter";
 import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
+import StableBTree "mo:stableBTree/btreemap";
+import StableBTreeTypes "mo:stableBTree/types";
+import StableMemory "mo:stableBTree/memory";
 import Workspace "mo:candy/workspace";
 
-import BytesConverter "../origyn_nft_reference/stablebtree/bytesConverter";
 import DIP721 "../origyn_nft_reference/DIP721";
 import Metadata "../origyn_nft_reference/metadata";
 import MigrationTypes "../origyn_nft_reference/migrations_storage/types";
 import Migrations "../origyn_nft_reference/migrations_storage";
 import Mint "../origyn_nft_reference/mint";
 import NFTUtils "../origyn_nft_reference/utils";
-import StableBTree "../origyn_nft_reference/stablebtree/btreemap";
-import StableBTreeTypes "../origyn_nft_reference/stablebtree/types";
-import StableMemory "../origyn_nft_reference/stablebtree/memory";
 import Storage_Store "../origyn_nft_reference/storage_store";
 import Types "../origyn_nft_reference/types";
 import http "../origyn_nft_reference/storage_http";
