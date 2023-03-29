@@ -275,6 +275,18 @@ module {
 
     };
 
+    /**
+    * Streams the media content for a specific NFT.
+    *
+    * @param {Text} token_id - The ID of the NFT.
+    * @param {Text} library_id - The ID of the library containing the NFT.
+    * @param {Nat} index - The starting index for the media content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the media content.
+    * @param {Nat} rStart - The starting range for the media content.
+    * @param {Nat} rEnd - The ending range for the media content.
+    * @param {Nat} size - The size of the media content.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the media content.
+    */
     public func _stream_media(
         token_id : Text,
         library_id :Text,
@@ -380,7 +392,16 @@ module {
     };
 
     
-
+    /**
+    * Streams content for a specified key.
+    *
+    * @param {Text} key - The key for the content to be streamed.
+    * @param {Nat} index - The starting index for the content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the content.
+    * @param {Bool} use_stable - Whether or not to use the stable memory.
+    * @param {Types.Stable_Memory} btreemap - The stable memory to use.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the content.
+    */
     public func _stream_content(
         key   : Text,
         index : Nat,
@@ -452,7 +473,7 @@ module {
         }};
     };
 
-
+    //passthrough function..cnadiate for refactoring
     public func stream_media(
         token_id   : Text,
         library_id : Text,
@@ -478,6 +499,15 @@ module {
     };
 
     //determines how a library item should be rendere in an http request
+    /**
+    * Determines how a library item should be rendered in an HTTP request.
+    * @param {Types.State} state - The state of the canister.
+    * @param {httpparser.ParsedHttpRequest} req - The HTTP request.
+    * @param {CandyTypes.CandyValue} metadata - The metadata for the NFT.
+    * @param {string} token_id - The ID of the token.
+    * @param {string} library_id - The ID of the library.
+    * @returns
+    */
     public func renderLibrary(
         state : Types.State,
         req : httpparser.ParsedHttpRequest,
@@ -907,6 +937,7 @@ module {
         };
     };
 
+    //passthrough function...candidate for refactoring
     public func renderSmartRoute(
         state : Types.State,
         req : httpparser.ParsedHttpRequest,
@@ -1033,6 +1064,13 @@ module {
         };
     };
 
+
+    /**
+    * Callback function for streaming content from NFT Library.
+    * @param {StreamingCallbackToken} tk - The token containing the index of the chunk to retrieve.
+    * @param {Types.State} state - The state of the NFT Library canister.
+    * @returns {StreamingCallbackResponse} - The response containing the payload and the next callback token.
+    */
     private func stream_content(
         key   : Text,
         index : Nat,
@@ -1056,6 +1094,15 @@ module {
         };
     };
 
+
+    /**
+    * Callback function for streaming large content over HTTP.
+    * Determines how a library item should be rendered in an HTTP request.
+    *
+    * @param {StreamingCallbackToken} tk - Token representing the current streaming session.
+    * @param {Types.State} state - State object containing the current allocation and other relevant data.
+    * @returns {StreamingCallbackResponse} - A response object containing the payload and callback for the next chunk (if applicable).
+    */
     public func http_request_streaming_callback(
         tk : StreamingCallbackToken,
         state : Types.State) : StreamingCallbackResponse {
