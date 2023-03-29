@@ -29,6 +29,9 @@ node_modules/
 dist/
 src/declarations/
 
+# any pem file
+*.pem
+
 seed.prod.txt
 seed-prod.txt
 seed.txt
