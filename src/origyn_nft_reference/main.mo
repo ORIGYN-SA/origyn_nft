@@ -2501,37 +2501,84 @@ shared (deployer) actor class Nft_Canister() = this {
         ();
     };
 
-    public query func show_btree_entries() : async [(Nat32, Blob)] {
+    public query func show_btree_entries(i : Text) : async [(Nat32, Blob)] {
 
         let localBuf = Buffer.Buffer<(Nat32, Blob)>(0);
+        switch (i) {
+            case "1" {
+                for (i in btreemap_._1.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "4" {
+                for (i in btreemap_._4.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "16" {
+                for (i in btreemap_._16.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "62" {
+                for (i in btreemap_._64.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "256" {
+                for (i in btreemap_._256.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "1024" {
+                for (i in btreemap_._1024.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            case "2048" {
+                for (i in btreemap_._2048.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+            };
+            // This will show all
+            case (_) {
+                for (i in btreemap_._1.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._4.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._16.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._64.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._256.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._1024.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
+                for (i in btreemap_._2048.iter()) {
+                    // D.print(debug_show (i.0));
+                    localBuf.add((i.0, i.1));
+                };
 
-        for (i in btreemap_._1.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._4.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._16.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._64.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._256.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._1024.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
-        };
-        for (i in btreemap_._2048.iter()) {
-            D.print(debug_show (i.0));
-            localBuf.add((i.0, i.1));
+            };
         };
 
         Buffer.toArray(localBuf);

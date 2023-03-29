@@ -203,7 +203,7 @@ module {
       if(chunk.chunk + 1 <= file_chunks.size()){
             if(state.use_stable_storage){
               let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
-              let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+              let insertBtree = state.btreemap_storage.insert(btreeKey, chunk.content);
                 file_chunks.add(#Nat32(btreeKey));
             } else {
               file_chunks.put(chunk.chunk, #Blob(chunk.content));
