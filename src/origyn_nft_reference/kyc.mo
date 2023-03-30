@@ -505,6 +505,8 @@ module {
                 extensible = null;
               }, {
                 amount = ?escrow.amount;
+                counterparty = kycBuyer;
+                token = ?kycTokenSpec;
                 metadata = ?#Class([
                   {name="sale_id"; value=switch(escrow.sale_id){
                     case(null)#Option(null);

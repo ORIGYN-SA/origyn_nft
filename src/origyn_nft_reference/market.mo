@@ -1217,7 +1217,7 @@ module {
         //can't start auction if token is soulbound
         if (Metadata.is_soulbound(metadata)) return #err(Types.errors(?state.canistergeekLogger,  #token_non_transferable, "market_transfer_nft_origyn ", ?caller));
 
-        //this is a minted NFT - only the nft owner or nft manager can sell it
+        //this is a minted NFT - only the nft owner
         switch(Metadata.is_nft_owner(metadata, #principal(caller))){
           case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller));
           case(#ok(val)){
