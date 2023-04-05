@@ -358,7 +358,7 @@ module {
       _64 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
       _256 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
       _1024 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
-      _2048 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+      //_2048 : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
     };
 
     public type State = State_v0_1_4;
@@ -729,6 +729,8 @@ module {
         error : Errors;
         flag_point : Text;
     };
+
+    public type UpdateAppResponse  = Result.Result<NFTUpdateResponse, OrigynError>;
 
     public type Errors = {
         #app_id_not_found;

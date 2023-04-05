@@ -57,5 +57,8 @@
   },
   "dev_sales_canister": {
     "ic": "4wwlz-ciaaa-aaaaj-ae2cq-cai"
+  },
+  "yumi-gold-test": {
+    "ic": "gtzpn-mqaaa-aaaal-qbvga-cai"
   }
 }

@@ -5,6 +5,11 @@
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko"
         },
+
+        "yumi-gold-test": {
+          "main": "src/origyn_nft_reference/main.mo",
+          "type": "motoko"
+      },
          "droute": {
           "type": "custom",
           "candid": "droute.did",
