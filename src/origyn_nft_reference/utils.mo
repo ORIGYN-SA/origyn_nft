@@ -193,6 +193,7 @@ module {
         };
     };
 
+    /*
     public func getMemoryBySize(size : Nat, memory : Types.Stable_Memory) : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>{
       if(size <= 1000){
         return memory._1;
@@ -210,6 +211,7 @@ module {
         return memory._2048;
       };
     };
+    */
 
     private func get_subaccount_info(prefix: Text, account : Types.Account, host: Principal) : Types.SubAccountInfo{
         debug if (debug_channel.announce) D.print("in get subaccount");

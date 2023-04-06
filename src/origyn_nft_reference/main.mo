@@ -130,6 +130,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
     debug if (debug_channel.instantiation) D.print("have memory_manager");
 
+    /*
     var btreemap_ = {
         _1 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(0), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1000));
         _4 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(1), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(4000));
@@ -139,6 +140,7 @@ shared (deployer) actor class Nft_Canister() = this {
         _1024 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(5), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(1024000));
         _2048 = StableBTree.init<Nat32, [Nat8]>(memory_manager.get(6), BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(2048000));
       };
+      */
 
 
 
@@ -187,7 +189,7 @@ shared (deployer) actor class Nft_Canister() = this {
             get_time = get_time;
             nft_library = nft_library;
             refresh_state = get_state;
-            btreemap = btreemap_;
+            //btreemap = btreemap_;
             droute_client = state_current.droute;
             canistergeekLogger = canistergeekLogger;
             kyc_client = kyc_client;
@@ -2939,6 +2941,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * Returns an array of tuples representing the nft library.
     * @returns {Future<Array<[Text, Array<[Text, CandyTypes.AddressedChunkArray]>]>>} - A promise that resolves to an array of tuples representing the nft library.
     */
+    /*
     public query func show_nft_library_array() : async  [(Text, [(Text, CandyTypes.AddressedChunkArray)])] {
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){
@@ -2950,6 +2953,7 @@ shared (deployer) actor class Nft_Canister() = this {
         };
         Buffer.toArray(nft_library_stable_buffer);
     };
+    */
 
     system func preupgrade() {
 

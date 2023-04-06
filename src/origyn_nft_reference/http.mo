@@ -242,7 +242,9 @@ module {
         data        : CandyTypes.Workspace,
         req         : httpparser.ParsedHttpRequest
     ) : HTTPResponse {
-        let result = _stream_content(key, 0, data, state.state.use_stableBTree, state.btreemap);
+        let result = _stream_content(key, 0, data, state.state.use_stableBTree, 
+        //state.btreemap
+        );
 
                             debug if(debug_channel.large_content)D.print("handling large content " # debug_show(result.callback));
                            
@@ -407,7 +409,7 @@ module {
         index : Nat,
         data  : CandyTypes.Workspace,
         use_stable : Bool,
-        btreemap : Types.Stable_Memory,
+        //btreemap : Types.Stable_Memory,
     ) : {
         payload: Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
@@ -434,7 +436,7 @@ module {
 
         
 
-        if(use_stable){
+        if(use_stable){/*
             switch(payload){                
                 case(#Nat32(val)){
                     k := val;
@@ -456,6 +458,7 @@ module {
                     pay := Blob.fromArray(val);
                 };
             };
+            */
         } else {
             pay := Conversion.valueUnstableToBlob(payload);
         };
@@ -737,6 +740,7 @@ module {
                             var k : Nat32 = 0;
 
                             if(state.state.use_stableBTree){
+                              /*
                                 switch(zone.get(0)){                                    
                                     case(#Nat32(val)){
                                         k := val;
@@ -760,6 +764,7 @@ module {
                                         httpbody := Blob.fromArray(val);                                    
                                     };
                                 };
+                                */
                             } else {
                                 httpbody := Conversion.valueUnstableToBlob(zone.get(0));
                             };
@@ -879,6 +884,7 @@ module {
                             var k : Nat32 = 0;
 
                             if(state.state.use_stableBTree){
+                              /*
                                 switch(zone.get(0)){                                    
                                     case(#Nat32(val)){
                                         k := val;
@@ -902,6 +908,7 @@ module {
                                         httpbody := Blob.fromArray(val);                                    
                                     };
                                 };
+                                */
                             } else {
                                 httpbody := Conversion.valueUnstableToBlob(zone.get(0));
                             };
@@ -1004,7 +1011,7 @@ module {
                         tk.index,
                         item,
                         state.state.use_stableBTree,
-                        state.btreemap,
+                        //state.btreemap,
                     );
                 };
             };
@@ -1076,14 +1083,14 @@ module {
         index : Nat,
         data  : CandyTypes.Workspace,
         use_stable : Bool,
-        btreemap : Types.Stable_Memory,
+        //btreemap : Types.Stable_Memory,
     ) : StreamingCallbackResponse {
         let result = _stream_content(
             key,
             index,
             data,
             use_stable,
-            btreemap,
+            //btreemap,
         );
 
         D.print("the stream content " # key);
@@ -1144,7 +1151,7 @@ module {
                         tk.index,
                         item,
                         state.state.use_stableBTree,
-                        state.btreemap,
+                        //state.btreemap,
                     );
                 };
             };

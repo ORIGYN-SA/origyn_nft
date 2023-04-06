@@ -1526,6 +1526,7 @@ module {
                           
                       };
                       case (#Nat32(wval)) {
+                        /*
                           let sizeZone = switch(item.getOpt(2)){
                             case(null){
                               return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - could not find size zone - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));};
@@ -1550,6 +1551,7 @@ module {
                                   return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
                               };
                           };
+                          */
                       };
                       case(_){
                         return #err(Types.errors(?state.canistergeekLogger,  #content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
