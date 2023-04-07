@@ -78,7 +78,11 @@ module {
     };
 
     // generates a random access key for use with procuring owner's assets
-    public func gen_access_key(): async* Text {
+    /**
+    * Generates an access key by generating a random string of characters.
+    * @returns {Async<Text>} - Returns an AsyncIterable that yields a random string of characters as a Text object.
+    */
+    public func gen_access_key(): async Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");

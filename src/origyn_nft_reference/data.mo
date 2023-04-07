@@ -19,10 +19,9 @@ module {
       data_access = false;
   };
 
-  //gets a text attribute out of a class
+  //gets a text attribute out of a class - maybe refactor with Metadata.get_nft_text_property
   private func _get_text_attribute_from_class(this_item: CandyTypes.CandyValue, name : Text) : ?Text {
       return switch(Properties.getClassProperty(this_item, name)){
-
         case(null){
           return null;
         };
@@ -39,18 +38,24 @@ module {
   //Currnelty the implementation is more like a structured notepad where you have to 
   //write out the enter note each time.  Future versions will add granular access to 
   //data per app.
-  public func update_app_nft_origyn(request: Types.NFTUpdateRequest, state: Types.State, caller: Principal): Result.Result<Types.NFTUpdateResponse, Types.OrigynError>{
+  /**
+  *  Updates an NFT's metadata with information about the app it belongs to.
+  *  @param {Types.NFTUpdateRequest} request - The update request object containing the token ID and app ID to be updated.
+  *  @param {Types.State} state - The current state of the Origyn canister.
+  *  @param {Principal} caller - The principal of the caller making the update request.
+  *  @returns {Result.Result<Types.NFTUpdateResponse, Types.OrigynError>} - Returns a Result object containing either a Types.NFTUpdateResponse object or a Types.OrigynError object if an error occurs during the update process.
+  *  @throws {Types.OrigynError} Throws an OrigynError if an error occurs during the update process.
+  */
+  public func update_app_nft_origyn(request: Types.NFTUpdateRequest, state: Types.State, caller: Principal): Types.UpdateAppResponse {
       
     let (token_id, app_id) = switch(request){
       case(#replace(details)){
         //D.print(debug_show(details.data));
         //(details.token_id, Option.getMapped<CandyTypes.Property, Text>(Properties.getClassProperty(details.data, "app_id"), propertyToText, return #err(Types.errors(?state.canistergeekLogger,  #app_id_not_found, "update_app_nft_origyn - cannnot find app id ", ? caller)) ))};
-        let app_id = switch(_get_text_attribute_from_class(details.data, Types.metadata.__apps_app_id)){
-          case(null){
-            return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "update_app_nft_origyn - cannnot find app_id", ? caller)); 
-          };
-          case(?val){val};
+        let ?app_id = _get_text_attribute_from_class(details.data, Types.metadata.__apps_app_id) else {
+          return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "update_app_nft_origyn - cannnot find app_id", ? caller)); 
         };
+
         (details.token_id, app_id)};
       case(#update(details)){(details.token_id, details.app_id)};
     };
@@ -60,23 +65,19 @@ module {
     var found_metadata : CandyTypes.CandyValue = #Empty;
 
     //try to find existing metadata
-    let this_metadata = switch(Map.get(state.state.nft_metadata, Map.thash, token_id)){
-        case(null){
-          return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "update_app_nft_origyn - cannnot find token", ? caller));
-        };
-        case(?this_metadata){
-          this_metadata;
-        };
+    let ?this_metadata = Map.get(state.state.nft_metadata, Map.thash, token_id) else {
+      return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "update_app_nft_origyn - cannnot find token", ? caller));
     };
+
 
     //exists
     debug if(debug_channel.data_access) D.print("exists");
 
     //find the app
-    let found = switch(Properties.getClassProperty(this_metadata, Types.metadata.__apps)){
-        case(null){return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - __apps node not found", ? caller));};
-        case(?found){found;}
+    let ?found = Properties.getClassProperty(this_metadata, Types.metadata.__apps) else {
+      return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - __apps node not found", ? caller));
     };
+    
 
     debug if(debug_channel.data_access) D.print("found apps");
 
@@ -119,19 +120,14 @@ module {
               };
               case(#Class(write_detail)){
                 debug if(debug_channel.data_access) D.print("have write detail");
-                let write_type = switch(Properties.getClassProperty(write_node.value, "type")){
-                  case(?write_type){write_type};
-                  case(_){
-                    return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
-                  };
+                let ?write_type = Properties.getClassProperty(write_node.value, "type") else {
+                  return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
                 };
+                
 
                 debug if(debug_channel.data_access) D.print("have write type");
-                let write_type_detail = switch(write_type.value){
-                  case(#Text(write_type_detail)){write_type_detail};
-                  case(_){
-                      return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - not in proper type of write type", ? caller));
-                  };
+                let #Text(write_type_detail) = write_type.value else {
+                  return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - not in proper type of write type", ? caller));
                 };
 
                 debug if(debug_channel.data_access) D.print("have write type detial");
@@ -139,11 +135,8 @@ module {
                   return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only allow list and public implemented", ? caller));
                 };
 
-                let allow_list = switch(Properties.getClassProperty(write_node.value,"list")){
-                  case(?allow_list){allow_list};
-                  case(null){
-                      return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "update_app_nft_origyn - empty allow list", ? caller));
-                  };
+                let ?allow_list = Properties.getClassProperty(write_node.value,"list") else {
+                    return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "update_app_nft_origyn - empty allow list", ? caller));
                 };
 
                 //debug if(debug_channel.data_access)D.print("have allow list");

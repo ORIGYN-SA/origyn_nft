@@ -80,6 +80,12 @@ module {
         return false;
     };
 
+    public func is_network(state :Types.State, caller: Principal) : Bool{
+        debug if (debug_channel.announce) D.print("testing is_network network:" # debug_show(state.state.collection_data.network) # " caller: " # debug_show(caller));
+        if(Option.make(caller) == state.state.collection_data.network){return true;};
+        return false;
+    };
+
     public func get_auction_state_from_status(current_sale : Types.SaleStatus ) : Result.Result<Types.AuctionState, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
@@ -208,7 +214,7 @@ module {
       } else if(size <= 1024000){
         return memory._1024;
       } else {
-        return memory._2048;
+        return memory._1024;
       };
     };
     */

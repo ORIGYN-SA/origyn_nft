@@ -898,7 +898,9 @@ shared (deployer) actor class Nft_Canister() = this {
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in sale_nft_origyn batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false and msg.caller != get_state().canister()){
-            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch not supported", ?msg.caller))];
+            if(requests.size() > 20){
+            return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "sale_batch_nft_origyn - not an owner, manager, or network - batch limited to 20 items", ?msg.caller))];
+            };
         };        
         
         let result = Buffer.Buffer<Result.Result<Types.ManageSaleResponse, Types.OrigynError>>(requests.size());

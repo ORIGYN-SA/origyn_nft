@@ -89,13 +89,31 @@ module {
     };
 
     // generates a random access key for use with procuring owner's assets
-    public func gen_access_key(): async* Text {
+    /**
+    * Generates an access key by generating a random string of characters.
+    * @returns {Async<Text>} - Returns an AsyncIterable that yields a random string of characters as a Text object.
+    */
+    public func gen_access_key(): async Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");
     };
 
     //handels stream content with chunk requests
+    /**
+    * Handles streaming content for an NFT
+    *
+    * @param {Types.State} state - The current state of the canister
+    * @param {Text} token_id - The ID of the token being streamed
+    * @param {Text} library_id - The ID of the library containing the token
+    * @param {Nat | null} start - The starting byte position of the streaming content
+    * @param {Nat | null} end - The ending byte position of the streaming content
+    * @param {Text} contentType - The content type of the streaming content
+    * @param {CandyTypes.Workspace} data - The workspace containing the streaming content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * 
+    * @returns {HTTPResponse} - The HTTP response containing the streaming content
+    */
     public func handle_stream_content(
         state : Types.State,
         token_id         : Text,
@@ -147,7 +165,7 @@ module {
                       case(null){0;};
                       case(?val){
                         switch(val.getOpt(zoneTracker)){
-                          case (null)0;
+                          case (null) 0;
                           case(?val) {
                             switch(val){
                               case(#Nat(val)) val;
@@ -518,16 +536,11 @@ module {
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
-                            debug if(debug_channel.library) D.print("in render library)");
+        debug if(debug_channel.library) D.print("in render library)");
 
-        let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-            case(#err(err)){return _not_found("meta not found - " # token_id # " " # library_id);};
-            case(#ok(val)){val};
+        let #ok(library_meta) = Metadata.get_library_meta(metadata, library_id) else return _not_found("meta not found - " # token_id # " " # library_id);
 
-
-        };
-
-                            debug if(debug_channel.library) D.print("library meta" #debug_show(library_meta));
+        debug if(debug_channel.library) D.print("library meta" #debug_show(library_meta));
 
         let location_type = switch(Metadata.get_nft_text_property(library_meta, "location_type")){
             case(#err(err)){return _not_found("location type not found" # token_id # " " # library_id);};
