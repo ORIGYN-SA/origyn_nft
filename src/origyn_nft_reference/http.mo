@@ -533,16 +533,11 @@ module {
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
-                            debug if(debug_channel.library) D.print("in render library)");
+        debug if(debug_channel.library) D.print("in render library)");
 
-        let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-            case(#err(err)){return _not_found("meta not found - " # token_id # " " # library_id);};
-            case(#ok(val)){val};
+        let #ok(library_meta) = Metadata.get_library_meta(metadata, library_id) else return _not_found("meta not found - " # token_id # " " # library_id);
 
-
-        };
-
-                            debug if(debug_channel.library) D.print("library meta" #debug_show(library_meta));
+        debug if(debug_channel.library) D.print("library meta" #debug_show(library_meta));
 
         let location_type = switch(Metadata.get_nft_text_property(library_meta, "location_type")){
             case(#err(err)){return _not_found("location type not found" # token_id # " " # library_id);};
