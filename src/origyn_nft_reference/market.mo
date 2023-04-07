@@ -61,6 +61,14 @@ module {
   let { ihash; nhash; thash; phash; calcHash } = Map;
 
   // Searches the escrow reciepts to find if the buyer/seller/token_id tuple has a balance on file
+  /**
+  * Searches the escrow receipts to find if the buyer/seller/token_id tuple has a balance on file.
+  * @param {StateAccess} state - The state access object.
+  * @param {Types.Account} buyer - The buyer's account.
+  * @param {Types.Account} seller - The seller's account.
+  * @param {Text} token_id - The token ID.
+  * @returns {Result.Result<MigrationTypes.Current.EscrowLedgerTrie, Types.OrigynError>} - Either the escrow ledger trie or an error.
+  */
   public func find_escrow_reciept(
     state: StateAccess,
     buyer : Types.Account,
@@ -77,11 +85,9 @@ module {
 
     debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
             //find sellers deposits
-    let token_list = switch(Map.get(to_list, account_handler, seller)){
-      case(null){
+    let ?token_list = Map.get(to_list, account_handler, seller) else {
         debug if(debug_channel.verify_escrow) D.print("no escrow seller");
-        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "find_escrow_reciept - escrow seller not found ", null));};
-      case(?token_list) token_list ;
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "find_escrow_reciept - escrow seller not found ", null));
     };
     
     debug if(debug_channel.verify_escrow) D.print("looking for to list");
@@ -93,362 +99,411 @@ module {
     };
   };
 
-    //verifies that an escrow reciept exists in this NF
-    public func verify_escrow_receipt(
-      state: StateAccess,
-      escrow : Types.EscrowReceipt, 
-      owner: ?Types.Account, 
-      sale_id: ?Text) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
+  //verifies that an escrow reciept exists in this NFT
+  /**
+  * Verifies an escrow receipt to determine whether a buyer/seller/token_id tuple has a balance on file.
+  * @param {StateAccess} state - The state access object.
+  * @param {Types.EscrowReceipt} escrow - The escrow receipt to verify.
+  * @param {?Types.Account} owner - The owner of the asset.
+  * @param {?Text} sale_id - The sale id.
+  * @returns {Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError>} Returns a Result object that contains a MigrationTypes.Current.VerifiedReciept object if successful, otherwise it contains a Types.OrigynError object.
+  */
+  public func verify_escrow_receipt(
+    state: StateAccess,
+    escrow : Types.EscrowReceipt, 
+    owner: ?Types.Account, 
+    sale_id: ?Text) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
 
-      let ?to_list = Map.get(state.state.escrow_balances, account_handler, escrow.buyer) else {
-          debug if(debug_channel.verify_escrow) D.print("didnt find asset");
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow buyer not found " # debug_show(escrow.buyer), null));
+    let ?to_list = Map.get(state.state.escrow_balances, account_handler, escrow.buyer) else {
+        debug if(debug_channel.verify_escrow) D.print("didnt find asset");
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow buyer not found " # debug_show(escrow.buyer), null));
+      };
+
+    //only the owner can sell it
+    debug if(debug_channel.verify_escrow) D.print("found to list" # debug_show(owner) # debug_show(escrow.seller));
+    
+    switch(owner){
+      case(null){};
+      case(?owner){
+        if(Types.account_eq(owner, escrow.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "verify_escrow_receipt - escrow seller is not the owner  " # debug_show(owner) # " " # debug_show(escrow.seller), null));
+      };
+    };
+
+    debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
+
+    let ?token_list = Map.get(to_list, account_handler, escrow.seller) else {
+        debug if(debug_channel.verify_escrow) D.print("no escrow seller");
+
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow seller not found  " # debug_show(escrow.seller), null));
+    };
+
+    debug if(debug_channel.verify_escrow) D.print("looking for to list");
+    let asset_list = switch(Map.get(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")){
+      case(null, null) return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token_id not found  " # debug_show(escrow.token_id), null));
+      case(null, ?generalList) return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token_id found for general item but token_id is specific  " # debug_show(escrow.token_id), null));
+      case(?asset_list, _ ) asset_list;
+    };
+            
+    let ?balance = Map.get(asset_list, token_handler, escrow.token) else  return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
+
+    let found_asset = ?{token_spec = escrow.token; escrow = balance};
+
+    debug if(debug_channel.verify_escrow) D.print("Found an asset, checking fee");
+    debug if(debug_channel.verify_escrow) D.print(debug_show(found_asset));
+    debug if(debug_channel.verify_escrow) D.print(debug_show(escrow.amount));
+
+    //check sale id
+    switch(sale_id, balance.sale_id){
+      case(null, null){};
+      case(?desired_sale_id, null) return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match  " #   debug_show(sale_id) # debug_show(balance.sale_id), null));
+      case(null, ?on_file_saleID){
+        //null is passed in as a sale id if we want to do sale id verification elsewhere
+        //return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match ", null));
+      };
+      case(?desired_sale_id, ?on_file_saleID){
+        if(desired_sale_id != on_file_saleID){
+          return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match  " # debug_show(on_file_saleID)  # debug_show(desired_sale_id), null));
         };
+      };
+    }; 
 
-      //only the owner can sell it
-      debug if(debug_channel.verify_escrow) D.print("found to list" # debug_show(owner) # debug_show(escrow.seller));
+    if(balance.amount < escrow.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "verify_escrow_receipt - escrow not large enough  " # debug_show(balance.amount) # " " # debug_show(escrow.amount), null));
+
+    switch(found_asset, ?asset_list){
+      case(?found_asset, ?asset_list){
+        return #ok({
+          found_asset = found_asset;
+          found_asset_list = asset_list;
+        });
+      };
+      case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "verify_escrow_receipt - should be unreachable ", null));
+    };
+  };
+
+  //verifies that a revenue reciept is in the NFT Canister
+  /**
+  * Verifies that a revenue receipt is in the NFT Canister.
+  * @param {StateAccess} state - State access object.
+  * @param {Types.EscrowReceipt} escrow - The revenue receipt to verify.
+  * @returns {Result.Result<MigrationTypes.Current.VerifiedReceipt, Types.OrigynError>} - A Result type containing either a verified receipt or an error.
+  */
+  public func verify_sales_reciept(
+    state: StateAccess,
+    escrow : Types.EscrowReceipt) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
+
+    let ?to_list = Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller) else {
+        debug if(debug_channel.verify_sale) D.print("sale seller not found");
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow seller not found ", null));
+      };
+
+            //only the owner can sell it
+
+    let ?token_list = Map.get(to_list, account_handler, escrow.buyer) else {
+        debug if(debug_channel.verify_sale) D.print("sale byer not found");
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow buyer not found ", null));
+    };
+
+    let ?asset_list = Map.get(token_list, Map.thash, escrow.token_id) else {
+        debug if(debug_channel.verify_sale) D.print("sale token id not found");
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow token_id not found ", null));
+      };
+            
+    let ?balance = Map.get(asset_list, token_handler,escrow.token) else {
+        debug if(debug_channel.verify_sale) D.print("sale token not found");
+        return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow token spec not found ", null));};
       
-      switch(owner){
-        case(null){};
-        case(?owner){
-          if(Types.account_eq(owner, escrow.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "verify_escrow_receipt - escrow seller is not the owner  " # debug_show(owner) # " " # debug_show(escrow.seller), null));
-        };
+
+    let found_asset = ?{token_spec = escrow.token; escrow = balance};
+    debug if(debug_channel.verify_sale) D.print("issue with balances");
+    debug if(debug_channel.verify_sale) D.print(debug_show(balance));
+    debug if(debug_channel.verify_sale) D.print(debug_show(escrow));
+    
+    if(balance.amount < escrow.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "verify_sales_reciept - escrow not large enough", null));
+
+    switch(found_asset, ?asset_list){
+      case(?found_asset, ?asset_list){
+        return #ok({
+          found_asset = found_asset;
+          found_asset_list = asset_list;
+        });
       };
+      case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "verify_sales_reciept - should be unreachable ", null));
+    };
+  };
 
-      debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
+  //makes sure that there is not an ongoing sale for an item
+  /**
+  * Checks if a token is currently on sale.
+  * @param {StateAccess} state - State access object.
+  * @param {CandyTypes.CandyValue} metadata - The metadata for the token.
+  * @param {Principal} caller - The caller of the function.
+  * @returns {Result.Result<Bool, Types.OrigynError>} - A Result type containing either a boolean indicating whether the token is on sale or an error.
+  */
+  public func is_token_on_sale(
+    state: StateAccess,
+    metadata: CandyTypes.CandyValue, 
+    caller: Principal) : Result.Result<Bool,Types.OrigynError>{
 
-      let ?token_list = Map.get(to_list, account_handler, escrow.seller) else {
-          debug if(debug_channel.verify_escrow) D.print("no escrow seller");
+      debug if(debug_channel.ensure) D.print("in ensure");
+    let #ok(token_id) =Metadata.get_nft_id(metadata) else  return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "is_token_on_sale - could not find token_id ", ?caller));
 
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow seller not found  " # debug_show(escrow.seller), null));
-      };
+    //look for an existing sale
+    debug if(debug_channel.verify_sale) D.print("geting sale");
+    
+    let sale_id = switch(Metadata.get_current_sale_id(metadata)){
+        case(#Empty) return #ok(false);
+        case(#Text(sale_id)) sale_id;
+        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - imporoper candy type ", ?caller));
+    };
+                        
+    debug if(debug_channel.verify_sale) D.print("found sale" # sale_id);
+            
+    let ?current_sale = Map.get(state.state.nft_sales, Map.thash, sale_id) else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "is_token_on_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));
 
-      debug if(debug_channel.verify_escrow) D.print("looking for to list");
-      let asset_list = switch(Map.get(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")){
-        case(null, null) return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token_id not found  " # debug_show(escrow.token_id), null));
-        case(null, ?generalList) return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token_id found for general item but token_id is specific  " # debug_show(escrow.token_id), null));
-        case(?asset_list, _ ) asset_list;
-      };
-              
-      let ?balance = Map.get(asset_list, token_handler, escrow.token) else  return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
+    debug if(debug_channel.verify_sale) D.print("checking state");
+    let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+        case(#ok(val)) val;
+        case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "is_token_on_sale - find sale state " # err.flag_point, ?caller));
+    };
+    
+    debug if(debug_channel.verify_sale) D.print("switching config");
+    let config = switch(current_sale_state.config){
+      case(#auction(config)) config;
+      case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - sales type check not implemented", ?caller));
+    };
 
-      let found_asset = ?{token_spec = escrow.token; escrow = balance};
+    debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));
 
-      debug if(debug_channel.verify_escrow) D.print("Found an asset, checking fee");
-      debug if(debug_channel.verify_escrow) D.print(debug_show(found_asset));
-      debug if(debug_channel.verify_escrow) D.print(debug_show(escrow.amount));
+    switch(current_sale_state.status){
+      case(#closed) return #ok(false);
+      case(#open) return #ok(true);
+      case(_) return #ok(true);
+    };
+  };
 
-      //check sale id
-      switch(sale_id, balance.sale_id){
-        case(null, null){};
-        case(?desired_sale_id, null) return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match  " #   debug_show(sale_id) # debug_show(balance.sale_id), null));
-        case(null, ?on_file_saleID){
-          //null is passed in as a sale id if we want to do sale id verification elsewhere
-          //return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match ", null));
-        };
-        case(?desired_sale_id, ?on_file_saleID){
-          if(desired_sale_id != on_file_saleID){
-            return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "verify_escrow_receipt - escrow sale_id does not match  " # debug_show(on_file_saleID)  # debug_show(desired_sale_id), null));
+  //opens a sale if it is past the date
+  /**
+  * Opens a sale for an NFT if it is past the date.
+  * @param {StateAccess} state - The state of the contract.
+  * @param {Text} token_id - The ID of the NFT.
+  * @param {Principal} caller - The caller principal.
+  * @returns {Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - A `Result` object that either contains a `Types.ManageSaleResponse` object or a `Types.OrigynError` object.
+  */
+  public func open_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    //D.print("in open_sale_nft_origyn");
+    let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+       case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
+       case(#ok(val)) val;
+    };
+
+    //look for an existing sale
+    let current_sale = switch(Metadata.get_current_sale_id(metadata)){
+      case(#Empty) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+      case(#Text(val)){
+        switch(Map.get(state.state.nft_sales, Map.thash,val)){
+          case(?status){
+            status;
           };
+          case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
         };
-      }; 
+      };
+      case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+    };
 
-      if(balance.amount < escrow.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "verify_escrow_receipt - escrow not large enough  " # debug_show(balance.amount) # " " # debug_show(escrow.amount), null));
+    let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
+      case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "open_sale_nft_origyn - find state " # err.flag_point, ?caller));
+      case(#ok(val)) val;
+    };
 
-      switch(found_asset, ?asset_list){
-        case(?found_asset, ?asset_list){
-          return #ok({
-            found_asset = found_asset;
-            found_asset_list = asset_list;
-          });
+    switch(current_sale_state.config){
+      case(#auction(config)){
+        let #auctio(current_pricing) = current_sale_state.config else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
+
+        switch(current_sale_state.status){
+          case(#closed) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
+          case(#not_started){
+            if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
+              current_sale_state.status := #open;
+              return(#ok(#open_sale(true)));
+            } else return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_pricing.start_date), ?caller));
+          };
+          case(#open)  return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
         };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "verify_escrow_receipt - should be unreachable ", null));
+      };
+      case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
+    };
+  };
+
+  //reports information about a sale
+  /**
+  * Reports information about a sale.
+  * @param {StateAccess} state - The state of the contract.
+  * @param {Text} sale_id - The ID of the sale.
+  * @param {Principal} caller - The caller principal.
+  * @returns {Result.Result<Types.SaleInfoResponse,Types.OrigynError>} - A `Result` object that either contains a `Types.SaleInfoResponse` object or a `Types.OrigynError` object.
+  */
+  public func sale_status_nft_origyn(state: StateAccess, sale_id: Text, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
+
+    //look for an existing sale
+    let current_sale =  switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
+      case(?status) status;
+      case(null) return #ok(#status(null));
+    };
+
+    let result = #ok(#status(?{
+      current_sale with
+      sale_type = switch(current_sale.sale_type){
+        case(#auction(val)){
+            #auction(Types.AuctionState_stabalize_for_xfer(val))
+        };
+        /* case(_){
+            return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
+        } */
+      };
+    }));
+
+    return result;
+  };
+
+  //returns active sales on a canister
+  /**
+  * Returns active sales on a canister
+  * 
+  * @param {StateAccess} state - The state of the canister
+  * @param {Array.<number>} pages - Optional tuple of start page and page size.
+  * @param {Principal} caller - The principal of the caller.
+  * @returns {Result.Result.<Types.SaleInfoResponse,Types.OrigynError>} - A `Result` object that either contains the sale information as a `Types.SaleInfoResponse` object or an error as a `Types.OrigynError` object.
+  */
+
+  public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
+      
+    var tracker = 0 : Nat;
+
+    let (min, max) = switch(pages){
+      case(null){
+        (0, Map.size(state.state.nft_metadata));
+      };
+      case(?val){
+        (val.0, 
+          if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
+            Map.size(state.state.nft_metadata)
+          } else {
+            val.0 + val.1;
+          }
+        );
       };
     };
 
-    //verifies that a revenue reciept is in the NFT Canister
-    public func verify_sales_reciept(
-      state: StateAccess,
-      escrow : Types.EscrowReceipt) : Result.Result<MigrationTypes.Current.VerifiedReciept, Types.OrigynError> {
+    let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
 
-      let ?to_list = Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, escrow.seller) else {
-          debug if(debug_channel.verify_sale) D.print("sale seller not found");
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow seller not found ", null));
+    var foundTotal : Nat = 0;
+    var eof : Bool = false;
+    let totalSize = Map.size(state.state.nft_metadata);
+
+    label search for(this_token in Map.entries(state.state.nft_metadata)){
+      let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
+        case(#err(err)){
+          results.add("unminted", null);
+          tracker += 1;
+          continue search;
         };
-
-              //only the owner can sell it
-
-      let ?token_list = Map.get(to_list, account_handler, escrow.buyer) else {
-          debug if(debug_channel.verify_sale) D.print("sale byer not found");
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow buyer not found ", null));
-      };
-
-      let ?asset_list = Map.get(token_list, Map.thash, escrow.token_id) else {
-          debug if(debug_channel.verify_sale) D.print("sale token id not found");
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow token_id not found ", null));
-        };
-              
-      let ?balance = Map.get(asset_list, token_handler,escrow.token) else {
-          debug if(debug_channel.verify_sale) D.print("sale token not found");
-          return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_sales_reciept - escrow token spec not found ", null));};
-       
-
-      let found_asset = ?{token_spec = escrow.token; escrow = balance};
-      debug if(debug_channel.verify_sale) D.print("issue with balances");
-      debug if(debug_channel.verify_sale) D.print(debug_show(balance));
-      debug if(debug_channel.verify_sale) D.print(debug_show(escrow));
-      
-      if(balance.amount < escrow.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "verify_sales_reciept - escrow not large enough", null));
-
-      switch(found_asset, ?asset_list){
-        case(?found_asset, ?asset_list){
-          return #ok({
-            found_asset = found_asset;
-            found_asset_list = asset_list;
-          });
-        };
-        case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "verify_sales_reciept - should be unreachable ", null));
-      };
-    };
-
-    //makes sure that there is not an ongoing sale for an item
-    public func is_token_on_sale(
-      state: StateAccess,
-      metadata: CandyTypes.CandyValue, 
-      caller: Principal) : Result.Result<Bool,Types.OrigynError>{
-
-                      debug if(debug_channel.ensure) D.print("in ensure");
-      let #ok(token_id) =Metadata.get_nft_id(metadata) else  return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "is_token_on_sale - could not find token_id ", ?caller));
-
-      //look for an existing sale
-      debug if(debug_channel.verify_sale) D.print("geting sale");
-      
-      let sale_id = switch(Metadata.get_current_sale_id(metadata)){
-          case(#Empty) return #ok(false);
-          case(#Text(sale_id)) sale_id;
-          case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - imporoper candy type ", ?caller));
-      };
-                          
-      debug if(debug_channel.verify_sale) D.print("found sale" # sale_id);
-              
-      let ?current_sale = Map.get(state.state.nft_sales, Map.thash, sale_id) else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "is_token_on_sale - could not find sale for token " # token_id # " " # sale_id, ?caller));
-
-      debug if(debug_channel.verify_sale) D.print("checking state");
-      let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-          case(#ok(val)) val;
-          case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "is_token_on_sale - find sale state " # err.flag_point, ?caller));
-      };
-      
-      debug if(debug_channel.verify_sale) D.print("switching config");
-      let config = switch(current_sale_state.config){
-        case(#auction(config)) config;
-        case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - sales type check not implemented", ?caller));
-      };
-
-      debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));
-
-      switch(current_sale_state.status){
-        case(#closed) return #ok(false);
-        case(#open) return #ok(true);
-        case(_) return #ok(true);
-      };
-    };
-
-    //opens a sale if it is past the date
-    public func open_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-      //D.print("in open_sale_nft_origyn");
-      let metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-        case(#err(err))return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "open_sale_nft_origyn " # err.flag_point, ?caller));
         case(#ok(val)) val;
       };
 
       //look for an existing sale
       let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-        case(#Empty) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+        case(#Empty){
+          //results.add(this_token.0, null);
+          tracker += 1;
+          continue search;
+        };
         case(#Text(val)){
           switch(Map.get(state.state.nft_sales, Map.thash,val)){
-            case(?status){
-              status;
+            case(?status) status;
+            case(null){
+              //results.add(this_token.0, null);
+              tracker += 1;
+              continue search;
             };
-            case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
           };
         };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+        case(_){
+          //results.add(this_token.0, null);
+          tracker += 1;
+          continue search;
+        };
       };
 
       let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
         case(#ok(val)) val;
-        case(#err(err))return #err(Types.errors(?state.canistergeekLogger,  err.error, "open_sale_nft_origyn - find state " # err.flag_point, ?caller));
+        case(#err(err)){
+          //results.add(this_token.0, null);
+          tracker += 1;
+          continue search;
+        };
       };
 
       switch(current_sale_state.config){
         case(#auction(config)){
           let current_pricing = switch(current_sale_state.config){
-            case(#auction(config))config;
-            case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
-          };
-
-          switch(current_sale_state.status){
-            case(#closed) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
-            case(#not_started){
-              if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
-                current_sale_state.status := #open;
-                return(#ok(#open_sale(true)));
-              } else return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_pricing.start_date), ?caller));
-            };
-            case(#open)  return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
-          };
-        };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
-      };
-    };
-
-    //reports information about a sale
-    public func sale_status_nft_origyn(state: StateAccess, sale_id: Text, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
-
-      //look for an existing sale
-      let current_sale =  switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-        case(?status) status;
-        case(null) return #ok(#status(null));
-      };
-
-      let result = #ok(#status(?{
-        current_sale with
-        sale_type = switch(current_sale.sale_type){
-          case(#auction(val)){
-              #auction(Types.AuctionState_stabalize_for_xfer(val))
-          };
-          /* case(_){
-              return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
-          } */
-        };
-      }));
-
-      return result;
-    };
-
-    //returns active sales on a canister
-    public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
-        
-      var tracker = 0 : Nat;
-
-      let (min, max) = switch(pages){
-        case(null){
-          (0, Map.size(state.state.nft_metadata));
-        };
-        case(?val){
-          (val.0, 
-            if(val.0 + val.1 >= Map.size(state.state.nft_metadata)){
-              Map.size(state.state.nft_metadata)
-            } else {
-              val.0 + val.1;
-            }
-          );
-        };
-      };
-
-      let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
-
-      var foundTotal : Nat = 0;
-      var eof : Bool = false;
-      let totalSize = Map.size(state.state.nft_metadata);
-
-      label search for(this_token in Map.entries(state.state.nft_metadata)){
-        let metadata = switch(Metadata.get_metadata_for_token(state, this_token.0, caller, null, state.state.collection_data.owner)){
-          case(#err(err)){
-            results.add("unminted", null);
-            tracker += 1;
-            continue search;
-          };
-          case(#ok(val)) val;
-        };
-
-        //look for an existing sale
-        let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-          case(#Empty){
-            //results.add(this_token.0, null);
-            tracker += 1;
-            continue search;
-          };
-          case(#Text(val)){
-            switch(Map.get(state.state.nft_sales, Map.thash,val)){
-              case(?status) status;
-              case(null){
-                //results.add(this_token.0, null);
-                tracker += 1;
-                continue search;
-              };
-            };
-          };
-          case(_){
-            //results.add(this_token.0, null);
-            tracker += 1;
-            continue search;
-          };
-        };
-
-        let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
-          case(#ok(val)) val;
-          case(#err(err)){
-            //results.add(this_token.0, null);
-            tracker += 1;
-            continue search;
-          };
-        };
-
-        switch(current_sale_state.config){
-          case(#auction(config)){
-            let current_pricing = switch(current_sale_state.config){
-              case(#auction(config)) config;
-              case(_){
-                //nyi: handle other sales types
-                //results.add(this_token.0, null);
-                tracker += 1;
-                continue search;
-              };
-            };
-
-            if(current_sale_state.status == #open or current_sale_state.status == #not_started){
-              
-              if(tracker > max){}
-              else if( tracker >= min ){
-
-                results.add(this_token.0, ?{
-                  current_sale with
-                  sale_type = switch(current_sale.sale_type){
-                    case(#auction(val)){
-                      #auction(Types.AuctionState_stabalize_for_xfer(val))
-                    };
-                  };
-                });
-
-                if(tracker + 1 == totalSize){
-                  eof := true;
-                };
-              } else {};
-
-              foundTotal += 1;
-            };
-          };
-          case(_){
+            case(#auction(config)) config;
+            case(_){
+              //nyi: handle other sales types
               //results.add(this_token.0, null);
               tracker += 1;
               continue search;
+            };
+          };
+
+          if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+            
+            if(tracker > max){}
+            else if( tracker >= min ){
+
+              results.add(this_token.0, ?{
+                current_sale with
+                sale_type = switch(current_sale.sale_type){
+                  case(#auction(val)){
+                    #auction(Types.AuctionState_stabalize_for_xfer(val))
+                  };
+                };
+              });
+
+              if(tracker + 1 == totalSize){
+                eof := true;
+              };
+            } else {};
+
+            foundTotal += 1;
           };
         };
-
-        tracker += 1;
+        case(_){
+            //results.add(this_token.0, null);
+            tracker += 1;
+            continue search;
+        };
       };
 
-      return #ok(#active({
-          records = Buffer.toArray(results);
-          eof = eof;
-          count = foundTotal;
-      }));
+      tracker += 1;
     };
+
+    return #ok(#active({
+        records = Buffer.toArray(results);
+        eof = eof;
+        count = foundTotal;
+    }));
+  };
 
 
     //returns a history of sales
+    /**
+    * Returns a history of sales.
+    * 
+    * @param {StateAccess} state - StateAccess object for accessing the canister's state.
+    * @param {?(Nat, Nat)} pages - Optional tuple of pagination information in the form (start index, page size).
+    * @param {Principal} caller - Principal of the caller making the request.
+    * @returns {Result.Result<Types.SaleInfoResponse,Types.OrigynError>} - A result containing a history of sales.
+    */
     public func history_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
         
         var tracker = 0 : Nat;
@@ -526,6 +581,14 @@ module {
     };
 
     //returns an invoice or details of where a user can send their depoits on a standard ledger
+    /**
+    * Returns an invoice or details of where a user can send their deposits on a standard ledger.
+    * 
+    * @param {StateAccess} state - StateAccess object for accessing the canister's state.
+    * @param {?Types.Account} request - Optional account information for the request.
+    * @param {Principal} caller - Principal of the caller making the request.
+    * @returns {Result.Result<Types.SaleInfoResponse,Types.OrigynError>} - A result containing the invoice or deposit information.
+    */
     public func deposit_info_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
 
       debug if(debug_channel.invoice) D.print("in deposit info nft origyn.");
@@ -957,6 +1020,15 @@ module {
         return #err(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - nyi - " , ?caller));
     };
 
+    /**
+    * Distributes a sale to the appropriate buyers by adding withdrawal requests to a buffer. 
+    * 
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.DistributeSaleRequest} request - The request containing the seller information.
+    * @param {Principal} caller - The caller principal.
+    * 
+    * @returns {async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - The result of the sale distribution.
+    */
     public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       if(NFTUtils.is_owner_network(state, caller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "distribute_sale - not a canister owner or network", ?caller));
 
@@ -988,6 +1060,15 @@ module {
     };
 
     //processes a change in escrow balance
+    /**
+    * Processes a change in escrow balance.
+    * 
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.EscrowRecord} escrow - The escrow record to be processed.
+    * @param {Bool} append - Determines whether to append the balance to the ledger or not.
+    * 
+    * @returns {Types.EscrowRecord} - The updated escrow record.
+    */
     public func put_escrow_balance(
       state: StateAccess, 
       escrow: Types.EscrowRecord, 
@@ -1069,6 +1150,15 @@ module {
     };
 
     //processes a changing sale balance
+    /**
+    * Processes a changing sale balance.
+    * 
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.EscrowRecord} sale_balance - The sale balance to be processed.
+    * @param {Bool} append - Determines whether to append the balance to the ledger or not.
+    * 
+    * @returns {Types.EscrowRecord} - The updated sale balance.
+    */
     public func put_sales_balance(state: StateAccess, sale_balance: Types.EscrowRecord, append: Bool): Types.EscrowRecord {
       //add the sale
       var a_to = switch(Map.get<Types.Account, MigrationTypes.Current.SalesBuyerTrie>(state.state.sales_balances, account_handler, sale_balance.seller)){
@@ -1122,6 +1212,17 @@ module {
       };
     };
 
+    /**
+    * Handles an error encountered while updating an escrow balance.
+    * 
+    * @param {StateAccess} state - The current state of the canister.
+    * @param {Types.EscrowReceipt} escrow - The receipt of the escrow transaction.
+    * @param {Types.Account} owner - The account owner.
+    * @param {Object} found_asset - An object containing the found asset and its token specifications.
+    * @param {MigrationTypes.Current.EscrowLedgerTrie} found_asset_list - The list of found assets.
+    * 
+    * @returns {void}
+    */
     private func handle_escrow_update_error(
       state: StateAccess, 
       escrow: Types.EscrowReceipt,
@@ -1145,6 +1246,17 @@ module {
       };
     };
 
+    /**
+    * Handles an error encountered while updating a sale balance.
+    * 
+    * @param {StateAccess} state - The current state of the canister.
+    * @param {Types.EscrowReceipt} escrow - The receipt of the escrow transaction.
+    * @param {Types.Account} owner - The account owner.
+    * @param {Object} found_asset - An object containing the found asset and its token specifications.
+    * @param {MigrationTypes.Current.EscrowLedgerTrie} found_asset_list - The list of found assets.
+    * 
+    * @returns {void}
+    */
     private func handle_sale_update_error(
       state: StateAccess, 
       escrow: Types.EscrowReceipt,
@@ -1169,6 +1281,14 @@ module {
       };
     };
 
+    /**
+    * Converts the properties and collection of a Candy NFT to an array.
+    * 
+    * @param {CandyTypes.CandyValue} properties - The properties of the Candy NFT.
+    * @param {Text} collection - The collection of the Candy NFT.
+    * 
+    * @returns {Array} - An array of Candy NFT properties.
+    */
     private func royalty_to_array(properties: CandyTypes.CandyValue, collection: Text) : [CandyTypes.CandyValue]{
       D.print("In royalty to array" # debug_show((properties, collection)));
       switch(Properties.getClassProperty(properties, collection)){
@@ -1188,6 +1308,7 @@ module {
         };
       };
     };
+
 
     //handles async market transfer operations like instant where interaction with other canisters is required
     public func market_transfer_nft_origyn_async(state: StateAccess, request : Types.MarketTransferRequest, caller: Principal) : async* Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {

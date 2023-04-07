@@ -90,6 +90,13 @@ class Ledger_Interface() {
   }; */
 
   //moves a deposit from a deposit subaccount to an escrow subaccount
+  /**
+  * Moves a deposit from a deposit subaccount to an escrow subaccount
+  * @param {Principal} host - The canister ID of the ledger that manages the deposit
+  * @param {Types.EscrowRequest} escrow - The deposit request to be transferred to an escrow account
+  * @param {Principal} caller - The principal that initiated the transfer deposit request
+  * @returns {async* Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError>} The result of the transfer deposit operation containing the transaction ID and subaccount information if successful, or an error if unsuccessful.
+  */
   public func transfer_deposit(host: Principal, escrow : Types.EscrowRequest, caller: Principal) : async* Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
     debug if(debug_channel.deposit) D.print("in transfer_deposit ledger deposit");
     debug if(debug_channel.deposit) D.print(Principal.toText(host));
@@ -106,10 +113,7 @@ class Ledger_Interface() {
 
     let deposit_account = NFTUtils.get_deposit_info(escrow.deposit.buyer, host);
 
-    let ledger = switch(escrow.deposit.token){
-        case(#ic(detail)) detail;
-        case(_) return #err(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(escrow), ?caller));
-    };
+    let #ic(ledger) = escrow.deposit.token else return #err(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(escrow), ?caller));
 
     try {
        //D.print("sending transfer blocks # " # debug_show(escrow.deposit.amount - ledger.fee));
@@ -138,6 +142,14 @@ class Ledger_Interface() {
   };
 
   //allows a user to withdraw money from a sale
+  /**
+  * allows a user to withdraw money from a sale
+  * @param {Principal} host - the principal hosting the ledger
+  * @param {Types.EscrowReceipt} escrow - the escrow receipt object
+  * @param {Text} token_id - the id of the token
+  * @param {Principal} caller - the principal making the call
+  * @returns {async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError>} a result object containing the transaction ID, subaccount info, and fee or an error object
+  */
   public func transfer_sale( host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
                     debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
                     debug if(debug_channel.sale) D.print(Principal.toText(host));
@@ -210,6 +222,20 @@ class Ledger_Interface() {
 
 
   //a raw transfer
+  /**
+  * Transfers an amount of a specified token from a specified `from_subaccount` to a specified `to_subaccount` on a specified ledger. 
+  * 
+  * @param {object} request - An object containing details about the transfer.
+  * @param {Principal} request.ledger - The ledger to which the transfer is to be made.
+  * @param {Principal} request.to - The principal of the account to which the transfer is to be made.
+  * @param {Array.<number>} [request.to_subaccount=null] - The subaccount of the account to which the transfer is to be made.
+  * @param {Array.<number>} [request.from_subaccount=null] - The subaccount of the account from which the transfer is to be made.
+  * @param {number} request.amount - The amount of the token to be transferred.
+  * @param {number} request.fee - The fee associated with the token to be transferred.
+  * @param {Array.<number>} [request.memo=null] - The memo associated with the transfer.
+  * @param {Principal} request.caller - The principal of the caller.
+  * @returns {Promise.<Result.Result>} A promise that returns either an ok result containing the transaction ID of the transfer or an error containing information about the failed transfer.
+  */
   private func transfer(request : {
     ledger: Principal;
     to: Principal;
@@ -262,6 +288,16 @@ class Ledger_Interface() {
   };
 
   //sends a payment and withdraws a fee
+  /**
+  * Sends a payment and withdraws a fee from an account.
+  *
+  * @param {object} account - An object containing information about the account.
+  * @param {Types.ICTokenSpec} token - The token to be transferred.
+  * @param {number} amount - The amount of the token to be transferred.
+  * @param {Array.<number>} [sub_account=null] - The subaccount associated with the account.
+  * @param {Principal} caller - The principal of the caller.
+  * @returns {Promise.<Result.Result>} A promise that returns either an ok result containing the transaction ID and the fee of the transfer or an error containing information about the failed transfer.
+  */
   public func send_payment_minus_fee(account: Types.Account, token: Types.ICTokenSpec, amount : Nat, sub_account: ?Blob, caller: Principal) : async* Result.Result<{trx_id: Types.TransactionID; fee: Nat}, Types.OrigynError> {
     debug if(debug_channel.transfer) D.print("in send payment deposit");
      

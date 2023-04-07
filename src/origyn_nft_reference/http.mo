@@ -93,7 +93,7 @@ module {
     * Generates an access key by generating a random string of characters.
     * @returns {Async<Text>} - Returns an AsyncIterable that yields a random string of characters as a Text object.
     */
-    public func gen_access_key(): async Text {
+    public func gen_access_key(): async* Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");
@@ -519,6 +519,126 @@ module {
         {body = result.payload; token = result.callback}; 
     };
 
+    /**
+      * Builds the URL address for a given canister and path, either using the primary host, port, and protocol from the state or the location parameter
+      * @param state - the state of the NFT Collection
+      * @param use_token_id - the token ID to use (empty string for collection)
+      * @param allocation_canister - the canister the NFT is allocated to
+      * @param location - the location parameter from the library metadata
+      * @param path - the path to use for the address
+      * @returns the complete URL address
+      */
+    private func _build_address(state : Types.State, use_token_id : Text, allocation_canister: Principal, location : Text, path :Text ) : Text {
+      switch(
+      Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")),
+      Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")),
+      Metadata.get_primary_protocol(state, use_token_id, Principal.fromBlob("\04"))){
+        case(#ok(host), #ok(port), #ok(protocol)){
+            //branch is used for local testing
+            protocol # "://" # host # (if(port=="443" or port == "80"){""}else{":" # port}) # "/" # path # "?canisterId=" # Principal.toText(allocation_canister)
+        };
+        
+        case(_,_,_){
+          if(Text.startsWith(location, #text("http")) == true){
+            //if the location is a full http address
+            location
+          } else {
+            //for relative paths
+            "https://" # Principal.toText(allocation_canister) # ".ic0.app/" # location
+          };
+          
+        };
+      };
+
+    };
+
+    /**
+    * Redirects to the storage canister for an item that is not stored on the current server
+    * @param state - the state of the canister
+    * @param library_meta - the metadata for the library
+    * @param token_id - the ID of the NFT
+    * @param library_id - the ID of the library
+    * @param location - the location parameter from the library metadata
+    * @param use_token_id - the token ID to use (empty string for collection)
+    * @param allocation_canister - the canister the NFT is allocated to
+    * @returns the HTTP response for the redirect
+    */
+    private func _redirect_to_storage_canister(
+      state: Types.State, 
+      library_meta: CandyTypes.CandyValue,
+      token_id : Text, 
+      library_id : Text,
+      location : Text,
+      use_token_id :Text,
+      allocation_canister : Principal) : HTTPResponse {
+      debug if(debug_channel.library)  D.print("item is not on this server redir to " # Principal.toText(allocation_canister));
+            let #ok(location) = Metadata.get_nft_text_property(library_meta, "location") else
+              return _not_found("location not found" # token_id # " " # library_id);
+
+            debug if(debug_channel.library) D.print("have location" # debug_show(location));
+
+            let path = if(use_token_id == ""){
+                "collection/-/" # library_id
+            } else {
+                "-/" # use_token_id # "/-/" # library_id
+            };
+
+            debug if(debug_channel.library)  D.print("got a path " # path);
+
+            debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id,Principal.fromBlob("\04"))));
+
+            let address = _build_address(state, use_token_id, allocation_canister, location, path);
+
+            debug if(debug_channel.library)  D.print("got a location " # address);
+
+            debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id,Principal.fromBlob("\04")), Metadata.get_primary_port(state,use_token_id,  Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id, Principal.fromBlob("\04"))));
+
+
+            return {
+                body = "";
+                headers = [("Location", address),("icx-proxy-forward","true")];
+                status_code = 307;
+                streaming_strategy = null;
+            };
+    };
+
+    /**
+    * Handles the range headers from an HTTP request and returns the start and end values, if present
+    * @param headers - the headers from the HTTP request
+    * @returns an object containing the start and end values and a boolean indicating whether a range header was found
+    */
+    private func _handle_range_headers(headers: [httpparser.HeaderField]) : {
+      start : ?Nat;
+      end : ?Nat;
+      b_foundRange : Bool;
+    } {
+      var split : [Text] = [];
+      var split2 : [Text] = [];
+      var start : ?Nat = null;
+      var end : ?Nat = null;
+      var b_foundRange : Bool = false;
+      for(this_header in headers.vals()){
+          if(this_header.0 == "range" or this_header.0 == "Range"){
+            //handle range headers
+            b_foundRange := true;
+            split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
+            split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
+            if(split2.size() == 1){
+                start := Conversion.textToNat(split2[0]);
+            } else {
+                start := Conversion.textToNat(split2[0]);
+                end := Conversion.textToNat(split2[1]);
+            };
+            debug if(debug_channel.library) D.print("split2 " # debug_show(split2));
+          };
+      };
+      return {
+        start;
+        end;
+        b_foundRange;
+      };
+    };
+
     //determines how a library item should be rendere in an http request
     /**
     * Determines how a library item should be rendered in an HTTP request.
@@ -542,26 +662,18 @@ module {
 
         debug if(debug_channel.library) D.print("library meta" #debug_show(library_meta));
 
-        let location_type = switch(Metadata.get_nft_text_property(library_meta, "location_type")){
-            case(#err(err)){return _not_found("location type not found" # token_id # " " # library_id);};
-            case(#ok(val)){val};
-        };
+        let #ok(location_type) = Metadata.get_nft_text_property(library_meta, "location_type") else
+            return _not_found("location type not found" # token_id # " " # library_id);
 
-        let read_type = switch(Metadata.get_nft_text_property(library_meta, "read")){
-            case(#err(err)){return _not_found("read type not found" # token_id # " " # library_id);};
-            case(#ok(val)){val};
-        };
+        let #ok(read_type) = Metadata.get_nft_text_property(library_meta, "read") else return _not_found("read type not found" # token_id # " " # library_id);
 
-        let location = switch(Metadata.get_nft_text_property(library_meta, "location")){
-            case(#err(err)){return _not_found("location type not found" # token_id # " " # library_id);};
-            case(#ok(val)){val};
-        };
+        let #ok(location) = (Metadata.get_nft_text_property(library_meta, "location")) else return _not_found("location type not found" # token_id # " " # library_id);
 
         let use_token_id = if(location_type == "canister"){
-                                debug if(debug_channel.library) D.print("location type is canister");
+            debug if(debug_channel.library) D.print("location type is canister");
             token_id;
         } else if(location_type == "collection"){
-                                debug if(debug_channel.library) D.print("location type is collection");
+            debug if(debug_channel.library) D.print("location type is collection");
             "";
         } else if(location_type == "web"){
             return {
@@ -570,74 +682,21 @@ module {
                 status_code = 307;
                 streaming_strategy = null;
             };
-            
         }else {
             return _not_found("library hosted off chain - " # token_id # " " # library_id  # " " # location_type);
         };
 
-                        debug if(debug_channel.library)  D.print("comparing library in allocation" # debug_show((use_token_id, library_id, state.state.allocations)));
-        let allocation = switch(Map.get<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (use_token_id, library_id))){
-            case(null){
-                return _not_found("allocation for token, library not found - " # use_token_id # " " # library_id);
-            };
-            case(?val){val};
-        };
-
-                        debug if(debug_channel.library) D.print("found allocation" # debug_show((allocation.canister, state.canister())));
+        debug if(debug_channel.library)  D.print("comparing library in allocation" # debug_show((use_token_id, library_id, state.state.allocations)));
+        let ?allocation = Map.get<(Text, Text), Types.AllocationRecord>(
+          state.state.allocations, 
+          (NFTUtils.library_hash, NFTUtils.library_equal), 
+          (use_token_id, library_id)) else return _not_found("allocation for token, library not found - " # use_token_id # " " # library_id);
+                        
+        debug if(debug_channel.library) D.print("found allocation" # debug_show((allocation.canister, state.canister())));
         
        
         if(allocation.canister != state.canister()){
-             //this library is held in a storage canister
-                                debug if(debug_channel.library)  D.print("item is not on this server redir to " # Principal.toText(allocation.canister));
-            let location = switch(Metadata.get_nft_text_property(library_meta, "location")){
-                case(#err(err)){return _not_found("location not found" # token_id # " " # library_id);};
-                case(#ok(val)){val};
-            };
-
-                                debug if(debug_channel.library) D.print("have location" # debug_show(location));
-
-            let path = if(use_token_id == ""){
-                "collection/-/" # library_id
-            } else {
-                "-/" # use_token_id # "/-/" # library_id
-            };
-
-                                debug if(debug_channel.library)  D.print("got a path " # path);
-
-                                debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id,Principal.fromBlob("\04"))));
-
-            let address = switch(
-                Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")),
-                Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")),
-                Metadata.get_primary_protocol(state, use_token_id, Principal.fromBlob("\04"))){
-                    case(#ok(host), #ok(port), #ok(protocol)){
-                        //branch is used for local testing
-                        protocol # "://" # host # (if(port=="443" or port == "80"){""}else{":" # port}) # "/" # path # "?canisterId=" # Principal.toText(allocation.canister)
-                    };
-                    
-                    case(_,_,_){
-                      if(Text.startsWith(location, #text("http")) == true){
-                        //if the location is a full http address
-                        location
-                      } else {
-                        //for relative paths
-                        "https://" # Principal.toText(allocation.canister) # ".ic0.app/" # location
-                      };
-                      
-                    };
-                };
-
-                                debug if(debug_channel.library)  D.print("got a location " # address);
-
-                                debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id,Principal.fromBlob("\04")), Metadata.get_primary_port(state,use_token_id,  Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id, Principal.fromBlob("\04"))));
-
-
-            return {
-                body = "";
-                headers = [("Location", address),("icx-proxy-forward","true")];
-                status_code = 307;
-                streaming_strategy = null;
-            };
+             return _redirect_to_storage_canister(state, library_meta, token_id, library_id, location, use_token_id, allocation.canister);
         };
 
         if(read_type == "owner"){ //own this NFT
@@ -658,18 +717,14 @@ module {
             };
         };
 
+        let header_result = _handle_range_headers(req.headers.original);
+
         if(location_type == "canister"){
             //on this canister
-                                debug if(debug_channel.library)  D.print("canister");
-            let content_type = switch(Metadata.get_nft_text_property(library_meta, "content_type")){
-                case(#err(err)){return _not_found("content type not found");};
-                case(#ok(val)){val};
-            };
+            debug if(debug_channel.library)  D.print("canister");
+            let #ok(content_type) = Metadata.get_nft_text_property(library_meta, "content_type") else return _not_found("content type not found");
 
-            let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
-                case(#err(err)){return _not_found("item not found")};
-                case(#ok(val)){val};
-            };
+            let #ok(item) = Metadata.get_library_item_from_store(state.nft_library, token_id, library_id) else return _not_found("item not found");
 
             switch(item.getOpt(1)){
                 case(null){
@@ -677,51 +732,28 @@ module {
                     return _not_found("file data not found");
                 };
                 case(?zone){
-                                        debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
-                                        debug if(debug_channel.stablebtree)  D.print("#use_stablebtree - zone");
+                    debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
+                    debug if(debug_channel.stablebtree)  D.print("#use_stablebtree - zone");
 
-                    var split : [Text] = [];
-                    var split2 : [Text] = [];
-                    var start : ?Nat = null;
-                    var end : ?Nat = null;
-                    var b_foundRange : Bool = false;
-                    for(this_header in req.headers.original.vals()){
-
-                        if(this_header.0 == "range" or this_header.0 == "Range"){
-                            //handle range headers
-                            b_foundRange := true;
-                            split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
-                            split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
-                            if(split2.size() == 1){
-                                start := Conversion.textToNat(split2[0]);
-                            } else {
-                                start := Conversion.textToNat(split2[0]);
-                                end := Conversion.textToNat(split2[1]);
-                            };
-                                            debug if(debug_channel.library) D.print("split2 " # debug_show(split2));
-                        };
-                    };
-
-
-                    if(b_foundRange == true){
+                    if(header_result. b_foundRange == true){
                         //range request
-                                            debug if(debug_channel.library)  D.print("dealing with a range request");
+                         debug if(debug_channel.library)  D.print("dealing with a range request");
                         let result = handle_stream_content(
                                 state,
                                 token_id,
                                 library_id,
-                                start,
-                                end,
+                                header_result.start,
+                                header_result.end,
                                 content_type,
                                 item,
                                 req
                             );
-                                                debug if(debug_channel.library)D.print("returning with callback:");
-                                                debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                            debug if(debug_channel.library)D.print("returning with callback:");
+                            debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
 
                     } else {
-                                            debug if(debug_channel.library)D.print("Not a range requst");
+                        debug if(debug_channel.library)D.print("Not a range requst");
 
                         /*
                         remove this comment to get a dump of the actual headers that made it through.
@@ -741,11 +773,11 @@ module {
                                 item,
                                 req
                             );
-                                                debug if(debug_channel.library)D.print("returning with callback");
-                                                debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                            debug if(debug_channel.library)D.print("returning with callback");
+                            debug if(debug_channel.library)D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
-                                                debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 1");
+                            debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 1");
 
                             // Stablebtree  /////////////
 
@@ -798,22 +830,15 @@ module {
             };
         } else  if(location_type == "collection"){
             //on this canister but with collection id
-                                debug if(debug_channel.library)D.print("collection");
+            debug if(debug_channel.library)D.print("collection");
 
             let use_token_id = "";
 
+            let #ok(content_type) = Metadata.get_nft_text_property(library_meta, "content_type") else return _not_found("content type not found");
 
-            let content_type = switch(Metadata.get_nft_text_property(library_meta, "content_type")){
-                case(#err(err)){return _not_found("content type not found");};
-                case(#ok(val)){val};
-            };
+            debug if(debug_channel.library)D.print("collection content type is " # content_type);
 
-                                debug if(debug_channel.library)D.print("collection content type is " # content_type);
-
-            let item = switch(Metadata.get_library_item_from_store(state.nft_library, use_token_id, library_id)){
-                case(#err(err)){return _not_found("item not found")};
-                case(#ok(val)){val};
-            };
+            let #ok(item) = Metadata.get_library_item_from_store(state.nft_library, use_token_id, library_id) else return _not_found("item not found");
 
             switch(item.getOpt(1)){
                 case(null){
@@ -821,52 +846,28 @@ module {
                     return _not_found("file data not found");
                 };
                 case(?zone){
-                                        debug if(debug_channel.library) D.print("size of zone");
-                                        debug if(debug_channel.library) D.print(debug_show(zone.size()));
+                    debug if(debug_channel.library) D.print("size of zone");
+                    debug if(debug_channel.library) D.print(debug_show(zone.size()));
 
-                    var split : [Text] = [];
-                    var split2 : [Text] = [];
-                    var start : ?Nat = null;
-                    var end : ?Nat = null;
-                    var b_foundRange : Bool = false;
-
-
-
-                    for(this_header in req.headers.original.vals()){
-
-                        if(this_header.0 == "range" or this_header.0 == "Range"){
-                            b_foundRange := true;
-                            split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
-                            split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
-                            if(split2.size() == 1){
-                                start := Conversion.textToNat(split2[0]);
-                            } else {
-                                start := Conversion.textToNat(split2[0]);
-                                end := Conversion.textToNat(split2[1]);
-                            };
-                        };
-                    };
-
-
-                    if(b_foundRange == true){
+                    if(header_result.b_foundRange == true){
                         //range request
                                                 debug if(debug_channel.library) D.print("dealing with a range request");
                         let result = handle_stream_content(
                                 state,
                                 use_token_id,
                                 library_id,
-                                start,
-                                end,
+                                header_result.start,
+                                header_result.end,
                                 content_type,
                                 item,
                                 req
                             );
-                                                debug if(debug_channel.library) D.print("returning with callback:");
-                                                debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                            debug if(debug_channel.library) D.print("returning with callback:");
+                            debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
 
                     } else {
-                                            debug if(debug_channel.library) D.print("Not a range requst");
+                        debug if(debug_channel.library) D.print("Not a range requst");
 
                         /*
                         remove this comment to get a dump of the actual headers that made it through.
@@ -886,12 +887,12 @@ module {
                                 item,
                                 req
                             );
-                                                    debug if(debug_channel.library) D.print("returning with callback");
-                                                    debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
+                            debug if(debug_channel.library) D.print("returning with callback");
+                            debug if(debug_channel.library) D.print(debug_show(Option.isSome(result.streaming_strategy)));
                             return result;
                         } else {
-                                                    debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 2");
-                             // Stablebtree  /////////////
+                            debug if(debug_channel.stablebtree)D.print("#use_stablebtree - insert - renderLibrary 2");
+                            // Stablebtree  /////////////
 
                             var httpbody : Blob = "";
                             var k : Nat32 = 0;
@@ -938,9 +939,6 @@ module {
 
                 };
             };
-
-
-
         } else {
             //redirect to asset
             let location = switch(Metadata.get_nft_text_property(library_meta, "location")){
@@ -983,51 +981,57 @@ module {
         };
     };
 
+    /**
+    * Callback function used for NFT streaming. Handles streaming NFT content
+    * @param tk - StreamingCallbackToken, token containing streaming info
+    * @param state - Types.State, state object containing library data and other metadata
+    * @returns StreamingCallbackResponse object, containing payload and streaming token
+    */
     public func nftStreamingCallback(
         tk : StreamingCallbackToken,
         state: Types.State) :  StreamingCallbackResponse {
-                            debug if(debug_channel.streaming) D.print("in streaming callback");
+        debug if(debug_channel.streaming) D.print("in streaming callback");
         let path = Iter.toArray(Text.tokens(tk.key, #text("/")));
-                            debug if(debug_channel.streaming) D.print(debug_show(path));
+        debug if(debug_channel.streaming) D.print(debug_show(path));
         if (path.size() == 2 and path[0] == "nft") {
-                            debug if(debug_channel.streaming) D.print("private nft");
-            let path2 = Iter.toArray(Text.tokens(path[1], #text("|")));
+          debug if(debug_channel.streaming) D.print("private nft");
+          let path2 = Iter.toArray(Text.tokens(path[1], #text("|")));
 
-            let (token_id, library_id) = if(path2.size() == 1){
-                ("", path2[0]);
-            } else {
-                ( path2[0], path2[1]);
-            };
-                            debug if(debug_channel.streaming) D.print(debug_show(path2));
-            
-            let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
-                case(#err(err)){
-                            debug if(debug_channel.streaming) D.print("an error" # debug_show(err));
-                    return {
-                                    body  = Blob.fromArray([]);
-                                    token = null;
-                                }};
-                case(#ok(val)){val};
-            };
-            
-            switch(item.getOpt(1)){
-                case(null){
-                    //nofiledata
-                    return {
-                                body  = Blob.fromArray([]);
-                                token = null;
-                            };
-                };
-                case(?zone){
-                    return stream_content(
-                        tk.key,
-                        tk.index,
-                        item,
-                        state.state.use_stableBTree,
-                        //state.btreemap,
-                    );
-                };
-            };
+          let (token_id, library_id) = if(path2.size() == 1){
+              ("", path2[0]);
+          } else {
+              ( path2[0], path2[1]);
+          };
+                          debug if(debug_channel.streaming) D.print(debug_show(path2));
+          
+          let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
+              case(#err(err)){
+                  debug if(debug_channel.streaming) D.print("an error" # debug_show(err));
+                  return {
+                      body  = Blob.fromArray([]);
+                      token = null;
+                  }};
+              case(#ok(val)){val};
+          };
+          
+          switch(item.getOpt(1)){
+              case(null){
+                  //nofiledata
+                  return {
+                      body  = Blob.fromArray([]);
+                      token = null;
+                  };
+              };
+              case(?zone){
+                  return stream_content(
+                      tk.key,
+                      tk.index,
+                      item,
+                      state.state.use_stableBTree,
+                      //state.btreemap,
+                  );
+              };
+          };
 
 
         } else if(path.size() == 2 and path[0] == "nft-m"){
@@ -1219,7 +1223,7 @@ module {
         };
     };
 
-    //pulls 
+    //formats a candy value to json
     private func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
         let message_response = switch(_query) {
             case(null) {
@@ -1260,7 +1264,14 @@ module {
     };
 
     type sQuery = { #standard: Text; #multi: Text };
+
     //handles queries
+    /**
+    * Splits a query string into a list of sQueries.
+    * @param {Text} q - The query string to split.
+    * @param {Char} p - The character used to separate sQueries.
+    * @returns {Result.Result<List.List<sQuery>, Text>} - A Result containing a list of sQueries or an error message.
+    */
     public func splitQuery(q: Text, p: Char): Result.Result<List.List<sQuery>, Text> {
         var queries = List.nil<sQuery>();
         var key : Text = "";
@@ -1465,15 +1476,10 @@ module {
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_nft_owner_check(stateBody : Types.State, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
-        let access_token = switch(req.url.queryObj.get("access")) {
-            case(null) return #err("no access code in request when nft not minted");
-            case(?access_token) access_token;
-        };
+        let ?access_token = req.url.queryObj.get("access") else return #err("no access code in request when nft not minted");
 
-        let info = switch(Map.get(stateBody.state.access_tokens, thash,access_token)) {
-          case(null) return #err("identity not found by access_token : " # access_token);
-          case(?info) info;
-        };
+        let ?info = Map.get(stateBody.state.access_tokens, thash,access_token) else return #err("identity not found by access_token : " # access_token);
+
         let { identity; expires; } = info;
 
         switch(Metadata.is_nft_owner(metadata, #principal(identity))){
@@ -1509,7 +1515,7 @@ module {
         let path_array = req.url.path.array;
 
 
-                        debug if(debug_channel.request) D.print(debug_show(rawReq));
+        debug if(debug_channel.request) D.print(debug_show(rawReq));
         
         if(path_size == 0) {
             switch(queryObj.get("tokenid")){
@@ -1586,8 +1592,6 @@ module {
               }
             };
           };
-          
-
             return {
                 body = Text.encodeUtf8 ("<html><head><title> An Origyn NFT Canister </title></head><body></body></html>\n");
                 headers = [];
@@ -1600,8 +1604,8 @@ module {
         if(path_size > 0){
             if(path_array[0] == "-"){
                 if(path_size > 1){
-                                    debug if(debug_channel.request) D.print("on path print area");
-                                    debug if(debug_channel.request) D.print(debug_show(path_size));
+                    debug if(debug_channel.request) D.print("on path print area");
+                    debug if(debug_channel.request) D.print(debug_show(path_size));
                     let token_id = path_array[1];
 
                     let metadata = switch(Map.get(state.state.nft_metadata, Map.thash, token_id)){
@@ -1615,7 +1619,7 @@ module {
                     let is_minted = Metadata.is_minted(metadata);
                     if(path_size == 2){
                         //show the main asset
-                                           debug if(debug_channel.request) D.print("should be showing the main asset unless unmited" # debug_show(is_minted));
+                        debug if(debug_channel.request) D.print("should be showing the main asset unless unmited" # debug_show(is_minted));
                         if(is_minted == false){
                             return renderSmartRoute(state, req, metadata, token_id, Types.metadata.hidden_asset);
                         };
@@ -1664,14 +1668,9 @@ module {
                             return json(libraries, null);
                         };
                         if(path_array[2] == "ledger_info"){
-                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
+                          debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                          let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
-                            case(null){
-                              return json(#Empty, null);
-                            };
-                            case(?val){val};
-                          };
+                          let ?ledger = Map.get(state.state.nft_ledgers, Map.thash, token_id) else return json(#Empty, null);
                           
                           let page = if(path_array.size() > 3){
                             switch(Conversion.textToNat(path_array[3])){
@@ -1749,36 +1748,28 @@ module {
                               };
 
                               return renderLibrary(state, req, metadata, token_id, library_id);
-                              
-                              
                           };
                         };
                     };
                 };
             } else if(path_array[0] == "collection"){
-                                    debug if(debug_channel.request) D.print("found collection");
+                debug if(debug_channel.request) D.print("found collection");
 
 
-                                    debug if(debug_channel.request) D.print("on path print area");
-                                debug if(debug_channel.request) D.print(debug_show(path_size));
+                debug if(debug_channel.request) D.print("on path print area");
+                debug if(debug_channel.request) D.print(debug_show(path_size));
                 let token_id = "";
 
-                let metadata = switch(Map.get(state.state.nft_metadata, Map.thash,token_id)){
-                    case(null){
-                        return _not_found("metadata not found");
-                    };
-                    case(?val){
-                        val;
-                    };
-                };
+                let ?metadata = Map.get(state.state.nft_metadata, Map.thash,token_id) else return _not_found("metadata not found");
+
                 if(path_size > 1){
                     if(path_array[1] == "-"){
 
-                                            debug if(debug_channel.request) D.print("found -");
+                        debug if(debug_channel.request) D.print("found -");
 
                         if(path_size == 2){
                             // https://exos.surf/-/canister_id/collection/
-                                            debug if(debug_channel.request) D.print("render smart route 2 collection" # token_id);
+                            debug if(debug_channel.request) D.print("render smart route 2 collection" # token_id);
                             debug if(debug_channel.request) D.print("primary asset");
                             return renderSmartRoute(state, req, metadata, token_id, Types.metadata.primary_asset);
                         };
@@ -1808,22 +1799,17 @@ module {
                           };
 
                           if(path_size >= 3 and path_array[path_array.size()-1] == "info"){
-                            let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
-                                case(#err(err)){return _not_found("library by " # library_id # " not found");};
-                                case(#ok(val)){val};
-                            };
+                            let #ok(library_meta) = Metadata.get_library_meta(metadata, library_id) else return _not_found("library by " # library_id # " not found");
+
                             return json(library_meta, queryObj.get("query"));
                           };
                           debug if(debug_channel.request) D.print("library id "  # library_id);
 
                           return renderLibrary(state, req, metadata, token_id, library_id);
-
-                        
-
                         };
                     };
                     if(path_array[1] == "ex"){
-                                            debug if(debug_channel.request) D.print("render ex "  # token_id );
+                        debug if(debug_channel.request) D.print("render ex "  # token_id );
                         var aResponse = renderSmartRoute(state ,req, metadata, token_id, Types.metadata.experience_asset);
                         if(aResponse.status_code==404){
                             aResponse := renderSmartRoute(state ,req, metadata, token_id, Types.metadata.primary_asset)
@@ -1831,7 +1817,7 @@ module {
                         return aResponse;
                     };
                     if(path_array[1] == "preview"){
-                                            debug if(debug_channel.request) D.print("render perview "  # token_id );
+                        debug if(debug_channel.request) D.print("render perview "  # token_id );
                                            
                         var aResponse = renderSmartRoute(state,req, metadata, token_id, Types.metadata.preview_asset);
                         if(aResponse.status_code==404){
@@ -1840,34 +1826,26 @@ module {
                         return aResponse;
                     };
                     if(path_array[1] == "hidden"){
-                                            debug if(debug_channel.request) D.print("render hidden "  # token_id );
+                        debug if(debug_channel.request) D.print("render hidden "  # token_id );
                         return renderSmartRoute(state,req, metadata, token_id, Types.metadata.hidden_asset);
                     };
                     if(path_array[1] == "primary"){
-                                            debug if(debug_channel.request) D.print("render primary "  # token_id );
+                        debug if(debug_channel.request) D.print("render primary "  # token_id );
                         return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
                     };
                     if(path_array[1] == "info"){
-                                            debug if(debug_channel.request) D.print("render info "  # token_id );
+                        debug if(debug_channel.request) D.print("render info "  # token_id );
                         return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                     };
                     if(path_array[1] == "library"){
-                                            debug if(debug_channel.request) D.print("render library "  # token_id );
-                        let libraries = switch(Metadata.get_nft_library(Metadata.get_clean_metadata(metadata, caller), ?caller)){
-                            case(#err(err)){return _not_found("libraries not found");};
-                            case(#ok(val)){ val };
-                        };
+                        debug if(debug_channel.request) D.print("render library "  # token_id );
+                        let #ok(libraries) = Metadata.get_nft_library(Metadata.get_clean_metadata(metadata, caller), ?caller) else return _not_found("libraries not found");
                         return json(libraries, null);
                     };
                     if(path_array[1] == "ledger_info"){
-                                            debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
+                        debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                        let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, token_id)){
-                          case(null){
-                            return json(#Empty, null);
-                          };
-                          case(?val){val};
-                        };
+                        let ?ledger = Map.get(state.state.nft_ledgers, Map.thash, token_id) else return json(#Empty, null);
                         
                         let page = if(path_array.size() > 2){
                           switch(Conversion.textToNat(path_array[2])){
@@ -1882,7 +1860,6 @@ module {
                               case(?val){val;};
                             }
                         } else {10000};
-
 
                         return json(#Array(#frozen(Metadata.ledger_to_candy(ledger, page, size))), null);
                     };
@@ -1907,9 +1884,6 @@ module {
                         return json(#Array(#frozen(translation)), null);
                             
                     };
-                      
-
-                    
                 } else {
                   debug if(debug_channel.request) D.print("collection info");
                   let rawkeys = if(NFTUtils.is_owner_manager_network(state, caller) == true){
@@ -1937,7 +1911,6 @@ module {
                 };
             };
         };
-
         return _not_found("nyi");
     };
 

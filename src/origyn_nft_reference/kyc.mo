@@ -33,8 +33,12 @@ module {
         owner = false;
     };
 
+    /**
+    * Retrieves the KYC canister's principal for the buyer of  collection.
+    * @param {Types.State} state - The state of the canister.
+    * @returns {?Principal} The KYC canister's principal for the buyer of the collection or null if not found.
+    */
     private func get_collection_kyc_canister_buyer(state : Types.State) : ?Principal {
-
       D.print(Types.metadata.collection_kyc_canister_buyer);
       state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer called", #Empty, null);
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else{
@@ -52,6 +56,11 @@ module {
       return ?value;
     };
 
+    /**
+    * Retrieves the KYC canister's principal for the seller of the collection.
+    * @param {Types.State} state - The state of the canister.
+    * @returns {?Principal} The KYC canister's principal for the seller of the collection or null if not found.
+    */
     private func get_collection_kyc_canister_seller(state : Types.State) : ?Principal {
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "",state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else {
         state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller was null", #Empty, null);
@@ -66,16 +75,36 @@ module {
       return ?value;
     };
 
+    /**
+    * Retrieves the KYC canister's principal for a sale.
+    * @param {Types.State} state - The state of the canister.
+    * @param {?Text} sale_id - The sale ID or null for the collection itself.
+    * @returns {?Principal} The KYC canister's principal for the sale or null if not found.
+    */
     private func get_sale_kyc_canister(state : Types.State, sale_id: ?Text) : ?Principal {
       //nyi
       null;
     };
 
+    /**
+    * Retrieves the elective KYC canister's principal for a principal.
+    * @param {Types.State} state - The state of the canister.
+    * @param {Principal} principal - The principal to look up the elective KYC canister for.
+    * @returns {AsyncIterable<?Principal>} The elective KYC canister's principal for the principal or null if not found.
+    */
     private func get_elective_kyc_canister(state : Types.State, principal: Principal) : async* ?Principal {
       //nyi
       null;
     };
 
+
+    /**
+    * Perform KYC check for buyer of an escrowed asset.
+    * @param {StateAccess} state - The state of the escrow transaction.
+    * @param {MigrationTypes.Current.EscrowRecord} escrow - The escrowed asset.
+    * @param {Principal} caller - The principal of the caller.
+    * @returns {async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError>} The KYC result for the buyer.
+    */
     public func pass_kyc_buyer(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError> {
 
         var message : Text = "";
@@ -286,7 +315,13 @@ module {
         #ok(result);
     };
 
-
+    /**
+    * Perform KYC check for seller of an escrowed asset.
+    * @param {StateAccess} state - The state of the escrow transaction.
+    * @param {MigrationTypes.Current.EscrowRecord} escrow - The escrowed asset.
+    * @param {Principal} caller - The principal of the caller.
+    * @returns {async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError>} The KYC result for the seller.
+    */
     public func pass_kyc_seller(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* Result.Result<MigrationTypes.Current.RunKYCResult, Types.OrigynError> {
 
         var message : Text = "";
@@ -489,6 +524,13 @@ module {
     };
 
 
+    /**
+    * Notifies the collection kyc canister buyer and elective kyc canister of a successful KYC check for a given sale.
+    * @param {StateAccess} state - the state of the current canister
+    * @param {MigrationTypes.Current.EscrowRecord} escrow - the escrow record containing the sale information for the executed transaction
+    * @param {Principal} caller - the principal of the caller of the function
+    * @returns {Promise<void>}
+    */
     public func notify_kyc(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* () {
 
         D.print("in notify kyc");
