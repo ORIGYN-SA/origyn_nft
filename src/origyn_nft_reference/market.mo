@@ -1309,8 +1309,16 @@ module {
       };
     };
 
+    
 
     //handles async market transfer operations like instant where interaction with other canisters is required
+    /**
+    * Handles async market transfer operations like instant where interaction with other canisters is required
+    * @param {StateAccess} state - StateAccess instance representing the state of the canister
+    * @param {Types.MarketTransferRequest} request - MarketTransferRequest object containing the details of the transfer
+    * @param {Principal} caller - Principal object representing the caller
+    * @returns {AsyncGenerator<Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError>>} An async generator that yields a Result object representing the result of the transfer operation
+    */
     public func market_transfer_nft_origyn_async(state: StateAccess, request : Types.MarketTransferRequest, caller: Principal) : async* Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
       debug if(debug_channel.market) D.print("in market_transfer_nft_origyn");
@@ -1779,6 +1787,13 @@ module {
       };
     };
 
+    /**
+    * Calculates the network royalty account for a given principal.
+    * 
+    * @param {Principal} principal - The principal for which to calculate the network royalty account.
+    * 
+    * @returns {Array<Nat8>} An array of 8-bit natural numbers representing the calculated network royalty account.
+    */
     public func get_network_royalty_account(principal : Principal) : [Nat8]{
       let h = SHA256.New();
       h.write(Conversions.valueToBytes(#Text("com.origyn.network_royalty")));
@@ -1951,6 +1966,25 @@ module {
     };
 
     //handles non-async market functions like starting an auction
+    /**
+    * Processes royalties for a given escrow transaction and updates state accordingly.
+    * @param {StateAccess} state - The current state of the application.
+    * @param {Object} request - An object containing the necessary information for royalty processing.
+    * @param {Nat} request.remaining - The amount of remaining royalty to be paid.
+    * @param {Nat} request.total - The total amount of royalty to be paid.
+    * @param {Nat} request.fee - The fee to be paid for processing royalty.
+    * @param {?Blob} request.account_hash - An optional hash of the account for which royalty is being paid.
+    * @param {[CandyTypes.CandyValue]} request.royalty - The array of royalty being paid.
+    * @param {Types.EscrowReceipt} request.escrow - The escrow receipt associated with the transaction.
+    * @param {?Principal} request.broker_id - The broker ID associated with the transaction.
+    * @param {?Principal} request.original_broker_id - The original broker ID associated with the transaction.
+    * @param {?Text} request.sale_id - The sale ID associated with the transaction.
+    * @param {CandyTypes.CandyValue} request.metadata - The metadata associated with the transaction.
+    * @param {?Text} request.token_id - The token ID associated with the transaction.
+    * @param {Types.TokenSpec} request.token - The token specification associated with the transaction.
+    * @param {Principal} caller - The principal that initiated the transaction.
+    * @returns {[Nat, [Types.EscrowRecord]]} A tuple containing the remaining royalty amount and an array of EscrowRecords.
+    */
     public func market_transfer_nft_origyn(state: StateAccess, request : Types.MarketTransferRequest, caller: Principal) : async* Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
         debug if(debug_channel.market) D.print("in market_transfer_nft_origyn");
@@ -2335,579 +2369,649 @@ module {
         }));
     };
 
-    //allows the user to withdraw tokens from an nft canister
-    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
-      switch(withdraw){
-        case(#deposit(details)){
-          D.print("in deposit withdraw");
-          debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
-          debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
-          if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false){
-            //cant withdraw for someone else
-            return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller));
-          };
+    /**
+    * Withdraw or deposit funds to a specified account using the specified details.
+    * @param {StateAccess} state - The state of the canister.
+    * @param {Types.DepositWithdrawDescription} details - The details of the withdrawal or deposit.
+    * @param {Principal} caller - The caller of the function.
+    * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - The result of the operation which may contain an error.
+    */
+    private func _withdraw_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+      D.print("in deposit withdraw");
+      debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
+      debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false){
+        //cant withdraw for someone else
+        return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller));
+      };
 
-          debug if(debug_channel.withdraw_deposit) D.print("about to verify");
+      debug if(debug_channel.withdraw_deposit) D.print("about to verify");
 
-          let deposit_account = NFTUtils.get_deposit_info(details.buyer, state.canister());
+      let deposit_account = NFTUtils.get_deposit_info(details.buyer, state.canister());
 
-          //NFT-112
-          let fee = switch(details.token){
-            case(#ic(token)){
-              if(details.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
-              token.fee;
-            };
-            case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller));
-          };
-
-          //attempt to send payment
-                              debug if(debug_channel.withdraw_deposit) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
-          var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
-          
-          transaction_id := switch(details.token){
-            case(#ic(token)){
-              switch(token.standard){
-                case(#Ledger or #ICRC1){
-                  //D.print("found ledger");
-                  let checker = Ledger_Interface.Ledger_Interface();
-
-                  debug if(debug_channel.withdraw_deposit) D.print("returning amount " # debug_show(details.amount, token.fee));
-                  
-                  try{
-                    switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)){
-                      case(#ok(val)) ?val;
-                      case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller));
-
-                    };
-                  } catch (e){
-                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller));
-                  };
-                };
-                case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller));
-              };
-            };
-            case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller));
-          };
-
-          debug if(debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
-
-          switch(transaction_id){
-            case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
-            case(?transaction_id){
-              switch(Metadata.add_transaction_record(state,{
-                token_id = "";
-                index = 0;
-                txn_type = #deposit_withdraw({
-                  details with 
-                  amount = Nat.sub(details.amount, transaction_id.fee);
-                  fee = transaction_id.fee;
-                  trx_id = transaction_id.trx_id;
-                  extensible = #Empty;
-                }
-                );
-                timestamp = state.get_time();
-              }, caller)) {
-                case(#ok(val)) return #ok(#withdraw(val));
-                case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
-              };
-            };
-          };
+      //NFT-112
+      let fee = switch(details.token){
+        case(#ic(token)){
+          if(details.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
+          token.fee;
         };
-        case(#escrow(details)){
-            debug if(debug_channel.withdraw_escrow) D.print("an escrow withdraw");
-            debug if(debug_channel.withdraw_escrow) D.print(debug_show(withdraw));
-            if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match" , ?caller));
+        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller));
+      };
 
-            debug if(debug_channel.withdraw_escrow) D.print("about to verify");
-            
-            let verified = switch(verify_escrow_receipt(state, details, null, null)){
-              case(#err(err)){
-                debug if(debug_channel.withdraw_escrow) D.print("an error");
-                debug if(debug_channel.withdraw_escrow) D.print(debug_show(err));
-                return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
-              };
-              case(#ok(verified)) verified;
-            };
+      //attempt to send payment
+                          debug if(debug_channel.withdraw_deposit) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
+      var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
+      
+      transaction_id := switch(details.token){
+        case(#ic(token)){
+          switch(token.standard){
+            case(#Ledger or #ICRC1){
+              //D.print("found ledger");
+              let checker = Ledger_Interface.Ledger_Interface();
 
-            let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
-            if(verified.found_asset.escrow.amount < details.amount){
-              debug if(debug_channel.withdraw_escrow) D.print("in check amount " # debug_show(verified.found_asset.escrow.amount) # " " # debug_show( details.amount));
-              return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large" , ?caller));
-            };
-
-            let a_ledger = verified.found_asset.escrow;
-
-            switch(a_ledger.lock_to_date){
-              case(?val){
-                debug if(debug_channel.withdraw_escrow) D.print("found a lock date " # debug_show((val, state.get_time())));
-                if(state.get_time() < val) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show(val)  , ?caller));
-              };
-              case(null){
-                debug if(debug_channel.withdraw_escrow) D.print("no lock date " # debug_show(( state.get_time())));
-              };
-            };
-
-            //NFT-112
-            let fee = switch(details.token){
-              case(#ic(token)){
-                  if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
-                  token.fee;
-              };
-              case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller));
-            };
-
-            //D.print("got to sale id");
-
-            switch(a_ledger.sale_id){
-              case(?sale_id){
-                //check that the owner isn't still the bidder in the sale
-                let sale = switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-                    case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
-                    case(?sale) sale;
-                };
-
-                debug if(debug_channel.withdraw_escrow) D.print("testing current state");
-
-                let current_sale_state = switch(NFTUtils.get_auction_state_from_status(sale)){
-                  case(#ok(val)) val;
-                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller));
-                };
-
-                switch(current_sale_state.status){
-                  case(#open){
-
-                    D.print(debug_show(current_sale_state));
-                    D.print(debug_show(caller));
-
-                    //NFT-110
-                    switch(current_sale_state.winner){
-                      case(?val){
-                        debug if(debug_channel.withdraw_escrow) D.print("found a winner");
-                        if(Types.account_eq(val, details.buyer)){
-                          debug if(debug_channel.withdraw_escrow) D.print("should be throwing an error");
-                          return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner" , ?caller));
-                        };
-                      };
-                      case(null){
-                        debug if(debug_channel.withdraw_escrow) D.print("not a winner");
-                      };
-                    };
-
-                    //NFT-76
-                    switch(current_sale_state.current_escrow){
-                      case(?val){
-                        debug if(debug_channel.withdraw_escrow) D.print("testing current escorw");
-                        debug if(debug_channel.withdraw_escrow) D.print(debug_show(val.buyer));
-                        if(Types.account_eq(val.buyer, details.buyer)){
-                          D.print("passed");
-                          return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid" , ?caller));
-                        };
-                      };
-                      case(null){
-                        debug if(debug_channel.withdraw_escrow) D.print("not a current escrow");
-                      };
-                    };
-                  };
-                  case(_){
-                      //it isn't open so we don't need to check
-                  };
-                };
-              };
-              case(null){};
-            };
-
-            debug if(debug_channel.withdraw_escrow) D.print("finding target escrow");
-            debug if(debug_channel.withdraw_escrow) D.print(debug_show(a_ledger.amount));
-            debug if(debug_channel.withdraw_escrow) D.print(debug_show(details.amount));
-            //ok...so we should be good to withdraw
-            //first update the escrow
-            if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller));
-            
-            let target_escrow = {
-              details with 
-              account_hash = verified.found_asset.escrow.account_hash;
-              balances = null;
-              amount = Nat.sub(verified.found_asset.escrow.amount, details.amount);
-              sale_id = a_ledger.sale_id;
-              lock_to_date = a_ledger.lock_to_date;
-            };
-
-            if(target_escrow.amount > 0){
-              Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token, target_escrow);
-            } else {
-              Map.delete<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token);
-            };
-
-            //send payment
-            //reentrancy risk so we remove the escrow value above before calling
-            debug if(debug_channel.withdraw_escrow) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
-            var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
-            
-            transaction_id := switch(details.token){
-              case(#ic(token)){
-                switch(token.standard){
-                  case(#Ledger or #ICRC1){
-                    //D.print("found ledger");
-                    let checker = Ledger_Interface.Ledger_Interface();
-
-                    debug if(debug_channel.withdraw_escrow) D.print("returning amount " # debug_show(details.amount, token.fee));
-                    
-                    try{
-                      switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?account_info.account.sub_account, caller)){
-                        case(#ok(val)) ?val;
-                        case(#err(err)){
-                          handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                          return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller));
-                        };
-                      };
-                    } catch (e){
-                      //put the escrow back because something went wrong
-                      handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                      return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller));
-                    };
-
-                  };
-                  case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show(details), ?caller));
-                };
-              };
-              case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show(details), ?caller));
-            };
-
-            debug if(debug_channel.withdraw_escrow) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
-
-            switch(transaction_id){
-              case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
-              case(?transaction_id){
-                switch(Metadata.add_transaction_record(state,{
-                  token_id = details.token_id;
-                  index = 0;
-                  txn_type = #escrow_withdraw({
-                    details with 
-                    amount = Nat.sub(details.amount,transaction_id.fee);
-                    fee = transaction_id.fee;
-                    trx_id = transaction_id.trx_id;
-                    extensible = #Empty;
-                  }
-                  );
-                  timestamp = state.get_time();
-                }, caller)) {
-                  case(#ok(val)) return #ok(#withdraw(val));
-                  case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
-                };
-              };
-            };
-           
-        };
-        case(#sale(details)){
-          debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
-          debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
-          debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
-          if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller));
-
-          let verified = switch(verify_sales_reciept(state, details)){
-              case(#ok(verified)) verified;
-              case(#err(err)){
-                                      debug if(debug_channel.withdraw_sale) D.print("an error");
-                                      debug if(debug_channel.withdraw_sale) D.print(debug_show(err));
-                  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show(details), ?caller));
-              };
-          };
+              debug if(debug_channel.withdraw_deposit) D.print("returning amount " # debug_show(details.amount, token.fee));
               
-          debug if(debug_channel.withdraw_sale) D.print("have verified");
+              try{
+                switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)){
+                  case(#ok(val)) ?val;
+                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller));
 
-          if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large" , ?caller));
+                };
+              } catch (e){
+                return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller));
+              };
+            };
+            case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller));
+          };
+        };
+        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller));
+      };
 
-          let a_ledger = verified.found_asset.escrow;
+      debug if(debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
 
-          debug if(debug_channel.withdraw_sale) D.print("a_ledger" # debug_show(a_ledger));
+      switch(transaction_id){
+        case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
+        case(?transaction_id){
+          switch(Metadata.add_transaction_record(state,{
+            token_id = "";
+            index = 0;
+            txn_type = #deposit_withdraw({
+              details with 
+              amount = Nat.sub(details.amount, transaction_id.fee);
+              fee = transaction_id.fee;
+              trx_id = transaction_id.trx_id;
+              extensible = #Empty;
+            }
+            );
+            timestamp = state.get_time();
+          }, caller)) {
+            case(#ok(val)) return #ok(#withdraw(val));
+            case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
+          };
+        };
+      };
 
-          let a_token_id = verified.found_asset_list;
+    };
 
-          //NFT-112
-          switch(details.token){
-            case(#ic(token)){
-                if(a_ledger.amount <= token.fee){
-                  debug if(debug_channel.withdraw_sale) D.print("withdraw fee");
-                  return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount" , ?caller));
+
+    /**
+    * Withdraws an asset from an escrow account and sends payment to the designated recipient.
+    * @param {StateAccess} state - the state access object
+    * @param {Types.WithdrawRequest} withdraw - the withdraw request object containing information about the asset being withdrawn
+    * @param {Types.WithdrawDescription} details - the description of the withdrawal
+    * @param {Principal} caller - the caller of the function
+    * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - the result of the function execution
+    */
+    private func _withdraw_escrow(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+
+      debug if(debug_channel.withdraw_escrow) D.print("an escrow withdraw");
+      debug if(debug_channel.withdraw_escrow) D.print(debug_show(withdraw));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match" , ?caller));
+
+      debug if(debug_channel.withdraw_escrow) D.print("about to verify");
+      
+      let verified = switch(verify_escrow_receipt(state, details, null, null)){
+        case(#err(err)){
+          debug if(debug_channel.withdraw_escrow) D.print("an error");
+          debug if(debug_channel.withdraw_escrow) D.print(debug_show(err));
+          return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
+        };
+        case(#ok(verified)) verified;
+      };
+
+      let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
+      if(verified.found_asset.escrow.amount < details.amount){
+        debug if(debug_channel.withdraw_escrow) D.print("in check amount " # debug_show(verified.found_asset.escrow.amount) # " " # debug_show( details.amount));
+        return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large" , ?caller));
+      };
+
+      let a_ledger = verified.found_asset.escrow;
+
+      switch(a_ledger.lock_to_date){
+        case(?val){
+          debug if(debug_channel.withdraw_escrow) D.print("found a lock date " # debug_show((val, state.get_time())));
+          if(state.get_time() < val) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show(val)  , ?caller));
+        };
+        case(null){
+          debug if(debug_channel.withdraw_escrow) D.print("no lock date " # debug_show(( state.get_time())));
+        };
+      };
+
+      //NFT-112
+      let fee = switch(details.token){
+        case(#ic(token)){
+            if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
+            token.fee;
+        };
+        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller));
+      };
+
+      //D.print("got to sale id");
+
+      switch(a_ledger.sale_id){
+        case(?sale_id){
+          //check that the owner isn't still the bidder in the sale
+          let sale = switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
+              case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
+              case(?sale) sale;
+          };
+
+          debug if(debug_channel.withdraw_escrow) D.print("testing current state");
+
+          let current_sale_state = switch(NFTUtils.get_auction_state_from_status(sale)){
+            case(#ok(val)) val;
+            case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller));
+          };
+
+          switch(current_sale_state.status){
+            case(#open){
+
+              D.print(debug_show(current_sale_state));
+              D.print(debug_show(caller));
+
+              //NFT-110
+              switch(current_sale_state.winner){
+                case(?val){
+                  debug if(debug_channel.withdraw_escrow) D.print("found a winner");
+                  if(Types.account_eq(val, details.buyer)){
+                    debug if(debug_channel.withdraw_escrow) D.print("should be throwing an error");
+                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner" , ?caller));
+                  };
+                };
+                case(null){
+                  debug if(debug_channel.withdraw_escrow) D.print("not a winner");
+                };
+              };
+
+              //NFT-76
+              switch(current_sale_state.current_escrow){
+                case(?val){
+                  debug if(debug_channel.withdraw_escrow) D.print("testing current escorw");
+                  debug if(debug_channel.withdraw_escrow) D.print(debug_show(val.buyer));
+                  if(Types.account_eq(val.buyer, details.buyer)){
+                    D.print("passed");
+                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid" , ?caller));
+                  };
+                };
+                case(null){
+                  debug if(debug_channel.withdraw_escrow) D.print("not a current escrow");
+                };
+              };
+            };
+            case(_){
+                //it isn't open so we don't need to check
+            };
+          };
+        };
+        case(null){};
+      };
+
+      debug if(debug_channel.withdraw_escrow) D.print("finding target escrow");
+      debug if(debug_channel.withdraw_escrow) D.print(debug_show(a_ledger.amount));
+      debug if(debug_channel.withdraw_escrow) D.print(debug_show(details.amount));
+      //ok...so we should be good to withdraw
+      //first update the escrow
+      if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller));
+      
+      let target_escrow = {
+        details with 
+        account_hash = verified.found_asset.escrow.account_hash;
+        balances = null;
+        amount = Nat.sub(verified.found_asset.escrow.amount, details.amount);
+        sale_id = a_ledger.sale_id;
+        lock_to_date = a_ledger.lock_to_date;
+      };
+
+      if(target_escrow.amount > 0){
+        Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token, target_escrow);
+      } else {
+        Map.delete<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(verified.found_asset_list, token_handler, details.token);
+      };
+
+      //send payment
+      //reentrancy risk so we remove the escrow value above before calling
+      debug if(debug_channel.withdraw_escrow) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
+      var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
+      
+      transaction_id := switch(details.token){
+        case(#ic(token)){
+          switch(token.standard){
+            case(#Ledger or #ICRC1){
+              //D.print("found ledger");
+              let checker = Ledger_Interface.Ledger_Interface();
+
+              debug if(debug_channel.withdraw_escrow) D.print("returning amount " # debug_show(details.amount, token.fee));
+              
+              try{
+                switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?account_info.account.sub_account, caller)){
+                  case(#ok(val)) ?val;
+                  case(#err(err)){
+                    handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller));
+                  };
+                };
+              } catch (e){
+                //put the escrow back because something went wrong
+                handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+                return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller));
+              };
+
+            };
+            case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show(details), ?caller));
+          };
+        };
+        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show(details), ?caller));
+      };
+
+      debug if(debug_channel.withdraw_escrow) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
+
+      switch(transaction_id){
+        case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
+        case(?transaction_id){
+          switch(Metadata.add_transaction_record(state,{
+            token_id = details.token_id;
+            index = 0;
+            txn_type = #escrow_withdraw({
+              details with 
+              amount = Nat.sub(details.amount,transaction_id.fee);
+              fee = transaction_id.fee;
+              trx_id = transaction_id.trx_id;
+              extensible = #Empty;
+            }
+            );
+            timestamp = state.get_time();
+          }, caller)) {
+            case(#ok(val)) return #ok(#withdraw(val));
+            case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
+          };
+        };
+      };
+    };
+
+
+    /**
+    * Withdraws a sale for a given token from the escrow and sends payment to the specified recipient.
+    *
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.WithdrawRequest} withdraw - The withdrawal request object.
+    * @param {Types.WithdrawDescription} details - The withdrawal details object.
+    * @param {Principal} caller - The caller of the function.
+    * @returns {Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - A Result object that either contains a ManageSaleResponse or an OrigynError if the withdrawal failed.
+    */
+    private func _withdraw_sale(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+      debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
+      debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
+      debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller));
+
+      let verified = switch(verify_sales_reciept(state, details)){
+          case(#ok(verified)) verified;
+          case(#err(err)){
+                                  debug if(debug_channel.withdraw_sale) D.print("an error");
+                                  debug if(debug_channel.withdraw_sale) D.print(debug_show(err));
+              return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show(details), ?caller));
+          };
+      };
+          
+      debug if(debug_channel.withdraw_sale) D.print("have verified");
+
+      if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large" , ?caller));
+
+      let a_ledger = verified.found_asset.escrow;
+
+      debug if(debug_channel.withdraw_sale) D.print("a_ledger" # debug_show(a_ledger));
+
+      let a_token_id = verified.found_asset_list;
+
+      //NFT-112
+      switch(details.token){
+        case(#ic(token)){
+            if(a_ledger.amount <= token.fee){
+              debug if(debug_channel.withdraw_sale) D.print("withdraw fee");
+              return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount" , ?caller));
+            };
+        };
+        case(_){
+          D.print("nyi err");
+          return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
+        };
+      };
+
+      
+      debug if(debug_channel.withdraw_sale) D.print("finding target escrow");
+      debug if(debug_channel.withdraw_sale) D.print(debug_show(a_ledger.amount));
+      debug if(debug_channel.withdraw_sale) D.print(debug_show(details.amount));
+      //ok...so we should be good to withdraw
+      //first update the escrow
+      if(verified.found_asset.escrow.amount < details.amount)return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller));
+
+      let target_escrow = {
+        a_ledger with 
+        amount = Nat.sub(a_ledger.amount, details.amount);
+      };
+
+      if(target_escrow.amount > 0){
+        Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(a_token_id, token_handler, details.token, target_escrow);
+      } else {
+        Map.delete<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(a_token_id, token_handler, details.token);
+      };
+
+
+      //send payment
+      debug if(debug_channel.withdraw_sale) D.print("sending payment");
+      var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
+  
+      transaction_id := switch(details.token){
+        case(#ic(token)){
+          switch(token.standard){
+            case(#Ledger or #ICRC1){
+                debug if(debug_channel.withdraw_sale) D.print("found ledger sale withdraw");
+                let checker = Ledger_Interface.Ledger_Interface();
+                //if this fails we need to put the escrow back
+                try{
+                  switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, a_ledger.account_hash, caller)){
+                    case(#ok(val)) ?val;
+                    case(#err(err)){
+                        //put the escrow back
+                        debug if(debug_channel.withdraw_sale) D.print("failed, putting back ledger");
+                        
+                        handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
+                        return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller));
+                    };
+                  };
+                } catch(e){
+                  //put the escrow back
+                  handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
+                  return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller));
                 };
             };
             case(_){
-              D.print("nyi err");
-              return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
-            };
-          };
-
-          
-          debug if(debug_channel.withdraw_sale) D.print("finding target escrow");
-          debug if(debug_channel.withdraw_sale) D.print(debug_show(a_ledger.amount));
-          debug if(debug_channel.withdraw_sale) D.print(debug_show(details.amount));
-          //ok...so we should be good to withdraw
-          //first update the escrow
-          if(verified.found_asset.escrow.amount < details.amount)return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller));
-
-          let target_escrow = {
-            a_ledger with 
-            amount = Nat.sub(a_ledger.amount, details.amount);
-          };
-
-          if(target_escrow.amount > 0){
-            Map.set<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(a_token_id, token_handler, details.token, target_escrow);
-          } else {
-            Map.delete<Types.TokenSpec, MigrationTypes.Current.EscrowRecord>(a_token_id, token_handler, details.token);
-          };
-
-
-          //send payment
-          debug if(debug_channel.withdraw_sale) D.print("sending payment");
-          var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
-      
-          transaction_id := switch(details.token){
-            case(#ic(token)){
-              switch(token.standard){
-                case(#Ledger or #ICRC1){
-                    debug if(debug_channel.withdraw_sale) D.print("found ledger sale withdraw");
-                    let checker = Ledger_Interface.Ledger_Interface();
-                    //if this fails we need to put the escrow back
-                    try{
-                      switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, a_ledger.account_hash, caller)){
-                        case(#ok(val)) ?val;
-                        case(#err(err)){
-                            //put the escrow back
-                            debug if(debug_channel.withdraw_sale) D.print("failed, putting back ledger");
-                            
-                            handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-                            return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller));
-                        };
-                      };
-                    } catch(e){
-                      //put the escrow back
-                      handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-                      return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller));
-                    };
-                };
-                case(_){
-                  return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show(details), ?caller));
-                };
-              };
-            };
-            case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
-          };
-
-          //D.print("have a transactionid and will crate a transaction");
-          switch(transaction_id){
-            case(null)return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller));
-            case(?transaction_id){
-                switch(Metadata.add_transaction_record(state,{
-                  token_id = details.token_id;
-                  index = 0;
-                  txn_type = #sale_withdraw({
-                    details with 
-                    amount = Nat.sub(details.amount, transaction_id.fee);
-                    fee = transaction_id.fee;
-                    trx_id = transaction_id.trx_id;
-                    extensible = #Empty;
-                  }
-                  );
-                  timestamp = state.get_time();
-                }, caller)) {
-                  case(#ok(val)) return #ok(#withdraw(val));
-                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller));
-                };
+              return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show(details), ?caller));
             };
           };
         };
-        case(#reject(details)){
-          // rejects and offer and sends the tokens back to the source
-          debug if(debug_channel.withdraw_reject) D.print("an escrow reject");
-          if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network){
-            //cant withdraw for someone else
-            debug if(debug_channel.withdraw_reject) D.print(debug_show((caller, state.canister(), details.seller, state.state.collection_data.network)));
-            return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - reject - unauthorized" , ?caller));
+        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
+      };
+
+      //D.print("have a transactionid and will crate a transaction");
+      switch(transaction_id){
+        case(null)return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller));
+        case(?transaction_id){
+            switch(Metadata.add_transaction_record(state,{
+              token_id = details.token_id;
+              index = 0;
+              txn_type = #sale_withdraw({
+                details with 
+                amount = Nat.sub(details.amount, transaction_id.fee);
+                fee = transaction_id.fee;
+                trx_id = transaction_id.trx_id;
+                extensible = #Empty;
+              }
+              );
+              timestamp = state.get_time();
+            }, caller)) {
+              case(#ok(val)) return #ok(#withdraw(val));
+              case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller));
+            };
+        };
+      };
+
+    };
+
+    /**
+    * Rejects an offer and sends the tokens back to the source.
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.WithdrawRequest} withdraw - The withdraw request object.
+    * @param {Types.RejectDescription} details - The reject description object.
+    * @param {Principal} caller - The caller principal.
+    * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} A Result type containing either a Types.ManageSaleResponse object or a Types.OrigynError object.
+    */
+    private func _reject_offer(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.RejectDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+      // rejects and offer and sends the tokens back to the source
+      debug if(debug_channel.withdraw_reject) D.print("an escrow reject");
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network){
+        //cant withdraw for someone else
+        debug if(debug_channel.withdraw_reject) D.print(debug_show((caller, state.canister(), details.seller, state.state.collection_data.network)));
+        return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - reject - unauthorized" , ?caller));
+      };
+
+      debug if(debug_channel.withdraw_reject) D.print("about to verify");
+
+      let verified = switch(verify_escrow_receipt(state, {
+          amount = 0;
+          buyer = details.buyer;
+          seller = details.seller;
+          token  = details.token;
+          token_id = details.token_id
+      }, null, null)){
+        case(#ok(verified)) verified;
+        case(#err(err)){
+          debug if(debug_channel.withdraw_reject) D.print("an error");
+          debug if(debug_channel.withdraw_reject) D.print(debug_show(err));
+          return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
+        };
+      };
+        
+      let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
+
+      let a_ledger = verified.found_asset.escrow;
+
+      // reject ignores locked assets
+      //NFT-112
+      let fee = switch(details.token){
+        case(#ic(token)){
+          if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller));
+          token.fee;
+        };
+        case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show(details), ?caller));
+      };
+
+      debug if(debug_channel.withdraw_reject) D.print("got to sale id");
+
+      switch(a_ledger.sale_id){
+        case(?sale_id){
+            //check that the owner isn't still the bidder in the sale
+          switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
+            case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
+            case(?val){
+
+              debug if(debug_channel.withdraw_reject) D.print("testing current state");
+
+              let current_sale_state = switch(NFTUtils.get_auction_state_from_status(val)){
+                  case(#ok(val)){val};
+                  case(#err(err)){
+                    return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller));
+                  };
+              };
+
+              switch(current_sale_state.status){
+                case(#open){
+
+                  debug if(debug_channel.withdraw_reject) D.print(debug_show(current_sale_state));
+                  debug if(debug_channel.withdraw_reject) D.print(debug_show(caller));
+
+                  //NFT-110
+                  switch(current_sale_state.winner){
+                    case(?val){
+                      debug if(debug_channel.withdraw_reject) D.print("found a winner");
+                      if(Types.account_eq(val, details.buyer)){
+                        debug if(debug_channel.withdraw_reject) D.print("should be throwing an error");
+                        return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner" , ?caller));
+                      };
+                    };
+                    case(null){
+                      debug if(debug_channel.withdraw_reject) D.print("not a winner");
+                    };
+                  };
+
+                  //NFT-76
+                  switch(current_sale_state.current_escrow){
+                    case(?val){
+                      debug if(debug_channel.withdraw_reject) D.print("testing current escorw");
+                      debug if(debug_channel.withdraw_reject) D.print(debug_show(val.buyer));
+                      if(Types.account_eq(val.buyer, details.buyer)){
+                        debug if(debug_channel.withdraw_reject)  D.print("passed");
+                        return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid" , ?caller));
+                      };
+                    };
+                    case(null){
+                      debug if(debug_channel.withdraw_reject) D.print("not a current escrow");
+                    };
+                  };
+                };
+                case(_){
+                    //it isn't open so we don't need to check
+                };
+              };
+            };
           };
+        };
+        case(null){
 
-          debug if(debug_channel.withdraw_reject) D.print("about to verify");
+        };
+      };
 
-          let verified = switch(verify_escrow_receipt(state, {
-              amount = 0;
-              buyer = details.buyer;
-              seller = details.seller;
-              token  = details.token;
-              token_id = details.token_id
-          }, null, null)){
-            case(#ok(verified)) verified;
+      debug if(debug_channel.withdraw_reject) D.print("finding target escrow");
+      debug if(debug_channel.withdraw_reject) D.print(debug_show(a_ledger.amount));
+      
+      //ok...so we should be good to withdraw
+      //first update the escrow
+      
+      //deleteing the asset
+      Map.delete(verified.found_asset_list, token_handler, details.token);
+
+      //send payment
+                          
+      var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
+      try{
+        transaction_id := switch(details.token){
+          case(#ic(token)){
+            switch(token.standard){
+              case(#Ledger or #ICRC1){
+                //D.print("found ledger");
+                let checker = Ledger_Interface.Ledger_Interface();
+
+                debug if(debug_channel.withdraw_reject) D.print("returning amount " # debug_show(verified.found_asset.escrow.amount, token.fee));
+                
+                switch(await* checker.send_payment_minus_fee(details.buyer, token, verified.found_asset.escrow.amount, ?account_info.account.sub_account, caller)){
+                  case(#ok(val)) ?val;
+                  case(#err(err)){
+                    //put the escrow back
+                    //make sure things havent changed in the mean time
+                    //D.print("failed, putting back ledger");
+                    handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller));
+                  };
+                };
+
+              };
+              case(_){
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show(details), ?caller));
+              };
+            };
+          };
+          case(#extensible(val)){
+            return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show(details), ?caller));
+          };
+        };
+      } catch (e){
+        //something failed, put the escrow back
+        //make sure it hasn't changed in the mean time
+        //D.print("failed, putting back throw");
+        handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
+
+        return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e) , ?caller));
+      };
+
+      debug if(debug_channel.withdraw_reject) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
+
+      switch(transaction_id){
+        case(null){
+          //really should have failed already
+          return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller));
+        };
+        case(?transaction_id){
+          switch(Metadata.add_transaction_record(state,{
+            token_id = details.token_id;
+            index = 0;
+            txn_type = #escrow_withdraw({
+              details with 
+                amount = Nat.sub(verified.found_asset.escrow.amount,transaction_id.fee);
+                fee = transaction_id.fee;
+                trx_id = transaction_id.trx_id;
+                extensible = #Empty;
+            }
+            );
+            timestamp = state.get_time();
+          }, caller)) {
+            case(#ok(val)){
+              return #ok(#withdraw(val));
+            };
             case(#err(err)){
-              debug if(debug_channel.withdraw_reject) D.print("an error");
-              debug if(debug_channel.withdraw_reject) D.print(debug_show(err));
-              return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
+              return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show(transaction_id) , ?caller));
             };
           };
-            
-          let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
+        };
+      };
+    };
 
-          let a_ledger = verified.found_asset.escrow;
 
-          // reject ignores locked assets
-          //NFT-112
-          let fee = switch(details.token){
-            case(#ic(token)){
-              if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller));
-              token.fee;
-            };
-            case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show(details), ?caller));
-          };
-
-          debug if(debug_channel.withdraw_reject) D.print("got to sale id");
-
-          switch(a_ledger.sale_id){
-            case(?sale_id){
-                //check that the owner isn't still the bidder in the sale
-              switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-                case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
-                case(?val){
-
-                  debug if(debug_channel.withdraw_reject) D.print("testing current state");
-
-                  let current_sale_state = switch(NFTUtils.get_auction_state_from_status(val)){
-                      case(#ok(val)){val};
-                      case(#err(err)){
-                        return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller));
-                      };
-                  };
-
-                  switch(current_sale_state.status){
-                    case(#open){
-
-                      debug if(debug_channel.withdraw_reject) D.print(debug_show(current_sale_state));
-                      debug if(debug_channel.withdraw_reject) D.print(debug_show(caller));
-
-                      //NFT-110
-                      switch(current_sale_state.winner){
-                        case(?val){
-                          debug if(debug_channel.withdraw_reject) D.print("found a winner");
-                          if(Types.account_eq(val, details.buyer)){
-                            debug if(debug_channel.withdraw_reject) D.print("should be throwing an error");
-                            return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner" , ?caller));
-                          };
-                        };
-                        case(null){
-                          debug if(debug_channel.withdraw_reject) D.print("not a winner");
-                        };
-                      };
-
-                      //NFT-76
-                      switch(current_sale_state.current_escrow){
-                        case(?val){
-                          debug if(debug_channel.withdraw_reject) D.print("testing current escorw");
-                          debug if(debug_channel.withdraw_reject) D.print(debug_show(val.buyer));
-                          if(Types.account_eq(val.buyer, details.buyer)){
-                            debug if(debug_channel.withdraw_reject)  D.print("passed");
-                            return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid" , ?caller));
-                          };
-                        };
-                        case(null){
-                          debug if(debug_channel.withdraw_reject) D.print("not a current escrow");
-                        };
-                      };
-                    };
-                    case(_){
-                        //it isn't open so we don't need to check
-                    };
-                  };
-                };
-              };
-            };
-            case(null){
-
-            };
-          };
-
-          debug if(debug_channel.withdraw_reject) D.print("finding target escrow");
-          debug if(debug_channel.withdraw_reject) D.print(debug_show(a_ledger.amount));
-          
-          //ok...so we should be good to withdraw
-          //first update the escrow
-          
-          //deleteing the asset
-          Map.delete(verified.found_asset_list, token_handler, details.token);
-
-          //send payment
-                              
-          var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
-          try{
-            transaction_id := switch(details.token){
-              case(#ic(token)){
-                switch(token.standard){
-                  case(#Ledger or #ICRC1){
-                    //D.print("found ledger");
-                    let checker = Ledger_Interface.Ledger_Interface();
-
-                    debug if(debug_channel.withdraw_reject) D.print("returning amount " # debug_show(verified.found_asset.escrow.amount, token.fee));
-                    
-                    switch(await* checker.send_payment_minus_fee(details.buyer, token, verified.found_asset.escrow.amount, ?account_info.account.sub_account, caller)){
-                      case(#ok(val)) ?val;
-                      case(#err(err)){
-                        //put the escrow back
-                        //make sure things havent changed in the mean time
-                        //D.print("failed, putting back ledger");
-                        handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                        return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller));
-                      };
-                    };
-
-                  };
-                  case(_){
-                    return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show(details), ?caller));
-                  };
-                };
-              };
-              case(#extensible(val)){
-                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show(details), ?caller));
-              };
-            };
-          } catch (e){
-            //something failed, put the escrow back
-            //make sure it hasn't changed in the mean time
-            //D.print("failed, putting back throw");
-            handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-
-            return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e) , ?caller));
-          };
-
-          debug if(debug_channel.withdraw_reject) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
-
-          switch(transaction_id){
-            case(null){
-              //really should have failed already
-              return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller));
-            };
-            case(?transaction_id){
-              switch(Metadata.add_transaction_record(state,{
-                token_id = details.token_id;
-                index = 0;
-                txn_type = #escrow_withdraw({
-                  details with 
-                    amount = Nat.sub(verified.found_asset.escrow.amount,transaction_id.fee);
-                    fee = transaction_id.fee;
-                    trx_id = transaction_id.trx_id;
-                    extensible = #Empty;
-                }
-                );
-                timestamp = state.get_time();
-              }, caller)) {
-                case(#ok(val)){
-                  return #ok(#withdraw(val));
-                };
-                case(#err(err)){
-                  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show(transaction_id) , ?caller));
-                };
-              };
-            };
-          };
+    //allows the user to withdraw tokens from an nft canister
+    /**
+    * Allows the user to withdraw tokens from an NFT canister.
+    * @param {StateAccess} state - The StateAccess instance of the NFT canister.
+    * @param {Types.WithdrawRequest} withdraw - The withdraw request details containing token information.
+    * @param {Principal} caller - The Principal of the caller.
+    * @returns {async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - A Result object containing either a ManageSaleResponse or an OrigynError.
+    */
+    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+      switch(withdraw){
+        case(#deposit(details)){
+          return await* _withdraw_deposit(state, withdraw, details, caller);
+        };
+        case(#escrow(details)){
+          return await* _withdraw_escrow(state, withdraw, details, caller);
+        };
+        case(#sale(details)){
+          return await* _withdraw_sale(state, withdraw, details, caller);
+        };
+        case(#reject(details)){
+          return await* _reject_offer(state, withdraw, details, caller);
         };
       };
       return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn  - nyi - " , ?caller));
     };
 
+
+    /**
+    * Refunds the failed bid by withdrawing the escrow amount and refunding the entire escrow to the buyer. 
+    * 
+    * @param {Types.State} state - The current state of the canister.
+    * @param {MigrationTypes.Current.VerifiedReciept} verified - The verified receipt.
+    * @param {MigrationTypes.Current.EscrowReceipt} escrow - The escrow receipt.
+    * 
+    * @returns {async* Bool} - A boolean value indicating whether the refund was successful or not.
+    */
     private func refund_failed_bid(state : Types.State, verified: MigrationTypes.Current.VerifiedReciept, escrow: MigrationTypes.Current.EscrowReceipt) : async* Bool{
        //we will close later after we try to refund a valid bid
       debug if(debug_channel.bid) D.print("refunding"  # debug_show(verified.found_asset.escrow.amount));
@@ -2923,24 +3027,29 @@ module {
     };
 
     //allows bids on auctons
+    /**
+    * Allows bids on auctions. Verifies auction status, seller, buyer, token ownership, and bid amount before allowing a bid. 
+    * If the bid is too low, it will refund the escrow. If the auction is already closed, it will attempt to refund the bid.
+    * If the escrow cannot be verified, it will try to claim it first. 
+    * 
+    * @param {StateAccess} state - The state of the canister.
+    * @param {Types.BidRequest} request - The bid request containing the token id and escrow receipt.
+    * @param {Principal} caller - The principal of the caller.
+    * @param {Bool} canister_call - Determines if the function is being called from another function within the canister.
+    * @returns {Result.Result<Types.ManageSaleResponse, Types.OrigynError>} A result indicating either a successful bid or an error message.
+    */
     public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
 
       //look for an existing sale
-      let current_sale = switch(Map.get(state.state.nft_sales, Map.thash,request.sale_id)){
-        case(?status) status;
-        case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller));
-      };
-
+      let ?current_sale = Map.get(state.state.nft_sales, Map.thash,request.sale_id) else return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller));
+      
       let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
         case(#ok(val)) val;
         case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - find state " # err.flag_point, ?caller));
       };
 
-      let current_pricing = switch(current_sale_state.config){
-          case(#auction(config)) config;
-          case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller));
-      };
+      let #auction(current_pricing) = current_sale_state.config else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller));
 
       switch(current_sale_state.status){
         case(#open){ 
@@ -3038,7 +3147,7 @@ module {
       //make sure amount is high enough
       if(request.escrow_receipt.amount < current_sale_state.min_next_bid){
         //if the bid is too low we should refund their escrow
-                            debug if(debug_channel.bid) D.print("refunding not high enough bid "  # debug_show(verified.found_asset.escrow.amount));
+        debug if(debug_channel.bid) D.print("refunding not high enough bid "  # debug_show(verified.found_asset.escrow.amount));
         let service : Types.Service = actor((Principal.toText(state.canister())));
         let refund_id = service.sale_nft_origyn(#withdraw(
           #escrow({
@@ -3234,6 +3343,12 @@ module {
 
 
     //pulls the token out of a sale
+    /**
+    * Retrieves the token specification from a given sale status.
+    * @private
+    * @param {Types.SaleStatus} status - The sale status to retrieve the token specification from.
+    * @returns {Types.TokenSpec} - The token specification retrieved from the given sale status.
+    */
     private func _get_token_from_sales_status(status: Types.SaleStatus) : Types.TokenSpec{
       switch(status.sale_type){
         case(#auction(auction_status)){
