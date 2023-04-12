@@ -168,6 +168,13 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //stores the chunk for a library
+    /**
+    * Stages a library for an NFT origyn.
+    * @param chunk The chunk to stage.
+    * @param allocation The allocation to record the staged library for.
+    * @param metadata The metadata associated with the staged library.
+    * @returns A `Result.Result` object containing a `Types.StageLibraryResponse` object if successful, otherwise a `Types.OrigynError` object.
+    */
     public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg, allocation : Types.AllocationRecordStable, metadata : CandyTypes.CandyValue) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
         return await* Storage_Store.stage_library_nft_origyn(
@@ -181,6 +188,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     //when meta data is updated on the gateway it will call this function to make sure the
     //the storage contatiner has the same info
+    /**
+    * Refreshes the metadata of an NFT token.
+    * @param {Text} token_id - The ID of the token whose metadata is to be refreshed.
+    * @param {CandyTypes.CandyValue} metadata - The new metadata to store with the token.
+    * @returns {Promise<Result.Result<Bool, Types.OrigynError>>} A promise that resolves to a result containing a boolean indicating success or an error.
+    */
     public shared (msg) func refresh_metadata_nft_origyn(token_id : Text, metadata : CandyTypes.CandyValue) : async Result.Result<Bool, Types.OrigynError> {
 
         debug if (debug_channel.refresh) D.print("in metadata refresh");
@@ -206,6 +219,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //used for testing
+    /**
+    * Sets the test time value for testing purposes.
+    * @param {object} msg - The message object.
+    * @param {Int} new_time - The new test time value.
+    * @returns {Promise<Int>} A promise that resolves to the new test time value.
+    */
     public shared (msg) func __advance_time(new_time : Int) : async Int {
 
         if (msg.caller != state_current.collection_data.owner) {
@@ -217,6 +236,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //used for testing
+    /**
+    * Sets the test time mode for testing purposes.
+    * @param {object} msg - The message object.
+    * @param {{#test; #standard}} newMode - The new test time mode.
+    * @returns {Promise<Bool>} A promise that resolves to true if the test time mode was successfully set, or throws an error if the caller is not the owner.
+    */
     public shared (msg) func __set_time_mode(newMode : { #test; #standard }) : async Bool {
         if (msg.caller != state_current.collection_data.owner) {
             throw Error.reject("not owner");
@@ -226,6 +251,10 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //get storage info from the container
+    /**
+    * Retrieves storage metrics for the container.
+    * @returns {Promise<Result.Result<Types.StorageMetrics, Types.OrigynError>>} A promise that resolves to a result containing the storage metrics or an error.
+    */
     public query func storage_info_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
@@ -237,6 +266,10 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //secure storage info from the container
+    /**
+    * Retrieves secure storage metrics for the container.
+    * @returns {Promise<Result.Result<Types.StorageMetrics, Types.OrigynError>>} A promise that resolves to a result containing the storage metrics or an error.
+    */
     public func storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
@@ -247,6 +280,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         });
     };
 
+    /**
+    * Retrieves a chunk for a library based on the ChunkRequest object
+    * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
+    * @param {Principal} caller - The principal of the caller
+    * @returns {Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    */
     private func _chunk_nft_origyn(request : Types.ChunkRequest, caller : Principal) : Result.Result<Types.ChunkContent, Types.OrigynError> {
         //nyi: we need to check to make sure the chunk is public or caller has rights
 
@@ -323,23 +362,45 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     };
 
     //gets a chunk for a library
+    /**
+    * Retrieves a chunk for a library based on the ChunkRequest object in a query call
+    * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
+    * @param {Principal} msg.caller - The principal of the caller
+    * @returns {async Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    */
     public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
 
         return _chunk_nft_origyn(request, msg.caller);
     };
 
     //gets a chunk for a library
+    /**
+    * Retrieves a chunk for a library based on the ChunkRequest object in a shared call
+    * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
+    * @param {Principal} msg.caller - The principal of the caller
+    * @returns {async Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    */
     public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
         //warning:  test this, it may change the caller to the local canister
         return _chunk_nft_origyn(request, msg.caller);
     };
 
+    /**
+    * Makes an HTTP request
+    * @param {Types.HttpRequest} rawReq - The HTTP request object containing the necessary information to make the request
+    * @returns {async (http.HTTPResponse)} - The HTTP response object
+    */
     public query (msg) func http_request(rawReq : Types.HttpRequest) : async (http.HTTPResponse) {
         return http.http_request(get_state(), rawReq, msg.caller);
     };
 
     // A streaming callback based on NFTs. Returns {[], null} if the token can not be found.
     // Expects a key of the following pattern: "nft/{key}".
+    /**
+    * A streaming callback based on NFTs. Returns {[], null} if the token can not be found. Expects a key of the following pattern: "nft/{key}".
+    * @param {http.StreamingCallbackToken} tk - The streaming callback token
+    * @returns {async http.StreamingCallbackResponse} - The HTTP streaming response
+    */
     public query func nftStreamingCallback(tk : http.StreamingCallbackToken) : async http.StreamingCallbackResponse {
         //D.print("The nftstreamingCallback");
         //D.print(debug_show(tk));
@@ -347,6 +408,11 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         return http.nftStreamingCallback(tk, get_state());
     };
 
+    /**
+    * Makes an HTTP request using a streaming callback
+    * @param {http.StreamingCallbackToken} tk - The streaming callback token
+    * @returns {async http.StreamingCallbackResponse} - The HTTP streaming response
+    */
     public query func http_request_streaming_callback(
         tk : http.StreamingCallbackToken,
     ) : async http.StreamingCallbackResponse {
@@ -355,6 +421,11 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     public query (msg) func whoami() : async (Principal) { msg.caller };
 
+    /**
+    * Returns the status of the canister specified in the request object
+    * @param {{canister_id : Types.canister_id}} request - The request object containing the canister ID
+    * @returns {async Types.canister_status} - The status of the canister
+    */
     public shared func canister_status(request : { canister_id : Types.canister_id }) : async Types.canister_status {
         await ic.canister_status(request);
     };
@@ -367,11 +438,28 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     // ****** STABLEBTREE ******
     // *************************
 
+    /**
+    * Calculates the hash ID for a specific btree entry based on its token ID, library ID, index, and chunk.
+    * @param {Text} tokenId - The ID of the token.
+    * @param {Text} libraryId - The ID of the library.
+    * @param {Nat} i - The index of the entry.
+    * @param {Nat} chunk - The chunk number of the entry.
+    * @returns {Hash.Hash} - The hash ID for the entry.
+    */
     public query func get_btree_hash_id(tokenId : Text, libraryId : Text, i : Nat, chunk : Nat) : async Hash.Hash {
 
         Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
     };
 
+    /**
+    * Inserts a value into the btree storage.
+    * @param {Text} tokenId - The ID of the token.
+    * @param {Text} libraryId - The ID of the library.
+    * @param {Nat} i - The index of the entry.
+    * @param {Nat} chunk - The chunk number of the entry.
+    * @param {Blob} value - The value to insert.
+    * @returns {void}
+    */
     public func insert_btree(tokenId : Text, libraryId : Text, i : Nat, chunk : Nat, value : Blob) : async () {
         let key = Text.hash("token:" # tokenId # "/library:" # libraryId # "/index:" # Nat.toText(i) # "/chunk:" # Nat.toText(chunk));
 
@@ -382,6 +470,11 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     };
 
+    /**
+    * Retrieves a btree entry by key.
+    * @param {Nat32} key - The key of the entry.
+    * @returns {void}
+    */
     public func get_btree_entry(key : Nat32) : async () {
         // let k = await hash_id(Nat32.toNat(key));
         let result = btreemap_storage.get(key);
@@ -395,6 +488,10 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         ();
     };
 
+    /**
+    * Retrieves all entries in the btree storage as an array of tuples containing the key and value.
+    * @returns {Array.<{0: Nat32, 1: Array.<Nat8>}>} - An array of tuples containing the key and value of each entry in the btree storage.
+    */
     public query func show_btree_entries() : async [(Nat32, [Nat8])] {
 
         let vals = btreemap_storage.iter();
@@ -408,6 +505,10 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         Buffer.toArray(localBuf);
     };
 
+    /**
+    * Retrieves all keys in the btree storage as an array.
+    * @returns {Array.<Nat32>} - An array of all the keys in the btree storage.
+    */
     public query func show_btree_entries_keys() : async [(Nat32)] {
 
         let vals = btreemap_storage.iter();
@@ -421,22 +522,15 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         Buffer.toArray(localBuf);
     };
 
-    public func remove(key : K) : async ?V {
-        btreemap_storage.remove(key);
-    };
-
-    // Nuke btree
-    public func nuke_btree() : async () {
-        let entries = Iter.toArray(btreemap_storage.iter());
-        for ((key, _) in Array.vals(entries)) {
-            ignore btreemap_storage.remove(key);
-        };
-    };
 
     // *************************
     // **** END STABLEBTREE ****
     // *************************
 
+    /**
+    * Retrieves all entries in the nft library storage as an array of tuples containing the token ID and the addressed chunk array for each library.
+    * @returns {Array.<{0: Text, 1: Array.<{0: Text, 1: CandyTypes.AddressedChunkArray}>}>} - An array of tuples containing the token ID and the addressed chunk array for each library in the nft library storage.
+    */
     public query func show_nft_library_array() : async  [(Text, [(Text, CandyTypes.AddressedChunkArray)])] {
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
         for(thisKey in nft_library.entries()){

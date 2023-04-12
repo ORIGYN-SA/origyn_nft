@@ -253,6 +253,15 @@ module {
     };
 
     //handles non-streaming large content
+    /**
+    * Handles non-streaming large content
+    * @param {Types.State} state - The current state
+    * @param {string} key - The key of the content to handle
+    * @param {string} contentType - The content type of the content
+    * @param {CandyTypes.Workspace} data - The workspace containing the content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * @returns {HTTPResponse} - The response containing the content
+    */
     public func handleLargeContent(
         state : Types.State,
         key         : Text,
@@ -607,7 +616,7 @@ module {
     * @param headers - the headers from the HTTP request
     * @returns an object containing the start and end values and a boolean indicating whether a range header was found
     */
-    private func _handle_range_headers(headers: [httpparser.HeaderField]) : {
+    public func handle_range_headers(headers: [httpparser.HeaderField]) : {
       start : ?Nat;
       end : ?Nat;
       b_foundRange : Bool;
@@ -717,7 +726,7 @@ module {
             };
         };
 
-        let header_result = _handle_range_headers(req.headers.original);
+        let header_result = handle_range_headers(req.headers.original);
 
         if(location_type == "canister"){
             //on this canister
@@ -735,7 +744,7 @@ module {
                     debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
                     debug if(debug_channel.stablebtree)  D.print("#use_stablebtree - zone");
 
-                    if(header_result. b_foundRange == true){
+                    if(header_result.b_foundRange == true){
                         //range request
                          debug if(debug_channel.library)  D.print("dealing with a range request");
                         let result = handle_stream_content(
@@ -1224,7 +1233,7 @@ module {
     };
 
     //formats a candy value to json
-    private func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
+    public func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
         let message_response = switch(_query) {
             case(null) {
                 message

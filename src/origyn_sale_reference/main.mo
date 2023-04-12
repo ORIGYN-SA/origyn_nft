@@ -82,6 +82,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     let one_month_nanos : Int= 2628000000000000;
     let max_time_nanos : Int = 18653431178000000000;
 
+    /**
+    * Function to manage the sale of an NFT on Origyn platform
+    * @param {Types.ManageCommand} command - command to execute
+    * @returns {Result.Result<Bool, Types.OrigynError>} - Result of the operation
+    */
     public shared(msg) func manage_sale_nft_origyn(command : Types.ManageCommand) : async Result.Result<Bool, Types.OrigynError>{
         switch(command){
             case(#UpdateOwner(val)){
@@ -180,6 +185,10 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
 
+    /**
+    * Get sale metrics for the sale canister, including the owner, allocation expiration, NFT gateway, sale open date, registration date, and end date.
+    * @returns {Result.Result<Types.SaleMetrics, Types.OrigynError>} - A result containing sale metrics or an error message if applicable.
+    */
     public query(msg) func get_metrics_sale_nft_origyn() : async Result.Result<Types.SaleMetrics, Types.OrigynError>{
         return #ok{
             owner = state.owner;
@@ -270,6 +279,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     
     // Allows the adding/removing of inventory items
     //made this a batch process so that adding NFT items doesn't take all day //need to test max add
+   /**
+    * Manage the inventory items of the sale canister, including adding or removing items.
+    * @param {[Types.ManageNFTRequest]} request - An array of manage NFT requests, including add or remove.
+    * @returns {Result.Result<Types.ManageNFTResponse, Types.OrigynError>} - A result containing the total size of the NFT inventory and an array of results for each item, including whether it was added or removed and an error message if applicable.
+    */
     public shared(msg) func manage_nfts_sale_nft_origyn(request: [Types.ManageNFTRequest]) : async Result.Result<Types.ManageNFTResponse, Types.OrigynError>{
        
        // ToDo:
@@ -330,6 +344,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
    
     // Allows the creator to create and manage groups. These groups can be allocated a certain number of NFTs
     // and/or have special pricing based on the number of nfts they buy
+    /**
+    * Manage groups for the sale canister, including adding, updating or removing groups, and adding or removing members to a group.
+    * @param {Types.ManageGroupRequest} request - A manage group request, including update, remove, add members or remove members.
+    * @returns {Array<Types.ManageGroupResult>} - An array of results for each group, including whether it was added, updated or removed, or whether members were added or removed, and an error message if applicable.
+    */
     public shared(msg) func manage_group_sale_nft_origyn(request: Types.ManageGroupRequest) : async Types.ManageGroupResponse{
 
         // ToDo:
@@ -483,6 +502,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
     // Allows a creator to associate a set of nfts with a particular group or address
+    /**
+    * Manage reservation sale nft Origyn.
+    * This function allows the owner to manage reservations, adding or removing groups that are able to buy the NFT, add or remove NFTs from a group, or update the type of reservation.
+    * @param {Array<Types.ManageReservationRequest>} request - An array of reservation requests.
+    * @returns {Promise<Result.Result<Types.ManageReservationResponse, Types.OrigynError>>} Returns a promise that resolves with a Result object containing the total size of items and an array of the added or removed reservation namespaces, or rejects with an OrigynError object.
+    */
     public shared(msg) func manage_reservation_sale_nft_origyn(request: [Types.ManageReservationRequest]) : async Result.Result<Types.ManageReservationResponse, Types.OrigynError>{
 
         //todo: we really need to moniter the ingress size here and put some limits in...inspect message would be awesome
@@ -690,6 +715,13 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     //    return #err(Types.errors(#nyi, "manage_reservation nyi", ?msg.caller));
     };
 
+    /**
+    * Retrieves the groups associated with the specified user from the provided groups object.
+    *
+    * @param {Principal} user - The principal user for whom to retrieve the associated groups.
+    * @param {Types.Groups} groups - The groups object from which to retrieve the groups.
+    * @returns {Array<Types.Group>} - An array of groups associated with the specified user.
+    */
     private func get_groups_for_user(user: Principal, groups : Types.Groups) : [Types.Group]{
         //D.print("in get groups" # debug_show(groups));
         var results = RBU.RBTree<Text, Types.Group>(Text.compare);
@@ -714,6 +746,14 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         return Iter.toArray<Types.Group>(Iter.map<(Text,Types.Group),Types.Group>(results.entries(), func(item){item.1}));
     };
 
+    /**
+    * Intersects the groups associated with a specified user with the provided reservations to obtain the group reservations and personal reservations.
+    *
+    * @param {Principal} user - The principal user for whom to obtain the group reservations and personal reservations.
+    * @param {Types.Groups} groups - The groups object from which to obtain the user's associated groups.
+    * @param {Types.Reservations} reservations - The reservations object to intersect with the user's associated groups.
+    * @returns {{ groups: Array<Types.Group>, group_reservations: Array<Types.Reservation>, personal_reservations: Array<Types.Reservation> }} - An object containing the groups associated with the user, the group reservations for the user, and the personal reservations for the user.
+    */
     private func intersect_user_groups_reservations(user : Principal, groups: Types.Groups, reservations: Types.Reservations) : { 
         groups: [Types.Group]; 
         group_reservations: [Types.Reservation];
@@ -757,6 +797,19 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
 
+    /**
+    * Calculates the purchase graph for a user, including pricing, reservations, and purchases.
+    * @param user - The user Principal.
+    * @param groups - The Groups object.
+    * @param reservations - The Reservations object.
+    * @param inventory - The NFTInventory object.
+    * @param purchases - The Purchases object.
+    * @returns An object containing the following fields:
+    * - prices: an array of tuples containing a token, the maximum allowed amount, and an array of tuples containing a price and the number of items available at that price.
+    * - personal_reservations: a tuple containing an array of personal reservations, the total cost of those reservations, and the number of items reserved.
+    * - group_reservations: a tuple containing an array of group reservations, the total cost of those reservations, and the number of items reserved.
+    * - purchases: an array of tuples containing the name of the item purchased and the transaction record for that purchase.
+    */
     private func calc_user_purchase_graph(user : Principal, groups: Types.Groups, reservations: Types.Reservations, inventory: Types.NFTInventory, purchases : Types.Purchases) : {
         prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
         personal_reservations: ([Types.Reservation], Nat, Nat);
@@ -998,6 +1051,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     // deposit an escrow
     // allocate a set of nfts for payment
+    /**
+    * Deposits an escrow and allocates a set of NFTs for payment.
+    * 
+    * @param {Types.AllocationRequest} request - The allocation request containing the necessary parameters.
+    * @returns {async Result.Result<Types.AllocationResponse, Types.OrigynError>} A promise that resolves to either an error or the allocation response object containing the allocated NFTs.
+    */
     public shared(msg) func allocate_sale_nft_origyn(request: Types.AllocationRequest) : async Result.Result<Types.AllocationResponse, Types.OrigynError>{
         //check to see if the max allocation is hit
         //see of the principal had an old allocation, if so, make it available
@@ -1360,6 +1419,15 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         // return #err(Types.errors(#nyi, "redeem_allocation nyi", ?msg.caller));
     };
 
+    /**
+    * Takes an escrow receipt and attempts the instant transfer of the allocation.
+    * The creator will need to set a redeem_at_a_time variable that dictates the number of xcanister calls that can
+    * happen at once. Should use a batch market transfer function.
+    * 
+    * @param {Types.RedeemAllocationRequest} request - The request object containing the escrow receipt.
+    * @returns {Promise<Result.Result<Types.RedeemAllocationResponse, Types.OrigynError>>} Returns a promise that resolves to a result object containing the nfts array, or rejects with an OrigynError.
+    * @throws {Types.OrigynError} Throws an OrigynError if the function encounters an error.
+    */
     private func get_possible_purchases(caller : Principal, token : ?NFTTypes.TokenSpec, number_to_allocate: Nat) : {user_info:
         {
             prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
@@ -1429,6 +1497,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     //deposit
     //now if the mint is delayed we'll need to talk about what happens then.
+    /**
+    * Registers an escrow sale NFT on Origyn.
+    * @param {Types.RegisterEscrowRequest} request - The request for registering the escrow sale.
+    * @returns {async Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>} - The result of the registration process, containing the allocation details, maximum desired, escrow receipt, allocation size and principal.
+    */
     public shared(msg) func register_escrow_sale_nft_origyn(request: Types.RegisterEscrowRequest) : async Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>{
 
         D.print("In register escrow " # debug_show(request));
@@ -1575,13 +1648,24 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         // return #err(Types.errors(#nyi, "register_escrow nyi", ?msg.caller));
     };
 
+    /**
+    * Executes the claim sale NFT origyn transaction.
+    *
+    * @param {Text} token_id - The token id of the NFT to be claimed.
+    *
+    * @returns {Promise<Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>>} A promise that resolves to a `Result` object containing either a `TransactionRecord` or an `OrigynError`.
+    */
     public shared(msg) func execute_claim_sale_nft_origyn(token_id : Text) : async Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>{
 
         return #err(Types.errors(#nyi, "not implemented", ?msg.caller));
     };
 
     // Helper functions 
-
+    /**
+    * Retrieves the total inventory tree for NFTs.
+    *
+    * @returns {Promise<Result.Result<[Types.NFTInventoryItemDetail], Types.OrigynError>>} A promise that resolves to a `Result` object containing either an array of `NFTInventoryItemDetail` objects or an `OrigynError`.
+    */
     public query(msg) func get_total_inventory_tree() : async Result.Result<[Types.NFTInventoryItemDetail], Types.OrigynError>{
         let iter1 = Map.entries<Text, Types.NFTInventoryItem>(state.nft_inventory);
         let iter2 = Iter.map<(Text, Types.NFTInventoryItem), Types.NFTInventoryItemDetail>(iter1, Types.stabalize_xfer_NFTInventoryItem);
@@ -1589,6 +1673,13 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
     // Add to inventory
+    /**
+    * Adds an NFT inventory item to the inventory.
+    *
+    * @param {Types.NFTInventoryItemRequest} request - The request containing the details of the NFT inventory item to be added.
+    *
+    * @returns {Promise<Result.Result<Text, Types.OrigynError>>} A promise that resolves to a `Result` object containing either a success message or an `OrigynError`.
+    */
     public shared(msg) func add_inventory_item(request: Types.NFTInventoryItemRequest) : async Result.Result<Text, Types.OrigynError>{
 
 
@@ -1612,6 +1703,13 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
           return #ok("success");
     };
     // Get inventory
+    /**
+    * Retrieves the sale details of an NFT inventory item.
+    *
+    * @param {Text} key - The key of the NFT inventory item.
+    *
+    * @returns {Promise<Result.Result<Types.NFTInventoryItemDetail, Types.OrigynError>>} A promise that resolves to a `Result` object containing either an `NFTInventoryItemDetail` object or an `OrigynError`.
+    */
     public query(msg) func get_inventory_item_sale_nft_origyn(key: Text) : async Result.Result<Types.NFTInventoryItemDetail, Types.OrigynError> {
 
         // ToDo: Need to find the right type to return #ok(item)
@@ -1628,6 +1726,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
     // Get inventory size
+    /**
+    * Get the total inventory size
+    *
+    * @returns {Promise<Result.Result<Nat, Types.OrigynError>>} A promise that resolves to the total inventory size or an error
+    */
     public query func get_inventory_size_sale_nft_origyn() : async Result.Result<Nat, Types.OrigynError> {
        
        let s = Map.size(state.nft_inventory);
@@ -1636,6 +1739,13 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     };
 
     //get inventory
+    /**
+    * Get the inventory with pagination support
+    *
+    * @param {Nat | null} start - The start index of the inventory. If null, start from the beginning
+    * @param {Nat | null} size - The maximum number of items to retrieve. If null, retrieve all items
+    * @returns {Promise<Result.Result<Types.GetInventoryResponse, Types.OrigynError>>} A promise that resolves to the inventory items and total size or an error
+    */
     public query func get_inventory_sale_nft_origyn(start: ?Nat, size: ?Nat) : async Result.Result<Types.GetInventoryResponse, Types.OrigynError>{
 
         var size_requested = switch(size){case(null){Map.size(state.nft_inventory)}; case(?val){val}};
@@ -1679,6 +1789,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     // };
     
     // // Get group size
+    /**
+    * Get the size of the nft group
+    *
+    * @returns {Promise<Result.Result<Nat, Types.OrigynError>>} A promise that resolves to the size of the nft group or an error
+    */
     public query func get_group_size() : async Result.Result<Nat, Types.OrigynError> {
        
        let s = state.nft_group_size;
@@ -1688,11 +1803,23 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
 
     // Reservations
+    /**
+    * Get the total reservations
+    *
+    * @returns {Promise<Result.Result<[(Text, Types.Reservation)], Types.OrigynError>>} A promise that resolves to the total reservations or an error
+    */
     public query(msg) func get_total_reservations_tree() : async Result.Result<[(Text, Types.Reservation)], Types.OrigynError>{
         
         return #ok(Iter.toArray(Map.entries<Text, Types.Reservation>(state.nft_reservation)));
     };
 
+    /**
+    * Advance the test time
+    *
+    * @param {number} new_time - The new test time to advance to
+    * @returns {Promise<number>} A promise that resolves to the new test time
+    * @throws {Error} Throws an error if the caller is not the owner
+    */
     public shared (msg) func __advance_time(new_time: Int) : async Int {
         
         if(msg.caller != state.owner){
@@ -1703,6 +1830,14 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     };
 
+    /**
+    * Set the time mode
+    *
+    * @param {'#test' | '#standard'} newMode - The new time mode to set
+    * @returns {Promise<boolean>} A promise that resolves to true if the time mode was successfully set
+    * @throws {Error} Throws an error if the caller is not the owner
+    */
+
     public shared (msg) func __set_time_mode(newMode: {#test; #standard;}) : async Bool {
         if(msg.caller != state.owner){
             throw Error.reject("not owner");
@@ -1710,6 +1845,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         __time_mode := newMode;
         return true;
     };
+
+    /**
+    * Expire allocations and release their NFTs
+    *
+    * @returns {boolean} Returns true if all expired allocations have been processed, false otherwise
+    */
 
     private func expire_allocations (): Bool{
         var tracker = 0;
@@ -1765,7 +1906,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
 
     //query allocation
-
+    /**
+    * Get the allocation for the given principal
+    *
+    * @param {Principal} principal - The principal to retrieve the allocation for
+    * @returns {Promise<Result.Result<Types.AllocationResponse, Types.OrigynError>>} A promise that resolves to the allocation response or an error
+    */
     public query (msg) func get_allocation_sale_nft_origyn(principal: Principal) : async Result.Result<Types.AllocationResponse, Types.OrigynError>{
 
         //todo:  Secure so only msg.caller or owner/manager can call this
@@ -1796,7 +1942,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     //query groups
     //query reservations
     //query registrations
-
+    /**
+    * Retrieves registration details for a given principal.
+    * @param {Principal} principal - The principal to retrieve registration details for.
+    * @returns {Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>} - The registration details.
+    */
     public query (msg) func get_registration_sale_nft_origyn(principal : Principal) : async Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>{
 
         //todo:  Secure so only msg.caller or owner/manager can call this

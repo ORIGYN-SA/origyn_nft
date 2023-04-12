@@ -24,6 +24,7 @@ import httpparser "mo:httpparser/lib";
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+import HttpLib "http";
 import MigrationTypes "migrations_storage/types";
 
 
@@ -89,6 +90,20 @@ module {
     };
 
     //handels stream content with chunk requests
+    /**
+    * Handles streaming content for an NFT
+    *
+    * @param {Types.State} state - The current state of the canister
+    * @param {Text} token_id - The ID of the token being streamed
+    * @param {Text} library_id - The ID of the library containing the token
+    * @param {Nat | null} start - The starting byte position of the streaming content
+    * @param {Nat | null} end - The ending byte position of the streaming content
+    * @param {Text} contentType - The content type of the streaming content
+    * @param {CandyTypes.Workspace} data - The workspace containing the streaming content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * 
+    * @returns {HTTPResponse} - The HTTP response containing the streaming content
+    */
     public func handle_stream_content(
         state : Types.StorageState,
         token_id         : Text,
@@ -201,6 +216,15 @@ module {
     };
 
     //handles non-streaming large content
+    /**
+    * Handles non-streaming large content
+    * @param {Types.State} state - The current state
+    * @param {string} key - The key of the content to handle
+    * @param {string} contentType - The content type of the content
+    * @param {CandyTypes.Workspace} data - The workspace containing the content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * @returns {HTTPResponse} - The response containing the content
+    */
     public func handleLargeContent(
         state : Types.StorageState,
         key         : Text,
@@ -241,6 +265,19 @@ module {
 
     };
 
+
+    /**
+    * Streams the media content for a specific NFT.
+    *
+    * @param {Text} token_id - The ID of the NFT.
+    * @param {Text} library_id - The ID of the library containing the NFT.
+    * @param {Nat} index - The starting index for the media content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the media content.
+    * @param {Nat} rStart - The starting range for the media content.
+    * @param {Nat} rEnd - The ending range for the media content.
+    * @param {Nat} size - The size of the media content.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the media content.
+    */
     public func _stream_media(
         token_id : Text,
         library_id :Text,
@@ -334,6 +371,16 @@ module {
         {payload = blob_payload; callback=token};
     };
 
+    /**
+    * Streams content for a specified key.
+    *
+    * @param {Text} key - The key for the content to be streamed.
+    * @param {Nat} index - The starting index for the content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the content.
+    * @param {Bool} use_stable - Whether or not to use the stable memory.
+    * @param {Types.Stable_Memory} btreemap - The stable memory to use.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the content.
+    */
     public func _stream_content(
         key   : Text,
         index : Nat,
@@ -385,6 +432,15 @@ module {
     };
 
     //determines how a library item should be rendere in an http request
+    /**
+    * Determines how a library item should be rendered in an HTTP request.
+    * @param {Types.State} state - The state of the canister.
+    * @param {httpparser.ParsedHttpRequest} req - The HTTP request.
+    * @param {CandyTypes.CandyValue} metadata - The metadata for the NFT.
+    * @param {string} token_id - The ID of the token.
+    * @param {string} library_id - The ID of the library.
+    * @returns
+    */
     public func renderLibrary(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
@@ -392,7 +448,7 @@ module {
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
-                            debug if(debug_channel.library) D.print("in render library)");
+        debug if(debug_channel.library) D.print("in render library)");
 
         let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
             case(#err(err)){return _not_found("meta not found - " # token_id # " " # library_id);};
@@ -465,6 +521,9 @@ module {
             };
         };
 
+        let header_result = HttpLib.handle_range_headers(req.headers.original);
+
+
         if(location_type == "canister"){
             //on this canister
                                 debug if(debug_channel.library)  D.print("canister");
@@ -485,38 +544,16 @@ module {
                 };
                 case(?zone){
                                         debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
-
-                    var split : [Text] = [];
-                    var split2 : [Text] = [];
-                    var start : ?Nat = null;
-                    var end : ?Nat = null;
-                    var b_foundRange : Bool = false;
-                    for(this_header in req.headers.original.vals()){
-
-                        if(this_header.0 == "range" or this_header.0 == "Range"){
-                            b_foundRange := true;
-                            split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
-                            split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
-                            if(split2.size() == 1){
-                                start := Conversion.textToNat(split2[0]);
-                            } else {
-                                start := Conversion.textToNat(split2[0]);
-                                end := Conversion.textToNat(split2[1]);
-                            };
-                                            debug if(debug_channel.library) D.print("split2 " # debug_show(split2));
-                        };
-                    };
-
-
-                    if(b_foundRange == true){
+                  if(header_result.b_foundRange == true){
+                    
                         //range request
                                             debug if(debug_channel.library)  D.print("dealing with a range request");
                         let result = handle_stream_content(
                                 state,
                                 token_id,
                                 library_id,
-                                start,
-                                end,
+                                header_result.start,
+                                header_result.end,
                                 content_type,
                                 zone,
                                 req
@@ -712,6 +749,12 @@ module {
         };
     };
 
+    /**
+    * Callback function used for NFT streaming. Handles streaming NFT content
+    * @param tk - StreamingCallbackToken, token containing streaming info
+    * @param state - Types.State, state object containing library data and other metadata
+    * @returns StreamingCallbackResponse object, containing payload and streaming token
+    */
     public func nftStreamingCallback(
         tk : StreamingCallbackToken,
         state: Types.StorageState) :  StreamingCallbackResponse {
@@ -830,6 +873,14 @@ module {
         };
     };
 
+    /**
+    * Callback function for streaming large content over HTTP.
+    * Determines how a library item should be rendered in an HTTP request.
+    *
+    * @param {StreamingCallbackToken} tk - Token representing the current streaming session.
+    * @param {Types.State} state - State object containing the current allocation and other relevant data.
+    * @returns {StreamingCallbackResponse} - A response object containing the payload and callback for the next chunk (if applicable).
+    */
     public func http_request_streaming_callback(
         tk : StreamingCallbackToken,
         state : Types.StorageState) : StreamingCallbackResponse {
@@ -924,228 +975,12 @@ module {
         };
     };
 
-    //pulls 
-    private func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
-        let message_response = switch(_query) {
-            case(null) {
-                message
-            };
-            case(?q) {
-                switch(splitQuery(Text.replace(q, #text("--"), "~"), '~')) {
-                    case(#ok(qs)) {
-                        switch(get_deep_properties(message, qs)) {
-                            case(#ok(data)) {
-                                data;
-                            };
-                            case(#back){
-                              message;
-                            };
-                            case(#err(err)) {
-                                return _not_found("properties not found: " # q);
-                            };
-                           
-                        };
-                    };
-                    case(#err(err)) {
-                        return _not_found(err);
-                    };
-                    /* case(_){
-                        return _not_found("unexpected value: " # debug_show(message));
-                    }; */
-                };
-            };
-        };
-
-        return {
-            body = Text.encodeUtf8(JSON.value_to_json(message_response));
-            headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
-            status_code = 200;
-            streaming_strategy = null;
-        };
-    };
+     
 
     type sQuery = { #standard: Text; #multi: Text };
-    //handles queries
-    public func splitQuery(q: Text, p: Char): Result.Result<List.List<sQuery>, Text> {
-        var queries = List.nil<sQuery>();
-        var key : Text = "";
-        var multi : Bool  = false;
-        var open : Bool  = false;
-
-        let addQueries = func(key: Text, current: List.List<sQuery>, multi: Bool): Result.Result<List.List<sQuery>, Text> {
-            //D.print(debug_show(multi, key));
-            if(multi) {
-                if(Text.contains(key, #char(p))) {
-                   return #err("multi: not supported split")
-                };
-                #ok(List.push<sQuery>(#multi(key), current));
-            } else {
-                if(Text.contains(key, #char(','))) {
-                    return #err("Standard: not supported [,]");
-                };
-                #ok(List.push<sQuery>(#standard(key), current));
-            };
-        };
-
-        for(thisChar in Text.toIter(q)) {
-            if(thisChar == '[') {
-                open := true;
-                multi := true;
-            } else if(thisChar == ']') {
-                 open := false;
-            } else {
-                if(thisChar == p and open == false) {
-                    switch(addQueries(key, queries, multi)) {
-                        case(#ok(res)){queries:=res;};
-                        case(err){return err;};
-                    };
-                    multi := false;
-                    key := "";
-                } else {
-                    key:= key # Char.toText(thisChar);
-                };
-            };
-        };
-
-        switch(addQueries(key, queries, multi)) {
-            case(#ok(res)){queries:=res;};
-            case(err){return err;};
-        };
-        return #ok(List.reverse(queries));
-    };
-
-    //gets prroperties from deep in a structure
-    public func get_deep_properties(metadata: CandyTypes.CandyValue, qs: List.List<sQuery>): {#ok: CandyTypes.CandyValue; #err: (); #back: ()} {
-        if(List.isNil(qs)) {
-            return #back();
-        };
-
-        let item = List.pop(qs);
-
-        let key = switch(item.0){
-          case(null){return #err;};
-          case(?val){val;};
-        };
-        let listQs = item.1;
-
-        switch(metadata) {
-            case(#Class(properties)) {
-                switch(key) {
-                    case(#standard(standard)) {
-                        switch(Properties.getClassProperty(metadata, standard)){
-                            case(null) {
-                                return #err();
-                            };
-                            case(?val){
-                                switch(get_deep_properties(val.value, listQs)) {
-                                    case(#ok(res)){#ok(res);};
-                                    case(#back()){#ok(#Class([val]));};
-                                    case(err){err;};
-                                };
-                            };
-                        };
-                    };
-                    case(#multi(multi)) {
-                        if(List.isNil(listQs)) {
-                            let props = Array.map<Text, CandyTypes.Query>(
-                                split_text(multi, ','),
-                                func (key: Text): CandyTypes.Query {
-                                    return {
-                                        name = key;
-                                        next = [];
-                                    };
-                                }
-                            );
-                            return switch(Properties.getProperties(properties, props)) {
-                                case(#ok(val)){#ok(#Class(val));};
-                                case(#err(err)){#err()};
-                            };
-                        } else {
-                            return #err();
-                        };
-                    };
-                };
-            };
-            case(#Array(_)) {
-                switch(key) {
-                    case(#standard(standard)) {
-                        var len = 0;
-                        for(this_item in Conversion.valueToValueArray(metadata).vals()) {
-                            if(Nat.toText(len) == standard) {
-                                switch(get_deep_properties(this_item, listQs)) {
-                                    case(#ok(res)){return #ok(res);};
-                                    case(#back()){return #ok(this_item);};
-                                    case(err){return err;};
-                                };
-                            };
-                            len := len + 1;
-                        };
-                    };
-                    case(#multi(multi)) {
-                        var splitMulti: [Text] = split_text(multi, ',');
-                        let list: Buffer.Buffer<CandyTypes.CandyValue> = Buffer.Buffer<CandyTypes.CandyValue>(1);
-                        var len = 0;
-                        for(this_item in Conversion.valueToValueArray(metadata).vals()) {
-                            switch(Array.find<Text>(splitMulti, func (key: Text) {
-                                return key == Nat.toText(len);
-                            })) {
-                                case(null) {};
-                                case(?find) {
-                                    switch(get_deep_properties(this_item, listQs)) {
-                                        case(#ok(res)){
-                                            list.add(res);
-                                        };
-                                        case(#back()){
-                                            list.add(this_item);
-                                        };
-                                        case(err){return err;};
-                                    };
-                                };
-                            };
-                            len := len + 1;
-                        };
-
-                        if(list.size() == splitMulti.size()) {
-                            return #ok(#Array(#thawed(Buffer.toArray(list))));
-                        } else {
-                            return #err();
-                        };
-                    };
-                };
-
-                return #err();
-            };
-            case(_) {
-                if(List.isNil(qs)) {
-                    return #back();
-                };
-
-               return #err();
-            };
-        };
-    };
-
-    
-
-    public func split_text(q: Text, p: Char): [Text] {
-        var queries: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-        var key : Text = "";
-
-        for(thisChar in Text.toIter(q)) {
-            if(thisChar != '[' and thisChar != ']') {
-                if(thisChar == p) {
-                    queries.add(key);
-                    key := "";
-                } else {
-                    key:= key # Char.toText(thisChar);
-                };
-            };
-        };
-        queries.add(key);
-        return Buffer.toArray(queries);
-    };
 
     //checks that a access token holder is the collection owner
+    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {
@@ -1266,14 +1101,14 @@ module {
                             return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
                         };
                         if(path_array[2] == "info"){
-                            return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                            return HttpLib.json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                         };
                         if(path_array[2] == "library"){
                             let libraries = switch(Metadata.get_nft_library(Metadata.get_clean_metadata(metadata, caller), ?caller)){
                                 case(#err(err)){return _not_found("libraries not found");};
                                 case(#ok(val)){ val };
                             };
-                            return json(libraries, null);
+                            return HttpLib.json(libraries, null);
                         };
                     };
                     if(path_size > 3){
@@ -1313,7 +1148,7 @@ module {
                                     case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                     case(#ok(val)){val};
                                 };
-                                return json(library_meta, queryObj.get("query"));
+                                return HttpLib.json(library_meta, queryObj.get("query"));
                               };
 
                               return renderLibrary(state, req, metadata, token_id, library_id);
@@ -1376,7 +1211,7 @@ module {
                                 case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                 case(#ok(val)){val};
                             };
-                            return json(library_meta, queryObj.get("query"));
+                            return HttpLib.json(library_meta, queryObj.get("query"));
                           };
 
                           return renderLibrary(state, req, metadata, token_id, library_id);
@@ -1405,7 +1240,7 @@ module {
                     };
                     if(path_array[1] == "info"){
                                             debug if(debug_channel.request) D.print("render info "  # token_id );
-                        return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                        return HttpLib.json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                     };
                     if(path_array[1] == "library"){
                                             debug if(debug_channel.request) D.print("render library "  # token_id );
@@ -1413,7 +1248,7 @@ module {
                             case(#err(err)){return _not_found("libraries not found");};
                             case(#ok(val)){ val };
                         };
-                        return json(libraries, null);
+                        return HttpLib.json(libraries, null);
                     };
                 };
             } else if(path_array[0] == "metrics"){

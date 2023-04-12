@@ -42,6 +42,11 @@ module {
     };
 
 
+    /**
+    * Converts a Nat value to a token ID Text value.
+    * @param {Nat} tokenNat - The Nat value to convert.
+    * @returns {Text} The resulting token ID Text value.
+    */
     public func get_nat_as_token_id(tokenNat : Nat) : Text {
         debug if (debug_channel.announce) D.print("nat as token");
         debug if (debug_channel.announce) D.print(debug_show(Conversions.natToBytes(tokenNat)));
@@ -57,12 +62,23 @@ module {
          return Conversions.bytesToText((Buffer.toArray(prefixBuffer)));
     };
 
+    /**
+    * Converts a token ID Text value to a Nat value.
+    * @param {Text} token_id - The token ID Text value to convert.
+    * @returns {Nat} The resulting Nat value.
+    */
     public func get_token_id_as_nat(token_id : Text) : Nat{
         debug if (debug_channel.announce) D.print("token as nat:" # token_id);
         debug if (debug_channel.announce) D.print(debug_show(Conversions.textToBytes(token_id)));
         Conversions.bytesToNat(Conversions.textToBytes(token_id));
     };
 
+    /**
+    * Determines whether a given Principal is the owner, a manager, or part of the network associated with a given state.
+    * @param {Types.State} state - The state to check.
+    * @param {Principal} caller - The Principal to check.
+    * @returns {Bool} A boolean value indicating whether the Principal is the owner, a manager, or part of the network associated with the given state.
+    */
     public func is_owner_manager_network(state :Types.State, caller: Principal) : Bool{
 
         debug if (debug_channel.announce) debug {D.print("checking if " # Principal.toText(caller) # " is network:" # debug_show(state.state.collection_data.network) # " owner: " # debug_show(state.state.collection_data.owner) # " manager: " # debug_show(state.state.collection_data.managers))};
@@ -73,6 +89,12 @@ module {
         return false;
     };
 
+    /**
+    * Determines whether a given Principal is the owner or part of the network associated with a given state.
+    * @param {Types.State} state - The state to check.
+    * @param {Principal} caller - The Principal to check.
+    * @returns {Bool} A boolean value indicating whether the Principal is the owner or part of the network associated with the given state.
+    */
     public func is_owner_network(state :Types.State, caller: Principal) : Bool{
         debug if (debug_channel.announce) D.print("testing is_owner_network owner:" # debug_show(state.state.collection_data.owner) # " network:" # debug_show(state.state.collection_data.network) # " caller: " # debug_show(caller));
         if(caller == state.state.collection_data.owner){return true;};
@@ -80,12 +102,23 @@ module {
         return false;
     };
 
+    /**
+    * Determines whether a given Principal is part of the network associated with a given state.
+    * @param {Types.State} state - The state to check.
+    * @param {Principal} caller - The Principal to check.
+    * @returns {Bool} A boolean value indicating whether the Principal is part of the network associated with the given state.
+    */
     public func is_network(state :Types.State, caller: Principal) : Bool{
         debug if (debug_channel.announce) D.print("testing is_network network:" # debug_show(state.state.collection_data.network) # " caller: " # debug_show(caller));
         if(Option.make(caller) == state.state.collection_data.network){return true;};
         return false;
     };
 
+    /**
+    * Returns the auction state from the provided sale status.
+    * @param {Types.SaleStatus} current_sale - The sale status to use.
+    * @returns {Result.Result<Types.AuctionState, Types.OrigynError>} The resulting auction state.
+    */
     public func get_auction_state_from_status(current_sale : Types.SaleStatus ) : Result.Result<Types.AuctionState, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
@@ -98,6 +131,11 @@ module {
         };
     };
 
+    /**
+    * Returns the auction state from the provided stable sale status.
+    * @param {Types.SaleStatusStable} current_sale - The stable sale status to use.
+    * @returns {Result.Result<Types.AuctionStateStable, Types.OrigynError>} The resulting auction state.
+    */
     public func get_auction_state_from_statusStable(current_sale : Types.SaleStatusStable ) : Result.Result<Types.AuctionStateStable, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
@@ -109,6 +147,12 @@ module {
             }; */
         };
     };
+
+    /**
+    * Builds a TrieMap object from an array of item tuples containing a Text key and an array of addressed chunk data.
+    * @param {[(Text,[(Text,CandyTypes.AddressedChunkArray)])]} items - The items to use in building the TrieMap object.
+    * @returns {TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>} The resulting TrieMap object.
+    */
 
     public func build_library(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
         
@@ -130,12 +174,24 @@ module {
 
     public let library_hash = MigrationTypes.Current.library_hash;
 
+    /**
+    * Retrieves information about a depositor account for the Origyn NFT deposit contract.
+    * @param {Types.Account} depositor_account - The account of the depositor.
+    * @param {Principal} host - The host of the sub-account.
+    * @returns {Types.SubAccountInfo} An object containing information about the depositor sub-account.
+    */
     public func get_deposit_info(depositor_account : Types.Account, host: Principal) : Types.SubAccountInfo{
         debug if (debug_channel.announce) D.print("getting deposit info");
         get_subaccount_info("com.origyn.nft.deposit", depositor_account, host);
     };
 
 
+    /**
+    * Retrieves information about an escrow account for an Origyn NFT transaction.
+    * @param {Types.EscrowReceipt} request - The request object containing transaction details.
+    * @param {Principal} host - The host of the sub-account.
+    * @returns {Types.SubAccountInfo} An object containing information about the escrow sub-account.
+    */
     public func get_escrow_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
         
         debug if (debug_channel.announce) D.print("Getting escrow account");
@@ -164,6 +220,11 @@ module {
         };
     };
 
+    /**
+    * Hashes a blob using SHA256 and returns the result as a Nat.
+    * @param {Blob} item - The blob to be hashed.
+    * @returns {Nat} The resulting hash value.
+    */
     public func hash_blob(item: Blob) : Nat{
       let h = SHA256.New();
         h.write(Blob.toArray(item));
@@ -171,6 +232,12 @@ module {
         return Conversions.valueToNat(#Bytes(#frozen(sub_hash)));
     };
 
+    /**
+    * Retrieves information about a sale account for an Origyn NFT transaction.
+    * @param {Types.EscrowReceipt} request - The request object containing transaction details.
+    * @param {Principal} host - The host of the sub-account.
+    * @returns {Types.SubAccountInfo} An object containing information about the sale sub-account.
+    */
     public func get_sale_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
         
         let h = SHA256.New();
@@ -219,6 +286,13 @@ module {
     };
     */
 
+    /**
+    * Generates a subaccount info for a given prefix, account, and host
+    * @param {Text} prefix - The prefix of the subaccount
+    * @param {Types.Account} account - The account to get subaccount info for
+    * @param {Principal} host - The host principal to generate the subaccount info for
+    * @returns {Types.SubAccountInfo} Returns subaccount info containing principal, account_id_text, account_id and account
+    */
     private func get_subaccount_info(prefix: Text, account : Types.Account, host: Principal) : Types.SubAccountInfo{
         debug if (debug_channel.announce) D.print("in get subaccount");
         switch(account){
