@@ -43,7 +43,7 @@ module {
   *  @param {Types.NFTUpdateRequest} request - The update request object containing the token ID and app ID to be updated.
   *  @param {Types.State} state - The current state of the Origyn canister.
   *  @param {Principal} caller - The principal of the caller making the update request.
-  *  @returns {Result.Result<Types.NFTUpdateResponse, Types.OrigynError>} - Returns a Result object containing either a Types.NFTUpdateResponse object or a Types.OrigynError object if an error occurs during the update process.
+  *  @returns {Types.NFTUpdateResult} - Returns a Result object containing either a Types.NFTUpdateResponse object or a Types.OrigynError object if an error occurs during the update process.
   *  @throws {Types.OrigynError} Throws an OrigynError if an error occurs during the update process.
   */
   public func update_app_nft_origyn(request: Types.NFTUpdateRequest, state: Types.State, caller: Principal): Types.UpdateAppResponse {

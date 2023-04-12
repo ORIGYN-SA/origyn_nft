@@ -192,9 +192,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     * Refreshes the metadata of an NFT token.
     * @param {Text} token_id - The ID of the token whose metadata is to be refreshed.
     * @param {CandyTypes.CandyValue} metadata - The new metadata to store with the token.
-    * @returns {Promise<Result.Result<Bool, Types.OrigynError>>} A promise that resolves to a result containing a boolean indicating success or an error.
+    * @returns {Promise<Types.OrigynBoolResult>} A promise that resolves to a result containing a boolean indicating success or an error.
     */
-    public shared (msg) func refresh_metadata_nft_origyn(token_id : Text, metadata : CandyTypes.CandyValue) : async Result.Result<Bool, Types.OrigynError> {
+    public shared (msg) func refresh_metadata_nft_origyn(token_id : Text, metadata : CandyTypes.CandyValue) : async Types.OrigynBoolResult {
 
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         if (state_current.collection_data.owner != msg.caller) {
@@ -253,9 +253,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     //get storage info from the container
     /**
     * Retrieves storage metrics for the container.
-    * @returns {Promise<Result.Result<Types.StorageMetrics, Types.OrigynError>>} A promise that resolves to a result containing the storage metrics or an error.
+    * @returns {Promise<Types.StorageMetricsResult>} A promise that resolves to a result containing the storage metrics or an error.
     */
-    public query func storage_info_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
+    public query func storage_info_nft_origyn() : async Types.StorageMetricsResult {
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
@@ -268,9 +268,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     //secure storage info from the container
     /**
     * Retrieves secure storage metrics for the container.
-    * @returns {Promise<Result.Result<Types.StorageMetrics, Types.OrigynError>>} A promise that resolves to a result containing the storage metrics or an error.
+    * @returns {Promise<Types.StorageMetricsResult>} A promise that resolves to a result containing the storage metrics or an error.
     */
-    public func storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError> {
+    public func storage_info_secure_nft_origyn() : async Types.StorageMetricsResult {
         return #ok({
             allocated_storage = state_current.canister_allocated_storage;
             available_space = state_current.canister_availible_space;
@@ -284,9 +284,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     * Retrieves a chunk for a library based on the ChunkRequest object
     * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
     * @param {Principal} caller - The principal of the caller
-    * @returns {Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    * @returns {Types.ChunkResult} - The chunk content or an error if something goes wrong
     */
-    private func _chunk_nft_origyn(request : Types.ChunkRequest, caller : Principal) : Result.Result<Types.ChunkContent, Types.OrigynError> {
+    private func _chunk_nft_origyn(request : Types.ChunkRequest, caller : Principal) : Types.ChunkResult {
         //nyi: we need to check to make sure the chunk is public or caller has rights
 
         let allocation = switch (Map.get<(Text, Text), Types.AllocationRecord>(state_current.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (request.token_id, request.library_id))) {
@@ -366,9 +366,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     * Retrieves a chunk for a library based on the ChunkRequest object in a query call
     * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
     * @param {Principal} msg.caller - The principal of the caller
-    * @returns {async Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    * @returns {async Types.ChunkResult} - The chunk content or an error if something goes wrong
     */
-    public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
+    public query (msg) func chunk_nft_origyn(request : Types.ChunkRequest) : async Types.ChunkResult {
 
         return _chunk_nft_origyn(request, msg.caller);
     };
@@ -378,9 +378,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     * Retrieves a chunk for a library based on the ChunkRequest object in a shared call
     * @param {Types.ChunkRequest} request - The ChunkRequest object with the necessary information to retrieve the chunk
     * @param {Principal} msg.caller - The principal of the caller
-    * @returns {async Result.Result<Types.ChunkContent, Types.OrigynError>} - The chunk content or an error if something goes wrong
+    * @returns {async Types.ChunkResult} - The chunk content or an error if something goes wrong
     */
-    public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Result.Result<Types.ChunkContent, Types.OrigynError> {
+    public shared (msg) func chunk_secure_nft_origyn(request : Types.ChunkRequest) : async Types.ChunkResult {
         //warning:  test this, it may change the caller to the local canister
         return _chunk_nft_origyn(request, msg.caller);
     };

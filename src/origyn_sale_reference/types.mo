@@ -625,7 +625,10 @@ module {
         };
     };
 
+    public type OrigynBoolResult = Result.Result<Bool, OrigynError>;
+    public type OrigynTextResult = Result.Result<Text, OrigynError>;
 
+    
     public type Service = actor {
         manage_nfts_sale_nft_origyn : ([ManageNFTRequest]) -> async Result.Result<ManageNFTResponse, OrigynError>;
         allocate_sale_nft_origyn:  (AllocationRequest) -> async Result.Result<AllocationResponse, OrigynError>;

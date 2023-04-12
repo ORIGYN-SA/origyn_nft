@@ -237,7 +237,7 @@ module {
   * @param {StateAccess} state - State access object.
   * @param {CandyTypes.CandyValue} metadata - The metadata for the token.
   * @param {Principal} caller - The caller of the function.
-  * @returns {Result.Result<Bool, Types.OrigynError>} - A Result type containing either a boolean indicating whether the token is on sale or an error.
+  * @returns {Types.OrigynBoolResult} - A Result type containing either a boolean indicating whether the token is on sale or an error.
   */
   public func is_token_on_sale(
     state: StateAccess,
@@ -1027,7 +1027,7 @@ module {
     * @param {Types.DistributeSaleRequest} request - The request containing the seller information.
     * @param {Principal} caller - The caller principal.
     * 
-    * @returns {async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - The result of the sale distribution.
+    * @returns {async* Types.ManageSaleResult} - The result of the sale distribution.
     */
     public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       if(NFTUtils.is_owner_network(state, caller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "distribute_sale - not a canister owner or network", ?caller));
@@ -1317,7 +1317,7 @@ module {
     * @param {StateAccess} state - StateAccess instance representing the state of the canister
     * @param {Types.MarketTransferRequest} request - MarketTransferRequest object containing the details of the transfer
     * @param {Principal} caller - Principal object representing the caller
-    * @returns {AsyncGenerator<Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError>>} An async generator that yields a Result object representing the result of the transfer operation
+    * @returns {AsyncGenerator<Types.MarketTransferResult>} An async generator that yields a Result object representing the result of the transfer operation
     */
     public func market_transfer_nft_origyn_async(state: StateAccess, request : Types.MarketTransferRequest, caller: Principal) : async* Result.Result<Types.MarketTransferRequestReponse,Types.OrigynError> {
         
@@ -2193,7 +2193,7 @@ module {
     };
 
     //refreshes the offers collection
-    public func refresh_offers_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Result.Result<Types.ManageSaleResponse, Types.OrigynError>{
+    public func refresh_offers_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Types.ManageSaleResult{
         
       let seller = switch(request){
           case(null){
@@ -2656,7 +2656,7 @@ module {
     * @param {Types.WithdrawRequest} withdraw - The withdrawal request object.
     * @param {Types.WithdrawDescription} details - The withdrawal details object.
     * @param {Principal} caller - The caller of the function.
-    * @returns {Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - A Result object that either contains a ManageSaleResponse or an OrigynError if the withdrawal failed.
+    * @returns {Types.ManageSaleResult} - A Result object that either contains a ManageSaleResponse or an OrigynError if the withdrawal failed.
     */
     private func _withdraw_sale(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
@@ -2982,7 +2982,7 @@ module {
     * @param {StateAccess} state - The StateAccess instance of the NFT canister.
     * @param {Types.WithdrawRequest} withdraw - The withdraw request details containing token information.
     * @param {Principal} caller - The Principal of the caller.
-    * @returns {async* Result.Result<Types.ManageSaleResponse, Types.OrigynError>} - A Result object containing either a ManageSaleResponse or an OrigynError.
+    * @returns {async* Types.ManageSaleResult} - A Result object containing either a ManageSaleResponse or an OrigynError.
     */
     public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
       switch(withdraw){
@@ -3036,7 +3036,7 @@ module {
     * @param {Types.BidRequest} request - The bid request containing the token id and escrow receipt.
     * @param {Principal} caller - The principal of the caller.
     * @param {Bool} canister_call - Determines if the function is being called from another function within the canister.
-    * @returns {Result.Result<Types.ManageSaleResponse, Types.OrigynError>} A result indicating either a successful bid or an error message.
+    * @returns {Types.ManageSaleResult} A result indicating either a successful bid or an error message.
     */
     public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 

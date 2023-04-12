@@ -123,9 +123,9 @@ module {
     * @param {Text} token_id - The identifier of the token.
     * @param {CandyTypes.CandyValue} found_metadata - The metadata associated with the token.
     * @param {Principal} caller - The principal who is making the call.
-    * @returns {Result.Result<Text, Types.OrigynError>} The result of the operation, either an error message or "ok".
+    * @returns {Types.OrigynTextResult} The result of the operation, either an error message or "ok".
     */
-    private func handle_library(state : Types.State, token_id : Text, found_metadata : CandyTypes.CandyValue, caller : Principal) : Result.Result<Text, Types.OrigynError> {
+    private func handle_library(state : Types.State, token_id : Text, found_metadata : CandyTypes.CandyValue, caller : Principal) : Types.OrigynTextResult {
         //prep the library
         debug if (debug_channel.library) D.print("in handle library");
         switch (Metadata.get_nft_library(found_metadata, ?caller)) {
@@ -287,7 +287,7 @@ module {
     * @param {Types.Account} new_owner - The owner of the newly minted token.
     * @param {Principal} caller - The caller of the function.
     * 
-    * @returns {Result.Result<Text, Types.OrigynError>} - If successful, returns the token ID as a string, otherwise returns an error.
+    * @returns {Types.OrigynTextResult} - If successful, returns the token ID as a string, otherwise returns an error.
     * 
     * @throws {Types.OrigynError} - If the caller is not authorized to mint tokens.
     */
@@ -366,7 +366,7 @@ module {
         state : Types.State,
         metadata : CandyTypes.CandyValue,
         caller : Principal,
-    ) : Result.Result<Text, Types.OrigynError> {
+    ) : Types.OrigynTextResult {
         debug if (debug_channel.stage) D.print("in stage");
         //only an owner can stage
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
@@ -553,9 +553,9 @@ module {
     * @param {Nat} content_size - the size of the content to be filed
     * @param {Bool} debug_channel - flag for debugging messages
     * @param {Principal} caller - the principal of the caller
-    * @returns {Result.Result<Bool, Types.OrigynError>} - a result indicating whether the operation was successful or not
+    * @returns {Types.OrigynBoolResult} - a result indicating whether the operation was successful or not
     */
-    private func _file_chunk(state : Types.State, chunk : Types.StageChunkArg, found_workspace : CandyTypes.Workspace, allocation: Types.AllocationRecord, content_size: Nat, debug_channel : Bool, caller: Principal) : Result.Result<Bool, Types.OrigynError>{
+    private func _file_chunk(state : Types.State, chunk : Types.StageChunkArg, found_workspace : CandyTypes.Workspace, allocation: Types.AllocationRecord, content_size: Nat, debug_channel : Bool, caller: Principal) : Types.OrigynBoolResult{
 
       //file the chunk
       if(chunk.content.size() > 0){
@@ -801,7 +801,7 @@ module {
         state : Types.State,
         chunk : Types.StageChunkArg,
         caller : Principal,
-    ) : Result.Result<Types.LocalStageLibraryResponse, Types.OrigynError> {
+    ) : Types.LocalStageLibraryResult {
 
         //todo: add ability for nfto owner to upload files to an nft.
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
@@ -1120,14 +1120,13 @@ module {
     * @param {Principal} caller - The caller principal
     * @returns {async* Result.Result<Types.StageLibraryResponse, Types.OrigynError>} The result of the stage library operation
     */
-
     public func stage_library_nft_origyn_remote(
         state : Types.State,
         chunk : Types.StageChunkArg,
         allocation : Types.AllocationRecord,
         metadata : CandyTypes.CandyValue,
         caller : Principal,
-    ) : async* Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
+    ) : async* Types.StageLibraryResult {
 
         debug if (debug_channel.remote) D.print("we have an allocationin the remote" # debug_show ((allocation, metadata)));
 

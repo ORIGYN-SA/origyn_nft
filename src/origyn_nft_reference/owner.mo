@@ -40,7 +40,7 @@ module {
     * @param {Types.ShareWalletRequest} request - the request object containing the token ID, the current owner's account, and the new owner's account
     * @param {Principal} caller - the principal of the caller
     * 
-    * @returns {Result.Result<Types.OwnerTransferResponse, Types.OrigynError>} the transaction record and a list of assets associated with the token
+    * @returns {Types.OwnerUpdateResult} the transaction record and a list of assets associated with the token
     */
     public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
       //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
@@ -180,7 +180,7 @@ module {
     * 
     * @returns {DIP721.Result} - A DIP721 result object indicating the success or failure of the transfer operation.
     */
-    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async* DIP721.Result{
+    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async* DIP721.DIP721NatResult{
         //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
         //if the escrow doesn't exist then we should fail
         //nyi: determine if this is a marketable NFT and take proper action
@@ -355,9 +355,9 @@ module {
     * @param {EXT.TokenIdentifier} tokenIdentifier - The token identifier for which to get the account identifier of the bearer.
     * @param {Principal} caller - The caller principal.
     * 
-    * @returns {Result.Result<EXT.AccountIdentifier, EXT.CommonError>} Returns a result indicating success or failure with the data or an error message.
+    * @returns {Types.EXTBearerResult} Returns a result indicating success or failure with the data or an error message.
     */
-    public func bearerEXT(state: StateAccess, tokenIdentifier: EXT.TokenIdentifier, caller :Principal) : Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
+    public func bearerEXT(state: StateAccess, tokenIdentifier: EXT.TokenIdentifier, caller :Principal) : Types.EXTBearerResult{
 
         switch(getNFTForTokenIdentifier(state, tokenIdentifier)){
             case(#ok(data)){

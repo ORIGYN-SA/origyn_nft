@@ -41,6 +41,8 @@ import Types "types";
 
 module {
 
+    
+
     let debug_channel = {
         streaming = false;
         large_content = false;
@@ -79,11 +81,11 @@ module {
         token : ?StreamingCallbackToken;
     };
 
-    public type HeaderField = (Text, Text);
+    
 
     public type HttpRequest = {
         body: Blob;
-        headers: [HeaderField];
+        headers: [http.HeaderField];
         method: Text;
         url: Text;
     };
@@ -616,7 +618,7 @@ module {
     * @param headers - the headers from the HTTP request
     * @returns an object containing the start and end values and a boolean indicating whether a range header was found
     */
-    public func handle_range_headers(headers: [httpparser.HeaderField]) : {
+    public func handle_range_headers(headers: [http.HeaderField]) : {
       start : ?Nat;
       end : ?Nat;
       b_foundRange : Bool;

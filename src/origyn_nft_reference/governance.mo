@@ -28,10 +28,10 @@ module {
   * @param {Types.State} state - The current state of the Origyn canister.
   * @param {Types.GovernanceRequest} request - The governance request object specifying the type of action to execute.
   * @param {Principal} caller - The principal of the caller making the governance request.
-  * @returns {Result.Result<Types.GovernanceResponse, Types.OrigynError>} - Returns a Result object containing either a Types.GovernanceResponse object or a Types.OrigynError object if an error occurs during the governance process.
+  * @returns {Types.GovernanceResult} - Returns a Result object containing either a Types.GovernanceResponse object or a Types.OrigynError object if an error occurs during the governance process.
   * @throws {Types.OrigynError} Throws an OrigynError if an error occurs during the governance process.
   */
-  public func governance_nft_origyn(state: Types.State, request : Types.GovernanceRequest, caller : Principal) : Result.Result<Types.GovernanceResponse, Types.OrigynError> {
+  public func governance_nft_origyn(state: Types.State, request : Types.GovernanceRequest, caller : Principal) : Types.GovernanceResult {
 
     //only the network can enact goverance
     if(NFTUtils.is_network(state, caller) == false){

@@ -310,9 +310,9 @@ module {
   * gets a text property out of the metadata of an NFT
   * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
   * @param {Text} prop - the property to retrieve from the metadata
-  * @return {Result.Result<Text, Types.OrigynError>} - a result containing the requested text property or an error
+  * @return {Types.OrigynTextResult} - a result containing the requested text property or an error
   */
-  public func get_nft_text_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Text, Types.OrigynError>{
+  public func get_nft_text_property(metadata: CandyTypes.CandyValue, prop: Text) : Types.OrigynTextResult{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
@@ -359,9 +359,9 @@ module {
   *
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
   * @param {Text} prop - The name of the property to get.
-  * @returns {Result.Result<Bool, Types.OrigynError>} A result containing either the bool property or an error.
+  * @returns {Types.OrigynBoolResult} A result containing either the bool property or an error.
   */
-  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
+  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Types.OrigynBoolResult{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
@@ -440,9 +440,9 @@ module {
   * Gets the id of an NFT.
   *
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
-  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the id or an error.
+  * @returns {Types.OrigynTextResult} A result containing either the id or an error.
   */
-  public func get_nft_id(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
+  public func get_nft_id(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.id)){
       case(#err(err)){return #err(err)};
       case(#ok(val)){return #ok(val)};
@@ -454,9 +454,9 @@ module {
   * Gets the primary asset for an NFT.
   *
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
-  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the primary asset or an error.
+  * @returns {Types.OrigynTextResult} A result containing either the primary asset or an error.
   */
-  public func get_nft_primary_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
+  public func get_nft_primary_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.primary_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -468,9 +468,9 @@ module {
   * Gets the preview asset for an NFT.
   *
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
-  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the preview asset or an error.
+  * @returns {Types.OrigynTextResult} A result containing either the preview asset or an error.
   */
-  public func get_nft_preview_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
+  public func get_nft_preview_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.preview_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -482,9 +482,9 @@ module {
   * Gets the experience asset for an NFT.
   *
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
-  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the experience asset or an error.
+  * @returns {Types.OrigynTextResult} A result containing either the experience asset or an error.
   */
-  public func get_nft_experience_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
+  public func get_nft_experience_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.experience_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -632,9 +632,9 @@ module {
   /**
   * Converts a CandyValue to an account value.
   * @param {CandyTypes.CandyValue} val - The CandyValue to convert.
-  * @returns {Result.Result<Types.Account, Types.OrigynError>} The converted account value.
+  * @returns {Types.BearerResult} The converted account value.
   */
-  public func candy_to_account(val : CandyTypes.CandyValue) :Result.Result<Types.Account, Types.OrigynError> {
+  public func candy_to_account(val : CandyTypes.CandyValue) :Types.BearerResult {
     switch(val){
       case(#Principal(val)){#ok(#principal(val))};
       case(#Text(val)){#ok(#account_id(val))};
@@ -679,9 +679,9 @@ module {
   /**
   * Gets the owner of an NFT in the owner field.
   * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
-  * @returns {Result.Result<Types.Account, Types.OrigynError>} The owner of the NFT.
+  * @returns {Types.BearerResult} The owner of the NFT.
   */
-  public func get_nft_owner(metadata: CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError>{
+  public func get_nft_owner(metadata: CandyTypes.CandyValue) : Types.BearerResult{
     switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
       case(null){
         return #err(Types.errors(null,  #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
@@ -751,9 +751,9 @@ module {
   *
   * @param {CandyTypes.CandyValue} metadata - Metadata of the NFT
   * @param {Types.Account} anAccount - The account to check if it's the owner
-  * @returns {Result.Result<Bool, Types.OrigynError>} - Result object containing a boolean indicating whether or not the provided account is the owner of the NFT
+  * @returns {Types.OrigynBoolResult} - Result object containing a boolean indicating whether or not the provided account is the owner of the NFT
   */
-  public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Result.Result<Bool, Types.OrigynError>{
+  public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Types.OrigynBoolResult{
     
     let owner = switch(get_nft_owner(metadata)){
       case(#err(err)){
@@ -860,9 +860,9 @@ module {
   * @param {Types.State} state - The current state of the system
   * @param {Text} token_id - The ID of the NFT
   * @param {Principal} caller - The caller's principal ID
-  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary host of the NFT, or an error if it couldn't be found
+  * @returns {Types.OrigynTextResult} - Result object containing a string of the primary host of the NFT, or an error if it couldn't be found
   */
-  public func get_primary_host(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
+  public func get_primary_host(state : Types.State, token_id: Text, caller : Principal) : Types.OrigynTextResult{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_host - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
@@ -892,9 +892,9 @@ module {
   * @param {Types.State} state - The current state of the system
   * @param {Text} token_id - The ID of the NFT
   * @param {Principal} caller - The caller's principal ID
-  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary port of the NFT, or an error if it couldn't be found
+  * @returns {Types.OrigynTextResult} - Result object containing a string of the primary port of the NFT, or an error if it couldn't be found
   */
-  public func get_primary_port(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
+  public func get_primary_port(state : Types.State, token_id: Text, caller : Principal) : Types.OrigynTextResult{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_port - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
@@ -924,9 +924,9 @@ module {
   * @param {Types.State} state - The current state of the system
   * @param {Text} token_id - The ID of the NFT
   * @param {Principal} caller - The caller's principal ID
-  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary protocol of the NFT, or an error if it couldn't be found
+  * @returns {Types.OrigynTextResult} - Result object containing a string of the primary protocol of the NFT, or an error if it couldn't be found
   */
-  public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
+  public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Types.OrigynTextResult{
     
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_protocol - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
@@ -1634,9 +1634,9 @@ module {
   * @param {Types.State} state - the current state of the canister
   * @param {Types.ChunkRequest} request - the request for the chunk content
   * @param {?Principal} caller - the principal making the request
-  * @returns {Result.Result<Types.ChunkContent, Types.OrigynError>} - a Result type containing either the chunk content or an error message
+  * @returns {Types.ChunkResult} - a Result type containing either the chunk content or an error message
   */
-  public func chunk_nft_origyn(state: Types.State, request : Types.ChunkRequest, caller: ?Principal) : Result.Result<Types.ChunkContent, Types.OrigynError>{
+  public func chunk_nft_origyn(state: Types.State, request : Types.ChunkRequest, caller: ?Principal) : Types.ChunkResult{
     //D.print("looking for a chunk" # debug_show(request));
     //check mint property
               debug if(debug_channel.function_announce) D.print("in chunk_nft_origyn");
@@ -1829,9 +1829,9 @@ module {
   * @param {Types.State} state - The state of the collection
   * @param {Types.ManageCollectionCommand} request - The collection data to be updated
   * @param {Principal} caller - The principal of the caller
-  * @returns {Result.Result<Bool, Types.OrigynError>} - A Result object containing a boolean indicating the success or failure of the update and an OrigynError in case of failure
+  * @returns {Types.OrigynBoolResult} - A Result object containing a boolean indicating the success or failure of the update and an OrigynError in case of failure
   */
-  public func collection_update_nft_origyn(state : Types.State, request: Types.ManageCollectionCommand, caller : Principal) : Result.Result<Bool, Types.OrigynError>{
+  public func collection_update_nft_origyn(state : Types.State, request: Types.ManageCollectionCommand, caller : Principal) : Types.OrigynBoolResult{
     
     if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "collection_update_origyn - not a canister owner or network", ?caller))};
     

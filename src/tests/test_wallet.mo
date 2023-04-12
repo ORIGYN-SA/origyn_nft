@@ -100,7 +100,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared func try_get_nft(canister: Principal, token_id: Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError> {
+    public shared func try_get_nft(canister: Principal, token_id: Text) : async Types.NFTInfoResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        switch(await acanister.nft_origyn(token_id)){
@@ -118,7 +118,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared func try_publish_meta(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_publish_meta(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let stage = await acanister.stage_nft_origyn({metadata = #Class([
@@ -152,7 +152,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_publish_change(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_publish_change(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let stage = await acanister.stage_nft_origyn({metadata = #Class([
@@ -195,7 +195,7 @@ shared (deployer) actor class test_wallet() = this {
 
     
 
-    public shared func try_get_bearer(canister: Principal) : async Result.Result<Types.Account, Types.OrigynError> {
+    public shared func try_get_bearer(canister: Principal) : async Types.BearerResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let fileStage = await acanister.bearer_nft_origyn("1");
@@ -211,7 +211,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_mint(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_mint(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let mint = await acanister.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
@@ -227,7 +227,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_sale_staged(current_owner: Principal, canister: Principal, ledger: Principal) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared func try_sale_staged(current_owner: Principal, canister: Principal, ledger: Principal) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("caling market transfer  origyn");
@@ -275,7 +275,7 @@ shared (deployer) actor class test_wallet() = this {
       seller: Principal, 
       token_id: Text, 
       amount: Nat, 
-      token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+      token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("escrow withdraw");
@@ -326,7 +326,7 @@ shared (deployer) actor class test_wallet() = this {
       ledger: Principal,  
       seller: Principal, 
       token_id: Text,
-      token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+      token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("escrow withdraw");
@@ -369,7 +369,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_sale_withdraw(canister: Principal, buyer: Principal, ledger: Principal,  seller: Principal, token_id: Text, amount: Nat, token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared func try_sale_withdraw(canister: Principal, buyer: Principal, ledger: Principal,  seller: Principal, token_id: Text, amount: Nat, token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        D.print("sale withdraw");
@@ -674,7 +674,7 @@ shared (deployer) actor class test_wallet() = this {
        };
     };
 
-    public shared(msg) func try_owner_transfer(canister: Principal, token_id: Text, to: Types.Account) : async Result.Result<Types.OwnerTransferResponse, Types.OrigynError> {
+    public shared(msg) func try_owner_transfer(canister: Principal, token_id: Text, to: Types.Account) : async Types.OwnerUpdateResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -692,7 +692,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared(msg) func try_offer_refresh(canister: Principal) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError> {
+    public shared(msg) func try_offer_refresh(canister: Principal) : async Types.ManageSaleResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -711,7 +711,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyType.CandyValue) : async Result.Result<Types.NFTUpdateResponse, Types.OrigynError> {
+    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyType.CandyValue) : async Types.NFTUpdateResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -729,7 +729,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared(msg) func try_start_auction(canister: Principal, ledger: Principal, token_id: Text, allow_list : ?[Principal]) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared(msg) func try_start_auction(canister: Principal, ledger: Principal, token_id: Text, allow_list : ?[Principal]) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        

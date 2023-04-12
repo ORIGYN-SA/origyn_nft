@@ -35,7 +35,7 @@ class Ledger_Interface() {
    validate deposit was used before we implemented sub accounts. We are leaving it here as it is 
    an example of how one could implement this using dip20 without implementing transferFrom
 
-   public func validateDeposit(host: Principal, deposit : Types.DepositDetail, caller: Principal) : async Result.Result<Bool, Types.OrigynError> {
+   public func validateDeposit(host: Principal, deposit : Types.DepositDetail, caller: Principal) : async Types.OrigynBoolResult {
      //D.print("in validate ledger deposit");
      //D.print(Principal.toText(host));
      //D.print(debug_show(deposit));

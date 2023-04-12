@@ -69,11 +69,11 @@ module {
         token : ?StreamingCallbackToken;
     };
 
-    public type HeaderField = (Text, Text);
+    
 
     public type HttpRequest = {
         body: Blob;
-        headers: [HeaderField];
+        headers: [http.HeaderField];
         method: Text;
         url: Text;
     };

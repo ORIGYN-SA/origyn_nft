@@ -85,9 +85,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     /**
     * Function to manage the sale of an NFT on Origyn platform
     * @param {Types.ManageCommand} command - command to execute
-    * @returns {Result.Result<Bool, Types.OrigynError>} - Result of the operation
+    * @returns {Types.OrigynBoolResult} - Result of the operation
     */
-    public shared(msg) func manage_sale_nft_origyn(command : Types.ManageCommand) : async Result.Result<Bool, Types.OrigynError>{
+    public shared(msg) func manage_sale_nft_origyn(command : Types.ManageCommand) : async Types.OrigynBoolResult{
         switch(command){
             case(#UpdateOwner(val)){
                 if(msg.caller ==  state.owner){
@@ -1678,9 +1678,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     *
     * @param {Types.NFTInventoryItemRequest} request - The request containing the details of the NFT inventory item to be added.
     *
-    * @returns {Promise<Result.Result<Text, Types.OrigynError>>} A promise that resolves to a `Result` object containing either a success message or an `OrigynError`.
+    * @returns {Promise<Types.OrigynTextResult>} A promise that resolves to a `Result` object containing either a success message or an `OrigynError`.
     */
-    public shared(msg) func add_inventory_item(request: Types.NFTInventoryItemRequest) : async Result.Result<Text, Types.OrigynError>{
+    public shared(msg) func add_inventory_item(request: Types.NFTInventoryItemRequest) : async Types.OrigynTextResult{
 
 
           if(msg.caller !=  state.owner){
@@ -1778,7 +1778,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     // Groups
 
-    // public shared(msg) func add_group_item(request: Types.AddGroupRequest) : async Result.Result<Text, Types.OrigynError>{
+    // public shared(msg) func add_group_item(request: Types.AddGroupRequest) : async Types.OrigynTextResult{
 
        
     //     nft_group := Map.set<Text, Types.Group>(nft_group ,Text.compare, request.key, request.item);

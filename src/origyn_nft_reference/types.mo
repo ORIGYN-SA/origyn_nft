@@ -13,12 +13,10 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import Candy "mo:candy/types";
 import CandyTypes "mo:candy/types";
-import CandyTypes_lib "mo:candy/types";
 import Conversions "mo:candy/conversion";
-import EXT "mo:ext/Core";
-import EXTCommon "mo:ext/Common";
+//import EXT "mo:ext/Core";
+//import EXTCommon "mo:ext/Common";
 import Map "mo:map/Map";
 import NFTUtils "mo:map/utils";
 import SB "mo:stablebuffer/StableBuffer";
@@ -30,7 +28,8 @@ import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 import DROUTE "mo:droute_client/Droute";
 import KYC "mo:icrc17_kyc";
-import Canistergeek "mo:canistergeek/canistergeek";
+import CanistergeekTypes "mo:canistergeek/canistergeek";
+import http "mo:http/Http";
 
 
 module {
@@ -96,7 +95,7 @@ module {
 
     public type HttpRequest = {
         body : Blob;
-        headers : [HeaderField];
+        headers : [http.HeaderField];
         method : Text;
         url : Text;
     };
@@ -123,7 +122,7 @@ module {
 
     public type HttpResponse = {
         body : Blob;
-        headers : [HeaderField];
+        headers : [http.HeaderField];
         status_code : Nat16;
         streaming_strategy : ?StreamingStrategy;
     };
@@ -135,7 +134,6 @@ module {
         };
     };
 
-    public type HeaderField = (Text, Text);
 
     public type canister_id = Principal;
 
@@ -207,11 +205,26 @@ module {
         pricing : PricingConfig;
     };
 
-    public type ICTokenSpec = MigrationTypes.Current.ICTokenSpec;
+    public type ICTokenSpec = {
+        canister: Principal;
+        fee: Nat;
+        symbol: Text;
+        decimals: Nat;
+        standard: {
+            #DIP20;
+            #Ledger;
+            #EXTFungible;
+            #ICRC1; //use #Ledger instead
+        };
+    };
 
-    public type TokenSpec = MigrationTypes.Current.TokenSpec;
+    public type TokenSpec = {
+        #ic: ICTokenSpec;
+        #extensible : CandyTypes.CandyValue; //#Class
+    };
 
     public let TokenSpecDefault = #extensible(#Empty);
+    public let Canistergeek = CanistergeekTypes;
 
     //nyi: anywhere a deposit address is used, check blob for size in inspect message
     public type SubAccountInfo = {
@@ -224,7 +237,14 @@ module {
         };
     };
 
-    public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
+    public type EscrowReceipt = {
+        amount: Nat; //Nat to support cycles
+        seller: Account;
+        buyer: Account;
+        token_id: Text;
+        token: TokenSpec;
+        
+    };
 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
@@ -242,7 +262,12 @@ module {
     };
 
     //used to identify the transaction in a remote ledger; usually a nat on the IC
-    public type TransactionID = MigrationTypes.Current.TransactionID;
+    public type TransactionID =  {
+        #nat : Nat;
+        #text : Text;
+        #extensible : CandyTypes.CandyValue
+    };
+
 
     public type EscrowResponse = {
         receipt : EscrowReceipt;
@@ -264,9 +289,45 @@ module {
 
     public type BidResponse = TransactionRecord;
 
-    public type PricingConfig = MigrationTypes.Current.PricingConfig;
+    public type PricingConfig = {
+        #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+        #flat: {
+            token: TokenSpec;
+            amount: Nat; //Nat to support cycles
+        };
+        //below have not been signficantly desinged or vetted
+        #dutch: {
+            start_price: Nat;
+            decay_per_hour: Float;
+            reserve: ?Nat;
+        };
+        #auction: AuctionConfig;
+        #extensible: {
+            #candyClass
+        }
+    };
 
-    public type AuctionConfig = MigrationTypes.Current.AuctionConfig;
+    public type AuctionConfig = {
+            reserve: ?Nat;
+            token: TokenSpec;
+            buy_now: ?Nat;
+            start_price: Nat;
+            start_date: Int;
+            ending: {
+                #date: Int;
+                #waitForQuiet: {
+                    date: Int;
+                    extention: Nat64;
+                    fade: Float;
+                    max: Nat
+                };
+            };
+            min_increase: {
+                #percentage: Float;
+                #amount: Nat;
+            };
+            allow_list : ?[Principal];
+        };
 
     public let AuctionConfigDefault = {
         reserve = null;
@@ -283,7 +344,7 @@ module {
         metadata : CandyTypes.CandyValue;
     };
 
-    public type AuctionState = MigrationTypes.Current.AuctionState;
+    
 
     public type AuctionStateStable = {
         config : PricingConfig;
@@ -321,7 +382,7 @@ module {
         };
     };
 
-    public type SaleStatus = MigrationTypes.Current.SaleStatus;
+    
 
     public type SaleStatusStable = {
         sale_id : Text; //sha256?;
@@ -349,7 +410,12 @@ module {
 
     public type MarketTransferRequestReponse = TransactionRecord;
 
-    public type Account = MigrationTypes.Current.Account;
+    public type Account = {
+        #principal : Principal;
+        #account : {owner: Principal; sub_account: ?Blob};
+        #account_id : Text;
+        #extensible : CandyTypes.CandyValue;
+    };
 
     /*
     public type Stable_Memory = {
@@ -469,7 +535,7 @@ module {
 
     public type GatewayState = GatewayState_v0_1_4;
 
-    public type GatewayState_v0_1_4 = MigrationTypes.Current.State;
+    
 
     public type StorageState = StorageState_v_0_1_3;
 
@@ -530,7 +596,111 @@ module {
         };
     };
 
-    public type TransactionRecord = MigrationTypes.Current.TransactionRecord;
+    public type TransactionRecord = {
+        token_id: Text;
+        index: Nat;
+        txn_type: {
+            #auction_bid : {
+                buyer: Account;
+                amount: Nat;
+                token: TokenSpec;
+                sale_id: Text;
+                extensible: CandyTypes.CandyValue;
+            };
+            #mint : {
+                from: Account;
+                to: Account;
+                //nyi: metadata hash
+                sale: ?{token: TokenSpec;
+                    amount: Nat; //Nat to support cycles
+                    };
+                extensible: CandyTypes.CandyValue;
+            };
+            #sale_ended : {
+                seller: Account;
+                buyer: Account;
+               
+                token: TokenSpec;
+                sale_id: ?Text;
+                amount: Nat;//Nat to support cycles
+                extensible: CandyTypes.CandyValue;
+            };
+            #royalty_paid : {
+                seller: Account;
+                buyer: Account;
+                 reciever: Account;
+                tag: Text;
+                token: TokenSpec;
+                sale_id: ?Text;
+                amount: Nat;//Nat to support cycles
+                extensible: CandyTypes.CandyValue;
+            };
+            #sale_opened : {
+                pricing: PricingConfig;
+                sale_id: Text;
+                extensible: CandyTypes.CandyValue;
+            };
+            #owner_transfer : {
+                from: Account;
+                to: Account;
+                extensible: CandyTypes.CandyValue;
+            }; 
+            #escrow_deposit : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat;//Nat to support cycles
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyValue;
+            };
+            #escrow_withdraw : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat;//Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyValue;
+            };
+            #deposit_withdraw : {
+                buyer: Account;
+                token: TokenSpec;
+                amount: Nat;//Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyValue;
+            };
+            #sale_withdraw : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat; //Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyValue;
+            };
+            #canister_owner_updated : {
+                owner: Principal;
+                extensible: CandyTypes.CandyValue;
+            };
+            #canister_managers_updated : {
+                managers: [Principal];
+                extensible: CandyTypes.CandyValue;
+            };
+            #canister_network_updated : {
+                network: Principal;
+                extensible: CandyTypes.CandyValue;
+            };
+            #data; //nyi
+            #burn;
+            #extensible : CandyTypes.CandyValue;
+
+        };
+        timestamp: Int;
+    };
 
     public type NFTUpdateRequest = {
         #replace : {
@@ -549,7 +719,16 @@ module {
 
     public type EndSaleResponse = TransactionRecord;
 
-    public type EscrowRecord = MigrationTypes.Current.EscrowRecord;
+    public type EscrowRecord = {
+        amount: Nat;
+        buyer: Account; 
+        seller:Account; 
+        token_id: Text; 
+        token: TokenSpec;
+        sale_id: ?Text; //locks the escrow to a specific sale
+        lock_to_date: ?Int; //locks the escrow to a timestamp
+        account_hash: ?Blob; //sub account the host holds the funds in
+    };
 
     public type ManageSaleRequest = {
         #end_sale : Text; //token_id
@@ -1547,7 +1726,7 @@ module {
 
     };
 
-    public type EXTTokensResult = (Nat32, ?{ locked : ?Int; seller : Principal; price : Nat64 }, ?[Nat8]);
+    public type EXTTokensResponse = (Nat32, ?{ locked : ?Int; seller : Principal; price : Nat64 }, ?[Nat8]);
 
     // Converts a token id into a reversable ext token id
     public func _getEXTTokenIdentifier(token_id : Text, canister : Principal) : Text {
@@ -1566,7 +1745,7 @@ module {
 
     public type HTTPResponse = {
         body : Blob;
-        headers : [HeaderField];
+        headers : [http.HeaderField];
         status_code : Nat16;
         streaming_strategy : ?StreamingStrategy;
     };
@@ -1594,74 +1773,155 @@ module {
         };
     };
 
+    //the following types are included to provde stable .did creations. Please do not remove them even if they
+    //seem like they ocould be refactored.
+
+    public type EXTAccountIdentifier = Text;
+    public type EXTBalance = Nat;
+    public type EXTTokenIdentifier  = Text;
+    public type EXTCommonError = {
+      #InvalidToken: EXTTokenIdentifier;
+      #Other : Text;
+    };
+    public type EXTBalanceResult = Result.Result<EXTBalance, EXTCommonError>;
+    public type EXTBalanceRequest = { 
+      user : EXTUser; 
+      token: EXTTokenIdentifier;
+    };
+    public type EXTUser = {
+      #address : Text; //No notification
+      #principal : Principal; //defaults to sub account 0
+    };
+    public type EXTMemo = Blob;
+    public type EXTSubAccount = [Nat8];
+    public type EXTTransferRequest = {
+      from : EXTUser;
+      to : EXTUser;
+      token : EXTTokenIdentifier;
+      amount : EXTBalance;
+      memo : EXTMemo;
+      notify : Bool;
+      subaccount : ?EXTSubAccount;
+    };
+    public type EXTTransferResponse = Result.Result<EXTBalance, {
+      #Unauthorized: EXTAccountIdentifier;
+      #InsufficientBalance;
+      #Rejected; //Rejected by canister
+      #InvalidToken: EXTTokenIdentifier;
+      #CannotNotify: EXTAccountIdentifier;
+      #Other : Text;
+    }>;
+
+    public type EXTMetadata = {
+    #fungible : {
+      name : Text;
+      symbol : Text;
+      decimals : Nat8;
+      metadata : ?Blob;
+    };
+    #nonfungible : {
+      metadata : ?Blob;
+    };
+  };
+  public type EXTMetadataResult = Result.Result<EXTMetadata, EXTCommonError>;
+  public type EXTTokensResult = Result.Result<[EXTTokensResponse], EXTCommonError>;
+
+    
+
+    public type BalanceResult = Result.Result<BalanceResponse, OrigynError>;
+    public type BearerResult = Result.Result<Account, OrigynError>;
+    public type EXTBearerResult = Result.Result<EXTAccountIdentifier, EXTCommonError>;
+    public type ChunkResult = Result.Result<ChunkContent, OrigynError>;
+    public type CollectionResult = Result.Result<CollectionInfo, OrigynError>;
+    public type OrigynBoolResult = Result.Result<Bool, OrigynError>;
+    public type OrigynTextResult = Result.Result<Text, OrigynError>;
+    public type GovernanceResult = Result.Result<GovernanceResponse, OrigynError>;
+    public type HistoryResult = Result.Result<[TransactionRecord], OrigynError>;
+    public type ManageStorageResult = Result.Result<ManageStorageResponse, OrigynError>;
+    public type MarketTransferResult = Result.Result<MarketTransferRequestReponse, OrigynError>;
+    public type NFTInfoResult = Result.Result<NFTInfoStable, OrigynError>;
+    public type NFTUpdateResult = Result.Result<NFTUpdateResponse, OrigynError>;
+    public type OwnerUpdateResult = Result.Result<OwnerTransferResponse, OrigynError>;
+    public type ManageSaleResult = Result.Result<ManageSaleResponse, OrigynError>;
+    public type SaleInfoResult = Result.Result<SaleInfoResponse, OrigynError>;
+    public type StorageMetricsResult = Result.Result<StorageMetrics, OrigynError>;
+    public type StageLibraryResult = Result.Result<StageLibraryResponse, OrigynError>;
+    public type LocalStageLibraryResult = Result.Result<LocalStageLibraryResponse, OrigynError>;
+
     public type Service = actor {
         __advance_time : shared Int -> async Int;
         __set_time_mode : shared { #test; #standard } -> async Bool;
-        balance : shared query EXT.BalanceRequest -> async BalanceResponse;
-        balanceEXT : shared query EXT.BalanceRequest -> async BalanceResponse;
+        balance : shared query EXTBalanceRequest -> async EXTBalanceResult;
+        balanceEXT : shared query EXTBalanceRequest -> async EXTBalanceResult;
         balanceOfDip721 : shared query Principal -> async Nat;
-        balance_of_nft_origyn : shared query Account -> async Result.Result<BalanceResponse, OrigynError>;
-        balance_of_secure_nft_origyn : shared (account : Account) -> async Result.Result<BalanceResponse, OrigynError>;
-        bearer : shared query EXT.TokenIdentifier -> async Result.Result<Account, OrigynError>;
-        bearerEXT : shared query EXT.TokenIdentifier -> async Result.Result<Account, OrigynError>;
-        bearer_nft_origyn : shared query Text -> async Result.Result<Account, OrigynError>;
-        bearer_batch_nft_origyn : shared query (tokens : [Text]) -> async [Result.Result<Account, OrigynError>];
-        bearer_secure_nft_origyn : shared (token_id : Text) -> async Result.Result<Account, OrigynError>;
-        bearer_batch_secure_nft_origyn : shared [Text] -> async [Result.Result<Account, OrigynError>];
+        balance_of_nft_origyn : shared query Account -> async BalanceResult;
+        balance_of_secure_nft_origyn : shared (account : Account) -> async BalanceResult;
+        bearer : shared query EXTTokenIdentifier -> async EXTBearerResult;
+        bearerEXT : shared query EXTTokenIdentifier -> async EXTBearerResult;
+        bearer_nft_origyn : shared query Text -> async BearerResult;
+        bearer_batch_nft_origyn : shared query (tokens : [Text]) -> async [BearerResult];
+        bearer_secure_nft_origyn : shared (token_id : Text) -> async BearerResult;
+        bearer_batch_secure_nft_origyn : shared [Text] -> async [BearerResult];
 
         canister_status : shared {
             canister_id : canister_id;
         } -> async canister_status;
-        chunk_nft_origyn : shared query ChunkRequest -> async Result.Result<ChunkContent, OrigynError>;
-        chunk_secure_nft_origyn : shared (request : ChunkRequest) -> async Result.Result<ChunkContent, OrigynError>;
-        collection_nft_origyn : shared query (fields : ?[(Text, ?Nat, ?Nat)]) -> async Result.Result<CollectionInfo, OrigynError>;
-        collection_secure_nft_origyn : shared (fields : ?[(Text, ?Nat, ?Nat)]) -> async Result.Result<CollectionInfo, OrigynError>;
-        collection_update_nft_origyn : (ManageCollectionCommand) -> async Result.Result<Bool, OrigynError>;
-        collection_update_batch_nft_origyn : ([ManageCollectionCommand]) -> async [Result.Result<Bool, OrigynError>];
+        chunk_nft_origyn : shared query ChunkRequest -> async ChunkResult;
+        chunk_secure_nft_origyn : shared (request : ChunkRequest) -> async ChunkResult;
+        collection_nft_origyn : shared query (fields : ?[(Text, ?Nat, ?Nat)]) -> async CollectionResult;
+        collection_secure_nft_origyn : shared (fields : ?[(Text, ?Nat, ?Nat)]) -> async CollectionResult;
+        collection_update_nft_origyn : (ManageCollectionCommand) -> async OrigynBoolResult;
+        collection_update_batch_nft_origyn : ([ManageCollectionCommand]) -> async [OrigynBoolResult];
         cycles : shared query () -> async Nat;
-        get_access_key : shared () -> async Result.Result<Text, OrigynError>;
+        get_access_key : shared () -> async OrigynTextResult;
         getEXTTokenIdentifier : shared query Text -> async Text;
         get_nat_as_token_id : shared query Nat -> async Text;
         get_token_id_as_nat : shared query Text -> async Nat;
-        governance_nft_origyn : shared (request : GovernanceRequest) -> async Result.Result<GovernanceResponse, OrigynError>;
-        history_nft_origyn : shared query (Text, ?Nat, ?Nat) -> async Result.Result<[TransactionRecord], OrigynError>;
-        history_batch_nft_origyn : shared query (tokens : [(token_id : Text, start : ?Nat, end : ?Nat)]) -> async [Result.Result<[TransactionRecord], OrigynError>];
-        history_batch_secure_nft_origyn : shared (tokens : [(token_id : Text, start : ?Nat, end : ?Nat)]) -> async [Result.Result<[TransactionRecord], OrigynError>];
-        history_secure_nft_origyn : shared (token_id : Text, start : ?Nat, end : ?Nat) -> async Result.Result<[TransactionRecord], OrigynError>;
-        http_access_key : shared () -> async Result.Result<Text, OrigynError>;
+        governance_nft_origyn : shared (request : GovernanceRequest) -> async GovernanceResult;
+        history_nft_origyn : shared query (Text, ?Nat, ?Nat) -> async HistoryResult;
+        history_batch_nft_origyn : shared query (tokens : [(token_id : Text, start : ?Nat, end : ?Nat)]) -> async [HistoryResult];
+        history_batch_secure_nft_origyn : shared (tokens : [(token_id : Text, start : ?Nat, end : ?Nat)]) -> async [HistoryResult];
+        history_secure_nft_origyn : shared (token_id : Text, start : ?Nat, end : ?Nat) -> async HistoryResult;
+        http_access_key : shared () -> async OrigynTextResult;
         http_request : shared query HttpRequest -> async HTTPResponse;
         http_request_streaming_callback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
-        manage_storage_nft_origyn : shared ManageStorageRequest -> async Result.Result<ManageStorageResponse, OrigynError>;
-        market_transfer_nft_origyn : shared MarketTransferRequest -> async Result.Result<MarketTransferRequestReponse, OrigynError>;
-        market_transfer_batch_nft_origyn : shared [MarketTransferRequest] -> async [Result.Result<MarketTransferRequestReponse, OrigynError>];
-        mint_nft_origyn : shared (Text, Account) -> async Result.Result<Text, OrigynError>;
-        mint_batch_nft_origyn : shared (tokens : [(Text, Account)]) -> async [Result.Result<Text, OrigynError>];
+        manage_storage_nft_origyn : shared ManageStorageRequest -> async ManageStorageResult;
+        market_transfer_nft_origyn : shared MarketTransferRequest -> async MarketTransferResult;
+        market_transfer_batch_nft_origyn : shared [MarketTransferRequest] -> async [MarketTransferResult];
+        metadata: shared query () -> async DIP721.DIP721Metadata;
+        metadataExt: shared query (EXTTokenIdentifier) -> async EXTMetadataResult;
+        mint_nft_origyn : shared (Text, Account) -> async OrigynTextResult;
+        mint_batch_nft_origyn : shared (tokens : [(Text, Account)]) -> async [OrigynTextResult];
         nftStreamingCallback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
-        nft_origyn : shared query Text -> async Result.Result<NFTInfoStable, OrigynError>;
-        nft_batch_origyn : shared query (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
-        nft_batch_secure_origyn : shared (token_ids : [Text]) -> async [Result.Result<NFTInfoStable, OrigynError>];
-        nft_secure_origyn : shared (token_id : Text) -> async Result.Result<NFTInfoStable, OrigynError>;
-        update_app_nft_origyn : shared NFTUpdateRequest -> async Result.Result<NFTUpdateResponse, OrigynError>;
+        nft_origyn : shared query Text -> async NFTInfoResult;
+        nft_batch_origyn : shared query (token_ids : [Text]) -> async [NFTInfoResult];
+        nft_batch_secure_origyn : shared (token_ids : [Text]) -> async [NFTInfoResult];
+        nft_secure_origyn : shared (token_id : Text) -> async NFTInfoResult;
+        update_app_nft_origyn : shared NFTUpdateRequest -> async NFTUpdateResult;
         ownerOf : shared query Nat -> async DIP721.OwnerOfResponse;
         ownerOfDIP721 : shared query Nat -> async DIP721.OwnerOfResponse;
-        share_wallet_nft_origyn : shared ShareWalletRequest -> async Result.Result<OwnerTransferResponse, OrigynError>;
-        sale_nft_origyn : shared ManageSaleRequest -> async Result.Result<ManageSaleResponse, OrigynError>;
-        sale_batch_nft_origyn : shared (requests : [ManageSaleRequest]) -> async [Result.Result<ManageSaleResponse, OrigynError>];
-        sale_info_nft_origyn : shared SaleInfoRequest -> async Result.Result<SaleInfoResponse, OrigynError>;
-        sale_info_secure_nft_origyn : shared (request : SaleInfoRequest) -> async Result.Result<SaleInfoResponse, OrigynError>;
-        sale_info_batch_nft_origyn : shared query (requests : [SaleInfoRequest]) -> async [Result.Result<SaleInfoResponse, OrigynError>];
-        sale_info_batch_secure_nft_origyn : shared (requests : [SaleInfoRequest]) -> async [Result.Result<SaleInfoResponse, OrigynError>];
-        stage_library_nft_origyn : shared StageChunkArg -> async Result.Result<StageLibraryResponse, OrigynError>;
-        stage_library_batch_nft_origyn : shared (chunks : [StageChunkArg]) -> async [Result.Result<StageLibraryResponse, OrigynError>];
-        stage_nft_origyn : shared { metadata : CandyTypes.CandyValue } -> async Result.Result<Text, OrigynError>;
-        stage_batch_nft_origyn : shared (request : [{ metadata : CandyTypes.CandyValue }]) -> async [Result.Result<Text, OrigynError>];
-        storage_info_nft_origyn : shared query () -> async Result.Result<StorageMetrics, OrigynError>;
-        storage_info_secure_nft_origyn : shared () -> async Result.Result<StorageMetrics, OrigynError>;
-        transfer : shared EXT.TransferRequest -> async EXT.TransferResponse;
-        transferEXT : shared EXT.TransferRequest -> async EXT.TransferResponse;
-        transferFrom : shared (Principal, Principal, Nat) -> async DIP721.Result;
-        transferFromDip721 : shared (Principal, Principal, Nat) -> async DIP721.Result;
+        share_wallet_nft_origyn : shared ShareWalletRequest -> async OwnerUpdateResult;
+        sale_nft_origyn : shared ManageSaleRequest -> async ManageSaleResult;
+        sale_batch_nft_origyn : shared (requests : [ManageSaleRequest]) -> async [ManageSaleResult];
+        sale_info_nft_origyn : shared SaleInfoRequest -> async SaleInfoResult;
+        sale_info_secure_nft_origyn : shared (request : SaleInfoRequest) -> async SaleInfoResult;
+        sale_info_batch_nft_origyn : shared query (requests : [SaleInfoRequest]) -> async [SaleInfoResult];
+        sale_info_batch_secure_nft_origyn : shared (requests : [SaleInfoRequest]) -> async [SaleInfoResult];
+        stage_library_nft_origyn : shared StageChunkArg -> async StageLibraryResult;
+        stage_library_batch_nft_origyn : shared (chunks : [StageChunkArg]) -> async [StageLibraryResult];
+        stage_nft_origyn : shared { metadata : CandyTypes.CandyValue } -> async OrigynTextResult;
+        stage_batch_nft_origyn : shared (request : [{ metadata : CandyTypes.CandyValue }]) -> async [OrigynTextResult];
+        storage_info_nft_origyn : shared query () -> async StorageMetricsResult;
+        storage_info_secure_nft_origyn : shared () -> async StorageMetricsResult;
+        transfer : shared EXTTransferRequest -> async EXTTransferResponse;
+        transferEXT : shared EXTTransferRequest -> async EXTTransferResponse;
+        transferFrom : shared (Principal, Principal, Nat) -> async DIP721.DIP721NatResult;
+        transferFromDip721 : shared (Principal, Principal, Nat) -> async DIP721.DIP721NatResult;
         whoami : shared query () -> async Principal;
     };
+
+    public type AuctionState = MigrationTypes.Current.AuctionState;
+    public type SaleStatus = MigrationTypes.Current.SaleStatus;
+    public type GatewayState_v0_1_4 = MigrationTypes.Current.State;
 
 };
