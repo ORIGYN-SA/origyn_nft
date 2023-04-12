@@ -35,6 +35,11 @@ module {
   };
 
   //builds a library from a stable type
+  /**
+  * Builds a library from a stable type.
+  * @param items - an array of tuples containing the name of the library and an array of tuples of the workspace name and the addressed chunk array.
+  * @returns a TrieMap containing the workspace name and the workspace itself.
+  */
   public func build_library(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
     
     let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal,Text.hash);
@@ -50,6 +55,12 @@ module {
   };
 
   //confirms if a library exists
+  /**
+  * Confirms whether a library exists.
+  * @param metaData - the metadata for the token.
+  * @param library_id - the id of the library.
+  * @returns a boolean indicating whether the library exists.
+  */
   public func library_exists(metaData: CandyTypes.CandyValue, library_id : Text) : Bool {
     //D.print("in library_exists");
     switch(get_library_meta(metaData, library_id)){
@@ -64,6 +75,11 @@ module {
   };
 
   //confirms if a token is soulbound
+  /**
+  * Confirms whether a token is soulbound.
+  * @param metadata - the metadata for the token.
+  * @returns a boolean indicating whether the token is soulbound.
+  */
   public func is_soulbound(metadata: CandyTypes.CandyValue) : Bool 
   {
     let property = Properties.getClassProperty(metadata, Types.metadata.is_soulbound);
@@ -75,6 +91,11 @@ module {
   };  
 
   //confirms if a token is a physical item
+  /**
+  * Confirms whether a token is a physical item.
+  * @param metadata - the metadata for the token.
+  * @returns a boolean indicating whether the token is a physical item.
+  */
   public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
   {
     let property = get_system_var(metadata, Types.metadata.__system_physical);
@@ -86,7 +107,12 @@ module {
   };
 
 
-  //confirms if a token is a physical item
+  //confirms if a token is a physical escrow
+  /**
+  * Confirms whether a token is in physical escrow.
+  * @param metadata - the metadata for the token.
+  * @returns a boolean indicating whether the token is in physical escrow.
+  */
   public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
   {
     let property = get_system_var(metadata, Types.metadata.__system_escrowed);
@@ -98,6 +124,11 @@ module {
   };  
 
   //sets a system variable in the metadata
+  /**
+  * Confirms whether a token is in physical escrow.
+  * @param metadata - the metadata for the token.
+  * @returns a boolean indicating whether the token is in physical escrow.
+  */
   public func set_system_var(metaData: CandyTypes.CandyValue, name: Text, value: CandyTypes.CandyValue) : CandyTypes.CandyValue {
     var this_metadata = metaData;
     //D.print("Setting System");
@@ -167,6 +198,12 @@ module {
   };
 
   //checks if an account owns an nft
+  /**
+  * checks if an account owns an nft
+  * @param {CandyTypes.CandyValue} metaData - the metadata of the NFT
+  * @param {Types.Account} account - the account to check if they own the NFT
+  * @return {Boolean} - true if the account owns the NFT, false otherwise
+  */
   public func is_owner(metaData: CandyTypes.CandyValue, account: Types.Account) : Bool{
     switch(get_nft_owner(metaData)){
         case(#ok(data)){
@@ -181,6 +218,12 @@ module {
   };
 
   //gets all the nfts for a user
+  /**
+  * gets all the NFTs for a user
+  * @param {Types.State} state - the state of the NFTs
+  * @param {Types.Account} account - the account to retrieve the NFTs for
+  * @return {Array<Text>} - an array of NFTs owned by the user
+  */
   public func get_NFTs_for_user(state: Types.State, account: Types.Account) : [Text] {
     let nft_results = Buffer.Buffer<Text>(1);
 
@@ -204,6 +247,12 @@ module {
 
 
   //gets a system var out of the system class
+  /**
+  * gets a system variable out of the system class
+  * @param {CandyTypes.CandyValue} metaData - the metadata to retrieve the system variable from
+  * @param {Text} name - the name of the system variable to retrieve
+  * @return {CandyTypes.CandyValue} - the value of the requested system variable
+  */
   public func get_system_var(metaData: CandyTypes.CandyValue, name: Text) : CandyTypes.CandyValue {
     var this_metadata = metaData;
     //D.print("Setting System");
@@ -226,6 +275,12 @@ module {
 
   
   //gets the metadata for a particular library
+  /**
+  * gets the metadata for a particular library
+  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {Text} library_id - the id of the library to retrieve the metadata for
+  * @return {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - a result containing the metadata for the library or an error
+  */
   public func get_library_meta(metadata: CandyTypes.CandyValue, library_id : Text) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
@@ -251,6 +306,12 @@ module {
 
 
   //gets a text property out of the metadata
+  /**
+  * gets a text property out of the metadata of an NFT
+  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {Text} prop - the property to retrieve from the metadata
+  * @return {Result.Result<Text, Types.OrigynError>} - a result containing the requested text property or an error
+  */
   public func get_nft_text_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Text, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
@@ -269,6 +330,12 @@ module {
   };
 
   //gets a text property out of the metadata
+  /**
+  * gets a principal property out of the metadata of an NFT
+  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {Text} prop - the property to retrieve from the metadata
+  * @return {Result.Result<Principal, Types.OrigynError>} - a result containing the requested principal property or an error
+  */
   public func get_nft_principal_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Principal, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
@@ -287,6 +354,13 @@ module {
   };
 
   //gets a bool property out of the metadata
+  /**
+  * Gets a bool property out of the metadata.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {Text} prop - The name of the property to get.
+  * @returns {Result.Result<Bool, Types.OrigynError>} A result containing either the bool property or an error.
+  */
   public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Bool, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
@@ -305,6 +379,13 @@ module {
   };
 
   //gets a Nat property out of the metadata
+  /**
+  * Gets a Nat property out of the metadata.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {Text} prop - The name of the property to get.
+  * @returns {Result.Result<Nat, Types.OrigynError>} A result containing either the Nat property or an error.
+  */
    public func get_nft_nat_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Nat, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, prop)){
       case(null){
@@ -323,6 +404,12 @@ module {
   };
 
   //checks if an item is minted
+  /**
+  * Checks if an item is minted.
+  *
+  * @param {CandyTypes.CandyValue} metaData - The metadata of the NFT.
+  * @returns {Bool} True if the NFT is minted, otherwise false.
+  */
   public func is_minted(metaData: CandyTypes.CandyValue) : Bool{
     switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
       case(null){
@@ -349,6 +436,12 @@ module {
   };
 
   //gets the id of an nft
+  /**
+  * Gets the id of an NFT.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the id or an error.
+  */
   public func get_nft_id(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
     switch(get_nft_text_property(metadata, Types.metadata.id)){
       case(#err(err)){return #err(err)};
@@ -357,6 +450,12 @@ module {
   };
 
   //gets the primary asset for an nft
+  /**
+  * Gets the primary asset for an NFT.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the primary asset or an error.
+  */
   public func get_nft_primary_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
     switch(get_nft_text_property(metadata, Types.metadata.primary_asset)){
       case(#err(err)){return #err(err);};
@@ -365,6 +464,12 @@ module {
   };
 
   //gets the preview asset for an nft
+  /**
+  * Gets the preview asset for an NFT.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the preview asset or an error.
+  */
   public func get_nft_preview_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
     switch(get_nft_text_property(metadata, Types.metadata.preview_asset)){
       case(#err(err)){return #err(err);};
@@ -373,6 +478,12 @@ module {
   };
 
   //gets the experience asset
+  /**
+  * Gets the experience asset for an NFT.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @returns {Result.Result<Text, Types.OrigynError>} A result containing either the experience asset or an error.
+  */
   public func get_nft_experience_asset(metadata: CandyTypes.CandyValue) : Result.Result<Text, Types.OrigynError>{
     switch(get_nft_text_property(metadata, Types.metadata.experience_asset)){
       case(#err(err)){return #err(err);};
@@ -381,6 +492,14 @@ module {
   };
 
   //gets a libary item
+  /**
+  * Gets a library item from the store.
+  *
+  * @param {TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>} store - The store containing the library items.
+  * @param {Text} token_id - The id of the token.
+  * @param {Text} library_id - The id of the library.
+  * @returns {Result.Result<CandyTypes.Workspace, Types.OrigynError>} A result containing either the library item or an error.
+  */
   public func get_library_item_from_store(store : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>, token_id: Text,library_id: Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError>{
     switch(store.get(token_id)){
       case(null){
@@ -403,6 +522,11 @@ module {
     };
   };
 
+  /**
+  * Converts an account value to a CandyValue.
+  * @param {Types.Account} val - The account value to convert.
+  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  */
   public func account_to_candy(val : Types.Account) : CandyTypes.CandyValue{
     switch(val){
           case(#principal(newOwner)){#Principal(newOwner);};
@@ -415,6 +539,11 @@ module {
       }
   };
 
+  /**
+  * Converts a token specification to a CandyValue.
+  * @param {Types.TokenSpec} val - The token specification to convert.
+  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  */
   public func token_spec_to_candy(val : Types.TokenSpec) : CandyTypes.CandyValue{
     switch(val){
           case(#ic(val)){#Class([
@@ -439,6 +568,11 @@ module {
       }
   };
 
+  /**
+  * Converts a pricing configuration to a CandyValue.
+  * @param {Types.PricingConfig} val - The pricing configuration to convert.
+  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  */
   public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyValue{
     switch(val){
           case(#instant(val)){#Text("instant");};
@@ -451,6 +585,11 @@ module {
     };
   };
 
+  /**
+  * Converts an auction configuration to a CandyValue.
+  * @param {Types.AuctionConfig} val - The auction configuration to convert.
+  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  */
   public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyValue{
 
     #Class([
@@ -490,6 +629,11 @@ module {
     
   };
 
+  /**
+  * Converts a CandyValue to an account value.
+  * @param {CandyTypes.CandyValue} val - The CandyValue to convert.
+  * @returns {Result.Result<Types.Account, Types.OrigynError>} The converted account value.
+  */
   public func candy_to_account(val : CandyTypes.CandyValue) :Result.Result<Types.Account, Types.OrigynError> {
     switch(val){
       case(#Principal(val)){#ok(#principal(val))};
@@ -532,6 +676,11 @@ module {
   
   //returns the owner of an NFT in the owner field
   //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+  /**
+  * Gets the owner of an NFT in the owner field.
+  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @returns {Result.Result<Types.Account, Types.OrigynError>} The owner of the NFT.
+  */
   public func get_nft_owner(metadata: CandyTypes.CandyValue) : Result.Result<Types.Account, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
       case(null){
@@ -545,6 +694,14 @@ module {
 
     //sets the owner on the nft
   //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+  /**
+  * Sets the owner of an NFT.
+  * @param {Types.State} state - The state of the contract.
+  * @param {Text} token_id - The ID of the token to update.
+  * @param {Types.Account} new_owner - The new owner of the token.
+  * @param {Principal} caller - The principal of the caller.
+  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} The updated metadata of the NFT.
+  */
   public func set_nft_owner(state: Types.State, token_id: Text, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
 
 
@@ -589,6 +746,13 @@ module {
 
   let account_handler = MigrationTypes.Current.account_handler;
 
+  /**
+  * Checks if the provided account is the owner of the specified NFT.
+  *
+  * @param {CandyTypes.CandyValue} metadata - Metadata of the NFT
+  * @param {Types.Account} anAccount - The account to check if it's the owner
+  * @returns {Result.Result<Bool, Types.OrigynError>} - Result object containing a boolean indicating whether or not the provided account is the owner of the NFT
+  */
   public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Result.Result<Bool, Types.OrigynError>{
     
     let owner = switch(get_nft_owner(metadata)){
@@ -663,6 +827,12 @@ module {
   };
 
   //gets the current sale(or last finished sale) for an NFT
+  /**
+  * Gets the current sale (or last finished sale) for the specified NFT.
+  *
+  * @param {CandyTypes.CandyValue} metaData - Metadata of the NFT
+  * @returns {CandyTypes.CandyValue} - The current sale ID (or empty if no sale exists)
+  */
   public func get_current_sale_id(metaData: CandyTypes.CandyValue) : CandyTypes.CandyValue{
     //D.print("in getCurrentsaleid " # " " # debug_show(Types.metadata.__system) # " " # debug_show(metaData));
     switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
@@ -684,6 +854,14 @@ module {
   };
 
   //gets the primary host of an NFT - used for testing redirects locally
+  /**
+  * Gets the primary host of the specified NFT. Used for testing redirects locally.
+  *
+  * @param {Types.State} state - The current state of the system
+  * @param {Text} token_id - The ID of the NFT
+  * @param {Principal} caller - The caller's principal ID
+  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary host of the NFT, or an error if it couldn't be found
+  */
   public func get_primary_host(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_host - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
@@ -708,6 +886,14 @@ module {
   };
 
   //gets the primary ports of an NFT - used for testing redirects locally
+  /**
+  * Gets the primary port of the specified NFT. Used for testing redirects locally.
+  *
+  * @param {Types.State} state - The current state of the system
+  * @param {Text} token_id - The ID of the NFT
+  * @param {Principal} caller - The caller's principal ID
+  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary port of the NFT, or an error if it couldn't be found
+  */
   public func get_primary_port(state : Types.State, token_id: Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_port - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
@@ -732,6 +918,14 @@ module {
   };
 
   //gets the primary protocol of an NFT - used for testing redirects locally
+  /**
+  * Gets the primary protocol of the specified NFT. Used for testing redirects locally.
+  *
+  * @param {Types.State} state - The current state of the system
+  * @param {Text} token_id - The ID of the NFT
+  * @param {Principal} caller - The caller's principal ID
+  * @returns {Result.Result<Text, Types.OrigynError>} - Result object containing a string of the primary protocol of the NFT, or an error if it couldn't be found
+  */
   public func get_primary_protocol(state : Types.State, token_id : Text, caller : Principal) : Result.Result<Text, Types.OrigynError>{
     
     let metadata = switch(get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)){
@@ -762,6 +956,13 @@ module {
   };
 
   //cleans metadat according to permissions
+  /**
+  * Cleans metadata according to permissions.
+  *
+  * @param {CandyTypes.CandyValue} metadata - The metadata to clean
+  * @param {Principal} caller - The caller's principal ID
+  * @returns {CandyTypes.CandyValue} - The cleaned metadata
+  */
   public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue{
 
     let owner : ?Types.Account = switch(get_nft_owner(metadata)){
@@ -832,6 +1033,13 @@ module {
   };
 
   //cleans a node in metadata
+  /**
+  * Cleans a node in metadata based on permissions
+  * @param {CandyTypes.CandyValue} a_class - the node to clean
+  * @param {?Types.Account} owner - the account that owns the node, if any
+  * @param {Principal} caller - the principal making the request
+  * @returns {CandyTypes.CandyValue} the cleaned node
+  */
   public func clean_node(a_class : CandyTypes.CandyValue, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyValue{
     switch(a_class){
       case(#Class(item)){
@@ -1245,6 +1453,15 @@ module {
   };
 
   //if this function is being called for public informational purposes, the canister should be null. If you need the meta data pass in the canister id and it will be compared to the caller
+  /**
+  * Retrieves the metadata for a token
+  * @param {Types.State} state - the current state of the canister
+  * @param {Text} token_id - the ID of the token to retrieve metadata for
+  * @param {Principal} caller - the caller of the function
+  * @param {Principal|null} canister - the ID of the canister to retrieve metadata for
+  * @param {Principal} canister_owner - the owner of the canister
+  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - the result of the metadata retrieval attempt
+  */
   public func get_metadata_for_token(
     state: Types.State, 
     token_id : Text, 
@@ -1280,6 +1497,13 @@ module {
   };
 
   //adds a transaction record to the ledger
+  /**
+  * Adds a transaction record to the ledger
+  * @param {Types.State} state - the current state of the canister
+  * @param {Types.TransactionRecord} rec - the transaction record to add
+  * @param {Principal} caller - the caller of the function
+  * @returns {Result.Result<Types.TransactionRecord, Types.OrigynError>} - the result of the transaction record addition attempt
+  */
   public func add_transaction_record(state : Types.State, rec: Types.TransactionRecord, caller: Principal) : Result.Result<Types.TransactionRecord, Types.OrigynError>{
     //nyi: add indexes
     //only allow transactions for existing tokens
@@ -1319,7 +1543,15 @@ module {
     return #ok(newTrx);
   };
 
-   public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
+  /**
+  * Announces a transaction
+  * @param {Types.State} state - the current state of the canister
+  * @param {Types.TransactionRecord} rec - the transaction record being announced
+  * @param {Principal} caller - the caller of the function
+  * @param {Types.TransactionRecord} newTrx - the newly added transaction record
+  * @returns {void}
+  */
+  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
 
 
         if(state.state.collection_data.announce_canister == null){return;};
@@ -1343,6 +1575,13 @@ module {
 
     };
 
+
+  /**
+  * Retrieves the library metadata for an NFT
+  * @param {CandyTypes.CandyValue} metadata - the metadata for the NFT
+  * @param {Principal} [caller=null] - the caller of the function
+  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - the result of the metadata retrieval attempt
+  */
   public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
@@ -1354,6 +1593,12 @@ module {
     };
   };
 
+  /**
+  * Retrieves an array of the library metadata for an NFT
+  * @param {CandyTypes.CandyValue} metadata - the metadata for the NFT
+  * @param {Principal} [caller=null] - the caller of the function
+  * @returns {Result.Result<[CandyTypes.CandyValue], Types.OrigynError>} - the result of the metadata retrieval attempt
+  */
   public func get_nft_library_array(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<[CandyTypes.CandyValue], Types.OrigynError>{
     switch(Properties.getClassProperty(metadata, Types.metadata.library)){
       case(null){
@@ -1383,6 +1628,14 @@ module {
   };
 
   //gets a specific chunk out of the library storage
+  /**
+  * Gets a specific chunk out of the library storage
+  *
+  * @param {Types.State} state - the current state of the canister
+  * @param {Types.ChunkRequest} request - the request for the chunk content
+  * @param {?Principal} caller - the principal making the request
+  * @returns {Result.Result<Types.ChunkContent, Types.OrigynError>} - a Result type containing either the chunk content or an error message
+  */
   public func chunk_nft_origyn(state: Types.State, request : Types.ChunkRequest, caller: ?Principal) : Result.Result<Types.ChunkContent, Types.OrigynError>{
     //D.print("looking for a chunk" # debug_show(request));
     //check mint property
@@ -1571,6 +1824,13 @@ module {
   };
 
   //updates collection data
+  /**
+  * Updates collection data
+  * @param {Types.State} state - The state of the collection
+  * @param {Types.ManageCollectionCommand} request - The collection data to be updated
+  * @param {Principal} caller - The principal of the caller
+  * @returns {Result.Result<Bool, Types.OrigynError>} - A Result object containing a boolean indicating the success or failure of the update and an OrigynError in case of failure
+  */
   public func collection_update_nft_origyn(state : Types.State, request: Types.ManageCollectionCommand, caller : Principal) : Result.Result<Bool, Types.OrigynError>{
     
     if(NFTUtils.is_owner_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "collection_update_origyn - not a canister owner or network", ?caller))};
@@ -1691,6 +1951,13 @@ module {
   };
 
 
+  /**
+  * Converts a ledger of transaction records to an array of CandyValues
+  * @param {SB.StableBuffer<Types.TransactionRecord>} ledger - The ledger to convert
+  * @param {Nat} page - The page number of results to return
+  * @param {Nat} size - The number of results to return per page
+  * @returns {[CandyTypes.CandyValue]} - An array of CandyValues
+  */
   public func ledger_to_candy(ledger : SB.StableBuffer<Types.TransactionRecord>, page: Nat, size: Nat) : [CandyTypes.CandyValue]{
 
     var tracker = 0;
