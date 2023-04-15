@@ -109,7 +109,7 @@ let additions =
   },
   { name = "canistergeek"
   , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
-  , version = "v0.0.1"
+  , version = "nft_0_1_4"
   , dependencies = ["base", "candy_0_1_10" ]
   },
 
