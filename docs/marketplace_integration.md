@@ -101,7 +101,8 @@ let funding_result = await dfx.icrc1_transfer({
                     standard = #Ledger; //the standard; currently only ICP style ledgers are supported
                     decimals = 8; //number of decimals
                     symbol = "LDG";//symbol
-                    fee = 200000; //fee for the ledger
+                    fee = ?200000;
+                    id = null; //fee for the ledger
                   });
               };
               seller = #principal(current_owner); //the current owner of the NFT. If unminted then this would likely be the token canister
@@ -134,7 +135,8 @@ Your canister can find the escrows by calling the balance_nft_origyn function fo
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -186,7 +188,8 @@ Offers can also be rejected by using the #withdraw(#reject) variant of sale_nft_
               standard = #Ledger;
               decimals = 8;
               symbol = "LDG";
-              fee = 200000;
+              fee = ?200000;
+              id = null;
             });
           };
           case(?val){val};
@@ -229,7 +232,8 @@ Details:
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(10 * 10 ** 8); //a buy it now price. a bid at or above this amount will end the auction
                     start_price = (10 * 10 ** 8); // start price
@@ -245,7 +249,7 @@ Details:
           #sale_opened : {
                 pricing: PricingConfig;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
 
 ```
@@ -275,7 +279,8 @@ You can choose how to show this data to your user.
                         standard =  #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                       });
               amount = amount}})); //amount of the bid
 ```
@@ -303,7 +308,8 @@ let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
               standard =  #Ledger;
               decimals = 8;
               symbol = "LDG";
-              fee = 200000;
+              fee = ?200000;
+              id = null;
             });
         seller = #principal(Principal.fromActor(this)); //seller
         buyer = #principal(Principal.fromActor(a_wallet)); //buyer
@@ -327,7 +333,8 @@ User can always withdraw from their deposit account if something goes wrong.  Yo
                 standard = #Ledger;
                 decimals = 8;
                 symbol = "LDG";
-                fee = 200000;
+                fee = ?200000;
+                id = null;
               });
             };
             case(?val){val};

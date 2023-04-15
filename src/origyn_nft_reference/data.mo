@@ -20,13 +20,13 @@ module {
   };
 
   //gets a text attribute out of a class - maybe refactor with Metadata.get_nft_text_property
-  private func _get_text_attribute_from_class(this_item: CandyTypes.CandyValue, name : Text) : ?Text {
-      return switch(Properties.getClassProperty(this_item, name)){
+  private func _get_text_attribute_from_class(this_item: CandyTypes.CandyShared, name : Text) : ?Text {
+      return switch(Properties.getClassPropertyShared(this_item, name)){
         case(null){
           return null;
         };
         case(?val){
-          return ?Conversions.propertyToText(val);
+          return ?Conversions.propertySharedToText(val);
         };
       }
   };
@@ -51,7 +51,7 @@ module {
     let (token_id, app_id) = switch(request){
       case(#replace(details)){
         //D.print(debug_show(details.data));
-        //(details.token_id, Option.getMapped<CandyTypes.Property, Text>(Properties.getClassProperty(details.data, "app_id"), propertyToText, return #err(Types.errors(?state.canistergeekLogger,  #app_id_not_found, "update_app_nft_origyn - cannnot find app id ", ? caller)) ))};
+        //(details.token_id, Option.getMapped<CandyTypes.Property, Text>(Properties.getClassPropertyShared(details.data, "app_id"), propertyToText, return #err(Types.errors(?state.canistergeekLogger,  #app_id_not_found, "update_app_nft_origyn - cannnot find app id ", ? caller)) ))};
         let ?app_id = _get_text_attribute_from_class(details.data, Types.metadata.__apps_app_id) else {
           return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "update_app_nft_origyn - cannnot find app_id", ? caller)); 
         };
@@ -62,7 +62,7 @@ module {
 
     debug if(debug_channel.data_access) D.print("found token and app " # token_id # " " # app_id);
 
-    var found_metadata : CandyTypes.CandyValue = #Empty;
+    var found_metadata : CandyTypes.CandyShared = #Option(null);
 
     //try to find existing metadata
     let ?this_metadata = Map.get(state.state.nft_metadata, Map.thash, token_id) else {
@@ -74,15 +74,15 @@ module {
     debug if(debug_channel.data_access) D.print("exists");
 
     //find the app
-    let ?found = Properties.getClassProperty(this_metadata, Types.metadata.__apps) else {
+    let ?found = Properties.getClassPropertyShared(this_metadata, Types.metadata.__apps) else {
       return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - __apps node not found", ? caller));
     };
     
 
     debug if(debug_channel.data_access) D.print("found apps");
 
-    let found_array = Conversions.valueToValueArray(found.value);
-    let new_list = Buffer.Buffer<CandyTypes.CandyValue>(found_array.size());
+    let found_array = Conversions.candySharedToValueArray(found.value);
+    let new_list = Buffer.Buffer<CandyTypes.CandyShared>(found_array.size());
 
     //this is currently a very ineffcient way of doing this. Once candy adds dicitionaries we should switch to that
     //currently we are rewriting the entire __apps section each time.
@@ -93,7 +93,7 @@ module {
           case(#replace(detail)){
             debug if(debug_channel.data_access) D.print("this is replace");
             //we check to see if we have write rights
-            let write_node = switch(Properties.getClassProperty(this_item, "write")){
+            let write_node = switch(Properties.getClassPropertyShared(this_item, "write")){
               //nyi: create user story and test for missing read/write
 
               case(null){return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - write node not found", ? caller))};
@@ -120,7 +120,7 @@ module {
               };
               case(#Class(write_detail)){
                 debug if(debug_channel.data_access) D.print("have write detail");
-                let ?write_type = Properties.getClassProperty(write_node.value, "type") else {
+                let ?write_type = Properties.getClassPropertyShared(write_node.value, "type") else {
                   return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
                 };
                 
@@ -135,17 +135,17 @@ module {
                   return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only allow list and public implemented", ? caller));
                 };
 
-                let ?allow_list = Properties.getClassProperty(write_node.value,"list") else {
+                let ?allow_list = Properties.getClassPropertyShared(write_node.value,"list") else {
                     return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "update_app_nft_origyn - empty allow list", ? caller));
                 };
 
                 //debug if(debug_channel.data_access)D.print("have allow list");
-                //debug if(debug_channel.data_access) D.print(debug_show(Conversion.valueToValueArray(allow_list.value)));
+                //debug if(debug_channel.data_access) D.print(debug_show(Conversion.candySharedToValueArray(allow_list.value)));
                 
                 var b_found = false;
-                label search for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
+                label search for(this_principal in Conversions.candySharedToValueArray(allow_list.value).vals()){
                   //debug if(debug_channel.data_access) D.print(Principal.toText( caller));
-                  if( caller == Conversions.valueToPrincipal(this_principal)){
+                  if( caller == Conversions.candySharedToPrincipal(this_principal)){
                     //we are allowed
                     debug if(debug_channel.data_access) D.print("found a match");
                     b_found := true;
@@ -175,7 +175,7 @@ module {
       };
     };
 
-    found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(#thawed(Buffer.toArray(new_list))))}])){
+    found_metadata := #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(Buffer.toArray(new_list)))}])){
         case(#err(errType)){
             return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "update_app_nft_origyn - set metadata status", ?caller));
         };

@@ -15,7 +15,7 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
-import CandyTypes "mo:candy/types";
+
 import Map "mo:map/Map";
 
 import NFTTypes "../origyn_nft_reference/types";
@@ -33,6 +33,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
     stable var __time_mode : {#test; #standard;} = #standard;
     private var __test_time : Int = 0;
+
+    let CandyTypes = NFTMigrationTypes.Current.CandyTypes;
+    type TokenSpec = NFTMigrationTypes.Current.TokenSpec;
 
     private func get_time() : Int{
         switch(__time_mode){
@@ -215,7 +218,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     //                 amount = 100_000_000;
     //                 token = #ic({
     //                     canister = ledger_principal;
-    //                     fee = 200000;
+    //                     fee = ?200000;
     //                     symbol =  "DIP";
     //                     decimals = 8;
     //                     standard = #DIP20;
@@ -245,7 +248,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     //             token_id = "OG1";
     //             token = #ic({
     //                     canister = ledger_principal;
-    //                     fee = 200000;
+    //                     fee = ?200000;
     //                     symbol =  "DIP";
     //                     decimals = 8;
     //                     standard = #DIP20;
@@ -261,7 +264,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     //             buyer = #principal(jess_buyer);
     //             token =  #ic({
     //                     canister = ledger_principal;
-    //                     fee = 200000;
+    //                     fee = ?200000;
     //                     symbol =  "DIP";
     //                     decimals = 8;
     //                     standard = #DIP20;
@@ -811,7 +814,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     * - purchases: an array of tuples containing the name of the item purchased and the transaction record for that purchase.
     */
     private func calc_user_purchase_graph(user : Principal, groups: Types.Groups, reservations: Types.Reservations, inventory: Types.NFTInventory, purchases : Types.Purchases) : {
-        prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
+        prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
         personal_reservations: ([Types.Reservation], Nat, Nat);
         group_reservations: ([Types.Reservation], Nat, Nat);
         purchases: [(Text, NFTTypes.TransactionRecord)];
@@ -829,14 +832,14 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             var prices: Map.Map<Nat, ?Nat>; //price amount , number, can be null
         };
 
-        var token_map = Map.new<?Types.TokenSpec, tracker>();
+        var token_map = Map.new<?TokenSpec, tracker>();
 
 
         //D.print("at token map");
 
         //lets you do a comparison with null tokens because null token means free
-        let hash_null_token : ((?Types.TokenSpec) -> Nat, (?Types.TokenSpec, ?Types.TokenSpec) -> Bool) = (
-            func(a : ?Types.TokenSpec) : Nat {
+        let hash_null_token : ((?TokenSpec) -> Nat, (?TokenSpec, ?TokenSpec) -> Bool) = (
+            func(a : ?TokenSpec) : Nat {
                 switch(a){
                     case(null){
                         return 0;
@@ -847,7 +850,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                 }
             }
             , 
-            func(a : ?Types.TokenSpec,b: ?Types.TokenSpec) : Bool {
+            func(a : ?TokenSpec,b: ?TokenSpec) : Bool {
                 switch(a,b){
                     case(null,null){
                         return true;
@@ -863,7 +866,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
             });
 
-        let compare_null_tokens = func(a : ?Types.TokenSpec,b: ?Types.TokenSpec) : Order.Order {
+        let compare_null_tokens = func(a : ?TokenSpec,b: ?TokenSpec) : Order.Order {
                 switch(a,b){
                     case(null,null){
                         return #equal;
@@ -887,11 +890,11 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
             for(thisPricing in aGroup.pricing.vals()){
                 //D.print("looking at pricing");
-                let thisPricingToken : ?Types.TokenSpec = switch(thisPricing){
+                let thisPricingToken : ?TokenSpec = switch(thisPricing){
                     case(#free){null};
                     case(#cost_per(data)){?data.token};
                 };
-                switch(Map.get<?Types.TokenSpec, tracker>(token_map, hash_null_token, thisPricingToken)){
+                switch(Map.get<?TokenSpec, tracker>(token_map, hash_null_token, thisPricingToken)){
                     case(null){
                         //we don't have this pricing yet
                         //D.print("not in map");
@@ -907,7 +910,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                                 Map.set(this_tracker.prices, Map.nhash, detail.amount, aGroup.allowed_amount);
                             }
                         };
-                        Map.set<?Types.TokenSpec, tracker>(token_map, hash_null_token, thisPricingToken, this_tracker);
+                        Map.set<?TokenSpec, tracker>(token_map, hash_null_token, thisPricingToken, this_tracker);
                     };
                     case(?existing_map){
                         //D.print("exists");
@@ -1033,9 +1036,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
 
         return {
-            prices : [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])] = Iter.toArray<(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])>(
-                        Iter.map<(?Types.TokenSpec,tracker), (?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])>(
-                            Map.entries<?Types.TokenSpec, tracker>(token_map), 
+            prices : [(?TokenSpec, ?Nat, [(Nat, ?Nat)])] = Iter.toArray<(?TokenSpec, ?Nat, [(Nat, ?Nat)])>(
+                        Iter.map<(?TokenSpec,tracker), (?TokenSpec, ?Nat, [(Nat, ?Nat)])>(
+                            Map.entries<?TokenSpec, tracker>(token_map), 
                             func(item){
                                 (item.0, 
                                     item.1.max_allowed, 
@@ -1265,7 +1268,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         D.print("getting user info" # debug_show(user_info));
 
         //todo: advance the allocation past the number of purchases so we don't over allocate the second time through.
-        let remove_specs = Array.filter<(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])>(user_info.prices, func(item){
+        let remove_specs = Array.filter<(?TokenSpec, ?Nat, [(Nat, ?Nat)])>(user_info.prices, func(item){
             switch(item.0){
                 case(null){true};//free
                 case(?val){NFTTypes.token_eq(val, request.escrow_receipt.token)};
@@ -1285,7 +1288,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         D.print("have flat price" # debug_show(flat_price));
 
-        //prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])];
+        //prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])];
 
         var balance_remaining = request.escrow_receipt.amount;
         D.print("balance_remaining" # debug_show(balance_remaining));
@@ -1428,9 +1431,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     * @returns {Promise<Result.Result<Types.RedeemAllocationResponse, Types.OrigynError>>} Returns a promise that resolves to a result object containing the nfts array, or rejects with an OrigynError.
     * @throws {Types.OrigynError} Throws an OrigynError if the function encounters an error.
     */
-    private func get_possible_purchases(caller : Principal, token : ?NFTTypes.TokenSpec, number_to_allocate: Nat) : {user_info:
+    private func get_possible_purchases(caller : Principal, token : ?TokenSpec, number_to_allocate: Nat) : {user_info:
         {
-            prices: [(?Types.TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
+            prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
             personal_reservations: ([Types.Reservation], Nat, Nat);
             group_reservations: ([Types.Reservation], Nat, Nat);
             purchases: [(Text, NFTTypes.TransactionRecord)];

@@ -12,26 +12,26 @@ import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 import Droute "mo:droute_client/Droute";
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
 
-import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
-import Workspace "mo:candy/workspace";
-
 import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
+import StableBuffer "mo:stablebuffer/StableBuffer";
 
 module {
 
   let SB = MigrationTypes.Current.SB;
   let Map = MigrationTypes.Current.Map;
 
+  let CandyTypes = MigrationTypes.Current.CandyTypes;
+  let Conversions = MigrationTypes.Current.Conversions;
+  let Properties = MigrationTypes.Current.Properties;
+  let Workspace = MigrationTypes.Current.Workspace;
+
   let debug_channel = {
     function_announce = false;
     update_metadata = true;
-
   };
 
   //builds a library from a stable type
@@ -61,7 +61,7 @@ module {
   * @param library_id - the id of the library.
   * @returns a boolean indicating whether the library exists.
   */
-  public func library_exists(metaData: CandyTypes.CandyValue, library_id : Text) : Bool {
+  public func library_exists(metaData: CandyTypes.CandyShared, library_id : Text) : Bool {
     //D.print("in library_exists");
     switch(get_library_meta(metaData, library_id)){
       case(#err(err)){
@@ -80,13 +80,13 @@ module {
   * @param metadata - the metadata for the token.
   * @returns a boolean indicating whether the token is soulbound.
   */
-  public func is_soulbound(metadata: CandyTypes.CandyValue) : Bool 
+  public func is_soulbound(metadata: CandyTypes.CandyShared) : Bool 
   {
-    let property = Properties.getClassProperty(metadata, Types.metadata.is_soulbound);
+    let property = Properties.getClassPropertyShared(metadata, Types.metadata.is_soulbound);
 
     switch (property) {
       case(null) {return false};
-      case(?p) {return Conversions.valueToBool(p.value)};
+      case(?p) {return Conversions.candySharedToBool(p.value)};
     };
   };  
 
@@ -96,13 +96,13 @@ module {
   * @param metadata - the metadata for the token.
   * @returns a boolean indicating whether the token is a physical item.
   */
-  public func is_physical(metadata: CandyTypes.CandyValue) : Bool 
+  public func is_physical(metadata: CandyTypes.CandyShared) : Bool 
   {
     let property = get_system_var(metadata, Types.metadata.__system_physical);
 
     switch (property) {
-      case(#Empty) {return false};
-      case(_) {return Conversions.valueToBool(property)};
+      case(#Option(null)) {return false};
+      case(_) {return Conversions.candySharedToBool(property)};
     };
   };
 
@@ -113,13 +113,13 @@ module {
   * @param metadata - the metadata for the token.
   * @returns a boolean indicating whether the token is in physical escrow.
   */
-  public func is_in_physical_escrow(metadata: CandyTypes.CandyValue) : Bool 
+  public func is_in_physical_escrow(metadata: CandyTypes.CandyShared) : Bool 
   {
     let property = get_system_var(metadata, Types.metadata.__system_escrowed);
 
     switch (property) {
-      case(#Empty) {return false};
-      case(_) {return Conversions.valueToBool(property)};
+      case(#Option(null)) {return false};
+      case(_) {return Conversions.candySharedToBool(property)};
     };
   };  
 
@@ -129,17 +129,17 @@ module {
   * @param metadata - the metadata for the token.
   * @returns a boolean indicating whether the token is in physical escrow.
   */
-  public func set_system_var(metaData: CandyTypes.CandyValue, name: Text, value: CandyTypes.CandyValue) : CandyTypes.CandyValue {
+  public func set_system_var(metaData: CandyTypes.CandyShared, name: Text, value: CandyTypes.CandyShared) : CandyTypes.CandyShared {
     var this_metadata = metaData;
     //D.print("Setting System");
-    switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
+    switch(Properties.getClassPropertyShared(metaData, Types.metadata.__system)){
       case(null){
-        let newProp : CandyTypes.CandyValue = #Class([
+        let newProp : CandyTypes.CandyShared = #Class([
           {name = name;
           value = value;
           immutable = false;}
         ]);
-        this_metadata := switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [
+        this_metadata := switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [
           {
             name = Types.metadata.__system;
             mode = #Set(newProp);
@@ -151,7 +151,7 @@ module {
           case(#err(err)){
             //error shouldn't happen
             assert(false);
-            #Empty; //unreachable
+            #Option(null); //unreachable
           };
         };
         //D.print("set metadata in the new branch");
@@ -159,11 +159,11 @@ module {
         return this_metadata
       };
       case(?val){
-        this_metadata := switch(Properties.updateProperties(Conversions.valueToProperties(this_metadata), [
+        this_metadata := switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [
           {
             name = Types.metadata.__system;
             mode = #Set(
-              switch(Properties.updateProperties(Conversions.valueToProperties(val.value), [
+              switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(val.value), [
                 {
                   name = name;
                   mode = #Set(value);
@@ -175,7 +175,7 @@ module {
                 case(#err(err)){
                   //error shouldn't happen
                   assert(false);
-                  #Empty; //unreachable
+                  #Option(null); //unreachable
                 };
               }
             );
@@ -187,7 +187,7 @@ module {
           case(#err(err)){
             //error shouldn't happen
             assert(false);
-            #Empty; //unreachable
+            #Option(null); //unreachable
           };
         };
         //D.print("set metadata in the add on branch");
@@ -200,11 +200,11 @@ module {
   //checks if an account owns an nft
   /**
   * checks if an account owns an nft
-  * @param {CandyTypes.CandyValue} metaData - the metadata of the NFT
+  * @param {CandyTypes.CandyShared} metaData - the metadata of the NFT
   * @param {Types.Account} account - the account to check if they own the NFT
   * @return {Boolean} - true if the account owns the NFT, false otherwise
   */
-  public func is_owner(metaData: CandyTypes.CandyValue, account: Types.Account) : Bool{
+  public func is_owner(metaData: CandyTypes.CandyShared, account: Types.Account) : Bool{
     switch(get_nft_owner(metaData)){
         case(#ok(data)){
           //D.print(debug_show(data));
@@ -249,21 +249,21 @@ module {
   //gets a system var out of the system class
   /**
   * gets a system variable out of the system class
-  * @param {CandyTypes.CandyValue} metaData - the metadata to retrieve the system variable from
+  * @param {CandyTypes.CandyShared} metaData - the metadata to retrieve the system variable from
   * @param {Text} name - the name of the system variable to retrieve
-  * @return {CandyTypes.CandyValue} - the value of the requested system variable
+  * @return {CandyTypes.CandyShared} - the value of the requested system variable
   */
-  public func get_system_var(metaData: CandyTypes.CandyValue, name: Text) : CandyTypes.CandyValue {
+  public func get_system_var(metaData: CandyTypes.CandyShared, name: Text) : CandyTypes.CandyShared {
     var this_metadata = metaData;
     //D.print("Setting System");
-    switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
+    switch(Properties.getClassPropertyShared(metaData, Types.metadata.__system)){
       case(null){
-        return #Empty;
+        return #Option(null);
       };
       case(?val){
-        switch(Properties.getClassProperty(val.value, name)){
+        switch(Properties.getClassPropertyShared(val.value, name)){
           case(null){
-            return #Empty;
+            return #Option(null);
           };
           case(?val){
             return val.value;
@@ -277,23 +277,23 @@ module {
   //gets the metadata for a particular library
   /**
   * gets the metadata for a particular library
-  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {CandyTypes.CandyShared} metadata - the metadata of the NFT
   * @param {Text} library_id - the id of the library to retrieve the metadata for
-  * @return {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - a result containing the metadata for the library or an error
+  * @return {Result.Result<CandyTypes.CandyShared, Types.OrigynError>} - a result containing the metadata for the library or an error
   */
-  public func get_library_meta(metadata: CandyTypes.CandyValue, library_id : Text) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, Types.metadata.library)){
+  public func get_library_meta(metadata: CandyTypes.CandyShared, library_id : Text) : Result.Result<CandyTypes.CandyShared, Types.OrigynError>{
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.library)){
       case(null){
         return #err(Types.errors(null,  #library_not_found, "get_library_meta - cannot find library in metadata", null));
       };
       case(?val){
-        for(this_item in Conversions.valueToValueArray(val.value).vals()){
-          switch(Properties.getClassProperty(this_item, Types.metadata.library_id)){
+        for(this_item in Conversions.candySharedToValueArray(val.value).vals()){
+          switch(Properties.getClassPropertyShared(this_item, Types.metadata.library_id)){
             case(null){
               
             };
             case(?id){
-              if(Conversions.valueToText(id.value) == library_id){
+              if(Conversions.candySharedToText(id.value) == library_id){
                 return #ok(this_item);
               };
             };
@@ -308,12 +308,12 @@ module {
   //gets a text property out of the metadata
   /**
   * gets a text property out of the metadata of an NFT
-  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {CandyTypes.CandyShared} metadata - the metadata of the NFT
   * @param {Text} prop - the property to retrieve from the metadata
   * @return {Types.OrigynTextResult} - a result containing the requested text property or an error
   */
-  public func get_nft_text_property(metadata: CandyTypes.CandyValue, prop: Text) : Types.OrigynTextResult{
-    switch(Properties.getClassProperty(metadata, prop)){
+  public func get_nft_text_property(metadata: CandyTypes.CandyShared, prop: Text) : Types.OrigynTextResult{
+    switch(Properties.getClassPropertyShared(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
@@ -332,12 +332,12 @@ module {
   //gets a text property out of the metadata
   /**
   * gets a principal property out of the metadata of an NFT
-  * @param {CandyTypes.CandyValue} metadata - the metadata of the NFT
+  * @param {CandyTypes.CandyShared} metadata - the metadata of the NFT
   * @param {Text} prop - the property to retrieve from the metadata
   * @return {Result.Result<Principal, Types.OrigynError>} - a result containing the requested principal property or an error
   */
-  public func get_nft_principal_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Principal, Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, prop)){
+  public func get_nft_principal_property(metadata: CandyTypes.CandyShared, prop: Text) : Result.Result<Principal, Types.OrigynError>{
+    switch(Properties.getClassPropertyShared(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
@@ -357,12 +357,12 @@ module {
   /**
   * Gets a bool property out of the metadata.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @param {Text} prop - The name of the property to get.
   * @returns {Types.OrigynBoolResult} A result containing either the bool property or an error.
   */
-  public func get_nft_bool_property(metadata: CandyTypes.CandyValue, prop: Text) : Types.OrigynBoolResult{
-    switch(Properties.getClassProperty(metadata, prop)){
+  public func get_nft_bool_property(metadata: CandyTypes.CandyShared, prop: Text) : Types.OrigynBoolResult{
+    switch(Properties.getClassPropertyShared(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
@@ -382,12 +382,12 @@ module {
   /**
   * Gets a Nat property out of the metadata.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @param {Text} prop - The name of the property to get.
   * @returns {Result.Result<Nat, Types.OrigynError>} A result containing either the Nat property or an error.
   */
-   public func get_nft_nat_property(metadata: CandyTypes.CandyValue, prop: Text) : Result.Result<Nat, Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, prop)){
+   public func get_nft_nat_property(metadata: CandyTypes.CandyShared, prop: Text) : Result.Result<Nat, Types.OrigynError>{
+    switch(Properties.getClassPropertyShared(metadata, prop)){
       case(null){
         return #err(Types.errors(null,  #property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
       };
@@ -407,22 +407,22 @@ module {
   /**
   * Checks if an item is minted.
   *
-  * @param {CandyTypes.CandyValue} metaData - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metaData - The metadata of the NFT.
   * @returns {Bool} True if the NFT is minted, otherwise false.
   */
-  public func is_minted(metaData: CandyTypes.CandyValue) : Bool{
-    switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
+  public func is_minted(metaData: CandyTypes.CandyShared) : Bool{
+    switch(Properties.getClassPropertyShared(metaData, Types.metadata.__system)){
       case(null){
         //D.print("not minted, didn't find system");
         return false;
       };
       case(?val){
-         switch(Properties.getClassProperty(val.value, Types.metadata.__system_status)){
+         switch(Properties.getClassPropertyShared(val.value, Types.metadata.__system_status)){
           case(null){
             //D.print("not minted, didn't find status");
             return false};
           case(?status){
-            if(Conversions.valueToText(status.value) == Types.nft_status_minted){
+            if(Conversions.candySharedToText(status.value) == Types.nft_status_minted){
               return true;
             } else{
               //D.print("not minted, didn't find minted");
@@ -439,10 +439,10 @@ module {
   /**
   * Gets the id of an NFT.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.OrigynTextResult} A result containing either the id or an error.
   */
-  public func get_nft_id(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
+  public func get_nft_id(metadata: CandyTypes.CandyShared) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.id)){
       case(#err(err)){return #err(err)};
       case(#ok(val)){return #ok(val)};
@@ -453,10 +453,10 @@ module {
   /**
   * Gets the primary asset for an NFT.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.OrigynTextResult} A result containing either the primary asset or an error.
   */
-  public func get_nft_primary_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
+  public func get_nft_primary_asset(metadata: CandyTypes.CandyShared) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.primary_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -467,10 +467,10 @@ module {
   /**
   * Gets the preview asset for an NFT.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.OrigynTextResult} A result containing either the preview asset or an error.
   */
-  public func get_nft_preview_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
+  public func get_nft_preview_asset(metadata: CandyTypes.CandyShared) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.preview_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -481,10 +481,10 @@ module {
   /**
   * Gets the experience asset for an NFT.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.OrigynTextResult} A result containing either the experience asset or an error.
   */
-  public func get_nft_experience_asset(metadata: CandyTypes.CandyValue) : Types.OrigynTextResult{
+  public func get_nft_experience_asset(metadata: CandyTypes.CandyShared) : Types.OrigynTextResult{
     switch(get_nft_text_property(metadata, Types.metadata.experience_asset)){
       case(#err(err)){return #err(err);};
       case(#ok(val)){return #ok(val)};
@@ -523,34 +523,37 @@ module {
   };
 
   /**
-  * Converts an account value to a CandyValue.
+  * Converts an account value to a CandyShared.
   * @param {Types.Account} val - The account value to convert.
-  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
-  public func account_to_candy(val : Types.Account) : CandyTypes.CandyValue{
+  public func account_to_candy(val : Types.Account) : CandyTypes.CandyShared{
     switch(val){
           case(#principal(newOwner)){#Principal(newOwner);};
           case(#account_id(newOwner)){#Text(newOwner);};
           case(#extensible(newOwner)){newOwner;};
-          case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), switch(buyer.sub_account){
+          case(#account(buyer)){#Array([#Principal(buyer.owner), switch(buyer.sub_account){
               case(null){#Option(null)};
               case(?val){#Option(?#Blob(val))}
-          }]))};
+          }])};
       }
   };
 
   /**
-  * Converts a token specification to a CandyValue.
+  * Converts a token specification to a CandyShared.
   * @param {Types.TokenSpec} val - The token specification to convert.
-  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
-  public func token_spec_to_candy(val : Types.TokenSpec) : CandyTypes.CandyValue{
+  public func token_spec_to_candy(val : Types.TokenSpec) : CandyTypes.CandyShared{
     switch(val){
           case(#ic(val)){#Class([
             {name="type"; value=#Text("IC"); immutable = true;},
             {name="data"; value=#Class([
               {name="canister"; value=#Principal(val.canister); immutable = true;},
-              {name="fee"; value=#Nat(val.fee); immutable = true;},
+              {name="fee"; value=switch(val.fee){
+                case(null) #Option(null);
+                case(?val) #Nat(val);
+              }; immutable = true;},
               {name="symbol"; value=#Text(val.symbol); immutable = true;},
               {name="decimals"; value=#Nat(val.decimals); immutable = true;},
               {name="standard"; value= switch(val.standard){
@@ -558,6 +561,7 @@ module {
                 case(#Ledger){#Text("Ledger")};
                 case(#EXTFungible){#Text("EXTFungible")};
                 case(#ICRC1){#Text("Ledger")};
+                case(#Other(val)){val};
               }; immutable = true;}
             ]); immutable = true;},
           ]);};
@@ -569,11 +573,11 @@ module {
   };
 
   /**
-  * Converts a pricing configuration to a CandyValue.
+  * Converts a pricing configuration to a CandyShared.
   * @param {Types.PricingConfig} val - The pricing configuration to convert.
-  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
-  public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyValue{
+  public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyShared{
     switch(val){
           case(#instant(val)){#Text("instant");};
           case(#flat(val)){#Class([
@@ -586,21 +590,21 @@ module {
   };
 
   /**
-  * Converts an auction configuration to a CandyValue.
+  * Converts an auction configuration to a CandyShared.
   * @param {Types.AuctionConfig} val - The auction configuration to convert.
-  * @returns {CandyTypes.CandyValue} The converted CandyValue.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
-  public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyValue{
+  public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyShared{
 
     #Class([
       {name="reserve"; value=switch(val.reserve){
-                  case(null){#Empty;};
+                  case(null){#Option(null);};
                   case(?val){#Nat(val)};
                   
         }; immutable = true;},
       {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
       {name="buy_now"; value=switch(val.buy_now){
-                  case(null){#Empty;};
+                  case(null){#Option(null);};
                   case(?val){#Nat(val)};
                   
         }; immutable = true;},
@@ -621,8 +625,8 @@ module {
                   case(#amount(val)){#Nat(val)};
         }; immutable = true;},
       {name="allow_list"; value=switch(val.allow_list){
-                  case(null){#Empty;};
-                  case(?val){#Array(#frozen( Array.map<Principal, CandyTypes.CandyValue>(val, func(x:Principal){#Principal(x)})))};
+                  case(null){#Option(null);};
+                  case(?val){#Array(Array.map<Principal, CandyTypes.CandyShared>(val, func(x:Principal){#Principal(x)}))};
         }; immutable = true;},
 
     ]);
@@ -630,44 +634,39 @@ module {
   };
 
   /**
-  * Converts a CandyValue to an account value.
-  * @param {CandyTypes.CandyValue} val - The CandyValue to convert.
+  * Converts a CandyShared to an account value.
+  * @param {CandyTypes.CandyShared} val - The CandyShared to convert.
   * @returns {Types.BearerResult} The converted account value.
   */
-  public func candy_to_account(val : CandyTypes.CandyValue) :Types.BearerResult {
+  public func candy_to_account(val : CandyTypes.CandyShared) :Types.BearerResult {
     switch(val){
       case(#Principal(val)){#ok(#principal(val))};
       case(#Text(val)){#ok(#account_id(val))};
       case(#Class(val)){#ok(#extensible(#Class(val)))};
-      case(#Array(ary)){
-      switch(ary){
-        case(#frozen(items)){
-          if(items.size() > 0){
-            #ok(#account({
-              owner = switch(items[0]){
-                case(#Principal(val)){val;};
-                case(_){
-                  return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
-                };
+      case(#Array(items)){
+        if(items.size() > 0){
+          #ok(#account({
+            owner = switch(items[0]){
+              case(#Principal(val)){val;};
+              case(_){
+                return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
               };
-              sub_account =  if(items.size() > 1){
-                  switch(items[1]){
-                    case(#Blob(val)){?val;};
-                    case(_){
-                      return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
-                    };
+            };
+            sub_account =  if(items.size() > 1){
+                switch(items[1]){
+                  case(#Blob(val)){?val;};
+                  case(_){
+                    return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not a blob at 1 ", null));
                   };
-                }
-                else {
-                  null;
-                }
-              }));
+                };
+              }
+              else {
+                null;
+              }
+            }));
           } else {
-            return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(ary), null));
+            return #err(Types.errors(null,  #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show(items), null));
           };
-        };
-        case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not frozen " # debug_show(ary), null));};
-      };
     };
     case(_){return #err(Types.errors(null,  #improper_interface, "candy_to_account - send payment - improper interface, not an array " , null));};
     };
@@ -678,11 +677,11 @@ module {
   //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
   /**
   * Gets the owner of an NFT in the owner field.
-  * @param {CandyTypes.CandyValue} metadata - The metadata of the NFT.
+  * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.BearerResult} The owner of the NFT.
   */
-  public func get_nft_owner(metadata: CandyTypes.CandyValue) : Types.BearerResult{
-    switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
+  public func get_nft_owner(metadata: CandyTypes.CandyShared) : Types.BearerResult{
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
       case(null){
         return #err(Types.errors(null,  #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
       };
@@ -700,9 +699,9 @@ module {
   * @param {Text} token_id - The ID of the token to update.
   * @param {Types.Account} new_owner - The new owner of the token.
   * @param {Principal} caller - The principal of the caller.
-  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} The updated metadata of the NFT.
+  * @returns {Result.Result<CandyTypes.CandyShared, Types.OrigynError>} The updated metadata of the NFT.
   */
-  public func set_nft_owner(state: Types.State, token_id: Text, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
+  public func set_nft_owner(state: Types.State, token_id: Text, new_owner: Types.Account, caller: Principal) : Result.Result<CandyTypes.CandyShared, Types.OrigynError>{
 
 
     let current_state = state.refresh_state();
@@ -717,14 +716,14 @@ module {
         };
     };
 
-    var temp_metadata : CandyTypes.CandyValue = switch(Properties.updateProperties(Conversions.valueToProperties(fresh_metadata), [
+    var temp_metadata : CandyTypes.CandyShared = switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(fresh_metadata), [
           {
               name = Types.metadata.owner;
               mode = #Set(switch(new_owner){
                   case(#principal(buyer)){#Principal(buyer);};
                   case(#account_id(buyer)){#Text(buyer);};
                   case(#extensible(buyer)){buyer;};
-                  case(#account(buyer)){#Array(#frozen([#Principal(buyer.owner), #Option(switch(buyer.sub_account){case(null){null}; case(?val){?#Blob(val);}})]))};
+                  case(#account(buyer)){#Array([#Principal(buyer.owner), #Option(switch(buyer.sub_account){case(null){null}; case(?val){?#Blob(val);}})])};
               });
           }
       ])){
@@ -749,11 +748,11 @@ module {
   /**
   * Checks if the provided account is the owner of the specified NFT.
   *
-  * @param {CandyTypes.CandyValue} metadata - Metadata of the NFT
+  * @param {CandyTypes.CandyShared} metadata - Metadata of the NFT
   * @param {Types.Account} anAccount - The account to check if it's the owner
   * @returns {Types.OrigynBoolResult} - Result object containing a boolean indicating whether or not the provided account is the owner of the NFT
   */
-  public func is_nft_owner(metadata: CandyTypes.CandyValue, anAccount : Types.Account) : Types.OrigynBoolResult{
+  public func is_nft_owner(metadata: CandyTypes.CandyShared, anAccount : Types.Account) : Types.OrigynBoolResult{
     
     let owner = switch(get_nft_owner(metadata)){
       case(#err(err)){
@@ -762,7 +761,7 @@ module {
       case(#ok(val)){
         switch(val){
           case(#extensible(ex)){
-            if(Conversions.valueToText(ex) == "trx in flight"){
+            if(Conversions.candySharedToText(ex) == "trx in flight"){
               return(#ok(false));
             }
           };
@@ -776,10 +775,10 @@ module {
     if(Types.account_eq(owner, anAccount) == true){return #ok(true);};
 
     let wallet_shares = switch(get_system_var(metadata, Types.metadata.__system_wallet_shares)){
-            case(#Empty){
+            case(#Option(null)){
                 Map.new<Types.Account, Bool>();
             };
-            case(#Array(#thawed(val))){
+            case(#Array(val)){
               let result = Map.new<Types.Account, Bool>();
               for(thisItem in val.vals()){
                 let anAccount = switch(candy_to_account(thisItem)){
@@ -789,21 +788,6 @@ module {
             
                   };
                 };
-                Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
-              };
-              result;
-            };
-            case(#Array(#frozen(val))){
-              let result = Map.new<Types.Account, Bool>();
-              for(thisItem in val.vals()){
-                let anAccount = switch(candy_to_account(thisItem)){
-                  case(#ok(val)){val};
-                  case(#err(err)){
-                    return #err(Types.errors(null,  err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
-            
-                  };
-                };
-
                 Map.set<Types.Account, Bool>(result, account_handler, anAccount, true);
               };
               result;
@@ -830,20 +814,20 @@ module {
   /**
   * Gets the current sale (or last finished sale) for the specified NFT.
   *
-  * @param {CandyTypes.CandyValue} metaData - Metadata of the NFT
-  * @returns {CandyTypes.CandyValue} - The current sale ID (or empty if no sale exists)
+  * @param {CandyTypes.CandyShared} metaData - Metadata of the NFT
+  * @returns {CandyTypes.CandyShared} - The current sale ID (or empty if no sale exists)
   */
-  public func get_current_sale_id(metaData: CandyTypes.CandyValue) : CandyTypes.CandyValue{
+  public func get_current_sale_id(metaData: CandyTypes.CandyShared) : CandyTypes.CandyShared{
     //D.print("in getCurrentsaleid " # " " # debug_show(Types.metadata.__system) # " " # debug_show(metaData));
-    switch(Properties.getClassProperty(metaData, Types.metadata.__system)){
+    switch(Properties.getClassPropertyShared(metaData, Types.metadata.__system)){
       case(null){
         //D.print("null");
-        return #Empty;
+        return #Option(null);
       };
       case(?val){
         //D.print("val");
-         switch(Properties.getClassProperty(val.value, Types.metadata.__system_current_sale_id)){
-          case(null){return #Empty};
+         switch(Properties.getClassPropertyShared(val.value, Types.metadata.__system_current_sale_id)){
+          case(null){return #Option(null)};
           case(?status){
             status.value;
           };
@@ -867,7 +851,7 @@ module {
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_host - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
     };
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_host)){
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.primary_host)){
       case(null){
         return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_host - cannot find token_id id in metadata", null));
       };
@@ -899,7 +883,7 @@ module {
       case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "get_primary_port - cannot find token_id id in metadata "  # err.flag_point, ?caller))};
       case(#ok(val)){val};
     };
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_port)){
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.primary_port)){
       case(null){
         return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_port - cannot find token_id id in metadata", null));
       };
@@ -933,7 +917,7 @@ module {
       case(#ok(val)){val};
     };
     //D.print("have meta protocol");
-    switch(Properties.getClassProperty(metadata, Types.metadata.primary_protocol)){
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.primary_protocol)){
       case(null){
          D.print("have err1 protocol");
         return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
@@ -959,11 +943,11 @@ module {
   /**
   * Cleans metadata according to permissions.
   *
-  * @param {CandyTypes.CandyValue} metadata - The metadata to clean
+  * @param {CandyTypes.CandyShared} metadata - The metadata to clean
   * @param {Principal} caller - The caller's principal ID
-  * @returns {CandyTypes.CandyValue} - The cleaned metadata
+  * @returns {CandyTypes.CandyShared} - The cleaned metadata
   */
-  public func get_clean_metadata(metadata : CandyTypes.CandyValue, caller : Principal) : CandyTypes.CandyValue{
+  public func get_clean_metadata(metadata : CandyTypes.CandyShared, caller : Principal) : CandyTypes.CandyShared{
 
     let owner : ?Types.Account = switch(get_nft_owner(metadata)){
       case(#err(err)){
@@ -974,8 +958,8 @@ module {
       };
     };
 
-    let final_object : Buffer.Buffer<CandyTypes.Property> =  Buffer.Buffer<CandyTypes.Property>(16);
-    for(this_entry in Conversions.valueToProperties(metadata).vals()){
+    let final_object : Buffer.Buffer<CandyTypes.PropertyShared> =  Buffer.Buffer<CandyTypes.PropertyShared>(16);
+    for(this_entry in Conversions.candySharedToProperties(metadata).vals()){
       if(this_entry.name == Types.metadata.__system){
         //nyi: what system properties methods need to be hidden
         final_object.add(this_entry);
@@ -983,18 +967,17 @@ module {
         //do we let apps publish to the main query
         //D.print("Adding an app node");
         
-        let app_nodes = Buffer.Buffer<CandyTypes.CandyValue>(1);
+        let app_nodes = Buffer.Buffer<CandyTypes.CandyShared>(1);
         switch(this_entry.value){
           case(#Array(item)){
-            switch(item){
-              case(#thawed(classes)){
-                for(this_item in classes.vals()){
+            
+                for(this_item in item.vals()){
                   //D.print("processing an item");
                   //D.print(debug_show(this_item));
                   let clean = (clean_node(this_item, owner, caller));
                   //D.print(debug_show(clean));
                   switch(clean){
-                    case(#Empty){
+                    case(#Option(null)){
                       //do nothing
                     };
                     case(#Class(theresult)){
@@ -1007,18 +990,14 @@ module {
                     };
                   };
                 };
-              };
-              case(_){
-
-              }
-            };
           };
+             
           case(_){
 
           };
         };
         if(app_nodes.size() > 0){
-          final_object.add({name=this_entry.name; value=#Array(#thawed(Buffer.toArray(app_nodes))); immutable=false});
+          final_object.add({name=this_entry.name; value=#Array(Buffer.toArray(app_nodes)); immutable=false});
         };
       } 
       
@@ -1035,20 +1014,20 @@ module {
   //cleans a node in metadata
   /**
   * Cleans a node in metadata based on permissions
-  * @param {CandyTypes.CandyValue} a_class - the node to clean
+  * @param {CandyTypes.CandyShared} a_class - the node to clean
   * @param {?Types.Account} owner - the account that owns the node, if any
   * @param {Principal} caller - the principal making the request
-  * @returns {CandyTypes.CandyValue} the cleaned node
+  * @returns {CandyTypes.CandyShared} the cleaned node
   */
-  public func clean_node(a_class : CandyTypes.CandyValue, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyValue{
+  public func clean_node(a_class : CandyTypes.CandyShared, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyShared{
     switch(a_class){
       case(#Class(item)){
-        let app_node = Properties.getClassProperty(a_class, Types.metadata.__apps_app_id);
-        let library_node = Properties.getClassProperty(a_class, Types.metadata.library_id);
-        let read_node = Properties.getClassProperty(a_class, "read");
-        let write_node = Properties.getClassProperty(a_class, "write");
-        let permissions_node = Properties.getClassProperty(a_class, "permissions");
-        let data_node = Properties.getClassProperty(a_class, "data");
+        let app_node = Properties.getClassPropertyShared(a_class, Types.metadata.__apps_app_id);
+        let library_node = Properties.getClassPropertyShared(a_class, Types.metadata.library_id);
+        let read_node = Properties.getClassPropertyShared(a_class, "read");
+        let write_node = Properties.getClassPropertyShared(a_class, "write");
+        let permissions_node = Properties.getClassPropertyShared(a_class, "permissions");
+        let data_node = Properties.getClassPropertyShared(a_class, "data");
         switch(library_node, app_node, read_node, write_node, data_node, permissions_node){
           case(null, ?app_node, ?read_node, ?write_node, ?data_node, _){
             //D.print("cleaning an app node " # debug_show(app_node.value));
@@ -1059,11 +1038,11 @@ module {
                   //D.print(debug_show(data_node.value));
                   let cleaned_node = clean_node(data_node.value, owner, caller);
                   switch(cleaned_node){
-                    case(#Empty){
+                    case(#Option(null)){
                       //D.print("recieved a cleaned node that was empty");
                       //D.print(debug_show(data_node.value));
                       //D.print(debug_show(caller));
-                      return #Empty;
+                      return #Option(null);
                     };
                     case(_){
                       //D.print("recieved a cleaned node that was not empty");
@@ -1093,18 +1072,18 @@ module {
                   };
                 } else if (read_detail == "owner"){
                   switch(owner){
-                    case(null){return #Empty};
+                    case(null){return #Option(null)};
                     case(?owner){
                       if(Types.account_eq(owner,#principal(caller))){
                         //D.print("cleaning an owner node");
                         //D.print(debug_show(data_node.value));
                         let cleaned_node = clean_node(data_node.value, ?owner, caller);
                         switch(cleaned_node){
-                          case(#Empty){
+                          case(#Option(null)){
                             //D.print("recieved a cleaned node that was empty");
                             //D.print(debug_show(data_node.value));
                             //D.print(debug_show(caller));
-                            return #Empty;
+                            return #Option(null);
                           };
                           case(_){
                             //D.print("recieved a cleaned node that was not empty");
@@ -1133,34 +1112,34 @@ module {
                           };
                         };
                       } else {
-                        return #Empty;
+                        return #Option(null);
                       };
                     };
                   };
                   
                 } else {
-                  return #Empty
+                  return #Option(null);
                 };
               };
               case(#Class(read_detail)){
-                switch(Properties.getClassProperty(read_node.value, "type")){
+                switch(Properties.getClassPropertyShared(read_node.value, "type")){
                   case(?read_type){
                     switch(read_type.value){
                       case(#Text(read_type_detail)){
                         if(read_type_detail == "allow"){
-                          switch(Properties.getClassProperty(read_node.value,"list")){
+                          switch(Properties.getClassPropertyShared(read_node.value,"list")){
                             case(?allow_list){
-                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
-                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                              for(this_principal in Conversions.candySharedToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.candySharedToPrincipal(this_principal)){
                                   //D.print("cleaning an allow node");
                                   //D.print(debug_show(data_node.value));
                                   let cleaned_node = clean_node(data_node.value, owner, caller);
                                   switch(cleaned_node){
-                                    case(#Empty){
+                                    case(#Option(null)){
                                       //D.print("recieved a cleaned node that was empty");
                                       //D.print(debug_show(data_node.value));
                                       //D.print(debug_show(caller));
-                                      return #Empty;
+                                      return #Option(null);
                                     };
                                     case(_){
                                       //D.print("recieved a cleaned node that was not ");
@@ -1194,34 +1173,34 @@ module {
                               };
                               //we didnt find the principal
                               //D.print("returning empty because we didnt find the principal");
-                              return #Empty;
+                              return #Option(null);
                             };
                             case(null){
                               //D.print("returning empty because allow_list is null");
-                              return #Empty;
+                              return #Option(null);
                             }
                           };
                         } else {//nyi: implement block list; roles based security
                           //D.print("returning empty because read type detail is not allow");
-                          return #Empty;
+                          return #Option(null);
                         };
                       };
                     
                       case(_){
                         //D.print("returning empty because read_type.value is not text of class");
-                        return #Empty;
+                        return #Option(null);
                       };
                     };
                   };
                   case(_){
                     //D.print("returning empty because read type is null");
-                    return #Empty;
+                    return #Option(null);
                   };
                 };
               };
               case(_){
                 //D.print("returning empty because read node is not text of class");
-                return #Empty;
+                return #Option(null);
               };
             };
           };
@@ -1235,64 +1214,64 @@ module {
                   
                 } else if (read_detail == "owner"){
                   switch(owner){
-                    case(null){return #Empty};
+                    case(null){return #Option(null)};
                     case(?owner){
                       if(Types.account_eq(owner,#principal(caller))){
                         //D.print("cleaning an owner node");
                         return a_class;
                       } else {
-                        return #Empty;
+                        return #Option(null);
                       };
                     };
                   };
                   
                 } else {
-                  return #Empty
+                  return #Option(null);
                 };
               };
               case(#Class(read_detail)){
-                switch(Properties.getClassProperty(read_node.value, "type")){
+                switch(Properties.getClassPropertyShared(read_node.value, "type")){
                   case(?read_type){
                     switch(read_type.value){
                       case(#Text(read_type_detail)){
                         if(read_type_detail == "allow"){
-                          switch(Properties.getClassProperty(read_node.value,"list")){
+                          switch(Properties.getClassPropertyShared(read_node.value,"list")){
                             case(?allow_list){
-                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
-                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                              for(this_principal in Conversions.candySharedToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.candySharedToPrincipal(this_principal)){
                                   return a_class;
                                 };
                               };
                               //we didnt find the principal
                               //D.print("returning empty because we didnt find the principal");
-                              return #Empty;
+                              return #Option(null);
                             };
                             case(null){
                               //D.print("returning empty because allow_list is null");
-                              return #Empty;
+                              return #Option(null);
                             }
                           };
                         } else {//nyi: implement block list; roles based security
                           //D.print("returning empty because read type detail is not allow");
-                          return #Empty;
+                          return #Option(null);
                         };
                       };
                     
                       case(_){
                         //D.print("returning empty because read_type.value is not text of class");
-                        return #Empty;
+                        return #Option(null);
                       };
                     };
                   };
                   case(_){
                     //D.print("returning empty because read type is null");
-                    return #Empty;
+                    return #Option(null);
                   };
                 };
               };
               case(_){
                 //D.print("returning empty because read node is not text of class");
-                return #Empty;
+                return #Option(null);
               };
             };
           };
@@ -1305,11 +1284,11 @@ module {
                   //D.print(debug_show(data_node.value));
                   let cleaned_node = clean_node(data_node.value, owner, caller);
                   switch(cleaned_node){
-                    case(#Empty){
+                    case(#Option(null)){
                       //D.print("recieved a cleaned node that was empty");
                       //D.print(debug_show(data_node.value));
                       //D.print(debug_show(caller));
-                      return #Empty;
+                      return #Option(null);
                     };
                     case(_){
                       //D.print("recieved a cleaned node that was not ");
@@ -1336,28 +1315,28 @@ module {
                     };
                   };
                 } else {
-                  return #Empty
+                  return #Option(null);
                 };
               };
               case(#Class(read_detail)){
-                switch(Properties.getClassProperty(read_node.value, "type")){
+                switch(Properties.getClassPropertyShared(read_node.value, "type")){
                   case(?read_type){
                     switch(read_type.value){
                       case(#Text(read_type_detail)){
                         if(read_type_detail == "allow"){
-                          switch(Properties.getClassProperty(read_node.value,"list")){
+                          switch(Properties.getClassPropertyShared(read_node.value,"list")){
                             case(?allow_list){
-                              for(this_principal in Conversions.valueToValueArray(allow_list.value).vals()){
-                                if(caller == Conversions.valueToPrincipal(this_principal)){
+                              for(this_principal in Conversions.candySharedToValueArray(allow_list.value).vals()){
+                                if(caller == Conversions.candySharedToPrincipal(this_principal)){
                                   //D.print("cleaning an allow node");
                                   //D.print(debug_show(data_node.value));
                                   let cleaned_node = clean_node(data_node.value, owner, caller);
                                   switch(cleaned_node){
-                                    case(#Empty){
+                                    case(#Option(null)){
                                       //D.print("recieved a cleaned node that was empty");
                                       //D.print(debug_show(data_node.value));
                                       //D.print(debug_show(caller));
-                                      return #Empty;
+                                      return #Option(null);
                                     };
                                     case(_){
                                       //D.print("recieved a cleaned node that was not ");
@@ -1388,40 +1367,40 @@ module {
                                 };
                               };
                               //we didnt find the principal
-                              return #Empty;
+                              return #Option(null);
                             };
                             case(null){
-                              return #Empty;
+                              return #Option(null);
                             }
                           };
                         } else {//nyi: implement block list; roles based security
-                          return #Empty;
+                          return #Option(null);
                         };
                       };
                     
                       case(_){
-                        return #Empty;
+                        return #Option(null);
                       };
                     };
                   };
                   case(_){
-                    return #Empty;
+                    return #Option(null);
                   };
                 };
               };
               case(_){
-                return #Empty;
+                return #Option(null);
               };
             };
           };
           case(null, null, null, null, _, _){
             //D.print("cleaning a non-permissioned node");
-            let collection = Buffer.Buffer<CandyTypes.Property>(item.size());
+            let collection = Buffer.Buffer<CandyTypes.PropertyShared>(item.size());
             //D.print("processing" # debug_show(item.size()));
             for(this_item in item.vals()){
               let cleaned_node = clean_node(this_item.value, owner, caller);
               switch(cleaned_node){
-                case(#Empty){
+                case(#Option(null)){
                   //D.print("skipping " # this_item.name # " because empty");
                 };
                 case(_){
@@ -1436,12 +1415,12 @@ module {
               return #Class(Buffer.toArray(collection));
             } else {
               //D.print("returning a empty because there were no public child nodes");
-              return #Empty;
+              return #Option(null);
             };
             
           };
           case(_,_,_,_,_, _){
-            return #Empty;
+            return #Option(null);
           }
         };
       };
@@ -1460,12 +1439,12 @@ module {
   * @param {Principal} caller - the caller of the function
   * @param {Principal|null} canister - the ID of the canister to retrieve metadata for
   * @param {Principal} canister_owner - the owner of the canister
-  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - the result of the metadata retrieval attempt
+  * @returns {Result.Result<CandyTypes.CandyShared, Types.OrigynError>} - the result of the metadata retrieval attempt
   */
   public func get_metadata_for_token(
     state: Types.State, 
     token_id : Text, 
-    caller : Principal, canister : ?Principal, canister_owner: Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
+    caller : Principal, canister : ?Principal, canister_owner: Principal) : Result.Result<CandyTypes.CandyShared, Types.OrigynError>{
     switch(Map.get(state.state.nft_metadata, Map.thash,token_id)){
       case(null){
         //nft metadata doesn't exist
@@ -1504,11 +1483,11 @@ module {
   * @param {Principal} caller - the caller of the function
   * @returns {Result.Result<Types.TransactionRecord, Types.OrigynError>} - the result of the transaction record addition attempt
   */
-  public func add_transaction_record(state : Types.State, rec: Types.TransactionRecord, caller: Principal) : Result.Result<Types.TransactionRecord, Types.OrigynError>{
+  public func add_transaction_record(state : Types.State, rec: MigrationTypes.Current.TransactionRecord, caller: Principal) : Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError>{
     //nyi: add indexes
     //only allow transactions for existing tokens
     let metadata = if(rec.token_id == ""){
-      #Empty;
+      #Option(null);
     } else {switch(get_metadata_for_token(state, rec.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
       case(#err(err)){
         return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "add_transaction_record " # err.flag_point, ?caller));
@@ -1519,9 +1498,9 @@ module {
       };
     };
 
-    let ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, rec.token_id)){
+    let ledger = switch(Map.get<Text, SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(state.state.nft_ledgers, Map.thash, rec.token_id)){
       case(null){
-        let newLedger = SB.init<Types.TransactionRecord>();
+        let newLedger = SB.init<MigrationTypes.Current.TransactionRecord>();
         Map.set(state.state.nft_ledgers, Map.thash, rec.token_id, newLedger);
         newLedger;
       };
@@ -1551,7 +1530,7 @@ module {
   * @param {Types.TransactionRecord} newTrx - the newly added transaction record
   * @returns {void}
   */
-  public func announceTransaction(state : Types.State, rec : Types.TransactionRecord, caller : Principal, newTrx : Types.TransactionRecord) : () {
+  public func announceTransaction(state : Types.State, rec : MigrationTypes.Current.TransactionRecord, caller : Principal, newTrx : MigrationTypes.Current.TransactionRecord) : () {
 
 
         if(state.state.collection_data.announce_canister == null){return;};
@@ -1578,12 +1557,12 @@ module {
 
   /**
   * Retrieves the library metadata for an NFT
-  * @param {CandyTypes.CandyValue} metadata - the metadata for the NFT
+  * @param {CandyTypes.CandyShared} metadata - the metadata for the NFT
   * @param {Principal} [caller=null] - the caller of the function
-  * @returns {Result.Result<CandyTypes.CandyValue, Types.OrigynError>} - the result of the metadata retrieval attempt
+  * @returns {Result.Result<CandyTypes.CandyShared, Types.OrigynError>} - the result of the metadata retrieval attempt
   */
-  public func get_nft_library(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<CandyTypes.CandyValue, Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, Types.metadata.library)){
+  public func get_nft_library(metadata: CandyTypes.CandyShared, caller: ?Principal) : Result.Result<CandyTypes.CandyShared, Types.OrigynError>{
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.library)){
       case(null){
         return #err(Types.errors(null,  #library_not_found, "get_library_meta - cannot find library in metadata", caller));
       };
@@ -1595,27 +1574,21 @@ module {
 
   /**
   * Retrieves an array of the library metadata for an NFT
-  * @param {CandyTypes.CandyValue} metadata - the metadata for the NFT
+  * @param {CandyTypes.CandyShared} metadata - the metadata for the NFT
   * @param {Principal} [caller=null] - the caller of the function
-  * @returns {Result.Result<[CandyTypes.CandyValue], Types.OrigynError>} - the result of the metadata retrieval attempt
+  * @returns {Result.Result<[CandyTypes.CandyShared], Types.OrigynError>} - the result of the metadata retrieval attempt
   */
-  public func get_nft_library_array(metadata: CandyTypes.CandyValue, caller: ?Principal) : Result.Result<[CandyTypes.CandyValue], Types.OrigynError>{
-    switch(Properties.getClassProperty(metadata, Types.metadata.library)){
+  public func get_nft_library_array(metadata: CandyTypes.CandyShared, caller: ?Principal) : Result.Result<[CandyTypes.CandyShared], Types.OrigynError>{
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.library)){
       case(null){
         return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata", caller));
       };
       case(?val){
         switch(val.value){
           case(#Array(val)){
-            switch(val){
-              case(#thawed(val)){
-                return #ok(val);
-              };
-              case(_){
-                return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata not thawed", caller));
-       
-              };
-            }
+            
+            return #ok(val);
+              
           };
           case(_){
             return #err(Types.errors(null,  #library_not_found, "get_nft_library_array - cannot find library in metadata not array", caller));
@@ -1720,21 +1693,21 @@ module {
             return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id, caller));
           };
           case(?item){
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
               case(null){
                 //nofiledata
                 return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # allocation.token_id  # " library_id - " # allocation.library_id # " chunk - " # debug_show(request.chunk), caller));
               };
               case(?zone){
                 //D.print("size of zone");
-                //D.print(debug_show(zone.size()));
+                //D.print(debug_show(SB.size(zone)));
 
                 let requested_chunk = switch(request.chunk){
                   case(null){
                     //just want the allocation
                     return #ok(#chunk({
                         content = Blob.fromArray([]);
-                        total_chunks = zone.size();
+                        total_chunks = SB.size(zone);
                         current_chunk = request.chunk;
                         storage_allocation = Types.allocation_record_stabalize(allocation);
                       }));
@@ -1742,37 +1715,25 @@ module {
                   };
                   case(?val){val};
                 };
-                switch(zone.getOpt(requested_chunk)){
+                switch(SB.getOpt(zone,requested_chunk)){
                   case(null){
                     return #err(Types.errors(?state.canistergeekLogger,  #library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id  # " library_id - " # request.library_id # " chunk - " # debug_show(request.chunk), caller));
                   };
                   case(?chunk){
                     switch(chunk){
                       case(#Bytes(wval)){
-                        switch(wval){
-                          case(#thawed(val)){
-                            return #ok(#chunk({
-                              content = Blob.fromArray(Buffer.toArray(val));
-                              total_chunks = zone.size();
-                              current_chunk = request.chunk;
-                              storage_allocation = Types.allocation_record_stabalize(allocation);
-                            }));
-                          };
-                          case(#frozen(val)){
-                            return #ok(#chunk({
-                              content = Blob.fromArray(val);
-                              total_chunks = zone.size();
-                              current_chunk = request.chunk;
-                              storage_allocation = Types.allocation_record_stabalize(allocation);
-                            }));
-                          }
-                        };
+                        return #ok(#chunk({
+                          content = Blob.fromArray(SB.toArray(wval));
+                          total_chunks = SB.size(zone);
+                          current_chunk = request.chunk;
+                          storage_allocation = Types.allocation_record_stabalize(allocation);
+                        }));
                       };
                       case(#Blob(wval)){
                         
                         return #ok(#chunk({
                           content = wval;
-                          total_chunks = zone.size();
+                          total_chunks = SB.size(zone);
                           current_chunk = request.chunk;
                           storage_allocation = Types.allocation_record_stabalize(allocation);
                         }));
@@ -1801,7 +1762,7 @@ module {
                               case (?val) {
                                   // D.print(debug_show(Blob.fromArray(val)));
                                   // return Blob.fromArray(val)
-                                  return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
+                                  return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = SB.size(zone); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
                               };
                           };
                           */
@@ -1876,7 +1837,7 @@ module {
 
         let clean_val = switch(val){
           case(null){
-            #Empty;
+            #Option(null);
               };
           case(?val){
             val;
@@ -1886,14 +1847,14 @@ module {
           
         let insert_result = 
           if(immutable == true){
-            Properties.updateProperties(Conversions.valueToProperties(current_metadata), [
+            Properties.updatePropertiesShared(Conversions.candySharedToProperties(current_metadata), [
               {
                 name = key;
                 mode = #Lock(clean_val);
               }
             ]);
           } else {
-            Properties.updateProperties(Conversions.valueToProperties(current_metadata), [
+            Properties.updatePropertiesShared(Conversions.candySharedToProperties(current_metadata), [
               {
                 name = key;
                 mode = #Set(clean_val);
@@ -1952,17 +1913,17 @@ module {
 
 
   /**
-  * Converts a ledger of transaction records to an array of CandyValues
+  * Converts a ledger of transaction records to an array of CandyShareds
   * @param {SB.StableBuffer<Types.TransactionRecord>} ledger - The ledger to convert
   * @param {Nat} page - The page number of results to return
   * @param {Nat} size - The number of results to return per page
-  * @returns {[CandyTypes.CandyValue]} - An array of CandyValues
+  * @returns {[CandyTypes.CandyShared]} - An array of CandyShareds
   */
-  public func ledger_to_candy(ledger : SB.StableBuffer<Types.TransactionRecord>, page: Nat, size: Nat) : [CandyTypes.CandyValue]{
+  public func ledger_to_candy(ledger : SB.StableBuffer<MigrationTypes.Current.TransactionRecord>, page: Nat, size: Nat) : [CandyTypes.CandyShared]{
 
     var tracker = 0;
 
-    let results  = Buffer.Buffer<CandyTypes.CandyValue>(1);
+    let results  = Buffer.Buffer<CandyTypes.CandyShared>(1);
 
     label search for(thisItem in SB.vals(ledger)){
       if(tracker < page * size){
@@ -1994,7 +1955,7 @@ module {
                   {name="from"; value=account_to_candy(val.from); immutable = true;},
                   {name="to"; value=account_to_candy(val.to); immutable = true;},
                   {name="sale"; value=switch(val.sale){
-                    case(null){#Empty};
+                    case(null){#Option(null)};
                     case(?val){#Class([
                       {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
                       {name="amount"; value=#Nat(val.amount); immutable = true;},
@@ -2013,7 +1974,7 @@ module {
                   {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
                 
                   { name="sale_id"; value=switch(val.sale_id){
-                    case(null){#Empty};
+                    case(null){#Option(null)};
                     case(?val){#Text(val)};
                     
                     };  immutable = true;},
@@ -2027,13 +1988,13 @@ module {
                   {name="type"; value=#Text("royalty_paid"); immutable = true;},
                   {name="buyer"; value=account_to_candy(val.buyer); immutable = true;},
                   {name="seller"; value=account_to_candy(val.seller); immutable = true;},
-                  {name="reciever"; value=account_to_candy(val.reciever); immutable = true;},
+                  {name="receiver"; value=account_to_candy(val.receiver); immutable = true;},
                   {name="tag"; value=#Text(val.tag); immutable = true;},
                   
                   {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
                 
                   { name="sale_id"; value=switch(val.sale_id){
-                    case(null){#Empty};
+                    case(null){#Option(null)};
                     case(?val){#Text(val)};
                     
                     };  immutable = true;},
@@ -2146,7 +2107,7 @@ module {
             case(#canister_managers_updated(val)){
               #Class([
                 {name="type"; value=#Text("canister_managers_updated"); immutable = true;},
-                {name="managers"; value=#Array(#frozen( Array.map<Principal, CandyTypes.CandyValue>(val.managers, func(x:Principal){#Principal(x)}))); immutable=true;},
+                {name="managers"; value=#Array( Array.map<Principal, CandyTypes.CandyShared>(val.managers, func(x:Principal){#Principal(x)})); immutable=true;},
                 {name="extensible"; value=val.extensible; immutable = true;},
               ])
             };
@@ -2157,10 +2118,10 @@ module {
                 {name="extensible"; value=val.extensible; immutable = true;},
               ])
             };
-            case(#data){
+            case(#data(data)){
               #Text("data");
             };
-            case(#burn){
+            case(#burn(data)){
               #Text("burn");
             };
             case(#extensible(val)){#Class([

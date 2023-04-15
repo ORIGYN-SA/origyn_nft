@@ -5,6 +5,7 @@ import D "mo:base/Debug";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat32 "mo:base/Nat32";
+import Nat "mo:base/Nat";
 import Order "mo:base/Order";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
@@ -13,12 +14,9 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
-//import EXT "mo:ext/Core";
-//import EXTCommon "mo:ext/Common";
+
 import Map "mo:map/Map";
-import NFTUtils "mo:map/utils";
+import MapUtils "mo:map/utils";
 import SB "mo:stablebuffer/StableBuffer";
 import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
@@ -33,6 +31,11 @@ import http "mo:http/Http";
 
 
 module {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    //let Properties = MigrationTypes.Current.Properties;
+    //let Workspace = MigrationTypes.Current.Workspace;
 
     public func __candid_keys() : [Text]{
       [
@@ -87,7 +90,7 @@ module {
         #UpdateLogo : ?Text;
         #UpdateName : ?Text;
         #UpdateSymbol : ?Text;
-        #UpdateMetadata : (Text, ?CandyTypes.CandyValue, Bool);
+        #UpdateMetadata : (Text, ?CandyTypes.CandyShared, Bool);
     };
 
     // RawData type is a tuple of Timestamp, Data, and Principal
@@ -159,7 +162,7 @@ module {
     public type StageChunkArg = {
         token_id : Text;
         library_id : Text;
-        filedata : CandyTypes.CandyValue; //may need to be nullable
+        filedata : CandyTypes.CandyShared; //may need to be nullable
         chunk : Nat; //2MB Chunks
         content : Blob;
     };
@@ -190,7 +193,7 @@ module {
 
     public type OwnerTransferResponse = {
         transaction : TransactionRecord;
-        assets : [CandyTypes.CandyValue];
+        assets : [CandyTypes.CandyShared];
     };
 
     public type ShareWalletRequest = {
@@ -205,25 +208,27 @@ module {
         pricing : PricingConfig;
     };
 
-    public type ICTokenSpec = {
-        canister: Principal;
-        fee: Nat;
-        symbol: Text;
-        decimals: Nat;
-        standard: {
-            #DIP20;
-            #Ledger;
-            #EXTFungible;
-            #ICRC1; //use #Ledger instead
-        };
+     public type ICTokenSpec = {
+      canister: Principal;
+      fee: ?Nat;
+      symbol: Text;
+      decimals: Nat;
+      id: ?Nat;
+      standard: {
+          #DIP20;
+          #Ledger;
+          #EXTFungible;
+          #ICRC1; //use #Ledger instead
+          #Other : CandyTypes.CandyShared;
+      };
     };
 
     public type TokenSpec = {
         #ic: ICTokenSpec;
-        #extensible : CandyTypes.CandyValue; //#Class
+        #extensible : CandyTypes.CandyShared; //#Class
     };
 
-    public let TokenSpecDefault = #extensible(#Empty);
+    public let TokenSpecDefault = #extensible(#Option(null));
     public let Canistergeek = CanistergeekTypes;
 
     //nyi: anywhere a deposit address is used, check blob for size in inspect message
@@ -243,7 +248,6 @@ module {
         buyer: Account;
         token_id: Text;
         token: TokenSpec;
-        
     };
 
     public type EscrowRequest = {
@@ -265,7 +269,7 @@ module {
     public type TransactionID =  {
         #nat : Nat;
         #text : Text;
-        #extensible : CandyTypes.CandyValue
+        #extensible : CandyTypes.CandyShared
     };
 
 
@@ -290,21 +294,38 @@ module {
     public type BidResponse = TransactionRecord;
 
     public type PricingConfig = {
-        #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
-        #flat: {
-            token: TokenSpec;
-            amount: Nat; //Nat to support cycles
+      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      #flat: {
+          token: TokenSpec;
+          amount: Nat; //Nat to support cycles
+      };
+      //below have not been signficantly desinged or vetted
+      #dutch: DutchConfig;
+      #auction: AuctionConfig;
+      #nifty: NiftyConfig;
+      #extensible: CandyTypes.CandyShared;
+    };
+
+    public type DutchConfig = {
+        start_price: Nat;
+        decay_per_hour: {
+          #flat: Nat;
+          #percent: Float;
         };
-        //below have not been signficantly desinged or vetted
-        #dutch: {
-            start_price: Nat;
-            decay_per_hour: Float;
-            reserve: ?Nat;
-        };
-        #auction: AuctionConfig;
-        #extensible: {
-            #candyClass
-        }
+        reserve: ?Nat;
+        start_date: Int;
+        allow_list : ?[Principal];
+        token: TokenSpec;
+    };
+
+    public type NiftyConfig = {
+      duration: ?Int;
+      expiration: ?Int;
+      fixed: Bool;
+      lenderOffer: Bool;
+      amount: Nat;
+      interestRatePerSecond: Float;
+      token: TokenSpec;
     };
 
     public type AuctionConfig = {
@@ -341,7 +362,7 @@ module {
 
     public type NFTInfoStable = {
         current_sale : ?SaleStatusStable;
-        metadata : CandyTypes.CandyValue;
+        metadata : CandyTypes.CandyShared;
     };
 
     
@@ -364,6 +385,33 @@ module {
         winner : ?Account;
     };
 
+    public type DutchStateStable = {
+    config: PricingConfig;
+     current_broker_id: ?Principal;
+     end_date: ?Int;
+     allow_list: ?[(Principal, Bool)]; //empty set means everyone
+     status: {
+        #open;
+        #closed;
+        #not_started;
+    };
+     winner: ?Account;
+  };
+
+  public type NiftyStateStable = {
+    config: PricingConfig;
+     current_broker_id: ?Principal;
+     end_date: Int;
+     min_bid: Nat;
+     allow_list: ?[(Principal, Bool)]; //empty set means everyone
+     status: {
+        #open;
+        #closed;
+        #not_started;
+    };
+     winner: ?Account;
+  };
+
     public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateStable {
         {
             config = val.config;
@@ -384,6 +432,35 @@ module {
 
     
 
+    public func NiftyState_stabalize_for_xfer(val : MigrationTypes.Current.NiftyState) : NiftyStateStable {
+        {
+            config = val.config;
+            current_broker_id = val.current_broker_id;
+            end_date = val.end_date;
+            min_bid = val.min_bid;
+            allow_list = do ? {
+                Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
+            };
+            status = val.status;
+            winner = val.winner;
+        };
+    };
+
+    public func DutchState_stabalize_for_xfer(val : MigrationTypes.Current.DutchState) : DutchStateStable {
+        {
+            config = val.config;
+            current_broker_id = val.current_broker_id;
+            end_date = val.end_date;
+            allow_list = do ? {
+                Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
+            };
+            status = val.status;
+            winner = val.winner;
+        };
+    };
+
+    
+
     public type SaleStatusStable = {
         sale_id : Text; //sha256?;
         original_broker_id : ?Principal;
@@ -391,6 +468,8 @@ module {
         token_id : Text;
         sale_type : {
             #auction : AuctionStateStable;
+            #dutch : DutchStateStable;
+            #nifty : NiftyStateStable;
         };
     };
 
@@ -404,6 +483,12 @@ module {
                 case (#auction(val)) {
                     #auction(AuctionState_stabalize_for_xfer(val));
                 };
+                case (#dutch(val)) {
+                    #dutch(DutchState_stabalize_for_xfer(val));
+                };
+                case (#nifty(val)) {
+                    #nifty(NiftyState_stabalize_for_xfer(val));
+                };
             };
         };
     };
@@ -414,7 +499,7 @@ module {
         #principal : Principal;
         #account : {owner: Principal; sub_account: ?Blob};
         #account_id : Text;
-        #extensible : CandyTypes.CandyValue;
+        #extensible : CandyTypes.CandyShared;
     };
 
     /*
@@ -459,7 +544,7 @@ module {
         logo : ?Text;
         name : ?Text;
         symbol : ?Text;
-        metadata : ?CandyTypes.CandyValue;
+        metadata : ?CandyTypes.CandyShared;
         owner : Principal;
         managers : [Principal];
         network : ?Principal;
@@ -537,14 +622,14 @@ module {
 
     
 
-    public type StorageState = StorageState_v_0_1_3;
+    public type StorageState = StorageState_v_0_1_4;
 
-    public type StorageState_v_0_1_3 = {
+    public type StorageState_v_0_1_4 = {
         var state : StorageMigrationTypes.Current.State;
         canister : () -> Principal;
         get_time : () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
-        refresh_state : () -> StorageState_v_0_1_3;
+        refresh_state : () -> StorageState_v_0_1_4;
         btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
         use_stable_storage : Bool;
     };
@@ -605,7 +690,7 @@ module {
                 amount: Nat;
                 token: TokenSpec;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #mint : {
                 from: Account;
@@ -614,7 +699,7 @@ module {
                 sale: ?{token: TokenSpec;
                     amount: Nat; //Nat to support cycles
                     };
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_ended : {
                 seller: Account;
@@ -623,27 +708,27 @@ module {
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #royalty_paid : {
                 seller: Account;
                 buyer: Account;
-                 reciever: Account;
+                receiver: Account;
                 tag: Text;
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_opened : {
                 pricing: PricingConfig;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #owner_transfer : {
                 from: Account;
                 to: Account;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             }; 
             #escrow_deposit : {
                 seller: Account;
@@ -652,7 +737,7 @@ module {
                 token_id: Text;
                 amount: Nat;//Nat to support cycles
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #escrow_withdraw : {
                 seller: Account;
@@ -662,7 +747,7 @@ module {
                 amount: Nat;//Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #deposit_withdraw : {
                 buyer: Account;
@@ -670,7 +755,7 @@ module {
                 amount: Nat;//Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_withdraw : {
                 seller: Account;
@@ -680,23 +765,31 @@ module {
                 amount: Nat; //Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_owner_updated : {
                 owner: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_managers_updated : {
                 managers: [Principal];
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_network_updated : {
                 network: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
-            #data; //nyi
-            #burn;
-            #extensible : CandyTypes.CandyValue;
+            #data : {
+              data_dapp: ?Text;
+              data_path: ?Text;
+              hash: ?[Nat8];
+              extensible: CandyTypes.CandyShared;
+            }; //nyi
+            #burn: {
+              from: ?Account;
+              extensible: CandyTypes.CandyShared;
+            };
+            #extensible : CandyTypes.CandyShared;
 
         };
         timestamp: Int;
@@ -705,12 +798,12 @@ module {
     public type NFTUpdateRequest = {
         #replace : {
             token_id : Text;
-            data : CandyTypes.CandyValue;
+            data : CandyTypes.CandyShared;
         };
         #update : {
             token_id : Text;
             app_id : Text;
-            update : CandyTypes.UpdateRequest;
+            update : CandyTypes.UpdateRequestShared;
 
         };
     };
@@ -800,7 +893,7 @@ module {
     public type LocalStageLibraryResponse = {
         #stage_remote : {
             allocation : AllocationRecord;
-            metadata : CandyTypes.CandyValue;
+            metadata : CandyTypes.CandyShared;
         };
         #staged : Principal;
     };
@@ -854,7 +947,7 @@ module {
         token_ids_count : ?Nat;
         multi_canister : ?[Principal];
         multi_canister_count : ?Nat;
-        metadata : ?CandyTypes.CandyValue;
+        metadata : ?CandyTypes.CandyShared;
         allocated_storage : ?Nat;
         available_space : ?Nat;
         created_at : ?Nat64;
@@ -867,7 +960,7 @@ module {
         var logo : ?Text;
         var name : ?Text;
         var symbol : ?Text;
-        var metadata : ?CandyTypes.CandyValue;
+        var metadata : ?CandyTypes.CandyShared;
         var owner : Principal;
         var managers : [Principal];
         var network : ?Principal;
@@ -900,7 +993,7 @@ module {
     public type LogEntry = {
         event : Text;
         timestamp : Int;
-        data : CandyTypes.CandyValue;
+        data : CandyTypes.CandyShared;
         caller : ?Principal;
     };
 
@@ -1569,19 +1662,19 @@ module {
                 #EXTFungible;
             };
         };
-        #extensible : CandyTypes.CandyValue; //#Class*/
+        #extensible : CandyTypes.CandyShared; //#Class*/
         switch (a, b) {
             case (#ic(a_token), #ic(b_token)) {
                 return Principal.compare(a_token.canister, b_token.canister);
             };
             case (#extensible(a_token), #ic(b_token)) {
-                return Text.compare(Conversions.valueToText(a_token), Principal.toText(b_token.canister));
+                return Text.compare(Conversions.candySharedToText(a_token), Principal.toText(b_token.canister));
             };
             case (#ic(a_token), #extensible(b_token)) {
-                return Text.compare(Principal.toText(a_token.canister), Conversions.valueToText(b_token));
+                return Text.compare(Principal.toText(a_token.canister), Conversions.candySharedToText(b_token));
             };
             case (#extensible(a_token), #extensible(b_token)) {
-                return Text.compare(Conversions.valueToText(a_token), Conversions.valueToText(b_token));
+                return Text.compare(Conversions.candySharedToText(a_token), Conversions.candySharedToText(b_token));
             };
         };
     };
@@ -1596,7 +1689,7 @@ module {
                 #ICRC1;
             };
         };
-        #extensible : CandyTypes.CandyValue; //#Class*/
+        #extensible : CandyTypes.CandyShared; //#Class*/
         switch (a) {
             case (#ic(a_token)) {
                 switch (b) {
@@ -1606,6 +1699,9 @@ module {
                             return false;
                         };
                         if (a_token.canister != b_token.canister) {
+                            return false;
+                        };
+                        if (a_token.id != b_token.id) {
                             return false;
                         };
                         return true;
@@ -1650,7 +1746,7 @@ module {
                 //until a reliable valueToHash function is written
                 //if any redenring of classes changes the whole hash
                 //will change
-                Nat32.toNat(Text.hash(Conversions.valueToText(a_extensible)));
+                Nat32.toNat(Text.hash(Conversions.candySharedToText(a_extensible)));
 
             };
         };
@@ -1659,7 +1755,7 @@ module {
     public func account_hash_uncompressed(a : Account) : Nat {
         switch (a) {
             case (#principal(a_principal)) {
-                NFTUtils.hashBlob(Principal.toBlob(a_principal));
+                MapUtils.hashBlob(Principal.toBlob(a_principal));
             };
             case (#account_id(a_account_id)) {
 
@@ -1669,7 +1765,7 @@ module {
                         D.trap("Not a valid hex");
                     };
                 };
-                NFTUtils.hashBlob(accountBlob);
+                MapUtils.hashBlob(accountBlob);
             };
             case (#account(a_account)) {
                 let account_id = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
@@ -1679,14 +1775,14 @@ module {
                         D.trap("Not a valid hex");
                     };
                 };
-                NFTUtils.hashBlob(accountBlob);
+                MapUtils.hashBlob(accountBlob);
             };
             case (#extensible(a_extensible)) {
                 //unimplemnted; unsafe; probably dont use
                 //until a reliable valueToHash function is written
                 //if any redenring of classes changes the whole hash
                 //will change
-                NFTUtils.hashBlob(Conversions.valueToBlob(#Text(Conversions.valueToText(a_extensible))));
+                MapUtils.hashBlob(Conversions.candySharedToBlob(#Text(Conversions.candySharedToText(a_extensible))));
             };
         };
     };
@@ -1694,15 +1790,21 @@ module {
     public func token_hash(a : TokenSpec) : Nat {
         switch (a) {
             case (#ic(a)) {
-                Nat32.toNat(Principal.hash(a.canister));
-
+                var hash = Nat32.toNat(Principal.hash(a.canister));
+                switch(a.id){
+                  case(?val){
+                    hash += val;
+                  };
+                  case(null){};
+                };
+                hash;
             };
             case (#extensible(a_extensible)) {
                 //unimplemnted; unsafe; probably dont use
                 //until a reliable valueToHash function is written
                 //if any redenring of classes changes the whole hash
                 //will change
-                Nat32.toNat(Text.hash(Conversions.valueToText(a_extensible)));
+                Nat32.toNat(Text.hash(Conversions.candySharedToText(a_extensible)));
             };
         };
 
@@ -1711,7 +1813,14 @@ module {
     public func token_hash_uncompressed(a : TokenSpec) : Nat {
         switch (a) {
             case (#ic(a)) {
-                NFTUtils.hashBlob(Principal.toBlob(a.canister));
+                var hash = MapUtils.hashBlob(Principal.toBlob(a.canister));
+                switch(a.id){
+                  case(?val){
+                    hash += MapUtils.hashBlob(Conversions.candySharedToBlob(#Nat(val)));
+                  };
+                  case(null){};
+                };
+                hash;
 
             };
             case (#extensible(a_extensible)) {
@@ -1719,7 +1828,7 @@ module {
                 //until a reliable valueToHash function is written
                 //if any redenring of classes changes the whole hash
                 //will change
-                NFTUtils.hashBlob(Conversions.valueToBlob(a_extensible));
+                MapUtils.hashBlob(Conversions.candySharedToBlob(a_extensible));
 
             };
         };
@@ -1733,7 +1842,7 @@ module {
         let tds : [Nat8] = [10, 116, 105, 100]; //b"\x0Atid"
         let theID = Array.append<Nat8>(
             Array.append<Nat8>(tds, Blob.toArray(Principal.toBlob(canister))),
-            Conversions.valueToBytes(#Nat32(Text.hash(token_id))),
+            Conversions.candySharedToBytes(#Nat32(Text.hash(token_id))),
         );
 
         return Principal.toText(Principal.fromBlob(Blob.fromArray(theID)));
@@ -1758,10 +1867,10 @@ module {
     };
 
     public type StorageService = actor {
-        stage_library_nft_origyn : shared (StageChunkArg, AllocationRecordStable, CandyTypes.CandyValue) -> async Result.Result<StageLibraryResponse, OrigynError>;
+        stage_library_nft_origyn : shared (StageChunkArg, AllocationRecordStable, CandyTypes.CandyShared) -> async Result.Result<StageLibraryResponse, OrigynError>;
         storage_info_nft_origyn : shared query () -> async Result.Result<StorageMetrics, OrigynError>;
         chunk_nft_origyn : shared query ChunkRequest -> async Result.Result<ChunkContent, OrigynError>;
-        refresh_metadata_nft_origyn : (token_id : Text, metadata : CandyTypes.CandyValue) -> async Result.Result<Bool, OrigynError>;
+        refresh_metadata_nft_origyn : (token_id : Text, metadata : CandyTypes.CandyShared) -> async Result.Result<Bool, OrigynError>;
     };
 
     public func force_account_to_account_id(request : Account) : Result.Result<Account, OrigynError> {
@@ -1909,8 +2018,8 @@ module {
         sale_info_batch_secure_nft_origyn : shared (requests : [SaleInfoRequest]) -> async [SaleInfoResult];
         stage_library_nft_origyn : shared StageChunkArg -> async StageLibraryResult;
         stage_library_batch_nft_origyn : shared (chunks : [StageChunkArg]) -> async [StageLibraryResult];
-        stage_nft_origyn : shared { metadata : CandyTypes.CandyValue } -> async OrigynTextResult;
-        stage_batch_nft_origyn : shared (request : [{ metadata : CandyTypes.CandyValue }]) -> async [OrigynTextResult];
+        stage_nft_origyn : shared { metadata : CandyTypes.CandyShared } -> async OrigynTextResult;
+        stage_batch_nft_origyn : shared (request : [{ metadata : CandyTypes.CandyShared }]) -> async [OrigynTextResult];
         storage_info_nft_origyn : shared query () -> async StorageMetricsResult;
         storage_info_secure_nft_origyn : shared () -> async StorageMetricsResult;
         transfer : shared EXTTransferRequest -> async EXTTransferResponse;

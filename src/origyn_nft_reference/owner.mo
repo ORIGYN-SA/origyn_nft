@@ -8,11 +8,9 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
+
 import EXT "mo:ext/Core";
-import Properties "mo:candy/properties";
-import Workspace "mo:candy/workspace";
+
 
 import DIP721 "DIP721";
 import Market "market";
@@ -30,6 +28,11 @@ module {
     let debug_channel = {
         owner = false;
     };
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
     /**
     * Share ownership of an NFT token within the same principal or account ID.
@@ -99,7 +102,7 @@ module {
 
       //set new owner
       //D.print("Setting new Owner");
-      metadata := switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
+      metadata := switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(metadata), [
         {
           name = Types.metadata.owner;
           mode = #Set(Metadata.account_to_candy(request.to));
@@ -114,17 +117,17 @@ module {
           };
       };
 
-      let wallets = Buffer.Buffer<CandyTypes.CandyValue>(1);
+      let wallets = Buffer.Buffer<CandyTypes.CandyShared>(1);
       //add the wallet share
       switch(Metadata.get_system_var(metadata, Types.metadata.__system_wallet_shares)){
-        case(#Empty){};
-        case(#Array(#thawed(val))){
+        case(#Option(null)){};
+        case(#Array(val)){
           let result = Map.new<Types.Account, Bool>();
           for(thisItem in val.vals()){
             wallets.add(thisItem);
           };
         };
-        case(#Array(#frozen(val))){
+        case(#Array(val)){
           for(thisItem in val.vals()){
             wallets.add(thisItem);
           };
@@ -136,7 +139,7 @@ module {
 
       wallets.add(Metadata.account_to_candy(owner));
 
-      metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(#frozen(Buffer.toArray(wallets))));
+      metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(Buffer.toArray(wallets)));
 
 
       debug if(debug_channel.owner) D.print("updating metadata");
@@ -149,7 +152,7 @@ module {
             txn_type = #owner_transfer({
                 from = request.from;
                 to = request.to;
-                extensible = #Empty;
+                extensible = #Option(null);
             });
             timestamp = Time.now();
             chain_hash = [];

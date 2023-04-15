@@ -7,8 +7,7 @@
                 {"name":"preview_asset", "value":{"Text":"com.bm.brain.XXXXXX.primary"}, "immutable":true},
                 {"name":"experience_asset", "value":{"Text":"com.bm.brain.XXXXXX.html"}, "immutable":true},
                 {"name":"hidden_asset", "value":{"Text":"com.bm.brain.hidden"}, "immutable":true},
-                {"name":"library", "value":{"Array":{
-                    "thawed": [
+                {"name":"library", "value":{"Array":[
                         {"Class":[
                             {"name":"library_id", "value":{"Text":"com.bm.brain.XXXXXX.primary"}, "immutable":true},
                             {"name":"title", "value":{"Text":"bm - brain XXXXXX"}, "immutable":true},
@@ -99,28 +98,25 @@
                             {"name":"read","value":{"Text":"public"}, "immutable":false}
                         ]}
                     ]
-                }}, "immutable":false},
-                {"name":"__apps", "value":{"Array":{
-                    "thawed": [
+                }, "immutable":false},
+                {"name":"__apps", "value":{"Array":[
                         {"Class":[
                             {"name":"app_id", "value":{"Text":"com.bm.sample.app"}, "immutable":true},
                             {"name":"read", "value":{"Text":"public"}, "immutable":false},
                             {"name":"write", "value":{"Class":[
                                 {"name":"type", "value":{"Text":"allow"}, "immutable":false},
-                                {"name":"list", "value":{"Array":{
-                                    "thawed": [
+                                {"name":"list", "value":{"Array":[
                                         {"Principal" : "APP-ID"}
                                     ]
-                                }}, "immutable":false}
+                                }, "immutable":false}
                                 
                             ]}, "immutable":false},
                             {"name":"permissions", "value":{"Class":[
                                 {"name":"type", "value":{"Text":"allow"}, "immutable":false},
-                                {"name":"list", "value":{"Array":{
-                                    "thawed": [
+                                {"name":"list", "value":{"Array": [
                                         {"Principal" : "APP-ID"}
                                     ]
-                                }}, "immutable":false}
+                                }, "immutable":false}
                                 
                             ]}, "immutable":false},
                             {"name":"data", "value":{"Class":[
@@ -132,20 +128,18 @@
                                     {"name":"data", "value":{"Text":"you shouldn't see this"}, "immutable":false},
                                     {"name":"read", "value":{"Class":[
                                         {"name":"type", "value":{"Text":"allow"}, "immutable":false},
-                                        {"name":"list", "value":{"Array":{
-                                            "thawed": [
+                                        {"name":"list", "value":{"Array":[
                                                 {"Principal" : "APP-ID"}
                                             ]
-                                        }}, "immutable":false}
+                                        }, "immutable":false}
                                         
                                     ]}, "immutable":false},
                                     {"name":"write", "value":{"Class":[
                                         {"name":"type", "value":{"Text":"allow"}, "immutable":false},
-                                        {"name":"list", "value":{"Array":{
-                                            "thawed": [
+                                        {"name":"list", "value":{"Array": [
                                                 {"Principal" : "APP-ID"}
                                             ]
-                                        }}, "immutable":false}
+                                        }, "immutable":false}
                                         
                                     ]}, "immutable":false}
                                     
@@ -155,12 +149,13 @@
                             ]}, "immutable":false}
                         ]}
                     ]
-                }}, "immutable":true},
+                }, "immutable":true},
                 {"name":"owner", "value":{"Principal":"CANISTER-ID"}, "immutable":false},
                 {"name":"is_soulbound", "value":{"Bool":YYYYYY}, "immutable":YYYYYY}
 
             ]
-        }
+          }
+       
     },
     "library" :[
         {

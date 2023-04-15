@@ -1,6 +1,6 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import C "mo:matchers/Canister";
-import Conversion "mo:candy/conversion";
+
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
@@ -10,7 +10,7 @@ import Metadata "../origyn_nft_reference/metadata";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy/properties";
+
 import Result "mo:base/Result";
 import Nat "mo:base/Nat";
 import S "mo:matchers/Suite";
@@ -21,8 +21,15 @@ import Types "../origyn_nft_reference/types";
 import utils "test_utils";
 import KYCService "../../.vessel/icrc17_kyc/master/test/service_example";
 
+import MigrationTypes "../origyn_nft_reference/migrations/types";
+
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
     let it = C.Tester({ batchSize = 8 });
 
     
@@ -159,18 +166,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         //MINT0019 - you can now upload here but must provide proper metadata and have storagebthis will fail with id not found
         let fileStage3 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "1" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         D.print("trying to upload before meta" # debug_show(fileStage3));
@@ -200,18 +207,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
             {name = "hidden"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -223,18 +230,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "primary_asset"; value=#Text("page"); immutable= true},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false},
             //below is what we are testing
             {name = "__system"; value=#Class([
@@ -249,20 +256,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "primary_asset"; value=#Text("page2"); immutable= true},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
         
@@ -286,7 +293,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             if((switch(res.current_chunk){case(?val){val};case(null){9999999}}) + 1 == res.total_chunks){
                                 "unexpectd eof chunks";
                             } else {
-                                Conversion.bytesToText(Blob.toArray(res.content));
+                                Conversions.bytesToText(Blob.toArray(res.content));
                             }
                         };
                     };
@@ -300,7 +307,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         case(#remote(redirect)){"unexpected redirect"};
                         case(#chunk(res)){
                             if((switch(res.current_chunk){case(?val){val};case(null){9999999}}) + 1 == res.total_chunks){
-                            Conversion.bytesToText(Blob.toArray(res.content));
+                            Conversions.bytesToText(Blob.toArray(res.content));
                             } else {
                                 "unexpecte not eof";
                             }
@@ -387,12 +394,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }, M.equals<Text>(T.text("Cannot find token."))), //MINT0025
             S.test("can update metadata", switch(test_metadata_replace){
                 case(#ok(res)){
-                    switch(Properties.getClassProperty(res.metadata,"primary_asset")){
+                    switch(Properties.getClassPropertyShared(res.metadata,"primary_asset")){
                         case(null){
                             "should have this property";
                         };
                         case(?val){
-                            Conversion.valueToText(val.value);
+                            Conversions.candySharedToText(val.value);
                         }
                     }
                 };
@@ -449,9 +456,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         D.print("after file stage");
@@ -490,20 +497,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page6"); immutable= true},
             
-            {name = "__system"; value=#Array(#thawed([
+            {name = "__system"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -511,20 +518,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page3"); immutable= true},
             
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -537,20 +544,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
          let test_metadata_replace_command_with_apps = await canister.stage_nft_origyn({metadata = #Class([
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page5"); immutable= true},
-            {name = "__apps"; value=#Array(#thawed([
+            {name = "__apps"; value=#Array([
                 #Class([
                     {name = "app_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             
         ])});
 
@@ -593,9 +600,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               
               
 
-              switch(Properties.getClassProperty(res.metadata, "primary_asset")){
+              switch(Properties.getClassPropertyShared(res.metadata, "primary_asset")){
                 case(null){"cant find primary"};
-                case(?val){Conversion.valueToText(val.value)};
+                case(?val){Conversions.candySharedToText(val.value)};
               };
               
               };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("page2"))), 
@@ -720,7 +727,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(10 * 10 ** 8);
                     start_price = (10 * 10 ** 8);
@@ -1005,7 +1013,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;}))){
+                                fee = ?200000;
+                                id = null;}))){
                                 "correct response";
                         } else {
                             "details didnt match" # debug_show(details);
@@ -1031,7 +1040,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;
+                                fee = ?200000;
+                                id = null;
                                 }))){
                                 "correct response";
                         } else {
@@ -1051,7 +1061,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             item.metadata;
                         };
                         case(#err(err)){
-                           #Empty;
+                           #Option(null);
                         };
                     })){
                         case(#err(err)){
@@ -1095,6 +1105,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                             };
                                             
                                         };
+                                        case(_){
+                                          "wrong sale type";
+                                        };
                                         
                                     };
                                 };
@@ -1124,7 +1137,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                             standard = #Ledger;
                                             decimals = 8;
                                             symbol = "LDG";
-                                            fee = 200000;}))){
+                                            fee = ?200000;
+                                            id = null;}))){
                                             "correct response";
                                     } else {
                                         "details didnt match" # debug_show(details);
@@ -1298,7 +1312,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(10 * 10 ** 8);
                     start_price = (10 * 10 ** 8);
@@ -1325,7 +1340,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(10 * 10 ** 8);
                     start_price = (10 * 10 ** 8);
@@ -1502,7 +1518,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;}))){
+                                fee = ?200000;
+                                id = null;}))){
                                 "correct response";
                         } else {
                             "details didnt match" # debug_show(details);
@@ -1528,7 +1545,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;
+                                fee = ?200000;
+                                id = null;
                                 }))){
                                 "correct response";
                         } else {
@@ -1548,7 +1566,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             item.metadata;
                         };
                         case(#err(err)){
-                           #Empty;
+                           #Option(null);
                         };
                     })){
                         case(#err(err)){
@@ -1590,6 +1608,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                             } else {
                                                 "didnt find closed sale";
                                             };
+                                            
+                                        };
+                                        case(_){
+                                            "wrong sale type"
                                             
                                         };
                                         

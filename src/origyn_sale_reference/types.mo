@@ -6,17 +6,19 @@ import Result "mo:base/Result";
 import StableBuffer "mo:base/Buffer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import CandyTypes "mo:candy/types";
+import CandyTypes "mo:candy_0_2_0/types";
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
 import SB "mo:stablebuffer/StableBuffer";
 
-import NFTTypes "../origyn_nft_reference/types";
+import NFTTypes "../origyn_nft_reference/migrations/types";
 
 import Canistergeek "mo:canistergeek/canistergeek";
 
 module {
 
+    type TokenSpec = NFTTypes.Current.TokenSpec;
+    type ICTokenSpec = NFTTypes.Current.ICTokenSpec;
 
     public type OrigynError = {number : Nat32; text: Text; error: Errors; flag_point: Text;};
 
@@ -111,7 +113,7 @@ module {
 
     
 
-    public type Purchases = Map.Map<Principal, Map.Map<Text, NFTTypes.TransactionRecord>>;
+    public type Purchases = Map.Map<Principal, Map.Map<Text, NFTTypes.Current.TransactionRecord>>;
 
     
     
@@ -183,27 +185,13 @@ module {
         allowed_amount: ?AllowedAmount;
     }];
     public type GetEscrowResponse = {
-        receipt: NFTTypes.EscrowReceipt;
+        receipt: NFTTypes.Current.EscrowReceipt;
         balance: Nat;
-        transaction: NFTTypes.TransactionRecord;
+        transaction: NFTTypes.Current.TransactionRecord;
     };
 
-    public type TokenSpec = {
-        #ic: ICTokenSpec;
-        #extensible : CandyTypes.CandyValue; //#Class
-    };
 
-    public type ICTokenSpec = {
-        canister: Principal;
-        fee: Nat;
-        symbol: Text;
-        decimals: Nat;
-        standard: {
-            #DIP20;
-            #Ledger;
-            #EXTFungible;
-        };
-    };
+   
 
     // ToDo: Need to add opt : #cost_per & #free - I keep having an error when add those options
     public type Pricing = [{
@@ -365,11 +353,11 @@ module {
     };
 
     public type RedeemAllocationRequest = {
-        escrow_receipt: NFTTypes.EscrowReceipt; //creator can set a max
+        escrow_receipt: NFTTypes.Current.EscrowReceipt; //creator can set a max
     };
 
     public type RedeemAllocationResponse = {
-        nfts: [{token_id:Text; transaction: Result.Result< NFTTypes.TransactionRecord, OrigynError>}];
+        nfts: [{token_id:Text; transaction: Result.Result< NFTTypes.Current.TransactionRecord, OrigynError>}];
     };
 
     //users can only have one registration so we want to be careful about overwriting
@@ -377,14 +365,14 @@ module {
     public type Registration = {
         principal: Principal;
         var max_desired: Nat;
-        var escrow_receipt: ?NFTTypes.EscrowReceipt;
+        var escrow_receipt: ?NFTTypes.Current.EscrowReceipt;
         var allocation_size : Nat;
         var allocation: Map.Map<Text,RegistrationClaim>;
     };
 
     public type RegistrationClaim = {
         var claimed : Bool;
-        var trx : ?NFTTypes.TransactionRecord;
+        var trx : ?NFTTypes.Current.TransactionRecord;
     };
 
     public type Registrations = Map.Map<Principal,Registration>;
@@ -392,13 +380,13 @@ module {
     public type RegisterEscrowRequest = {
         principal: Principal;
         max_desired: Nat;
-        escrow_receipt: ?NFTTypes.EscrowReceipt; //creator can set a max
+        escrow_receipt: ?NFTTypes.Current.EscrowReceipt; //creator can set a max
     };
 
     public type RegisterEscrowAllocationDetail = {
             token_id: Text;
             claimed: Bool;
-            trx: ?NFTTypes.TransactionRecord;
+            trx: ?NFTTypes.Current.TransactionRecord;
         };
     
 
@@ -412,13 +400,13 @@ module {
     public type RegisterEscrowResponse = {
         max_desired: Nat;
         principal: Principal;
-        escrow_receipt: ?NFTTypes.EscrowReceipt; //creator can set a max
+        escrow_receipt: ?NFTTypes.Current.EscrowReceipt; //creator can set a max
         allocation : [RegisterEscrowAllocationDetail];
         allocation_size: Nat;
     };
   
     public type TestRequest = {
-        account_id: NFTTypes.Account;
+        account_id: NFTTypes.Current.Account;
         standard: {
             #DIP20;
             #Ledger;
@@ -634,7 +622,7 @@ module {
         allocate_sale_nft_origyn:  (AllocationRequest) -> async Result.Result<AllocationResponse, OrigynError>;
         redeem_allocation_sale_nft_origyn: (RedeemAllocationRequest) -> async Result.Result<RedeemAllocationResponse, OrigynError>;
         register_escrow_sale_nft_origyn: (RegisterEscrowRequest) -> async Result.Result<RegisterEscrowResponse, OrigynError>;
-        execute_claim_sale_nft_origyn: (Text) -> async Result.Result<NFTTypes.TransactionRecord, OrigynError>;
+        execute_claim_sale_nft_origyn: (Text) -> async Result.Result<NFTTypes.Current.TransactionRecord, OrigynError>;
         manage_reservation_sale_nft_origyn: ([ManageReservationRequest]) -> async Result.Result<ManageReservationResponse, OrigynError>;
     };
 

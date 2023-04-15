@@ -9,6 +9,7 @@ import Blob "mo:base/Blob";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import utils "test_utils";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 
@@ -26,6 +27,11 @@ shared (deployer) actor class test_runner(tests : {
     test_runner_storage: ?Principal;
     test_runner_sale: ?Principal;
   }) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
 
     //D.print("tests are " # debug_show(tests));

@@ -21,9 +21,9 @@ import TrieMap "mo:base/TrieMap";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
-import Properties "mo:candy/properties";
+//import CandyTypes "mo:candy/types";
+//import Conversions "mo:candy/conversion";
+//import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Workspace "mo:candy/workspace";
@@ -40,6 +40,12 @@ module {
     let debug_channel = {
         announce = false;
     };
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
 
 
     /**
@@ -58,8 +64,8 @@ module {
         else if(staged.size() % 4 == 2){CandyTypes.toBuffer<Nat8>([0,0])}
         else {CandyTypes.toBuffer<Nat8>([0])};
         
-        prefixBuffer.append(stagedBuffer);
-         return Conversions.bytesToText((Buffer.toArray(prefixBuffer)));
+        SB.append(prefixBuffer, stagedBuffer);
+        return Conversions.bytesToText((SB.toArray(prefixBuffer)));
     };
 
     /**
@@ -192,19 +198,19 @@ module {
     * @param {Principal} host - The host of the sub-account.
     * @returns {Types.SubAccountInfo} An object containing information about the escrow sub-account.
     */
-    public func get_escrow_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
+    public func get_escrow_account_info(request : MigrationTypes.Current.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
         
         debug if (debug_channel.announce) D.print("Getting escrow account");
         let h = SHA256.New();
-        h.write(Conversions.valueToBytes(#Text("com.origyn.nft.escrow")));
-        h.write(Conversions.valueToBytes(#Text("buyer")));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
-        h.write(Conversions.valueToBytes(#Text("seller")));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
-        h.write(Conversions.valueToBytes(#Text(("tokenid"))));
-        h.write(Conversions.valueToBytes(#Text(request.token_id)));
-        h.write(Conversions.valueToBytes(#Text("ledger")));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
+        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.escrow")));
+        h.write(Conversions.candySharedToBytes(#Text("buyer")));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.candySharedToBytes(#Text("seller")));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.candySharedToBytes(#Text(("tokenid"))));
+        h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
+        h.write(Conversions.candySharedToBytes(#Text("ledger")));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
@@ -229,7 +235,7 @@ module {
       let h = SHA256.New();
         h.write(Blob.toArray(item));
         let sub_hash =h.sum([]);
-        return Conversions.valueToNat(#Bytes(#frozen(sub_hash)));
+        return Conversions.candySharedToNat(#Bytes(sub_hash));
     };
 
     /**
@@ -241,15 +247,15 @@ module {
     public func get_sale_account_info(request : Types.EscrowReceipt, host: Principal) : Types.SubAccountInfo{
         
         let h = SHA256.New();
-        h.write(Conversions.valueToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
-        h.write(Conversions.valueToBytes(#Nat32(Text.hash("buyer"))));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
-        h.write(Conversions.valueToBytes(#Nat32(Text.hash("seller"))));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
-        h.write(Conversions.valueToBytes(#Nat32(Text.hash("tokenid"))));
-        h.write(Conversions.valueToBytes(#Text(request.token_id)));
-        h.write(Conversions.valueToBytes(#Nat32(Text.hash("ledger"))));
-        h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("buyer"))));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.buyer))));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("seller"))));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request.seller))));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("tokenid"))));
+        h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("ledger"))));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
@@ -298,10 +304,10 @@ module {
         switch(account){
             case(#principal(principal)){
                 let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".principal"))); 
-                buffer.append(CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(principal))));
+                SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(principal))));
 
                 let h = SHA256.New();
-                h.write(Buffer.toArray(buffer));
+                h.write(SB.toArray(buffer));
                 let sha = h.sum([]);
 
                 
@@ -320,17 +326,17 @@ module {
             };
             case(#account(account)){
                 let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".account"))); 
-                buffer.append(CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(account.owner))));
+                SB.append(buffer,CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(account.owner))));
                 switch(account.sub_account){
                     case(null){};
                     case(?val){
-                        buffer.append(CandyTypes.toBuffer<Nat8>(Blob.toArray(val)));
+                        SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(val)));
 
                     }
                 };
                 
                 let h = SHA256.New();
-                h.write(Buffer.toArray(buffer));
+                h.write(SB.toArray(buffer));
                 let sha = h.sum([]);
 
                 
@@ -350,7 +356,7 @@ module {
                 let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".accountid")));
                 switch(AccountIdentifier.fromText(account_id)){
                     case(#ok(accountblob)){
-                        buffer.append(CandyTypes.toBuffer<Nat8>((AccountIdentifier.addHash(accountblob))));
+                        SB.append(buffer, CandyTypes.toBuffer<Nat8>((AccountIdentifier.addHash(accountblob))));
 
                     };
                     case(#err(err)){
@@ -359,7 +365,7 @@ module {
                 };
                 
                 let h = SHA256.New();
-                h.write(Buffer.toArray(buffer));
+                h.write(SB.toArray(buffer));
                 let sha = h.sum([]);
 
                 

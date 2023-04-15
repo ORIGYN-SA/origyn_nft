@@ -40,15 +40,15 @@ module {
     */
     private func get_collection_kyc_canister_buyer(state : Types.State) : ?Principal {
       D.print(Types.metadata.collection_kyc_canister_buyer);
-      state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer called", #Empty, null);
+      state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer called", #Option(null), null);
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else{
-        state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer was null", #Empty, null);
+        state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer was null", #Option(null), null);
        return null;
       };
 
       D.print("metadata: " # debug_show(metadata));
       let #ok(value) = Metadata.get_nft_principal_property(metadata, Types.metadata.collection_kyc_canister_buyer) else{
-        state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer improper principal", #Empty, null);
+        state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer improper principal", #Option(null), null);
        return null
       };
       state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer returning", #Principal(value), null);
@@ -63,11 +63,11 @@ module {
     */
     private func get_collection_kyc_canister_seller(state : Types.State) : ?Principal {
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "",state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else {
-        state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller was null", #Empty, null);
+        state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller was null", #Option(null), null);
         return null
       };
       let #ok(value) = Metadata.get_nft_principal_property(metadata, Types.metadata.collection_kyc_canister_seller) else{
-        state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller improper principal", #Empty, null);
+        state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller improper principal", #Option(null), null);
        return null
       };
 
@@ -111,7 +111,7 @@ module {
 
         let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch(escrow.token){
           case(#ic(token)){
-            #IC({token with id = null; fee = ?token.fee});
+            #IC({token with id = null; fee = token.fee});
            };
           case(_){
             D.print("unsupported spec");
@@ -331,7 +331,7 @@ module {
 
         let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch(escrow.token){
           case(#ic(token)){
-            #IC({token with id = null; fee = ?token.fee});
+            #IC({token with id = null; fee = token.fee});
            };
           case(_){
             return #err(Types.errors(?state.canistergeekLogger,  #nyi, "pass_kyc - unsupported spec " # debug_show(escrow.token), ?caller));
@@ -539,7 +539,7 @@ module {
 
         let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch(escrow.token){
           case(#ic(token)){
-            #IC({token with id = null; fee = ?token.fee});
+            #IC({token with id = null; fee = token.fee});
            };
           case(_){
             D.print("no spec...ignoring");

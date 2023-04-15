@@ -25,12 +25,19 @@ import TestWalletDef "test_wallet";
 import Types "../origyn_nft_reference/types";
 import Market "../origyn_nft_reference/market";
 import utils "test_utils";
+//import Instant "test_runner_instant_transfer";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 // ttps://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=1526457217 will provide a facility to convert
 // a account hash to an account id
 // ie dfx canister --network ic call mexqz-aqaaa-aaaab-qabtq-cai say '(principal "r7inp-6aaaa-aaaaa-aaabq-cai", blob "20\8F\6F\7F\9B\0D\B3\29\36\AA\8B\F4\78\38\E8\B8\15\37\30\F7\3D\03\99\EA\BB\68\98\11\08\64\90\61")'
 
 shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
     let debug_channel = {
         throws = true;
@@ -141,7 +148,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "OGY";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     buy_now = ?(500 * 10 ** 8); //nyi
                     start_price = (100 * 10 ** 8);
@@ -555,7 +563,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -647,7 +656,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -696,7 +706,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -771,7 +782,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -1003,7 +1015,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             switch (res.transaction.txn_type) {
                                 case (#escrow_deposit(details)) {
                                     if (
-                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(details.seller, #principal(Principal.fromActor(canister))) and details.amount == ((1 * 10 ** 8)) and details.token_id == "" and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(details.seller, #principal(Principal.fromActor(canister))) and details.amount == ((1 * 10 ** 8)) and details.token_id == "" and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                     ) {
                                         "correct response";
                                     } else {
@@ -1079,7 +1091,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print(debug_show (#principal(Principal.fromActor(a_wallet))));
                             D.print(debug_show (Principal.fromActor(dfx)));
                             if (
-                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                             ) {
                                 "found escrow record";
                             } else {
@@ -1120,7 +1132,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print(debug_show (#principal(Principal.fromActor(a_wallet))));
                             D.print(debug_show (Principal.fromActor(dfx)));
                             if (
-                                Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })) and res.escrow[0].amount == 1 * 10 ** 8,
+                                Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })) and res.escrow[0].amount == 1 * 10 ** 8,
                             ) {
                                 "found sale record";
                             } else {
@@ -1276,7 +1288,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -1324,7 +1337,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -1385,7 +1399,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -1634,7 +1649,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     buy_now = ?(500 * 10 ** 8); //nyi
                     start_price = (1 * 10 ** 8);
@@ -1682,7 +1698,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -1793,7 +1810,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -2028,7 +2046,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 standard = #Ledger;
                 decimals = 8;
                 symbol = "LGY";
-                fee = 200000;
+                fee = ?200000;
+                id = null;
             },
         );
 
@@ -2057,7 +2076,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("withdraw over for owner");
         //NFT-114
         //try to withdraw too much
-        let owner_withdraw_over = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = (101 * 10 ** 8) + 15 })));
+        let owner_withdraw_over = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = (101 * 10 ** 8) + 15 })));
 
         // //NFT-115
         // //have a_wallet try to withdraw the sale
@@ -2066,12 +2085,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //NFT-116
         //try to withdare the wrong asset
         D.print("owner_withdraw_wrong_asset");
-        let owner_withdraw_wrong_asset = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx2); standard = #Ledger; decimals = 8; symbol = "LGY"; fee = 200000 });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+        let owner_withdraw_wrong_asset = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx2); standard = #Ledger; decimals = 8; symbol = "LGY"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
 
         //NFT-117
         //todo: try to withdraw the wrong token_id
         D.print("owner_withdraw_wrong_token_id");
-        let owner_withdraw_wrong_token_id = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "2"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+        let owner_withdraw_wrong_token_id = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "2"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
 
         //NFT-19
         //todo: withdraw the proper amount
@@ -2089,7 +2108,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //NFT-118
         //todo: try to withdraw again
         D.print("trying to withdraw sale again");
-        let owner_withdraw_again = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+        let owner_withdraw_again = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
 
         // //NFT-118
         // //todo: check balance and make sure it is gone
@@ -2292,7 +2311,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             switch (res.txn_type) {
                                 case (#auction_bid(details)) {
                                     if (
-                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                     ) {
                                         "correct response";
                                     } else {
@@ -2321,7 +2340,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                 switch (res[res.size() -1].txn_type) {
                                     case (#auction_bid(details)) {
                                         if (
-                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                         ) {
                                             "correct response";
                                         } else {
@@ -2401,7 +2420,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                 switch (res[res.size() -1].txn_type) {
                                     case (#auction_bid(details)) {
                                         if (
-                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and details.amount == new_bid_val and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and details.amount == new_bid_val and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                         ) {
                                             "correct response";
                                         } else {
@@ -2434,10 +2453,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print(debug_show (Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister)))));
                             D.print(debug_show (Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet)))));
                             D.print(debug_show (res.escrow[0].token_id == "1"));
-                            D.print(debug_show (Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }))));
+                            D.print(debug_show (Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }))));
                             D.print(debug_show (res.escrow[0].amount == 104 * 10 ** 8, res.escrow[0].amount, 104 * 10 ** 8));
                             if (
-                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(this))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "1" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })) and res.escrow[0].amount == 103 * 10 ** 8,
+                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(this))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "1" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })) and res.escrow[0].amount == 103 * 10 ** 8,
                             ) {
                                 "found escrow record";
                             } else {
@@ -2463,7 +2482,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                             item.metadata;
                                         };
                                         case (#err(err)) {
-                                            #Empty;
+                                            #Option(null);
                                         };
                                     },
                                 ),
@@ -2550,7 +2569,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                 switch (res[res.size() -1].txn_type) {
                                     case (#sale_ended(details)) {
                                         if (
-                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                         ) {
                                             "correct response";
                                         } else {
@@ -2596,7 +2615,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             switch (res.txn_type) {
                                 case (#sale_ended(details)) {
                                     if (
-                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and Option.get(details.sale_id, "") == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and Option.get(details.sale_id, "") == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                     ) {
                                         "correct response";
                                     } else {
@@ -2781,7 +2800,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                     standard =  #Ledger;
                                     decimals = 8;
                                     symbol = "LDG";
-                                    fee = 200000;}))){
+                                    fee = ?200000;
+                                    id = null;}))){
                                     "correct response";
                             } else {
                                 "details didnt match" # debug_show(details);
@@ -2865,7 +2885,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                     standard =  #Ledger;
                                     decimals = 8;
                                     symbol = "LDG";
-                                    fee = 200000;}))){
+                                    fee = ?200000;
+                                    id = null;}))){
                                     "correct response";
                             } else {
                                 "details didnt match" # debug_show(details);
@@ -3020,7 +3041,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //sent an escrow for a stdledger deposit that doesn't exist
         D.print("sending an escrow with no deposit");
-        let a_wallet_try_escrow_general_fake = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?34, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let a_wallet_try_escrow_general_fake = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?34, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }), null);
 
         //send a payment to the ledger
         D.print("sending tokens to canisters");
@@ -3034,20 +3055,20 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let block = block_result; //block is no longer relevant for ledgers
 
         //sent an escrow for a ledger deposit that doesn't exist
-        let a_wallet_try_escrow_general_fake_amount = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 2 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let a_wallet_try_escrow_general_fake_amount = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 2 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }), null);
 
         D.print("a_wallet_try_escrow_general_fake_amount" # debug_show (a_wallet_try_escrow_general_fake_amount));
 
         ////ESC0001
 
         D.print("Sending real escrow now");
-        let a_wallet_try_escrow_general_staged = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?block, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let a_wallet_try_escrow_general_staged = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?block, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }), null);
 
         D.print("try escrow genreal stage");
         D.print(debug_show (a_wallet_try_escrow_general_staged));
 
         //ESC0005 should fail if you try to calim a deposit a second time
-        let a_wallet_try_escrow_general_staged_retry = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?block, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let a_wallet_try_escrow_general_staged_retry = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?block, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }), null);
 
         //check balance and make sure we see the escrow BAL0002
         let a_balance = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
@@ -3069,7 +3090,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -3118,7 +3140,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -3172,7 +3195,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //ESC0002
         D.print("Sending real escrow now");
-        let b_wallet_try_escrow_specific_staged = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), ?b_block, 1 * 10 ** 8, "3", null, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let b_wallet_try_escrow_specific_staged = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), ?b_block, 1 * 10 ** 8, "3", null, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000;id = null; }), null);
 
         //
         D.print("try escrow specific stage");
@@ -3192,7 +3215,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         standard = #Ledger;
                         decimals = 8;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                     });
                     amount = 100_000_000;
                 };
@@ -3395,7 +3419,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print(debug_show (#principal(Principal.fromActor(a_wallet))));
                             D.print(debug_show (Principal.fromActor(dfx)));
                             if (
-                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })),
+                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null; })),
                             ) {
                                 "found escrow record";
                             } else {
@@ -3436,7 +3460,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print(debug_show (#principal(Principal.fromActor(a_wallet))));
                             D.print(debug_show (Principal.fromActor(dfx)));
                             if (
-                                Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 })) and res.escrow[0].amount == 1 * 10 ** 8,
+                                Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null })) and res.escrow[0].amount == 1 * 10 ** 8,
                             ) {
                                 "found sale record";
                             } else {
@@ -3515,7 +3539,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("Sending real escrow now");
 
         D.print("Sending real escrow now");
-        let a_wallet_try_escrow_specific_staged = await a_wallet.try_escrow_specific_staged(Principal.fromActor(c_wallet), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "1", null, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = 200000 }), null);
+        let a_wallet_try_escrow_specific_staged = await a_wallet.try_escrow_specific_staged(Principal.fromActor(c_wallet), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "1", null, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null; }), null);
 
         D.print("try escrow genreal stage");
         D.print(debug_show (a_wallet_try_escrow_specific_staged));

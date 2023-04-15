@@ -21,18 +21,15 @@ import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 
 import BytesConverter "mo:stableBTree/bytesConverter";
-import CandyTypes "mo:candy/types";
+
 import Canistergeek "mo:canistergeek/canistergeek";
-import Conversions "mo:candy/conversion";
+
 import Droute "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
-import JSON "mo:candy/json";
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 
-import Properties "mo:candy/properties";
-import Workspace "mo:candy/workspace";
 
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
@@ -64,6 +61,12 @@ shared (deployer) actor class Nft_Canister() = this {
         streaming = false;
         manage_storage = true;
     };
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+    let JSON = MigrationTypes.Current.JSON;
 
     debug if (debug_channel.instantiation) D.print("creating a canister");
 
@@ -260,11 +263,11 @@ shared (deployer) actor class Nft_Canister() = this {
     /**
     * Stages an NFT for origyn verification.
     *
-    * @param {Record{metadata: CandyTypes.CandyValue}} request - The metadata for the NFT being staged.
+    * @param {Record{metadata: CandyTypes.CandyShared}} request - The metadata for the NFT being staged.
     * @returns {async Types.OrigynTextResult} - The result of the staging operation.
     */
     public shared (msg) func stage_nft_origyn({
-        metadata : CandyTypes.CandyValue;
+        metadata : CandyTypes.CandyShared;
     }) : async Types.OrigynTextResult {
         //nyi:  if we run out of space, start putting data into child canisters
         if (halt == true) {
@@ -280,10 +283,10 @@ shared (deployer) actor class Nft_Canister() = this {
     /**
     * Stages multiple NFTs for origyn verification.
     *
-    * @param {Array<Record{metadata: CandyTypes.CandyValue}>} request - The metadata for the NFTs being staged.
+    * @param {Array<Record{metadata: CandyTypes.CandyShared}>} request - The metadata for the NFTs being staged.
     * @returns {async Array<Types.OrigynTextResult>} - An array containing the results of the staging operations.
     */
-    public shared (msg) func stage_batch_nft_origyn(request : [{metadata: CandyTypes.CandyValue}]): async [Types.OrigynTextResult]{
+    public shared (msg) func stage_batch_nft_origyn(request : [{metadata: CandyTypes.CandyShared}]): async [Types.OrigynTextResult]{
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
         debug if(debug_channel.function_announce) D.print("in stage batch");
         if( NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false){
@@ -724,6 +727,9 @@ shared (deployer) actor class Nft_Canister() = this {
                 case (#dutch(val)) {
                     ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show (request);
                 };
+                case (#nifty(val)) {
+                        ", type : nifty, start price : " # Nat.toText(val.amount) # debug_show (request);
+                    };
                 case (#extensible(val)) {
                     ", type : extensible " # debug_show (request);
                 };
@@ -776,6 +782,9 @@ shared (deployer) actor class Nft_Canister() = this {
                     };
                     case (#dutch(val)) {
                         ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show (request);
+                    };
+                    case (#nifty(val)) {
+                        ", type : nifty, start price : " # Nat.toText(val.amount) # debug_show (request);
                     };
                     case (#extensible(val)) {
                         ", type : extensible " # debug_show (request);
@@ -1300,9 +1309,9 @@ shared (deployer) actor class Nft_Canister() = this {
         let keysBuffer = Buffer.Buffer<Text>(Map.size(state.state.nft_metadata));
         for (thisItem in keys) {
             keysBuffer.add(thisItem);
-            let entry = switch (Map.get<Text, CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)) {
+            let entry = switch (Map.get<Text, CandyTypes.CandyShared>(state.state.nft_metadata, thash, thisItem)) {
                 case (?val) val;
-                case (null) #Empty;
+                case (null) #Option(null);
             };
 
             switch (Metadata.get_nft_owner(entry)) {
@@ -1999,7 +2008,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
         // Identify a current sale
         let current_sale : ?Types.SaleStatusStable = switch (Metadata.get_current_sale_id(metadata)) {
-            case (#Empty) { null };
+            case (#Option(null)) { null };
             case (#Text(val)) {
                 do ? {
                     Types.SalesStatus_stabalize_for_xfer(Map.get(state_current.nft_sales, Map.thash, val)!);
@@ -2012,7 +2021,7 @@ shared (deployer) actor class Nft_Canister() = this {
         };
         return (#ok({ current_sale = current_sale; metadata = final_object }));
 
-        return #ok({ current_sale = null; metadata = #Empty });
+        return #ok({ current_sale = null; metadata = #Option(null) });
     };
 
     /**
@@ -2615,9 +2624,9 @@ shared (deployer) actor class Nft_Canister() = this {
         let keysBuffer = Buffer.Buffer<Text>(Map.size(state.state.nft_metadata));
         for (thisItem in keys) {
             keysBuffer.add(thisItem);
-            let entry = switch (Map.get<Text, CandyTypes.CandyValue>(state.state.nft_metadata, thash, thisItem)) {
+            let entry = switch (Map.get<Text, CandyTypes.CandyShared>(state.state.nft_metadata, thash, thisItem)) {
                 case (?val) val;
-                case (null) #Empty;
+                case (null) #Option(null);
             };
 
             switch (Metadata.get_nft_owner(entry)) {
@@ -2754,7 +2763,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
                 globalTracker += 1;
             };
-            escrows := escrows_buffer.toArray();
+            escrows := Buffer.toArray(escrows_buffer);
         } else {
             globalTracker += escrows_size;
         };
@@ -2778,7 +2787,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 };
                 globalTracker += 1;
             };
-            sales := sales_buffer.toArray();
+            sales := Buffer.toArray(sales_buffer);
         } else {
             globalTracker += sales_size;
         };
@@ -2797,7 +2806,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 };
                 globalTracker += 1;
             };
-            offers := offers_buffer.toArray();
+            offers := Buffer.toArray(offers_buffer);
         } else {
             globalTracker += offers_size;
         };

@@ -16,8 +16,14 @@ import TestWalletDef "test_wallet";
 import Types "../origyn_nft_reference/types";
 import Metadata "../origyn_nft_reference/metadata";
 import utils "test_utils";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
     private func get_time() : Int{
         return Time.now();
@@ -125,7 +131,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -165,7 +172,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -238,7 +246,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -261,7 +270,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -292,7 +302,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "OGY";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -313,7 +324,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -344,7 +356,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -367,7 +380,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -670,7 +684,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);//nyi
                     start_price = (1 * 10 ** 8);
@@ -694,7 +709,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };

@@ -45,9 +45,9 @@ module {
           return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "share_nft_origyn token not found", ?caller));
         };
 
-        let new_metadata = Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Empty);
+        let new_metadata = Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Option(null));
 
-        Map.set<Text, CandyTypes.CandyValue>(state.state.nft_metadata, Map.thash, token_id, new_metadata);
+        Map.set<Text, CandyTypes.CandyShared>(state.state.nft_metadata, Map.thash, token_id, new_metadata);
 
         return #ok(#clear_shared_wallets(true));
 

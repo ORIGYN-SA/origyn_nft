@@ -42,7 +42,7 @@ Auction - For Auctions, end_sale needs to not transfer ownership. It should lock
 
 ### Logistics Mode
 
-An item in logistics mode can only be removed from logistics mode by a NODE.  When first created, the fulfilling_node will be #Empty until selected by a buyer.
+An item in logistics mode can only be removed from logistics mode by a NODE.  When first created, the fulfilling_node will be #Option(null)until selected by a buyer.
 
 ```
   {
@@ -55,20 +55,20 @@ An item in logistics mode can only be removed from logistics mode by a NODE.  Wh
         {name="target_owner_key"; value=#Principal("XXXXXXXX")};
         {name="seller"; value=#Principal("XXXXXXXX")};
         {name="seller_key"; value=#Principal("XXXXXXXX")};
-        {name="providers"; value=#Array(#frozen([
+        {name="providers"; value=#Array([
           #Principal("XXXXXXXX")};
           #Principal("XXXXXXXX")};
           #Principal("XXXXXXXX")};
-          ])); immutable = false;} //Providers who can write to the fulfillment arrays
-        {name="fulfillment_node"; value=#Array(#frozen([
+          ]); immutable = false;} //Providers who can write to the fulfillment arrays
+        {name="fulfillment_node"; value=#Array([
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the node's public key
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the node's public key
-          ])); immutable = true;}
-        {name="fulfillment_buyer"; value=#Array(#frozen([
+          ]); immutable = true;}
+        {name="fulfillment_buyer"; value=#Array([
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the node's public key
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the buyer's public key
-          ])); immutable = true;}
-        {name="fulfillment_seller"; value=#Array(#frozen([
+          ]); immutable = true;}
+        {name="fulfillment_seller"; value=#Array([
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the node's public key
           #Blob("0xXXXXXXXX")}; //holds a candy value to_candid for information needed to fulfill or invalidate the sale encrypted with the sellers's public key
           ])); immutable = true;}

@@ -16,15 +16,13 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import BytesConverter "mo:stableBTree/bytesConverter";
-import Candy "mo:candy/types";
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
+
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
 import StableBTree "mo:stableBTree/btreemap";
 import StableBTreeTypes "mo:stableBTree/types";
 import StableMemory "mo:stableBTree/memory";
-import Workspace "mo:candy/workspace";
+
 
 import DIP721 "../origyn_nft_reference/DIP721";
 import Metadata "../origyn_nft_reference/metadata";
@@ -38,6 +36,12 @@ import http "../origyn_nft_reference/storage_http";
 
 
 shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArgs) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Workspace = MigrationTypes.Current.Workspace;
+    
+
     stable var SIZE_CHUNK = 2048000; //max message size
 
     stable var ic : Types.IC = actor ("aaaaa-aa");
@@ -75,7 +79,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
     stable var migrationState : MigrationTypes.State = #v0_0_0(#data);
 
-    migrationState := Migrations.migrate(migrationState, #v0_1_3(#id), { 
+    migrationState := Migrations.migrate(migrationState, #v0_1_4(#id), { 
         owner = deployer.caller;
         network = __initargs.network;
         storage_space = initial_storage; 
@@ -83,7 +87,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         caller = deployer.caller ;});
 
     // do not forget to change #state002 when you are adding a new migration
-    let #v0_1_3(#data(state_current)) = migrationState;
+    let #v0_1_4(#data(state_current)) = migrationState;
 
     // *************************
     // ****** STABLEBTREE ******
@@ -175,7 +179,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     * @param metadata The metadata associated with the staged library.
     * @returns A `Result.Result` object containing a `Types.StageLibraryResponse` object if successful, otherwise a `Types.OrigynError` object.
     */
-    public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg, allocation : Types.AllocationRecordStable, metadata : CandyTypes.CandyValue) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
+    public shared (msg) func stage_library_nft_origyn(chunk : Types.StageChunkArg, allocation : Types.AllocationRecordStable, metadata : CandyTypes.CandyShared) : async Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
         return await* Storage_Store.stage_library_nft_origyn(
             get_state(),
@@ -191,17 +195,17 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     /**
     * Refreshes the metadata of an NFT token.
     * @param {Text} token_id - The ID of the token whose metadata is to be refreshed.
-    * @param {CandyTypes.CandyValue} metadata - The new metadata to store with the token.
+    * @param {CandyTypes.CandyShared} metadata - The new metadata to store with the token.
     * @returns {Promise<Types.OrigynBoolResult>} A promise that resolves to a result containing a boolean indicating success or an error.
     */
-    public shared (msg) func refresh_metadata_nft_origyn(token_id : Text, metadata : CandyTypes.CandyValue) : async Types.OrigynBoolResult {
+    public shared (msg) func refresh_metadata_nft_origyn(token_id : Text, metadata : CandyTypes.CandyShared) : async Types.OrigynBoolResult {
 
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         if (state_current.collection_data.owner != msg.caller) {
             return #err(Types.errors(null,  #unauthorized_access, "refresh_metadata_nft_origyn - storage - not an owner", ?msg.caller));
         };
 
-        switch (Map.get<Text, Candy.CandyValue>(state_current.nft_metadata, Map.thash, token_id)) {
+        switch (Map.get<Text, CandyTypes.CandyShared>(state_current.nft_metadata, Map.thash, token_id)) {
             case (null) {
                 D.print("error");
                 return #err(Types.errors(null,  #token_not_found, "refresh_metadata_nft_origyn - storage - cannot find metadata to replace - " # token_id, ?msg.caller));
@@ -213,7 +217,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         D.print("putting metadata" # debug_show (metadata));
-        Map.set<Text, Candy.CandyValue>(state_current.nft_metadata, Map.thash, token_id, metadata);
+        Map.set<Text, CandyTypes.CandyShared>(state_current.nft_metadata, Map.thash, token_id, metadata);
 
         return #ok(true);
     };
@@ -306,43 +310,34 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
                         return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # request.token_id # " library_id - " # request.library_id, ?caller));
                     };
                     case (?item) {
-                        switch (item.getOpt(1)) {
+                        switch (SB.getOpt(item,1)) {
                             case (null) {
                                 //nofiledata
                                 return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - chunk was empty: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
                             };
                             case (?zone) {
                                 //D.print("size of zone");
-                                //D.print(debug_show(zone.size()));
+                                //D.print(debug_show(SB.size(zone)));
                                 let requested_chunk = switch (request.chunk) {
                                     case (null) {
                                         //just want the allocation
-                                        return #ok(#chunk({ content = Blob.fromArray([]); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
+                                        return #ok(#chunk({ content = Blob.fromArray([]); total_chunks = SB.size(zone); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
 
                                     };
                                     case (?val) { val };
                                 };
-                                switch (zone.getOpt(requested_chunk)) {
+                                switch (SB.getOpt(zone, requested_chunk)) {
                                     case (null) {
                                         return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - cannot find chunk id: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));
                                     };
                                     case (?chunk) {
                                         switch (chunk) {
                                             case (#Bytes(wval)) {
-                                                switch (wval) {
-                                                    case (#thawed(val)) {
-                                                        return #ok(#chunk({ content = Blob.fromArray(val.toArray()); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
-                                                    };
-                                                    case (#frozen(val)) {
-                                                        return #ok(#chunk({ content = Blob.fromArray(val); total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
-                                                    };
-                                                };
+                                              return #ok(#chunk({ content = Blob.fromArray(SB.toArray(wval)); total_chunks = SB.size(zone); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
                                             };
 
                                             case (#Blob(wval)) {
-
-                                                return #ok(#chunk({ content = wval; total_chunks = zone.size(); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
-
+                                              return #ok(#chunk({ content = wval; total_chunks = SB.size(zone); current_chunk = request.chunk; storage_allocation = Types.allocation_record_stabalize(allocation) }));
                                             };
                                             case (_) {
                                                 return #err(Types.errors(null,  #content_not_deserializable, "chunk_nft_origyn - chunk did not deserialize: token_id - " # request.token_id # " library_id - " # request.library_id # " chunk - " # debug_show (request.chunk), ?caller));

@@ -10,18 +10,21 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
 import SB "mo:stablebuffer/StableBuffer";
-import Workspace "mo:candy/workspace";
 
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+import MigrationTypes "./migrations/types";
 
 module {
+
+  let CandyTypes = MigrationTypes.Current.CandyTypes;
+  let Conversions = MigrationTypes.Current.Conversions;
+  let Properties = MigrationTypes.Current.Properties;
+  let Workspace = MigrationTypes.Current.Workspace;
+
 
     //lets user turn debug messages on and off for local replica
     let debug_channel = {
@@ -121,20 +124,18 @@ module {
     * @function
     * @param {Types.State} state - The current state of the canister.
     * @param {Text} token_id - The identifier of the token.
-    * @param {CandyTypes.CandyValue} found_metadata - The metadata associated with the token.
+    * @param {CandyTypes.CandyShared} found_metadata - The metadata associated with the token.
     * @param {Principal} caller - The principal who is making the call.
     * @returns {Types.OrigynTextResult} The result of the operation, either an error message or "ok".
     */
-    private func handle_library(state : Types.State, token_id : Text, found_metadata : CandyTypes.CandyValue, caller : Principal) : Types.OrigynTextResult {
+    private func handle_library(state : Types.State, token_id : Text, found_metadata : CandyTypes.CandyShared, caller : Principal) : Types.OrigynTextResult {
         //prep the library
         debug if (debug_channel.library) D.print("in handle library");
         switch (Metadata.get_nft_library(found_metadata, ?caller)) {
             case (#err(err)) {}; //fine for now...library isn't required
             case (#ok(library)) {
-              let #Array(item) = library else return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library should be an array", ?caller));
-                
-              let #thawed(classes) = item else return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library should be thawed", ?caller));
-                  
+              let #Array(classes) = library else return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - library should be an array", ?caller));
+  
               debug if (debug_channel.library) D.print("handling library in nft stage");
               for (this_item in classes.vals()) {
                   debug if (debug_channel.library) D.print("handling an item " # debug_show (this_item));
@@ -313,10 +314,10 @@ module {
                             //to let that server know about the new metadata for the NFT
                             let found = Map.new<Principal, Bool>();
                             debug if (debug_channel.storage) D.print("processing a library" # debug_show ((this_library, state.state.allocations)));
-                            let ?library_id = Properties.getClassProperty(this_library, Types.metadata.library_id) else return #err(Types.errors(?state.canistergeekLogger,  #nyi, "mint_nft_origyn - should not be here. Null library id", ?caller));
+                            let ?library_id = Properties.getClassPropertyShared(this_library, Types.metadata.library_id) else return #err(Types.errors(?state.canistergeekLogger,  #nyi, "mint_nft_origyn - should not be here. Null library id", ?caller));
                                 
-                            debug if (debug_channel.storage) D.print(Conversions.valueToText(library_id.value));
-                            switch (Map.get(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, Conversions.valueToText(library_id.value)))) {
+                            debug if (debug_channel.storage) D.print(Conversions.candySharedToText(library_id.value));
+                            switch (Map.get(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (token_id, Conversions.candySharedToText(library_id.value)))) {
                                 case (null) {
                                     //shouldn't be here but won't fail
                                     debug if (debug_channel.storage) D.print("shouldnt be here null get");
@@ -364,7 +365,7 @@ module {
     // __system - only the canister itself can manipulate the __system data node. An attempt to inject this should throw
     public func stage_nft_origyn(
         state : Types.State,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         caller : Principal,
     ) : Types.OrigynTextResult {
         debug if (debug_channel.stage) D.print("in stage");
@@ -373,8 +374,8 @@ module {
 
         //ensure id is in the class
         debug if (debug_channel.stage) D.print("looking for id");
-        let id_val = Conversions.valueToText(
-            switch(Properties.getClassProperty(metadata, "id")){
+        let id_val = Conversions.candySharedToText(
+            switch(Properties.getClassPropertyShared(metadata, "id")){
                 case(null){
                     return #err(Types.errors(?state.canistergeekLogger,  #id_not_found_in_metadata, "stage_nft_origyn - find id", ?caller));
                 };
@@ -388,21 +389,21 @@ module {
 
         debug if (debug_channel.stage) D.print("looking for system");
         //if this exists we should throw
-        let found_system = switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+        let found_system = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
             case(null){};
             case(?found){
                 return #err(Types.errors(?state.canistergeekLogger,  #attempt_to_stage_system_data, "stage_nft_origyn - find system", ?caller));
             }
         };
 
-        var found_metadata : CandyTypes.CandyValue = #Empty;
+        var found_metadata : CandyTypes.CandyShared = #Option(null);
         //try to find existing metadata
         switch (Map.get(state.state.nft_metadata, Map.thash, id_val)) {
             case (null) {
                 //D.print("Does not exist yet");
                 //does not exist yet;
                 //add status "staged"
-                found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(#Class([{name=Types.metadata.__system_status; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
+                found_metadata := #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(#Class([{name=Types.metadata.__system_status; value=#Text(Types.nft_status_staged); immutable = false}]))}])){
                     case(#err(errType)){
                         return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_nft_origyn - set staged status", ?caller));
                     };
@@ -427,13 +428,13 @@ module {
                 //exists
                 debug if (debug_channel.stage) D.print("exists");
                 //check to see if it is minted yet.Array
-                let system_node : CandyTypes.CandyValue = switch(Properties.getClassProperty(this_metadata, Types.metadata.__system)){
+                let system_node : CandyTypes.CandyShared = switch(Properties.getClassPropertyShared(this_metadata, Types.metadata.__system)){
                     case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
                     case(?found){found.value};
                 };
 
-                let status : Text = Conversions.valueToText(
-                    switch(Properties.getClassProperty(system_node, Types.metadata.__system_status)){
+                let status : Text = Conversions.candySharedToText(
+                    switch(Properties.getClassPropertyShared(system_node, Types.metadata.__system_status)){
                         case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - cannot find status", ?caller));};
                         case(?found){found.value};
                     });
@@ -445,7 +446,7 @@ module {
 
                     //pull __system vars
                     debug if (debug_channel.stage) D.print("dealing with 1==1");
-                    switch (Properties.getClassProperty(this_metadata, Types.metadata.__system)) {
+                    switch (Properties.getClassPropertyShared(this_metadata, Types.metadata.__system)) {
                         case (null) {
                             //this branch may be an error
                             return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "stage_nft_origyn - __system node not found", ?caller));
@@ -453,7 +454,7 @@ module {
                         case (?found) {
                             //injects the existing __system vars into new metadata
                                             debug if(debug_channel.stage) D.print("updating metadata to include system");
-                            found_metadata := #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(found.value)}])){
+                            found_metadata := #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(metadata), [{name = Types.metadata.__system; mode=#Set(found.value)}])){
                                 case(#err(errType)){
                                     return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_nft_origyn - set staged status", ?caller));
                                 };
@@ -481,29 +482,29 @@ module {
 
 
                   //check to see if it is minted yet.Array
-                  switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+                  switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                       case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage system node", ?caller));};
                       case(null){};
                   };
 
-                  switch(Properties.getClassProperty(metadata, Types.metadata.owner)){
+                  switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
                       case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage owner node after mint", ?caller));};
                       case(null){};
                   };
 
-                  switch(Properties.getClassProperty(metadata, Types.metadata.library)){
+                  switch(Properties.getClassPropertyShared(metadata, Types.metadata.library)){
                       case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage library node after mint, use stage_library_nft_origyn", ?caller));};
                       case(null){};
                   };
 
-                  switch(Properties.getClassProperty(metadata, Types.metadata.__apps)){
+                  switch(Properties.getClassPropertyShared(metadata, Types.metadata.__apps)){
                       case(?found){return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "stage_nft_origyn - cannot stage dapps after mint, use update_app_nft_origyn", ?caller));};
                       case(null){};
                   };
 
                   var new_metadata = this_metadata;
 
-                  label update for(this_item in Conversions.valueToProperties(metadata).vals()){
+                  label update for(this_item in Conversions.candySharedToProperties(metadata).vals()){
 
                     if(this_item.name == Types.metadata.id){
                       continue update;
@@ -511,14 +512,14 @@ module {
                     new_metadata := 
                       switch(
                         if(this_item.immutable == true){
-                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                        Properties.updatePropertiesShared(Conversions.candySharedToProperties(new_metadata), [
                           {
                             name = this_item.name;
                             mode = #Lock(this_item.value);
                           }
                         ]);
                       } else {
-                        Properties.updateProperties(Conversions.valueToProperties(new_metadata), [
+                        Properties.updatePropertiesShared(Conversions.candySharedToProperties(new_metadata), [
                           {
                             name = this_item.name;
                             mode = #Set(this_item.value);
@@ -560,16 +561,16 @@ module {
       //file the chunk
       if(chunk.content.size() > 0){
         debug if(debug_channel) D.print("filing the chunk");
-        let file_chunks = switch(found_workspace.getOpt(1)){
+        let file_chunks = switch(SB.getOpt(found_workspace,1)){
             case(null){
-                if(found_workspace.size()==0){
+                if(SB.size(found_workspace)==0){
                     //nyi: should be an error because no filedata
-                    found_workspace.add(Workspace.initDataZone(#Empty));
+                    SB.add(found_workspace,Workspace.initDataZone(#Option(null)));
                 };
-                if(found_workspace.size()==1){
-                    found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                if(SB.size(found_workspace)==1){
+                    SB.add(found_workspace, SB.init<CandyTypes.DataChunk>());
                 };
-                found_workspace.get(1);
+                SB.get(found_workspace,1);
             };
             case(?dz){
                 dz;
@@ -578,19 +579,19 @@ module {
 
         debug if(debug_channel) D.print("have the chunks zone");
 
-        let size_chunks = switch(found_workspace.getOpt(2)){
+        let size_chunks = switch(SB.getOpt(found_workspace,2)){
             case(null){
-                if(found_workspace.size()==0){
+                if(SB.size(found_workspace)==0){
                     //nyi: should be an error because no filedata
-                    found_workspace.add(Workspace.initDataZone(#Empty));
+                    SB.add(found_workspace,Workspace.initDataZone(#Option(null)));
                 };
-                if(found_workspace.size()==1){
-                    found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                if(SB.size(found_workspace)==1){
+                    SB.add(found_workspace, SB.init<CandyTypes.DataChunk>());
                 };
-                if(found_workspace.size()==2){
-                    found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+                if(SB.size(found_workspace)==2){
+                    SB.add(found_workspace, SB.init<CandyTypes.DataChunk>());
                 };
-                found_workspace.get(2);
+                SB.get(found_workspace, 2);
             };
             case(?dz){
                 dz;
@@ -664,7 +665,7 @@ module {
               /////////////////////////////////////////////
 
               D.print("putting the chunk");
-              if (chunk.chunk + 1 <= file_chunks.size()) {
+              if (chunk.chunk + 1 <= SB.size(file_chunks)) {
                   if (state.state.use_stableBTree) {
                     /*
                         D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
@@ -675,8 +676,8 @@ module {
                       size_chunks.add(#Nat(chunk.content.size()))
                       */
                   } else {
-                      file_chunks.put(chunk.chunk, #Blob(chunk.content));
-                      size_chunks.add(#Nat(chunk.content.size()))
+                      SB.put(file_chunks, chunk.chunk, #Blob(chunk.content));
+                      SB.add(size_chunks, #Nat(chunk.content.size()))
                   };
 
               } else {
@@ -684,7 +685,7 @@ module {
                   debug if (debug_channel) D.print(debug_show (chunk.chunk));
                   //D.print(debug_show(file_chunks.size()));
 
-                  for (this_index in Iter.range(file_chunks.size(), chunk.chunk)) {
+                  for (this_index in Iter.range(SB.size(file_chunks), chunk.chunk)) {
                       D.print(debug_show(this_index));
                       let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
 
@@ -702,8 +703,8 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
-                              file_chunks.add(#Blob(chunk.content));
-                              size_chunks.add(#Nat(chunk.content.size()))
+                              SB.add(file_chunks,#Blob(chunk.content));
+                              SB.add(size_chunks, #Nat(chunk.content.size()))
                           };
                       } else {
                           D.print("index wasnt chunk" # debug_show(this_index));
@@ -717,8 +718,8 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
-                              file_chunks.add(#Blob(Blob.fromArray([])));
-                              size_chunks.add(#Nat(0))
+                              SB.add(file_chunks,#Blob(Blob.fromArray([])));
+                              SB.add(size_chunks, #Nat(0))
                           };
                       };
                   };
@@ -733,37 +734,37 @@ module {
     *
     * @param {Types.State} state - the current state of the system
     * @param {Types.StageChunkArg} chunk - the chunk to be filed
-    * @param {CandyTypes.CandyValue} library - the library to be rebuilt
+    * @param {CandyTypes.CandyShared} library - the library to be rebuilt
     * @param {Text} library_id - the id of the library
     * @param {Bool} immutable_library_metadata - flag indicating whether the library metadata is immutable
     * @param {Bool} bDelete - flag indicating whether to delete the library or not
     * @param {Text} status - the status of the library
     * @param {Principal} caller - the principal of the caller
-    * @returns {Result.Result<(Bool, Buffer.Buffer<CandyTypes.CandyValue>), Types.OrigynError>} - a result containing a boolean indicating whether the library was found and a buffer containing the new library
+    * @returns {Result.Result<(Bool, Buffer.Buffer<CandyTypes.CandyShared>), Types.OrigynError>} - a result containing a boolean indicating whether the library was found and a buffer containing the new library
     */
     private func _rebuild_library(
       state : Types.State,
       chunk : Types.StageChunkArg, 
-      library : CandyTypes.CandyValue, 
+      library : CandyTypes.CandyShared, 
       library_id : Text, 
       immutable_library_metadata : Bool, 
       bDelete: Bool, 
       status: Text,
-      caller : Principal) : Result.Result<(Bool, Buffer.Buffer<CandyTypes.CandyValue>), Types.OrigynError> {
+      caller : Principal) : Result.Result<(Bool, Buffer.Buffer<CandyTypes.CandyShared>), Types.OrigynError> {
 
-      let new_library = Buffer.Buffer<CandyTypes.CandyValue>(1);
+      let new_library = Buffer.Buffer<CandyTypes.CandyShared>(1);
       var b_found = false;
 
-      label rebuild for(this_item in Conversions.valueToValueArray(library).vals()){
+      label rebuild for(this_item in Conversions.candySharedToValueArray(library).vals()){
         debug if(debug_channel.stage) D.print("handling rebuild for " # debug_show(this_item));
-        switch(Properties.getClassProperty(this_item, Types.metadata.library_id)){
+        switch(Properties.getClassPropertyShared(this_item, Types.metadata.library_id)){
             case(null){
                 //shouldn't be here
                 //D.print("shouldnt be here");
             };
             case(?id){
                 debug if(debug_channel.stage) D.print(debug_show((id, library_id)));
-                if(Conversions.valueToText(id.value) == library_id){
+                if(Conversions.candySharedToText(id.value) == library_id){
                   if(immutable_library_metadata == true and status == "minted"){
                     return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "stage_library_nft_origyn - cannot update immutable library", ?caller));
                   };
@@ -830,15 +831,15 @@ module {
 
         debug if(debug_channel.stage) D.print("found library meta" # debug_show(library_meta));
         
-        let system_node : CandyTypes.CandyValue = switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+        let system_node : CandyTypes.CandyShared = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
           case(null){return #err(Types.errors(?state.canistergeekLogger,  #cannot_find_status_in_metadata, "stage_nft_origyn - find system", ?caller));};
           case(?found){found.value};
         };
 
         debug if(debug_channel.stage) D.print("looking for  status " # debug_show(system_node));
         
-        let status : Text = Conversions.valueToText(
-          switch (Properties.getClassProperty(system_node, Types.metadata.__system_status)) {
+        let status : Text = Conversions.candySharedToText(
+          switch (Properties.getClassPropertyShared(system_node, Types.metadata.__system_status)) {
             case (null) { #Text("staged") }; //default
             case (?found) { found.value };
           },
@@ -846,7 +847,7 @@ module {
 
         debug if (debug_channel.stage) D.print("found status " # debug_show (status));
 
-        let immutable_library_metadata = switch (Properties.getClassProperty(library_meta, Types.metadata.immutable_library)) {
+        let immutable_library_metadata = switch (Properties.getClassPropertyShared(library_meta, Types.metadata.immutable_library)) {
           case (null) { false };
           case (?val) {
             switch (val.value) {
@@ -875,7 +876,7 @@ module {
           };
         };
 
-        let bUpdate : CandyTypes.Properties = switch(chunk.filedata){
+        let bUpdate : CandyTypes.PropertiesShared = switch(chunk.filedata){
           case(#Class(val)){
             val;
           };
@@ -888,7 +889,7 @@ module {
           debug if(debug_channel.stage) D.print("checking filedata" # debug_show(chunk.filedata));
           //update this library's metadata
           //confirm library_id
-          let library_id = switch(Properties.getClassProperty(chunk.filedata, Types.metadata.library_id)){
+          let library_id = switch(Properties.getClassPropertyShared(chunk.filedata, Types.metadata.library_id)){
               case(null){
                   if(bUpdate.size() > 0){
                     debug if(debug_channel.stage) D.print("library not found");
@@ -948,7 +949,7 @@ module {
           };
 
 
-          var found_metadata = #Class(switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [{name = Types.metadata.library; mode=#Set(#Array(#thawed(Buffer.toArray(new_library))))}])){
+          var found_metadata = #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(metadata), [{name = Types.metadata.library; mode=#Set(#Array(Buffer.toArray(new_library)))}])){
               case(#err(errType)){
                   switch(errType){
                       case(_){
@@ -1016,7 +1017,7 @@ module {
                               return #err(Types.errors(?state.canistergeekLogger,  #not_enough_storage, "stage_library_nft_origyn - chunk bigger than available" # chunk.token_id # " " # chunk.library_id, ?caller));
                           };
                           
-                          new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+                          SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
                                           debug if(debug_channel.stage) D.print("put the zone");
                           let new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal,Text.hash);
@@ -1043,7 +1044,7 @@ module {
                                   };
                                   let new_workspace = Workspace.initWorkspace(2);
 
-                                  new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+                                  SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
 
                                   library.put(chunk.library_id, new_workspace);
@@ -1116,7 +1117,7 @@ module {
     * @param {Types.State} state - The current state
     * @param {Types.StageChunkArg} chunk - The stage chunk argument
     * @param {Types.AllocationRecord} allocation - The allocation record
-    * @param {CandyTypes.CandyValue} metadata - The metadata of the candy
+    * @param {CandyTypes.CandyShared} metadata - The metadata of the candy
     * @param {Principal} caller - The caller principal
     * @returns {async* Result.Result<Types.StageLibraryResponse, Types.OrigynError>} The result of the stage library operation
     */
@@ -1124,7 +1125,7 @@ module {
         state : Types.State,
         chunk : Types.StageChunkArg,
         allocation : Types.AllocationRecord,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         caller : Principal,
     ) : async* Types.StageLibraryResult {
 
@@ -1133,7 +1134,7 @@ module {
         //we shouldn't need to pre remove the space because the allocation was already made
         let content_size = chunk.content.size();
         let storage_actor : Types.StorageService = actor (Principal.toText(allocation.canister));
-        let response = await storage_actor.stage_library_nft_origyn(chunk, Types.allocation_record_stabalize(allocation), (if (chunk.chunk == 0) { metadata } else { #Empty }));
+        let response = await storage_actor.stage_library_nft_origyn(chunk, Types.allocation_record_stabalize(allocation), (if (chunk.chunk == 0) { metadata } else { #Option(null)}));
 
         debug if (debug_channel.remote) D.print("allocation to remot result" # debug_show (response));
 
@@ -1193,9 +1194,9 @@ module {
     * @param {Types.Account} newOwner - The account that will own the minted token
     * @param {Types.EscrowReceipt | null} escrow - An optional escrow receipt for the token sale
     * @param {Principal} caller - The principal of the caller
-    * @returns {Result.Result<(Text, CandyTypes.CandyValue, Types.TransactionRecord), Types.OrigynError>} A result containing the token ID, metadata, and transaction record if successful, or an error if the mint fails
+    * @returns {Result.Result<(Text, CandyTypes.CandyShared, Types.TransactionRecord), Types.OrigynError>} A result containing the token ID, metadata, and transaction record if successful, or an error if the mint fails
     */
-    public func execute_mint(state : Types.State, token_id : Text, newOwner : Types.Account, escrow : ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyValue, Types.TransactionRecord), Types.OrigynError> {
+    public func execute_mint(state : Types.State, token_id : Text, newOwner : Types.Account, escrow : ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyShared, Types.TransactionRecord), Types.OrigynError> {
         debug if (debug_channel.mint) D.print("in mint");
         var metadata = switch (Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
             case (#err(err)) {
@@ -1251,21 +1252,21 @@ module {
             };
         };
 
-        var primary_royalties = switch (Properties.getClassProperty(collection, Types.metadata.primary_royalties_default)) {
-            case (null) #Array(#frozen([]));
+        var primary_royalties = switch (Properties.getClassPropertyShared(collection, Types.metadata.primary_royalties_default)) {
+            case (null) #Array([]);
             case (?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
 
-        var secondary_royalties = switch (Properties.getClassProperty(collection, Types.metadata.secondary_royalties_default)) {
-            case (null) #Array(#frozen([]));
+        var secondary_royalties = switch (Properties.getClassPropertyShared(collection, Types.metadata.secondary_royalties_default)) {
+            case (null) #Array([]);
             case (?val) val.value;
         };
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
 
-        var node_principal = switch (Properties.getClassProperty(collection, Types.metadata.__system_node)) {
+        var node_principal = switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_node)) {
             case (null) {
                 #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
             };
@@ -1276,9 +1277,9 @@ module {
 
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_node, node_principal);
 
-        var originator_principal = switch (Properties.getClassProperty(metadata, Types.metadata.originator_override)) {
+        var originator_principal = switch (Properties.getClassPropertyShared(metadata, Types.metadata.originator_override)) {
             case (null) {
-                switch (Properties.getClassProperty(collection, Types.metadata.__system_originator)) {
+                switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_originator)) {
                     case (null) {
                         #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
                     };
@@ -1294,8 +1295,8 @@ module {
 
         //set new owner
         metadata := switch (
-            Properties.updateProperties(
-                Conversions.valueToProperties(metadata),
+            Properties.updatePropertiesShared(
+                Conversions.candySharedToProperties(metadata),
                 [
                     {
                         name = Types.metadata.owner;
@@ -1307,7 +1308,7 @@ module {
                                 case (#account_id(newOwner)) { #Text(newOwner) };
                                 case (#extensible(newOwner)) { newOwner };
                                 case (#account(buyer)) {
-                                    #Array(#frozen([#Principal(buyer.owner), #Option(switch (buyer.sub_account) { case (null) { null }; case (?val) { ?#Blob(val) } })]));
+                                    #Array([#Principal(buyer.owner), #Option(switch (buyer.sub_account) { case (null) { null }; case (?val) { ?#Blob(val) } })]);
                                 };
                             },
                         );

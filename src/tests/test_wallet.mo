@@ -1,7 +1,6 @@
 
 
-import CandyType "mo:candy/types";
-import Conversion "mo:candy_0_1_12/conversion";
+
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import D "mo:base/Debug";
@@ -17,7 +16,14 @@ import Types "../origyn_nft_reference/types";
 import SaleTypes "../origyn_sale_reference/types";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 
+import MigrationTypes "../origyn_nft_reference/migrations/types";
+
 shared (deployer) actor class test_wallet() = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
     let debug_channel= {
       throws = true;
@@ -126,18 +132,18 @@ shared (deployer) actor class test_wallet() = this {
             {name = "primary_asset"; value=#Text("page"); immutable=false},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(acanister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(acanister)); immutable= false}
         ])});
 
@@ -177,7 +183,7 @@ shared (deployer) actor class test_wallet() = this {
        let fileStage = await acanister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 0;
             content = Blob.fromArray([104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]);
         });
@@ -245,7 +251,8 @@ shared (deployer) actor class test_wallet() = this {
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -290,7 +297,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -341,7 +349,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -384,7 +393,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -431,7 +441,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -482,7 +493,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -533,7 +545,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -560,7 +573,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -610,7 +624,7 @@ shared (deployer) actor class test_wallet() = this {
             to =  {owner = deposit_info.account.principal;
             subaccount = ?Blob.toArray(deposit_info.account.sub_account)};
             fee = ?200_000;
-            memo = ?Conversion.valueToBytes(#Nat32(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
+            memo = ?Conversions.candySharedToBytes(#Nat32(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
             from_subaccount = null;
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             amount = amount;});
@@ -711,7 +725,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyType.CandyValue) : async Types.NFTUpdateResult {
+    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyTypes.CandyShared) : async Types.NFTUpdateResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -745,7 +759,8 @@ shared (deployer) actor class test_wallet() = this {
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -784,8 +799,9 @@ shared (deployer) actor class test_wallet() = this {
                         canister = ledger;
                         standard =  #Ledger;
                         decimals = 8;
+                        id = null;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
                       });
               amount = amount}})); 
 

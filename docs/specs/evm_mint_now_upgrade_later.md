@@ -62,7 +62,7 @@ _system.evm_chain_native can be set to true to indicate that a collection/NFT ar
 ```
   public type NFTInfoStable = {
         current_sale : ?SaleStatusStable;
-        metadata : CandyTypes.CandyValue;
+        metadata : CandyTypes.CandyShared;
         evm: { //add this element to NFTInfo and NFTInfoStable
           address: [Nat8];
           address_text: Text;

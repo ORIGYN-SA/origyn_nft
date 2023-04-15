@@ -16,10 +16,9 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
+
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
+
 import SHA256 "mo:crypto/SHA/SHA256";
 import Ledger_Interface "ledger_interface";
 import Metadata "metadata";
@@ -50,6 +49,12 @@ module {
       bid = true;
       kyc = true;
   };
+
+  let CandyTypes = MigrationTypes.Current.CandyTypes;
+  let Conversions = MigrationTypes.Current.Conversions;
+  let Properties = MigrationTypes.Current.Properties;
+  let Workspace = MigrationTypes.Current.Workspace;
+
 
   let account_handler = MigrationTypes.Current.account_handler;
   let token_handler = MigrationTypes.Current.token_handler;
@@ -235,13 +240,13 @@ module {
   /**
   * Checks if a token is currently on sale.
   * @param {StateAccess} state - State access object.
-  * @param {CandyTypes.CandyValue} metadata - The metadata for the token.
+  * @param {CandyTypes.CandyShared} metadata - The metadata for the token.
   * @param {Principal} caller - The caller of the function.
   * @returns {Types.OrigynBoolResult} - A Result type containing either a boolean indicating whether the token is on sale or an error.
   */
   public func is_token_on_sale(
     state: StateAccess,
-    metadata: CandyTypes.CandyValue, 
+    metadata: CandyTypes.CandyShared, 
     caller: Principal) : Result.Result<Bool,Types.OrigynError>{
 
       debug if(debug_channel.ensure) D.print("in ensure");
@@ -251,7 +256,7 @@ module {
     debug if(debug_channel.verify_sale) D.print("geting sale");
     
     let sale_id = switch(Metadata.get_current_sale_id(metadata)){
-        case(#Empty) return #ok(false);
+        case(#Option(null)) return #ok(false);
         case(#Text(sale_id)) sale_id;
         case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - imporoper candy type ", ?caller));
     };
@@ -298,7 +303,7 @@ module {
 
     //look for an existing sale
     let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-      case(#Empty) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+      case(#Option(null)) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
       case(#Text(val)){
         switch(Map.get(state.state.nft_sales, Map.thash,val)){
           case(?status){
@@ -356,9 +361,9 @@ module {
         case(#auction(val)){
             #auction(Types.AuctionState_stabalize_for_xfer(val))
         };
-        /* case(_){
+        case(_){
             return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
-        } */
+        };
       };
     }));
 
@@ -412,7 +417,7 @@ module {
 
       //look for an existing sale
       let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-        case(#Empty){
+        case(#Option(null)){
           //results.add(this_token.0, null);
           tracker += 1;
           continue search;
@@ -465,6 +470,12 @@ module {
                 sale_type = switch(current_sale.sale_type){
                   case(#auction(val)){
                     #auction(Types.AuctionState_stabalize_for_xfer(val))
+                  };
+                  case(#dutch(val)){
+                    #dutch(Types.DutchState_stabalize_for_xfer(val))
+                  };
+                  case(#nifty(val)){
+                    #nifty(Types.NiftyState_stabalize_for_xfer(val))
                   };
                 };
               });
@@ -561,6 +572,12 @@ module {
                       case(#auction(val)){
                           #auction(Types.AuctionState_stabalize_for_xfer(val))
                       };
+                      case(#dutch(val)){
+                          #dutch(Types.DutchState_stabalize_for_xfer(val))
+                      };
+                      case(#nifty(val)){
+                          #nifty(Types.NiftyState_stabalize_for_xfer(val))
+                      }
                   };
                 });
               };
@@ -617,7 +634,7 @@ module {
 
         //look for an existing sale
         let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-          case(#Empty) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+          case(#Option(null)) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
           case(#Text(val)){
             switch(Map.get(state.state.nft_sales, Map.thash,val)){
               case(?status){
@@ -806,7 +823,7 @@ module {
               //move the payment to the sale revenue account
               //nyi: use transfer batch to split across royalties
 
-              let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : Nat) = switch(winning_escrow.token){
+              let (trx_id : Types.TransactionID, account_hash : ?Blob, fee : ?Nat) = switch(winning_escrow.token){
                 case(#ic(token)){
                   switch(token.standard){
                     case(#Ledger or #ICRC1){
@@ -915,7 +932,7 @@ module {
               };
 
               //change owner
-              var new_metadata : CandyTypes.CandyValue = switch(Metadata.set_nft_owner(state, token_id, winning_escrow.buyer, caller)){
+              var new_metadata : CandyTypes.CandyShared = switch(Metadata.set_nft_owner(state, token_id, winning_escrow.buyer, caller)){
                 case(#ok(new_metadata)){new_metadata};
                 case(#err(err)) {
                                                 //changing owner failed but the tokens are already gone....what to do...leave up to governance
@@ -927,7 +944,7 @@ module {
               debug if(debug_channel.end_sale) D.print("updating metadata");
 
               //clear shared wallets
-              new_metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Empty);
+              new_metadata := Metadata.set_system_var(new_metadata, Types.metadata.__system_wallet_shares, #Option(null));
               Map.set(state.state.nft_metadata, Map.thash, token_id, new_metadata);
 
               current_sale_state.end_date := state.get_time();
@@ -941,7 +958,7 @@ module {
 
               //log royalties
               //currently for auctions there are only secondary royalties
-              let royalty= switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+              let royalty= switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                 case(null){[];};
                 case(?val){
                   royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
@@ -951,16 +968,17 @@ module {
               debug if(debug_channel.market) D.print("royalty is " # debug_show(royalty));
               
               //let royaltyList = Buffer.Buffer<(Types.Account, Nat)>(royalty.size() + 1);
-              if(winning_escrow.amount > fee){
+              let fee_ = Option.get(fee, 0);
+              if(winning_escrow.amount > fee_){
                 //if the fee is bigger than the amount we aren't going to pay anything
                 //this should really be prevented elsewhere
-                let total = Nat.sub(winning_escrow.amount, fee);
-                var remaining = Nat.sub(winning_escrow.amount, fee);
+                let total = Nat.sub(winning_escrow.amount, fee_);
+                var remaining = Nat.sub(winning_escrow.amount, fee_);
 
                 let royalty_result =  _process_royalties(state, {
                   var remaining = remaining;
                   total = total;
-                  fee = fee;
+                  fee = fee_;
                   escrow = winning_escrow;
                   royalty = royalty;
                   broker_id = current_sale_state.current_broker_id;
@@ -1008,7 +1026,7 @@ module {
                 txn_type = #sale_ended {
                   winning_escrow with
                   sale_id = ?current_sale.sale_id;
-                  extensible = #Empty;
+                  extensible = #Option(null);
                 };
                 timestamp = state.get_time();
               }, caller)){
@@ -1284,24 +1302,21 @@ module {
     /**
     * Converts the properties and collection of a Candy NFT to an array.
     * 
-    * @param {CandyTypes.CandyValue} properties - The properties of the Candy NFT.
+    * @param {CandyTypes.CandyShared} properties - The properties of the Candy NFT.
     * @param {Text} collection - The collection of the Candy NFT.
     * 
     * @returns {Array} - An array of Candy NFT properties.
     */
-    private func royalty_to_array(properties: CandyTypes.CandyValue, collection: Text) : [CandyTypes.CandyValue]{
+    private func royalty_to_array(properties: CandyTypes.CandyShared, collection: Text) : [CandyTypes.CandyShared]{
       D.print("In royalty to array" # debug_show((properties, collection)));
-      switch(Properties.getClassProperty(properties, collection)){
+      switch(Properties.getClassPropertyShared(properties, collection)){
         case(null) [];
         case(?list){
           D.print("found list" # debug_show(list));
           switch(list.value){
             case(#Array(the_array)){
               D.print("found array");
-              switch(the_array){
-                case(#thawed(val)) val;
-                case(#frozen(val)) val;
-              };
+              the_array;
             };
             case(_) [];
           };
@@ -1357,7 +1372,7 @@ module {
         //this is a staged NFT it can be sold by the canister owner or the canister manager
         switch(owner){
           case(#extensible(ex)){
-            if(Conversions.valueToText(ex) == "trx in flight"){
+            if(Conversions.candySharedToText(ex) == "trx in flight"){
               return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "market_transfer_nft_origyn - not an owner of the canister - staged sale - trx in flight", ?caller))
             };
           };
@@ -1641,7 +1656,7 @@ module {
                       escrow with
                       seller = owner;
                       sale_id = null;
-                      extensible = #Empty;
+                      extensible = #Option(null);
                     });
                     timestamp = Time.now();
                   }, caller)){
@@ -1670,7 +1685,7 @@ module {
             };
 
             //reset the system wallet shares
-            metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Empty);
+            metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Option(null));
           
 
             //D.print("updating metadata");
@@ -1685,7 +1700,7 @@ module {
                     token = escrow.token;
                     amount = escrow.amount;
                     sale_id = null;
-                    extensible = #Empty;
+                    extensible = #Option(null);
                 });
                 timestamp = Time.now();
             }, caller)){
@@ -1707,7 +1722,7 @@ module {
 
           let royalty = if(b_freshmint == false){
             //secondary
-            switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+            switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
               case(null){[];};
               case(?val){
                 debug if(debug_channel.market) D.print("found metadata" # debug_show(val.value));
@@ -1716,7 +1731,7 @@ module {
             };
           } else {
             //primary
-            switch(Properties.getClassProperty(metadata, Types.metadata.__system)){
+            switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
               case(null){[];};
               case(?val){
                 debug if(debug_channel.market) D.print("found metadata" # debug_show(val.value));
@@ -1796,9 +1811,9 @@ module {
     */
     public func get_network_royalty_account(principal : Principal) : [Nat8]{
       let h = SHA256.New();
-      h.write(Conversions.valueToBytes(#Text("com.origyn.network_royalty")));
-      h.write(Conversions.valueToBytes(#Text("canister-id")));
-      h.write(Conversions.valueToBytes(#Text(Principal.toText(principal))));
+      h.write(Conversions.candySharedToBytes(#Text("com.origyn.network_royalty")));
+      h.write(Conversions.candySharedToBytes(#Text("canister-id")));
+      h.write(Conversions.candySharedToBytes(#Text(Principal.toText(principal))));
       h.sum([]);
     };
 
@@ -1808,12 +1823,12 @@ module {
         total: Nat;
         fee: Nat;
         account_hash: ?Blob;
-        royalty: [CandyTypes.CandyValue];
+        royalty: [CandyTypes.CandyShared];
         escrow: Types.EscrowReceipt;
         broker_id: ?Principal;
         original_broker_id: ?Principal;
         sale_id: ?Text;
-        metadata : CandyTypes.CandyValue;
+        metadata : CandyTypes.CandyShared;
         token_id: ?Text;
         token: Types.TokenSpec
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
@@ -1832,7 +1847,7 @@ module {
 
         debug if(debug_channel.royalties) D.print("getting items from class " # debug_show(this_item));
               
-        let rate = switch(Properties.getClassProperty(this_item, "rate")){
+        let rate = switch(Properties.getClassPropertyShared(this_item, "rate")){
           case(null){0:Float};
           case(?val){
             switch(val.value){
@@ -1842,7 +1857,7 @@ module {
           };
         };
 
-        let tag = switch(Properties.getClassProperty(this_item, "tag")){
+        let tag = switch(Properties.getClassPropertyShared(this_item, "tag")){
           case(null){"other"}; 
           case(?val){
               switch(val.value){
@@ -1852,7 +1867,7 @@ module {
           };
         };
 
-        let principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassProperty(this_item, "account")){
+        let principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassPropertyShared(this_item, "account")){
             case(null){
               let #ic(tokenSpec) = request.token else {
                 D.print("not an IC token spec so continuing " # debug_show(request.token));
@@ -1871,14 +1886,14 @@ module {
               } else if(tag == Types.metadata.royalty_node){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
                 switch(val){
-                  case(#Empty) [{owner = dev_fund; sub_account = null;}] ; //dev fund
+                  case(#Option(null)) [{owner = dev_fund; sub_account = null;}] ; //dev fund
                   case(#Principal(val)) [{owner = val; sub_account = null;}];
                   case(_) [{owner = dev_fund; sub_account = null;}];
                 };
               } else if(tag == Types.metadata.royalty_originator){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
                 switch(val){
-                  case(#Empty) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(#Option(null)) [{owner = dev_fund; sub_account = null;}]; //dev fund
                   case(#Principal(val)) [{owner = val; sub_account = null;}];
                   case(_) [{owner = dev_fund; sub_account = null;}] ;
                 };
@@ -1924,7 +1939,7 @@ module {
                 request.escrow with 
                 amount = this_royalty;
                 tag = tag;
-                reciever = #account({ owner = this_principal.owner;
+                receiver = #account({ owner = this_principal.owner;
                 sub_account = switch(this_principal.sub_account){
                     case(null) null;
                     case(?val) ?Blob.fromArray(val);
@@ -1932,8 +1947,8 @@ module {
                 });
                 sale_id = request.sale_id;
                 extensible = switch(request.token_id){
-                  case(null) #Empty : CandyTypes.CandyValue;
-                  case(?token_id) #Text(token_id) : CandyTypes.CandyValue;
+                  case(null) #Option(null): CandyTypes.CandyShared;
+                  case(?token_id) #Text(token_id) : CandyTypes.CandyShared;
                 };
               };
               timestamp = state.get_time();
@@ -1974,12 +1989,12 @@ module {
     * @param {Nat} request.total - The total amount of royalty to be paid.
     * @param {Nat} request.fee - The fee to be paid for processing royalty.
     * @param {?Blob} request.account_hash - An optional hash of the account for which royalty is being paid.
-    * @param {[CandyTypes.CandyValue]} request.royalty - The array of royalty being paid.
+    * @param {[CandyTypes.CandyShared]} request.royalty - The array of royalty being paid.
     * @param {Types.EscrowReceipt} request.escrow - The escrow receipt associated with the transaction.
     * @param {?Principal} request.broker_id - The broker ID associated with the transaction.
     * @param {?Principal} request.original_broker_id - The original broker ID associated with the transaction.
     * @param {?Text} request.sale_id - The sale ID associated with the transaction.
-    * @param {CandyTypes.CandyValue} request.metadata - The metadata associated with the transaction.
+    * @param {CandyTypes.CandyShared} request.metadata - The metadata associated with the transaction.
     * @param {?Text} request.token_id - The token ID associated with the transaction.
     * @param {Types.TokenSpec} request.token - The token specification associated with the transaction.
     * @param {Principal} caller - The principal that initiated the transaction.
@@ -2075,7 +2090,7 @@ module {
             let kyc_result = try{
               await* KYC.pass_kyc_seller(state, {
                 seller = owner;
-                buyer = #extensible(#Empty);
+                buyer = #extensible(#Option(null));
                 amount = 0;
                 account_hash = null;
                 token_id = request.token_id;
@@ -2105,14 +2120,14 @@ module {
             };
 
             let h = SHA256.New();
-            h.write(Conversions.valueToBytes(#Text("com.origyn.nft.sale-id")));
-            h.write(Conversions.valueToBytes(#Text("token-id")));
-            h.write(Conversions.valueToBytes(#Text(request.token_id)));
-            h.write(Conversions.valueToBytes(#Text("seller")));
-            h.write(Conversions.valueToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
-            h.write(Conversions.valueToBytes(#Text("timestamp")));
-            h.write(Conversions.valueToBytes(#Int(state.get_time())));
-            let sale_id = Conversions.valueToText(#Bytes(#frozen(h.sum([]))));
+            h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.sale-id")));
+            h.write(Conversions.candySharedToBytes(#Text("token-id")));
+            h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
+            h.write(Conversions.candySharedToBytes(#Text("seller")));
+            h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
+            h.write(Conversions.candySharedToBytes(#Text("timestamp")));
+            h.write(Conversions.candySharedToBytes(#Int(state.get_time())));
+            let sale_id = Conversions.candySharedToText(#Bytes(h.sum([])));
 
             var allow_list : ?Map.Map<Principal, Bool> = null;
             switch(auction_details.allow_list) {
@@ -2179,7 +2194,7 @@ module {
                 txn_type = #sale_opened({
                     sale_id = sale_id;
                     pricing = request.sales_config.pricing;
-                    extensible = #Empty;});
+                    extensible = #Option(null);});
             };
             SB.add(this_ledger, txn);
 
@@ -2344,7 +2359,7 @@ module {
             request.deposit with 
             token_id = request.token_id;
             trx_id = trx_id;
-            extensible = #Empty;
+            extensible = #Option(null);
           };
           timestamp = state.get_time();
         }, caller)) {
@@ -2392,8 +2407,9 @@ module {
       //NFT-112
       let fee = switch(details.token){
         case(#ic(token)){
-          if(details.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
-          token.fee;
+          let token_fee = Option.get(token.fee, 0);
+          if(details.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
+          token_fee;
         };
         case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller));
       };
@@ -2440,7 +2456,7 @@ module {
               amount = Nat.sub(details.amount, transaction_id.fee);
               fee = transaction_id.fee;
               trx_id = transaction_id.trx_id;
-              extensible = #Empty;
+              extensible = #Option(null);
             }
             );
             timestamp = state.get_time();
@@ -2500,8 +2516,9 @@ module {
       //NFT-112
       let fee = switch(details.token){
         case(#ic(token)){
-            if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
-            token.fee;
+            let token_fee = Option.get(token.fee, 0);
+            if(a_ledger.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
+            token_fee;
         };
         case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller));
       };
@@ -2636,7 +2653,7 @@ module {
               amount = Nat.sub(details.amount,transaction_id.fee);
               fee = transaction_id.fee;
               trx_id = transaction_id.trx_id;
-              extensible = #Empty;
+              extensible = #Option(null);
             }
             );
             timestamp = state.get_time();
@@ -2686,7 +2703,8 @@ module {
       //NFT-112
       switch(details.token){
         case(#ic(token)){
-            if(a_ledger.amount <= token.fee){
+            let token_fee = Option.get(token.fee, 0);
+            if(a_ledger.amount <= token_fee){
               debug if(debug_channel.withdraw_sale) D.print("withdraw fee");
               return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount" , ?caller));
             };
@@ -2765,7 +2783,7 @@ module {
                 amount = Nat.sub(details.amount, transaction_id.fee);
                 fee = transaction_id.fee;
                 trx_id = transaction_id.trx_id;
-                extensible = #Empty;
+                extensible = #Option(null);
               }
               );
               timestamp = state.get_time();
@@ -2816,12 +2834,15 @@ module {
 
       let a_ledger = verified.found_asset.escrow;
 
+      
+
       // reject ignores locked assets
       //NFT-112
       let fee = switch(details.token){
         case(#ic(token)){
-          if(a_ledger.amount <= token.fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller));
-          token.fee;
+          let token_fee = Option.get(token.fee, 0);
+          if(a_ledger.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller));
+          token_fee;
         };
         case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show(details), ?caller));
       };
@@ -2959,7 +2980,7 @@ module {
                 amount = Nat.sub(verified.found_asset.escrow.amount,transaction_id.fee);
                 fee = transaction_id.fee;
                 trx_id = transaction_id.trx_id;
-                extensible = #Empty;
+                extensible = #Option(null);
             }
             );
             timestamp = state.get_time();
@@ -3249,7 +3270,7 @@ module {
             request.escrow_receipt with 
               broker_id = request.broker_id;
               sale_id = request.sale_id;
-              extensible = #Empty;
+              extensible = #Option(null);
           }
           );
           timestamp = state.get_time();
@@ -3357,15 +3378,15 @@ module {
             case(_){
               debug if(debug_channel.bid) D.print("getTokenfromSalesstatus not configured for type");
               assert(false);
-              return #extensible(#Empty);
+              return #extensible(#Option(null));
             };
           };
         };
-        /* case(_){
-                            debug if(debug_channel.bid) D.print("getTokenfromSalesstatus not configured for type");
+        case(_){
+            debug if(debug_channel.bid) D.print("getTokenfromSalesstatus not configured for type");
             assert(false);
-            return #extensible(#Empty);
-        }; */
+            return #extensible(#Option(null));
+        };
       };
     };
 }

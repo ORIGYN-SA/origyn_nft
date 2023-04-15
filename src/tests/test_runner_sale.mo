@@ -19,8 +19,15 @@ import Types "../origyn_nft_reference/types";
 import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
 
+import MigrationTypes "../origyn_nft_reference/migrations/types";
+
 
 shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
 
     private type canister_factory = actor {
         create : (Principal) -> async Principal;
@@ -37,7 +44,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             standard=#Ledger;
             decimals = 8;
             symbol = "LDG";
-            fee = 200000;});
+            fee = ?200000;
+            id = null;});
 
     private func get_time() : Int{
         return Time.now();
@@ -251,10 +259,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                 amount = 1000000000;
                 token = #ic({
                     canister = dfx_ledger;
-                    fee = 200000 : Nat;
+                    fee = ?200000 : ?Nat;
                     symbol = "OGY";
                     decimals = 8 : Nat;
                     standard = #Ledger;
+                    id = null;
                 });
             }];
             allowed_amount = ?2;
@@ -271,7 +280,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -293,7 +303,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -886,10 +897,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                 amount = 1000000000;
                 token = #ic({
                     canister = dfx_ledger;
-                    fee = 200000 : Nat;
+                    fee = ?200000 : ?Nat;
                     symbol = "OGY";
                     decimals = 8 : Nat;
                     standard = #Ledger;
+                    id = null;
                 });
             }];
             allowed_amount = ?2;
@@ -906,7 +918,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -928,7 +941,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -1506,10 +1520,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                 amount = 1000000000;
                 token = #ic({
                     canister = dfx_ledger;
-                    fee = 200000 : Nat;
+                    fee = ?200000 : ?Nat;
                     symbol = "OGY";
                     decimals = 8 : Nat;
                     standard = #Ledger;
+                    id = null;
                 });
             }];
             allowed_amount = ?5;
@@ -1526,7 +1541,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                  id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -1546,7 +1562,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -2110,10 +2127,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                 amount = 1000000000;
                 token = #ic({
                     canister = dfx_ledger;
-                    fee = 200000 : Nat;
+                    fee = ?200000 : ?Nat;
                     symbol = "OGY";
                     decimals = 8 : Nat;
                     standard = #Ledger;
+                    id = null;
                 });
             }];
             allowed_amount = ?5;
@@ -2574,10 +2592,11 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                 amount = 1000000000;
                 token = #ic({
                     canister = dfx_ledger;
-                    fee = 200000 : Nat;
+                    fee = ?200000 : ?Nat;
                     symbol = "OGY";
                     decimals = 8 : Nat;
                     standard = #Ledger;
+                    id = null;
                 });
             }];
             allowed_amount = ?2;
@@ -2596,7 +2615,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;
@@ -2616,7 +2636,8 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
                     amount = 1000000000;
                     token = #ic({
                         canister = dfx_ledger;
-                        fee = 200000;
+                        fee = ?200000;
+                        id = null;
                         symbol = "OGY";
                         decimals = 8;
                         standard = #Ledger;

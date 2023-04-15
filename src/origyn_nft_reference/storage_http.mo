@@ -13,11 +13,9 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
-import CandyTypes "mo:candy/types";
-import Conversion "mo:candy/conversion";
-import JSON "mo:candy/json";
+
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
+
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
@@ -38,6 +36,10 @@ module {
         library = false;
         request = false;
     };
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversion = MigrationTypes.Current.Conversions;
+    let SB = MigrationTypes.Current.SB;
 
     let { ihash; nhash; thash; phash; calcHash } = Map;
 
@@ -123,17 +125,10 @@ module {
                         debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
         var size : Nat = 0;
         //find the right data zone
-        for(this_item in data.vals()){
+        for(this_item in SB.vals(data)){
             switch(this_item){
                 case(#Bytes(bytes)){
-                    switch(bytes){
-                        case(#thawed(aArray)){
-                            size := size + aArray.size();
-                        };
-                        case(#frozen(aArray)){
-                            size := size + aArray.size();
-                        };
-                    };
+                    size := size + SB.size(bytes)
                 };
                 case(#Blob(bytes)){
                     
@@ -310,10 +305,10 @@ module {
         let payload : Buffer.Buffer<Nat8> =  Buffer.Buffer<Nat8>(buf_size);
         var blob_payload = Blob.fromArray([]);
         
-        label getData for(this_item in data.vals()){
+        label getData for(this_item in SB.vals(data)){
 
                             debug if(debug_channel.streaming) D.print("zone processing" # debug_show(tracker) # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-            let chunk = Conversion.valueUnstableToBlob(this_item);
+            let chunk = Conversion.candyToBlob(this_item);
             
             let chunkSize = chunk.size();
             if(chunkSize + tracker < index){
@@ -389,13 +384,13 @@ module {
         payload :Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
     } {
-        let payload = data.get(index);
+        let payload = SB.get(data,index);
                             debug if(debug_channel.streaming) D.print("in private call back");
-                            debug if(debug_channel.streaming)D.print(debug_show(data.size()));
-        if (index + 1 == data.size()) return {payload = Conversion.valueUnstableToBlob(payload); callback = null};
+                            debug if(debug_channel.streaming)D.print(debug_show(SB.size(data)));
+        if (index + 1 == SB.size(data)) return {payload = Conversion.candyToBlob(payload); callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
-        {payload = Conversion.valueUnstableToBlob(payload);
+        {payload = Conversion.candyToBlob(payload);
         callback = ?{
             content_encoding = "gzip";
             index            = index + 1;
@@ -436,7 +431,7 @@ module {
     * Determines how a library item should be rendered in an HTTP request.
     * @param {Types.State} state - The state of the canister.
     * @param {httpparser.ParsedHttpRequest} req - The HTTP request.
-    * @param {CandyTypes.CandyValue} metadata - The metadata for the NFT.
+    * @param {CandyTypes.CandyShared} metadata - The metadata for the NFT.
     * @param {string} token_id - The ID of the token.
     * @param {string} library_id - The ID of the library.
     * @returns
@@ -444,7 +439,7 @@ module {
     public func renderLibrary(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
@@ -537,13 +532,13 @@ module {
                 case(#ok(val)){val};
             };
 
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return _not_found("file data not found");
                 };
                 case(?zone){
-                                        debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
+                                        debug if(debug_channel.library)  D.print("size of zone" # debug_show(SB.size(zone)));
                   if(header_result.b_foundRange == true){
                     
                         //range request
@@ -570,11 +565,11 @@ module {
                         return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
+                                body               = Conversion.candySharedToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
                                 streaming_strategy = null;
                             }; */
                         //standard content request
-                        if(zone.size() > 1){
+                        if(SB.size(zone) > 1){
                             //streaming required
                             let result = handleLargeContent(
                                 state,
@@ -591,7 +586,7 @@ module {
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = Conversion.candyToBlob(SB.get(zone,0));
                                 streaming_strategy = null;
                             };
                         };
@@ -618,14 +613,14 @@ module {
                 case(#ok(val)){val};
             };
 
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return _not_found("file data not found");
                 };
                 case(?zone){
                                         debug if(debug_channel.library) D.print("size of zone");
-                                        debug if(debug_channel.library) D.print(debug_show(zone.size()));
+                                        debug if(debug_channel.library) D.print(debug_show(SB.size(zone)));
 
                     var split : [Text] = [];
                     var split2 : [Text] = [];
@@ -676,11 +671,11 @@ module {
                         return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
+                                body               = Conversion.candySharedToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
                                 streaming_strategy = null;
                             }; */
                         //standard content request
-                        if(zone.size() > 1){
+                        if(SB.size(zone) > 1){
                             //streaming required
                             let result = handleLargeContent(
                                 state,
@@ -697,7 +692,7 @@ module {
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = Conversion.candyToBlob(SB.get(zone, 0));
                                 streaming_strategy = null;
                             };
                         };
@@ -727,7 +722,7 @@ module {
     public func renderSmartRoute(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         token_id: Text, smartRoute: Text) : HTTPResponse {
         //D.print("path is ex");
         let library_id = switch(Metadata.get_nft_text_property(metadata, smartRoute)){
@@ -782,7 +777,7 @@ module {
                 case(#ok(val)){val};
             };
             
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return {
@@ -820,7 +815,7 @@ module {
                                 }};
                 case(#ok(val)){val};
             };
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                                         debug if(debug_channel.streaming) D.print("no file bytes found");
@@ -914,7 +909,7 @@ module {
 
             //D.print("have item");
 
-            switch (item.getOpt(1)) {
+            switch (SB.getOpt(item,1)) {
                 case (null) { };
                 case (?zone)  {
                     return stream_content(
@@ -949,7 +944,7 @@ module {
 
                                 debug if(debug_channel.large_content) //D.print("have item");
 
-            switch (item.getOpt(1)) {
+            switch (SB.getOpt(item,1)) {
                 case (null) { };
                 case (?zone)  {
                     return stream_media(
@@ -1012,7 +1007,7 @@ module {
 
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
-    public func http_nft_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
+    public func http_nft_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyShared): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {
                 return #err("no access code in request when nft not minted");

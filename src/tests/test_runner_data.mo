@@ -2,9 +2,7 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import C "mo:matchers/Canister";
-//import CandyType "mo:candy/types";
-import CandyTypes "mo:candy/types";
-import Conversion "mo:candy/conversion";
+
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Iter "mo:base/Iter";
@@ -14,7 +12,6 @@ import NFTUtils "../origyn_nft_reference/utils";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy/properties";
 import Result "mo:base/Result";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
@@ -22,10 +19,17 @@ import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+    
     let it = C.Tester({ batchSize = 8 });
 
     
@@ -94,12 +98,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         immutable=false;},
                     {name = "write"; value=#Class([
                         {name = "type"; value=#Text("allow"); immutable= false},
-                        {name = "list"; value=#Array(#thawed([#Principal(Principal.fromActor(this))]));
+                        {name = "list"; value=#Array([#Principal(Principal.fromActor(this))]);
                         immutable=false;}]);
                         immutable=false;},
                     {name = "permissions"; value=#Class([
                         {name = "type"; value=#Text("allow"); immutable= false},
-                        {name = "list"; value=#Array(#thawed([#Principal(Principal.fromActor(this))]));
+                        {name = "list"; value=#Array([#Principal(Principal.fromActor(this))]);
                         immutable=false;}]);
                     immutable=false;},
                     {name = "data"; value=#Class([
@@ -111,7 +115,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             immutable=false;},
                             {name = "write"; value=#Class([
                                 {name = "type"; value=#Text("allow"); immutable= false},
-                                {name = "list"; value=#Array(#thawed([#Principal(Principal.fromActor(this))]));
+                                {name = "list"; value=#Array([#Principal(Principal.fromActor(this))]);
                                 immutable=false;}]);
                             immutable=false;}]);
                         immutable=false;},
@@ -119,12 +123,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             {name = "data"; value=#Text("val4-modified"); immutable= false},
                             {name = "read"; value=#Class([
                                 {name = "type"; value=#Text("allow"); immutable= false},
-                                {name = "list"; value=#Array(#thawed([#Principal(Principal.fromActor(this))]));
+                                {name = "list"; value=#Array([#Principal(Principal.fromActor(this))]);
                                 immutable=false;}]);
                             immutable=false;},
                             {name = "write"; value=#Class([
                                 {name = "type"; value=#Text("allow"); immutable= false},
-                                {name = "list"; value=#Array(#thawed([#Principal(Principal.fromActor(this))]));
+                                {name = "list"; value=#Array([#Principal(Principal.fromActor(this))]);
                                 immutable=false;}]);
                             immutable=false;}]);
                         immutable=false;}]);
@@ -149,90 +153,85 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
             S.test("test getNFT Attempt", switch(getNFTAttempt){case(#ok(res)){
                 
-                switch(Properties.getClassProperty(res.metadata, Types.metadata.__apps)){
+                switch(Properties.getClassPropertyShared(res.metadata, Types.metadata.__apps)){
                     case(?app){
                         //D.print("have app");
                         switch(app.value){
                             case(#Array(val)){
                                 //D.print("have val");
-                                switch(val){
-                                    case(#thawed(classes)){
-                                        var b_foundPublic = false;
-                                        var b_foundPrivate = false;
-                                        var b_foundVal3 = false;
-                                        var b_foundVal4 = false;
-                                        //D.print("have classes");
-                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
-                                            //D.print("checking");
-                                            //D.print(debug_show(classes));
-                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item,Types.metadata.__apps_app_id), {immutable = false; name="app"; value =#Text("")});
-                                            //D.print("have a_app");
-                                            //D.print(debug_show(a_app));
-                                            //DATA0001
-                                            if(Conversion.valueToText(a_app.value) == "com.test.__public"){
-                                                b_foundPublic := true;
-                                                //try to find val3 which should be hidden
-                                                //D.print("looking for val3");
-                                                let a_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                //D.print("have a data");
-                                                //D.print(debug_show(a_data));
-                                                let a_val : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_data.value,"val3"), {immutable = false; name="data"; value =#Text("")});
-                                                let a_val2 : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_data.value,"val4"), {immutable = false; name="data"; value =#Text("")});
-                                                //D.print("have a val");
-                                                switch(a_val.value){
-                                                    case(#Class(valInfo)){
-                                                        let a_data_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_val.value,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                        //D.print("have a data data");
-                                                        
-                                                        if(Conversion.valueToText(a_data_data.value) == "val3"){
-                                                            //D.print("found it");
-                                                            b_foundVal3 := true;
-                                                        } else {
-                                                            //D.print("didn't find it");
-                                                        }
-                                                    };
-                                                    case(_){
-
-                                                    };
-                                                };
-                                                switch(a_val2.value){
-                                                    case(#Class(valInfo)){
-                                                        let a_data_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_val2.value,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                        //D.print("have a data data");
-                                                        
-                                                        if(Conversion.valueToText(a_data_data.value) == "val4"){
-                                                            //D.print("found it");
-                                                            b_foundVal3 := true;
-                                                        } else {
-                                                            //D.print("didn't find it");
-                                                        }
-                                                    };
-                                                    case(_){
-
-                                                    };
-                                                };
+                                
+                                var b_foundPublic = false;
+                                var b_foundPrivate = false;
+                                var b_foundVal3 = false;
+                                var b_foundVal4 = false;
+                                //D.print("have classes");
+                                for(this_item in Iter.fromArray<CandyTypes.CandyShared>(val)){
+                                    //D.print("checking");
+                                    //D.print(debug_show(val));
+                                    let a_app : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item,Types.metadata.__apps_app_id), {immutable = false; name="app"; value =#Text("")});
+                                    //D.print("have a_app");
+                                    //D.print(debug_show(a_app));
+                                    //DATA0001
+                                    if(Conversions.candySharedToText(a_app.value) == "com.test.__public"){
+                                        b_foundPublic := true;
+                                        //try to find val3 which should be hidden
+                                        //D.print("looking for val3");
+                                        let a_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item,"data"), {immutable = false; name="data"; value =#Text("")});
+                                        //D.print("have a data");
+                                        //D.print(debug_show(a_data));
+                                        let a_val : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_data.value,"val3"), {immutable = false; name="data"; value =#Text("")});
+                                        let a_val2 : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_data.value,"val4"), {immutable = false; name="data"; value =#Text("")});
+                                        //D.print("have a val");
+                                        switch(a_val.value){
+                                            case(#Class(valInfo)){
+                                                let a_data_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_val.value,"data"), {immutable = false; name="data"; value =#Text("")});
+                                                //D.print("have a data data");
+                                                
+                                                if(Conversions.candySharedToText(a_data_data.value) == "val3"){
+                                                    //D.print("found it");
+                                                    b_foundVal3 := true;
+                                                } else {
+                                                    //D.print("didn't find it");
+                                                }
                                             };
-                                            //DATA0002
-                                            if(Conversion.valueToText(a_app.value) == "com.test.__private"){
-                                                b_foundPrivate := true;
-                                            }
-                                        };
+                                            case(_){
 
-                                    
-                                        switch(b_foundPublic, b_foundPrivate, b_foundVal3, b_foundVal4){
-                                            case(true, false, true, false){
-                                                "correct response";
-                                            };
-                                            case(_,_,_,_){
-                                                "something missing or something extra";
                                             };
                                         };
+                                        switch(a_val2.value){
+                                            case(#Class(valInfo)){
+                                                let a_data_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_val2.value,"data"), {immutable = false; name="data"; value =#Text("")});
+                                                //D.print("have a data data");
+                                                
+                                                if(Conversions.candySharedToText(a_data_data.value) == "val4"){
+                                                    //D.print("found it");
+                                                    b_foundVal3 := true;
+                                                } else {
+                                                    //D.print("didn't find it");
+                                                }
+                                            };
+                                            case(_){
 
+                                            };
+                                        };
                                     };
-                                    case(_){
-                                        "wrong type of arrray";
+                                    //DATA0002
+                                    if(Conversions.candySharedToText(a_app.value) == "com.test.__private"){
+                                        b_foundPrivate := true;
+                                    }
+                                };
+
+                            
+                                switch(b_foundPublic, b_foundPrivate, b_foundVal3, b_foundVal4){
+                                    case(true, false, true, false){
+                                        "correct response";
+                                    };
+                                    case(_,_,_,_){
+                                        "something missing or something extra";
                                     };
                                 };
+
+                                   
                             };
                             case(_){
                                 "not an array";
@@ -253,90 +252,85 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};}, M.equals<Text>(T.text("correct number"))), //DATA0010
             S.test("allowed user can write", switch(getNFTAttempt2){case(#ok(res)){
                 
-                switch(Properties.getClassProperty(res.metadata, Types.metadata.__apps)){
+                switch(Properties.getClassPropertyShared(res.metadata, Types.metadata.__apps)){
                     case(?app){
                         //D.print("have app");
                         switch(app.value){
                             case(#Array(val)){
                                 //D.print("have val");
-                                switch(val){
-                                    case(#thawed(classes)){
-                                        var b_foundPublic = false;
-                                        var b_foundPrivate = false;
-                                        var b_foundVal3 = false;
-                                        var b_foundVal4 = false;
-                                        //D.print("have classes");
-                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
-                                            //D.print("checking");
-                                            //D.print(debug_show(classes));
-                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.__apps_app_id), {immutable = false; name="app"; value =#Text("")});
-                                            //D.print("have a_app");
-                                            //D.print(debug_show(a_app));
-                                            //DATA0001
-                                            if(Conversion.valueToText(a_app.value) == "com.test.__public"){
-                                                b_foundPublic := true;
-                                                //try to find val3 which should be hidden
-                                                //D.print("looking for val3");
-                                                let a_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                //D.print("have a data");
-                                                //D.print(debug_show(a_data));
-                                                let a_val : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_data.value,"val3"), {immutable = false; name="data"; value =#Text("")});
-                                                let a_val2 : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_data.value,"val4"), {immutable = false; name="data"; value =#Text("")});
-                                                //D.print("have a val");
-                                                switch(a_val.value){
-                                                    case(#Class(valInfo)){
-                                                        let a_data_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_val.value,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                        //D.print("have a data data");
-                                                        
-                                                        if(Conversion.valueToText(a_data_data.value) == "val3-modified"){
-                                                            //D.print("found it");
-                                                            b_foundVal3 := true;
-                                                        } else {
-                                                            //D.print("didn't find it");
-                                                        }
-                                                    };
-                                                    case(_){
+                                
+                              var b_foundPublic = false;
+                              var b_foundPrivate = false;
+                              var b_foundVal3 = false;
+                              var b_foundVal4 = false;
+                              //D.print("have classes");
+                              for(this_item in Iter.fromArray<CandyTypes.CandyShared>(val)){
+                                  //D.print("checking");
+                                  //D.print(debug_show(val));
+                                  let a_app : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item, Types.metadata.__apps_app_id), {immutable = false; name="app"; value =#Text("")});
+                                  //D.print("have a_app");
+                                  //D.print(debug_show(a_app));
+                                  //DATA0001
+                                  if(Conversions.candySharedToText(a_app.value) == "com.test.__public"){
+                                      b_foundPublic := true;
+                                      //try to find val3 which should be hidden
+                                      //D.print("looking for val3");
+                                      let a_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item,"data"), {immutable = false; name="data"; value =#Text("")});
+                                      //D.print("have a data");
+                                      //D.print(debug_show(a_data));
+                                      let a_val : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_data.value,"val3"), {immutable = false; name="data"; value =#Text("")});
+                                      let a_val2 : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_data.value,"val4"), {immutable = false; name="data"; value =#Text("")});
+                                      //D.print("have a val");
+                                      switch(a_val.value){
+                                          case(#Class(valInfo)){
+                                              let a_data_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_val.value,"data"), {immutable = false; name="data"; value =#Text("")});
+                                              //D.print("have a data data");
+                                              
+                                              if(Conversions.candySharedToText(a_data_data.value) == "val3-modified"){
+                                                  //D.print("found it");
+                                                  b_foundVal3 := true;
+                                              } else {
+                                                  //D.print("didn't find it");
+                                              }
+                                          };
+                                          case(_){
 
-                                                    };
-                                                };
-                                                switch(a_val2.value){
-                                                    case(#Class(valInfo)){
-                                                        let a_data_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(a_val2.value,"data"), {immutable = false; name="data"; value =#Text("")});
-                                                        //D.print("have a data data");
-                                                        
-                                                        if(Conversion.valueToText(a_data_data.value) == "val4-modified"){
-                                                            //D.print("found it");
-                                                            b_foundVal3 := true;
-                                                        } else {
-                                                            //D.print("didn't find it");
-                                                        }
-                                                    };
-                                                    case(_){
+                                          };
+                                      };
+                                      switch(a_val2.value){
+                                          case(#Class(valInfo)){
+                                              let a_data_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(a_val2.value,"data"), {immutable = false; name="data"; value =#Text("")});
+                                              //D.print("have a data data");
+                                              
+                                              if(Conversions.candySharedToText(a_data_data.value) == "val4-modified"){
+                                                  //D.print("found it");
+                                                  b_foundVal3 := true;
+                                              } else {
+                                                  //D.print("didn't find it");
+                                              }
+                                          };
+                                          case(_){
 
-                                                    };
-                                                };
-                                            };
-                                            //DATA0002
-                                            if(Conversion.valueToText(a_app.value) == "com.test.__private"){
-                                                b_foundPrivate := true;
-                                            }
-                                        };
+                                          };
+                                      };
+                                  };
+                                  //DATA0002
+                                  if(Conversions.candySharedToText(a_app.value) == "com.test.__private"){
+                                      b_foundPrivate := true;
+                                  }
+                              };
+
+                          
+                              switch(b_foundPublic, b_foundPrivate, b_foundVal3, b_foundVal4){
+                                  case(true, false, true, false){
+                                      "correct response";
+                                  };
+                                  case(_,_,_,_){
+                                      "something missing or something extra";
+                                  };
+                              };
 
                                     
-                                        switch(b_foundPublic, b_foundPrivate, b_foundVal3, b_foundVal4){
-                                            case(true, false, true, false){
-                                                "correct response";
-                                            };
-                                            case(_,_,_,_){
-                                                "something missing or something extra";
-                                            };
-                                        };
-
-                                    };
-                                    case(_){
-                                        "wrong type of arrray";
-                                    };
-                                };
                             };
                             case(_){
                                 "not an array";
@@ -389,7 +383,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               {name = "location_type"; value=#Text("canister"); immutable= true},
               {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId="); immutable= true},
               {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-              {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+              {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
               {name = "size"; value=#Nat(40); immutable= true},
               {name = "sort"; value=#Nat(0); immutable= true},
               {name = "read"; value=#Text("public");immutable=false;},
@@ -419,7 +413,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               {name = "location_type"; value=#Text("canister"); immutable= true},
               {name = "location"; value=#Text("http://localhost:8000/-/1/-/immutable_item?canisterId="); immutable= true},
               {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-              {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+              {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
               {name = "size"; value=#Nat(40); immutable= true},
               {name = "sort"; value=#Nat(0); immutable= true},
               {name = "read"; value=#Text("public");immutable=false;},
@@ -453,53 +447,48 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};}, M.equals<Text>(T.text("correct number"))), //DATA0010
             S.test("Data is correct", switch(getNFTAttempt){case(#ok(res)){
                 
-                switch(Properties.getClassProperty(res.metadata, Types.metadata.library)){
+                switch(Properties.getClassPropertyShared(res.metadata, Types.metadata.library)){
                     case(?library){
                         //D.print("have app");
                         switch(library.value){
                             case(#Array(val)){
                                 //D.print("have val");
-                                switch(val){
-                                    case(#thawed(classes)){
-                                        var b_found_immutable : Bool = false;
-                                        var b_found_updated : Bool = false;
-                                        //D.print("have classes");
-                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
-                                            //D.print("checking");
-                                            //D.print(debug_show(classes));
-                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
-                                            //D.print("have a_app");
-                                            //D.print(debug_show(a_app));
-                                            //DATA0001
-                                            if(Conversion.valueToText(a_app.value) == "immutable_item"){
-                                                b_found_immutable := true;
-                                                //try to find val3 which should be hidden
-                                                //D.print("looking for val3");
-                                                let title_data : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item,"title"), {immutable = false; name="title"; value =#Text("")});
-                                                
-                                                if(Conversion.valueToText(title_data.value) == "immutable-updated"){
-                                                  b_found_updated := true;
-                                                };
-                                                
-                                            };
-                                           
+                                
+                                var b_found_immutable : Bool = false;
+                                var b_found_updated : Bool = false;
+                                //D.print("have classes");
+                                for(this_item in Iter.fromArray<CandyTypes.CandyShared>(val)){
+                                    //D.print("checking");
+                                    //D.print(debug_show(classes));
+                                    let a_app : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
+                                    //D.print("have a_app");
+                                    //D.print(debug_show(a_app));
+                                    //DATA0001
+                                    if(Conversions.candySharedToText(a_app.value) == "immutable_item"){
+                                        b_found_immutable := true;
+                                        //try to find val3 which should be hidden
+                                        //D.print("looking for val3");
+                                        let title_data : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item,"title"), {immutable = false; name="title"; value =#Text("")});
+                                        
+                                        if(Conversions.candySharedToText(title_data.value) == "immutable-updated"){
+                                          b_found_updated := true;
                                         };
-
-                                    
-                                        switch(b_found_immutable, b_found_updated){
-                                            case(true, true){
-                                                "correct response";
-                                            };
-                                            case(_,_){
-                                                "something missing or something extra";
-                                            };
-                                        };
-
+                                        
                                     };
-                                    case(_){
-                                        "wrong type of arrray";
+                                    
+                                };
+
+                            
+                                switch(b_found_immutable, b_found_updated){
+                                    case(true, true){
+                                        "correct response";
+                                    };
+                                    case(_,_){
+                                        "something missing or something extra";
                                     };
                                 };
+
+                            
                             };
                             case(_){
                                 "not an array";
@@ -612,49 +601,44 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }};}, M.equals<Text>(T.text("correct number"))), //DATA0010
             S.test("Data is correct", switch(getNFTAttempt){case(#ok(res)){
                 
-                switch(Properties.getClassProperty(res.metadata, Types.metadata.library)){
+                switch(Properties.getClassPropertyShared(res.metadata, Types.metadata.library)){
                     case(?library){
                         //D.print("have app");
                         switch(library.value){
                             case(#Array(val)){
                                 //D.print("have val");
-                                switch(val){
-                                    case(#thawed(classes)){
-                                        var b_found_page : Bool = false;
-                                        var b_found_preview : Bool = false;
-                                        var b_found_immutable : Bool = false;
-                                        //D.print("have classes");
-                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
-                                            
-                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
-
-                                            if(Conversion.valueToText(a_app.value) == "immutable_item"){
-                                                b_found_immutable := true;
-                                            };
-                                            if(Conversion.valueToText(a_app.value) == "page"){
-                                                b_found_page := true;
-                                            };
-                                            if(Conversion.valueToText(a_app.value) == "preview"){
-                                                b_found_preview := true;
-                                            };
-                                           
-                                        };
-
+                        
+                                var b_found_page : Bool = false;
+                                var b_found_preview : Bool = false;
+                                var b_found_immutable : Bool = false;
+                                //D.print("have classes");
+                                for(this_item in Iter.fromArray<CandyTypes.CandyShared>(val)){
                                     
-                                        switch(b_found_immutable, b_found_page, b_found_preview){
-                                            case(true, false, false){
-                                                "correct response";
-                                            };
-                                            case(_,_,_){
-                                                "something missing or something extra " # debug_show((b_found_immutable, b_found_page, b_found_preview));
-                                            };
-                                        };
+                                    let a_app : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
 
+                                    if(Conversions.candySharedToText(a_app.value) == "immutable_item"){
+                                        b_found_immutable := true;
                                     };
-                                    case(_){
-                                        "wrong type of arrray";
+                                    if(Conversions.candySharedToText(a_app.value) == "page"){
+                                        b_found_page := true;
+                                    };
+                                    if(Conversions.candySharedToText(a_app.value) == "preview"){
+                                        b_found_preview := true;
+                                    };
+                                    
+                                };
+
+                            
+                                switch(b_found_immutable, b_found_page, b_found_preview){
+                                    case(true, false, false){
+                                        "correct response";
+                                    };
+                                    case(_,_,_){
+                                        "something missing or something extra " # debug_show((b_found_immutable, b_found_page, b_found_preview));
                                     };
                                 };
+
+                            
                             };
                             case(_){
                                 "not an array";
@@ -714,7 +698,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
                     {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=" # Principal.toText(Principal.fromActor(canister))); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(1025); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable=false;},
@@ -740,7 +724,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
                     {name = "location"; value=#Text("http://localhost:8000/-/1/-/page?canisterId=" # Principal.toText(Principal.fromActor(canister))); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(1023); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable=false;},
@@ -768,43 +752,37 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
            
             S.test("Data is correct", switch(getNFTAttempt){case(#ok(res)){
                 
-                switch(Properties.getClassProperty(res.metadata, Types.metadata.library)){
+                switch(Properties.getClassPropertyShared(res.metadata, Types.metadata.library)){
                     case(?library){
                         //D.print("have app");
                         switch(library.value){
                             case(#Array(val)){
-                                //D.print("have val");
-                                switch(val){
-                                    case(#thawed(classes)){
-                                        var b_found_page : Bool = false;
-                                        //D.print("have classes");
-                                        for(this_item in Iter.fromArray<CandyTypes.CandyValue>(classes)){
-                                            
-                                            let a_app : CandyTypes.Property = Option.get<CandyTypes.Property>(Properties.getClassProperty(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
+                                
+                              var b_found_page : Bool = false;
+                              //D.print("have classes");
+                              for(this_item in Iter.fromArray<CandyTypes.CandyShared>(val)){
+                                  
+                                  let a_app : CandyTypes.PropertyShared = Option.get<CandyTypes.PropertyShared>(Properties.getClassPropertyShared(this_item, Types.metadata.library_id), {immutable = false; name="library_id"; value =#Text("")});
 
-                                           
-                                            if(Conversion.valueToText(a_app.value) == "page"){
-                                                b_found_page := true;
-                                            };
+                                  
+                                  if(Conversions.candySharedToText(a_app.value) == "page"){
+                                      b_found_page := true;
+                                  };
 
-                                           
-                                        };
+                                  
+                              };
 
-                                    
-                                        switch(b_found_page){
-                                            case(true){
-                                                "correct response";
-                                            };
-                                            case(_){
-                                                "something missing or something extra " # debug_show((b_found_page));
-                                            };
-                                        };
+                          
+                              switch(b_found_page){
+                                  case(true){
+                                      "correct response";
+                                  };
+                                  case(_){
+                                      "something missing or something extra " # debug_show((b_found_page));
+                                  };
+                              };
 
-                                    };
-                                    case(_){
-                                        "wrong type of arrray";
-                                    };
-                                };
+                          
                             };
                             case(_){
                                 "not an array";
