@@ -1,4 +1,4 @@
-# origyn_nft_reference
+# origyn_nft_reference - v0.1.4-rc1
 
 <img src="https://github.com/ORIGYN-SA/origyn_nft/blob/add-origyn-nft-pic/origyn_nft_pic.jpeg" />
 
