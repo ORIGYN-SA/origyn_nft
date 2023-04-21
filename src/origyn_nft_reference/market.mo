@@ -38,16 +38,16 @@ module {
       ensure = false;
       invoice = false;
       end_sale = false;
-      market = true;
-      royalties = true;
+      market = false;
+      royalties = false;
       offers = false;
       escrow = false;
       withdraw_escrow = false;
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      bid = true;
-      kyc = true;
+      bid = false;
+      kyc = false;
   };
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;
@@ -1015,9 +1015,9 @@ module {
                     thisRoyalty with
                     withdraw_to = thisRoyalty.seller;})));
                 };
-                D.print("attempt to distribute royalties request auction" # debug_show(Buffer.toArray(request_buffer)));
+                debug if(debug_channel.royalties) D.print("attempt to distribute royalties request auction" # debug_show(Buffer.toArray(request_buffer)));
                 let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-                D.print("attempt to distribute royalties auction" # debug_show(future));
+                debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
               switch(Metadata.add_transaction_record(state,{
@@ -1308,14 +1308,14 @@ module {
     * @returns {Array} - An array of Candy NFT properties.
     */
     private func royalty_to_array(properties: CandyTypes.CandyShared, collection: Text) : [CandyTypes.CandyShared]{
-      D.print("In royalty to array" # debug_show((properties, collection)));
+      debug if(debug_channel.royalties) D.print("In royalty to array" # debug_show((properties, collection)));
       switch(Properties.getClassPropertyShared(properties, collection)){
         case(null) [];
         case(?list){
-          D.print("found list" # debug_show(list));
+          debug if(debug_channel.royalties) D.print("found list" # debug_show(list));
           switch(list.value){
             case(#Array(the_array)){
-              D.print("found array");
+              debug if(debug_channel.royalties) D.print("found array");
               the_array;
             };
             case(_) [];
@@ -1748,7 +1748,7 @@ module {
             let total = Nat.sub(escrow.amount, fee);
             var remaining = Nat.sub(escrow.amount, fee);
 
-            D.print("calling process royalty" # debug_show((total,remaining)));
+            debug if(debug_channel.royalties) D.print("calling process royalty" # debug_show((total,remaining)));
             let royalty_result = _process_royalties(state, {
                 var remaining = remaining;
                 total = total;
@@ -1766,7 +1766,7 @@ module {
 
             remaining := royalty_result.0;
 
-            D.print("done with royalty" # debug_show((total,remaining)));
+            debug if(debug_channel.royalties) D.print("done with royalty" # debug_show((total,remaining)));
                 
             let new_sale_balance = put_sales_balance(state, {
               verified.found_asset.escrow with
@@ -1789,10 +1789,10 @@ module {
                 thisRoyalty with
                 withdraw_to = thisRoyalty.seller;})));
             };
-            D.print("attempt to distribute royalties request instant" # debug_show(Buffer.toArray(request_buffer)));
+            debug if(debug_channel.royalties) D.print("attempt to distribute royalties request instant" # debug_show(Buffer.toArray(request_buffer)));
 
             let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-            D.print("attempt to distribute royalties instant" # debug_show(future));
+            debug if(debug_channel.royalties) D.print("attempt to distribute royalties instant" # debug_show(future));
           };
 
           return #ok(txn_record);
@@ -1870,14 +1870,14 @@ module {
         let principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassPropertyShared(this_item, "account")){
             case(null){
               let #ic(tokenSpec) = request.token else {
-                D.print("not an IC token spec so continuing " # debug_show(request.token));
+                debug if(debug_channel.royalties) D.print("not an IC token spec so continuing " # debug_show(request.token));
                 continue royaltyLoop;
               }; //we only support ic token specs for royalties
               if(tag == Types.metadata.royalty_network){
 
                 
 
-                D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister)));
+                debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister)));
                 switch(state.state.collection_data.network){
                   case(null) [{owner = dev_fund; sub_account = null;}] ; //dev fund
                   case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister)}] ;
@@ -2392,7 +2392,7 @@ module {
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - The result of the operation which may contain an error.
     */
     private func _withdraw_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
-      D.print("in deposit withdraw");
+      debug if(debug_channel.withdraw_deposit) D.print("in deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
       if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false){
@@ -2543,8 +2543,8 @@ module {
           switch(current_sale_state.status){
             case(#open){
 
-              D.print(debug_show(current_sale_state));
-              D.print(debug_show(caller));
+              debug if(debug_channel.withdraw_escrow) D.print(debug_show(current_sale_state));
+              debug if(debug_channel.withdraw_escrow) D.print(debug_show(caller));
 
               //NFT-110
               switch(current_sale_state.winner){
@@ -2566,7 +2566,7 @@ module {
                   debug if(debug_channel.withdraw_escrow) D.print("testing current escorw");
                   debug if(debug_channel.withdraw_escrow) D.print(debug_show(val.buyer));
                   if(Types.account_eq(val.buyer, details.buyer)){
-                    D.print("passed");
+                    debug if(debug_channel.withdraw_escrow) D.print("passed");
                     return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid" , ?caller));
                   };
                 };
@@ -2710,7 +2710,7 @@ module {
             };
         };
         case(_){
-          D.print("nyi err");
+          debug if(debug_channel.withdraw_sale) D.print("nyi err");
           return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
         };
       };

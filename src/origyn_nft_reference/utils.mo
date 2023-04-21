@@ -131,9 +131,9 @@ module {
             case(#auction(state)){
                 #ok(state);
             };
-            /* case(_){
-                return #err(Types.errors(#nyi, "bid_nft_origyn - sales state not implemented " # current_sale.sale_id, null));
-            }; */
+            case(_){
+                return #err(Types.errors(null, #nyi, "get_auction_state_from_status - not an auction type " # current_sale.sale_id, null));
+            };
         };
     };
 
@@ -148,9 +148,9 @@ module {
             case(#auction(state)){
                 #ok(state);
             };
-            /* case(_){
-                return #err(Types.errors(#nyi, "bid_nft_origyn - sales state not implemented " # current_sale.sale_id, null));
-            }; */
+            case(_){
+                return #err(Types.errors(null, #nyi, "get_auction_state_from_statusStable - not an auction state " # current_sale.sale_id, null));
+            };
         };
     };
 

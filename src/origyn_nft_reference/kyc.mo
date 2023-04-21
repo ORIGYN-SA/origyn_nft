@@ -31,6 +31,7 @@ module {
 
     let debug_channel = {
         owner = false;
+        kyc = false;
     };
 
     /**
@@ -39,14 +40,14 @@ module {
     * @returns {?Principal} The KYC canister's principal for the buyer of the collection or null if not found.
     */
     private func get_collection_kyc_canister_buyer(state : Types.State) : ?Principal {
-      D.print(Types.metadata.collection_kyc_canister_buyer);
+      debug if(debug_channel.kyc == true) D.print(Types.metadata.collection_kyc_canister_buyer);
       state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer called", #Option(null), null);
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else{
         state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer was null", #Option(null), null);
        return null;
       };
 
-      D.print("metadata: " # debug_show(metadata));
+      debug if(debug_channel.kyc == true) D.print("metadata: " # debug_show(metadata));
       let #ok(value) = Metadata.get_nft_principal_property(metadata, Types.metadata.collection_kyc_canister_buyer) else{
         state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer improper principal", #Option(null), null);
        return null
@@ -114,7 +115,7 @@ module {
             #IC({token with id = null; fee = token.fee});
            };
           case(_){
-            D.print("unsupported spec");
+            debug if(debug_channel.kyc == true) D.print("unsupported spec");
             return #err(Types.errors(?state.canistergeekLogger,  #nyi, "pass_kyc - unsupported spec " # debug_show(escrow.token), ?caller));
           };
         };
@@ -136,13 +137,13 @@ module {
             });
           };
           case(_){
-            D.print("unsupported buyer");
+            debug if(debug_channel.kyc == true) D.print("unsupported buyer");
             return #err(Types.errors(?state.canistergeekLogger,  #nyi, "pass_kyc - unsupported buyer " # debug_show(escrow.token), ?caller));
           };
         };
 
         
-        D.print("getting collection canister");
+        debug if(debug_channel.kyc == true) D.print("getting collection canister");
         let sale_kyc = get_sale_kyc_canister(state, escrow.sale_id);
 
         state.canistergeekLogger.logMessage("pass_kyc_buyer was null", #Text(debug_show(sale_kyc)), ?caller);
@@ -158,10 +159,10 @@ module {
           };
        
 
-         D.print("getting collection canister");
+        debug if(debug_channel.kyc == true) D.print("getting collection canister");
         let collection_kyc = get_collection_kyc_canister_buyer(state, );
 
-        D.print(" canister" # debug_show(collection_kyc));
+        debug if(debug_channel.kyc == true) D.print(" canister" # debug_show(collection_kyc));
 
         let collection_result : MigrationTypes.Current.RunKYCResult = switch(collection_kyc){
           case(null){
@@ -533,7 +534,7 @@ module {
     */
     public func notify_kyc(state: StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* () {
 
-        D.print("in notify kyc");
+        debug if(debug_channel.kyc == true) D.print("in notify kyc");
         state.canistergeekLogger.logMessage("notify_kyc called", #Text(debug_show(escrow, caller)), ?caller);
 
 
@@ -542,7 +543,7 @@ module {
             #IC({token with id = null; fee = token.fee});
            };
           case(_){
-            D.print("no spec...ignoring");
+            debug if(debug_channel.kyc == true) D.print("no spec...ignoring");
             return ;
           };
         };
@@ -564,7 +565,7 @@ module {
             });
           };
           case(_){
-            D.print("no buyer ... ignoring");
+            debug if(debug_channel.kyc == true) D.print("no buyer ... ignoring");
             return ;
           };
         };
@@ -574,7 +575,7 @@ module {
         switch(collection_kyc_buyer){
           case(null){};
           case(?val){
-            D.print("about to call notify");
+            debug if(debug_channel.kyc == true) D.print("about to call notify");
             try{
             await* state.kyc_client.notify({
                 canister = val;
@@ -595,7 +596,7 @@ module {
                 ]);
               });
             } catch(e){
-              D.print(Error.message(e));
+              debug if(debug_channel.kyc == true) D.print(Error.message(e));
             }
           };
         };

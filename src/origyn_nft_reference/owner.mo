@@ -127,11 +127,6 @@ module {
             wallets.add(thisItem);
           };
         };
-        case(#Array(val)){
-          for(thisItem in val.vals()){
-            wallets.add(thisItem);
-          };
-        };
         case(_){
           return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "share_nft_origyn - wallet_share not an array", null));
         };

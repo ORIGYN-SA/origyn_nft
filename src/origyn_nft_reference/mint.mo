@@ -31,7 +31,7 @@ module {
         function_announce = false;
         storage = false;
         library = false;
-        stage = true;
+        stage = false;
         mint = false;
         remote = false;
     };
@@ -560,7 +560,7 @@ module {
 
       //file the chunk
       if(chunk.content.size() > 0){
-        debug if(debug_channel) D.print("filing the chunk");
+        debug if(debug_channel == true) D.print("filing the chunk");
         let file_chunks = switch(SB.getOpt(found_workspace,1)){
             case(null){
                 if(SB.size(found_workspace)==0){
@@ -664,7 +664,7 @@ module {
               };
               /////////////////////////////////////////////
 
-              D.print("putting the chunk");
+              debug if(debug_channel) D.print("putting the chunk");
               if (chunk.chunk + 1 <= SB.size(file_chunks)) {
                   if (state.state.use_stableBTree) {
                     /*
@@ -686,11 +686,11 @@ module {
                   //D.print(debug_show(file_chunks.size()));
 
                   for (this_index in Iter.range(SB.size(file_chunks), chunk.chunk)) {
-                      D.print(debug_show(this_index));
+                      debug if(debug_channel) D.print(debug_show(this_index));
                       let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
 
                       if (this_index == chunk.chunk) {
-                          D.print("index was chunk" # debug_show(this_index));
+                          debug if(debug_channel) D.print("index was chunk" # debug_show(this_index));
 
                           // If flag use_stable is true we insert Blobs into stablebtree
                           if (state.state.use_stableBTree) {
@@ -707,7 +707,7 @@ module {
                               SB.add(size_chunks, #Nat(chunk.content.size()))
                           };
                       } else {
-                          D.print("index wasnt chunk" # debug_show(this_index));
+                          debug if(debug_channel) D.print("index wasnt chunk" # debug_show(this_index));
                           if (state.state.use_stableBTree) {
                             /*
                               D.print("#level 2");
@@ -1223,7 +1223,7 @@ module {
         };
         metadata := Metadata.set_system_var(metadata, Types.metadata.__system_status, #Text("minted"));
 
-        D.print("should have set metadata to minted");
+        debug if(debug_channel.stage) D.print("should have set metadata to minted");
 
         //copy physical value to system
         switch (Metadata.get_nft_bool_property(metadata, Types.metadata.physical)) {

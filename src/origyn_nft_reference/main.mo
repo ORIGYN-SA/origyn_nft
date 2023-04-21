@@ -54,12 +54,12 @@ shared (deployer) actor class Nft_Canister() = this {
 
     // Lets user turn debug messages on and off for local replica
     let debug_channel = {
-        instantiation = true;
+        instantiation = false;
         upgrade = false;
-        function_announce = true;
+        function_announce = false;
         storage = false;
         streaming = false;
-        manage_storage = true;
+        manage_storage = false;
     };
 
     let CandyTypes = MigrationTypes.Current.CandyTypes;
@@ -520,12 +520,53 @@ shared (deployer) actor class Nft_Canister() = this {
         };
         switch (request) {
             case (#clear_shared_wallets(val)) {
-                canistergeekLogger.logMessage("governance_nft_origyn", #Text(val), ?msg.caller);
+                canistergeekLogger.logMessage("governance_nft_origyn - clear_shared_wallets", #Text(val), ?msg.caller);
+            };
+            case (#update_system_var(val)) {
+                canistergeekLogger.logMessage("governance_nft_origyn - update_system_var", #Text(debug_show(val)), ?msg.caller);
             };
         };
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in owner governance");
-        return Governance.governance_nft_origyn(get_state(), request, msg.caller);
+        return await* Governance.governance_nft_origyn(get_state(), request, msg.caller);
+    };
+
+
+    public shared (msg) func governance_batch_nft_origyn(requests : [Types.GovernanceRequest]) : async [Types.GovernanceResult] {
+        
+
+        
+        if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        if(NFTUtils.is_network(get_state(),msg.caller) == false){
+          return [#err(Types.errors(?get_state().canistergeekLogger,  #unauthorized_access, "governance_batch_nft_origyn - not the network", ?msg.caller))]
+        };
+        debug if(debug_channel.function_announce) D.print("in govrnance batch batch");
+        let results = Buffer.Buffer<Types.GovernanceResult>(requests.size());
+        let result_buffer = Buffer.Buffer<async* Types.GovernanceResult>(requests.size());
+
+        label search for (request in requests.vals()) {
+            switch (request) {
+                case (#clear_shared_wallets(val)) {
+                    canistergeekLogger.logMessage("governance_nft_origyn - clear_shared_wallets", #Text(val), ?msg.caller);
+                };
+                case (#update_system_var(val)) {
+                    canistergeekLogger.logMessage("governance_nft_origyn - update_system_var", #Text(debug_show(val)), ?msg.caller);
+                };
+            };
+            result_buffer.add(Governance.governance_nft_origyn(get_state(), request, msg.caller));
+
+            if (result_buffer.size() > 9) {
+                for (thisItem in result_buffer.vals()) {
+                    results.add(await* thisItem);
+                };
+                result_buffer.clear();
+            };
+        };
+        for (thisItem in result_buffer.vals()) {
+            results.add(await* thisItem);
+        };
+        canistergeekMonitor.collectMetrics();
+        return Buffer.toArray(results);
     };
 
     /**

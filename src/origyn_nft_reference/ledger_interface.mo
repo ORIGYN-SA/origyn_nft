@@ -158,7 +158,7 @@ class Ledger_Interface() {
 
      //nyi: an extra layer of security?
 
-     D.print("in transfer sale" # token_id # debug_show(Time.now()));
+     debug if(debug_channel.sale) D.print("in transfer sale" # token_id # debug_show(Time.now()));
 
      let basic_info = {
             amount = escrow.amount;
@@ -193,7 +193,7 @@ class Ledger_Interface() {
     try{
                          debug if(debug_channel.sale) D.print("sending transfer blocks # " # debug_show((Nat.sub(escrow.amount, ledger_fee), sale_account_info.account.sub_account) ));
 
-        D.print("memo will be com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id);
+        debug if(debug_channel.sale)D.print("memo will be com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id);
         let result = await* transfer({
             ledger = ledger.canister;
             to = host;
@@ -249,8 +249,8 @@ class Ledger_Interface() {
     memo: ?[Nat8];
     caller: Principal
     }) : async* Result.Result<Types.TransactionID, Types.OrigynError> {
-     D.print("in transfeledger");
-     D.print(Principal.toText(request.ledger));
+     debug if(debug_channel.transfer) D.print("in transfeledger");
+     debug if(debug_channel.transfer) D.print(Principal.toText(request.ledger));
 
      
     let ledger_actor : DFXTypes.Service = actor(Principal.toText(request.ledger));

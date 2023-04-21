@@ -40,8 +40,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     let Workspace = MigrationTypes.Current.Workspace;
 
     let debug_channel = {
-        throws = true;
-        withdraw_detail = true;
+        throws = false;
+        withdraw_detail = false;
     };
 
     D.print("have ledger values are " # debug_show (dfx_ledger, dfx_ledger2));

@@ -207,7 +207,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         switch (Map.get<Text, CandyTypes.CandyShared>(state_current.nft_metadata, Map.thash, token_id)) {
             case (null) {
-                D.print("error");
+                //D.print("error");
                 return #err(Types.errors(null,  #token_not_found, "refresh_metadata_nft_origyn - storage - cannot find metadata to replace - " # token_id, ?msg.caller));
 
             };
@@ -216,7 +216,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         debug if (debug_channel.refresh) D.print("in metadata refresh");
         debug if (debug_channel.refresh) D.print("in metadata refresh");
-        D.print("putting metadata" # debug_show (metadata));
+        //D.print("putting metadata" # debug_show (metadata));
         Map.set<Text, CandyTypes.CandyShared>(state_current.nft_metadata, Map.thash, token_id, metadata);
 
         return #ok(true);
@@ -476,7 +476,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         switch (result) {
             case null { D.print("\00\00\00\66") };
             case (?val) {
-                D.print(debug_show (Blob.fromArray(val)));
+                //D.print(debug_show (Blob.fromArray(val)));
                 // return Blob.fromArray(val)
             };
         };
@@ -493,7 +493,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         let localBuf = Buffer.Buffer<(Nat32, [Nat8])>(0);
 
         for (i in vals) {
-            D.print(debug_show (i.0));
+            //D.print(debug_show (i.0));
             localBuf.add((i.0, i.1));
         };
 
@@ -510,7 +510,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         let localBuf = Buffer.Buffer<(Nat32)>(0);
 
         for (i in vals) {
-            D.print(debug_show (i.0));
+            //debug_show (i.0));
             localBuf.add((i.0));
         };
 

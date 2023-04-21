@@ -1071,13 +1071,13 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             return #err(Types.errors(#unauthorized_access, "allocate_sale_nft_origyn - must be the caller ", ?msg.caller));
         };
 
-        D.print("in allocate");
+        //"in allocate");
         if(request.number_to_allocate  == 0){
             return #err(Types.errors(#improper_allocation, "allocate_sale_nft_origyn - cannot allocate 0 items ", ?msg.caller));
         };
 
         //clear out expired allocations
-        D.print("cleaning");
+        //D.print("cleaning");
         let clean_result = expire_allocations();
         if(clean_result == false){
             //todo: the queue has gotten too full and we should really clear it out
@@ -1251,21 +1251,21 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        D.print("found_allocation" # debug_show(found_allocation));
+        //D.print("found_allocation" # debug_show(found_allocation));
 
         //validate the escrow
         let nft_gateway : NFTTypes.Service = switch(state.nft_gateway){
             case(null){return #err(Types.errors(#bad_config, "redeem_allocation_sale_nft_origyn - bad gateway config null", ?msg.caller));};
             case(?val){actor(Principal.toText(val));}
         };
-        D.print("gateway os " # debug_show(state.nft_gateway));
+        //D.print("gateway os " # debug_show(state.nft_gateway));
 
         //get the allocations and build the transfers by price
         var transfers = Buffer.Buffer<NFTTypes.MarketTransferRequest>(found_allocation.nfts.size());
 
-        D.print("getting user info");
+        //D.print("getting user info");
         let user_info = calc_user_purchase_graph(msg.caller, state.nft_group, state.nft_reservation, state.nft_inventory, state.user_purchases);
-        D.print("getting user info" # debug_show(user_info));
+        //D.print("getting user info" # debug_show(user_info));
 
         //todo: advance the allocation past the number of purchases so we don't over allocate the second time through.
         let remove_specs = Array.filter<(?TokenSpec, ?Nat, [(Nat, ?Nat)])>(user_info.prices, func(item){
@@ -1286,21 +1286,21 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             Array.sort<(Nat,?Nat)>(Buffer.toArray(result), func(a : (Nat, ?Nat),b:(Nat, ?Nat)) : Order.Order{ return Nat.compare(a.0,b.0)});
         };
 
-        D.print("have flat price" # debug_show(flat_price));
+        //D.print("have flat price" # debug_show(flat_price));
 
         //prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])];
 
         var balance_remaining = request.escrow_receipt.amount;
-        D.print("balance_remaining" # debug_show(balance_remaining));
+        //D.print("balance_remaining" # debug_show(balance_remaining));
         let bought_list = Buffer.Buffer<(Text,Nat)>(1);
         var available_nfts = List.fromArray<Text>(found_allocation.nfts);
         for(this_item in flat_price.vals()){
-            D.print("testing " # debug_show(this_item));
+            //"testing " # debug_show(this_item));
             let this_price = this_item.0;
-            D.print("have price" # debug_show(this_price));
+            //D.print("have price" # debug_show(this_price));
             let this_number = switch(this_item.1){
                 case(null){ //this means the user has reached a price where they can allocate up to as many as they want
-                    D.print("unlimited allocation at " # debug_show((this_price, bought_list.size(), available_nfts)));
+                    //D.print("unlimited allocation at " # debug_show((this_price, bought_list.size(), available_nfts)));
                     var tracker = 0;
                     label builder while(balance_remaining >= this_price and bought_list.size() < found_allocation.nfts.size()){
                         let anNFT = List.pop<Text>(available_nfts);
@@ -1323,7 +1323,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     label builder for(this_item in Iter.range(1, val)){
                         //D.print("running iter" # debug_show(this_item, balance_remaining, this_price, bought_list.size(), found_allocation));
                         if(balance_remaining < this_price or bought_list.size() >= found_allocation.nfts.size()){
-                            D.print("breaking builder 1");
+                            //D.print("breaking builder 1");
                             break builder;
                         };
 
@@ -1333,12 +1333,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                         available_nfts := anNFT.1;
                         switch(anNFT.0){
                             case(null){
-                                D.print("breaking builde 2r");
+                                //D.print("breaking builde 2r");
                                 break builder};
                             case(?anNFT){
                                 bought_list.add(anNFT, this_price);
                                 balance_remaining -= this_price;
-                                D.print("balance_remaining loop" # debug_show(balance_remaining));
+                                //D.print("balance_remaining loop" # debug_show(balance_remaining));
                             };
                         };
                         
@@ -1349,7 +1349,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         };
 
         if(bought_list.size() == 0){
-            D.print("nothing int he list");
+            //D.print("nothing int he list");
             return #err(Types.errors(#improper_escrow, "redeem_allocation_sale_nft_origyn - improper_escrow - not large enough for one purchase " # debug_show(request.escrow_receipt), ?msg.caller));
         };
 
@@ -1371,20 +1371,20 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         };
 
         //try the purchase
-        D.print("about to send transfer" # debug_show(Buffer.toArray(transfers)));
+        //D.print("about to send transfer" # debug_show(Buffer.toArray(transfers)));
         let transfer_result = await nft_gateway.market_transfer_batch_nft_origyn(Buffer.toArray(transfers));
-        D.print("result was" # debug_show(transfer_result));
+        //D.print("result was" # debug_show(transfer_result));
 
         //process the results
 
         let results = Buffer.Buffer<{token_id: Text; transaction: Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>}>(1);
         var tracker = 0;
-        D.print("the inventory " # debug_show(Iter.toArray(Map.entries(state.nft_inventory))));
+        //D.print("the inventory " # debug_show(Iter.toArray(Map.entries(state.nft_inventory))));
         for(thisResponse in transfer_result.vals()){
             switch(thisResponse){
                 case(#ok(trx)){
                     let token_id = trx.token_id;
-                    D.print("the inventory " # debug_show(Iter.toArray(Map.entries(state.nft_inventory))));
+                    //D.print("the inventory " # debug_show(Iter.toArray(Map.entries(state.nft_inventory))));
                     let inventory = switch(Map.get<Text,Types.NFTInventoryItem>(state.nft_inventory, Map.thash, token_id)){
                         case(null){
                             results.add({
@@ -1507,7 +1507,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     */
     public shared(msg) func register_escrow_sale_nft_origyn(request: Types.RegisterEscrowRequest) : async Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>{
 
-        D.print("In register escrow " # debug_show(request));
+        //"In register escrow " # debug_show(request));
         //check the max requested has a positive amount
         if(request.max_desired == 0){
             return #err(Types.errors(#improper_escrow, "register_escrow_sale_nft_origyn - max_requested must be greater than 0 " # debug_show(request), ?msg.caller));
@@ -1530,12 +1530,12 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             };
         };
 
-        D.print("script reciept validated " # debug_show(true));
+        //D.print("script reciept validated " # debug_show(true));
 
 
         let {user_info = user_info; allocation_size = allocation_size} = get_possible_purchases(msg.caller, switch(request.escrow_receipt){case(null){null;};case(?val){?val.token;}}, request.max_desired);
        
-        D.print("have usr info " # debug_show(user_info, allocation_size));
+        //D.print("have usr info " # debug_show(user_info, allocation_size));
 
 
         if(allocation_size ==0){
@@ -1545,7 +1545,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         let current_reg = switch(request.escrow_receipt){
             case(null){
                 //only put in if the user qualifed for some free items
-                D.print("handling fee items " # debug_show(true));
+                //D.print("handling fee items " # debug_show(true));
                 //add the registrations
                 switch(Map.get<Principal, Types.Registration>(state.user_registrations, Map.phash, request.principal)){
                     case(null){
@@ -1571,7 +1571,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             case(?val){
                 //check that the escrow is valid
 
-                D.print("found items " # debug_show(val));
+                //D.print("found items " # debug_show(val));
 
                 let nft_canister : NFTTypes.Service = switch(state.nft_gateway){
                     case(null){return #err(Types.errors(#bad_config, "register_escrow_sale_nft_origyn - no gateway ", ?msg.caller));};
@@ -1585,7 +1585,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                     case(#ok(val)){val};
                 };
 
-                D.print("have balance " # debug_show(balance));
+                //D.print("have balance " # debug_show(balance));
 
                 var found : Bool = false;
                 label search for(this_item in balance.escrow.vals()){
@@ -1635,7 +1635,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         
 
-        D.print("about to iter");
+        //"about to iter");
         
         let iter1 = Map.entries<Text, Types.RegistrationClaim>(current_reg.allocation);
         let iter2 = Iter.map<(Text, Types.RegistrationClaim), Types.RegisterEscrowAllocationDetail>(iter1, Types.stabalize_xfer_RegisterAllocation);
@@ -1953,7 +1953,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     public query (msg) func get_registration_sale_nft_origyn(principal : Principal) : async Result.Result<Types.RegisterEscrowResponse, Types.OrigynError>{
 
         //todo:  Secure so only msg.caller or owner/manager can call this
-        D.print("geting reg balance" # debug_show(principal));
+        //D.print("geting reg balance" # debug_show(principal));
 
         switch( Map.get<Principal, Types.Registration>(state.user_registrations, Map.phash, principal)){
             case(?val){

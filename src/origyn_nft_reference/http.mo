@@ -439,7 +439,7 @@ module {
         payload: Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
     } {
-
+        //D.print("-in _stream content" # debug_show(key, index, use_stable));
         let zone = switch(SB.getOpt(data,1)){
           case(null){
             return {
@@ -449,6 +449,8 @@ module {
           };
           case(?val) val;
         };
+
+        debug if(debug_channel.streaming) D.print("have zone" # debug_show(SB.size(zone), index));
 
         let payload = SB.get(zone, index);
                             debug if(debug_channel.streaming) D.print("in private call back");
@@ -490,7 +492,7 @@ module {
         /////////////////////////////////////////////////////
 
 
-        if (index + 1 == SB.size(data)) return {payload = pay; callback = null};
+        if (index + 1 == SB.size(zone)) return {payload = pay; callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
         {payload = pay;
@@ -1009,7 +1011,8 @@ module {
           } else {
               ( path2[0], path2[1]);
           };
-                          debug if(debug_channel.streaming) D.print(debug_show(path2));
+
+          debug if(debug_channel.streaming) D.print("path2 " # debug_show(path2));
           
           let item = switch(Metadata.get_library_item_from_store(state.nft_library, token_id, library_id)){
               case(#err(err)){
@@ -1020,16 +1023,23 @@ module {
                   }};
               case(#ok(val)){val};
           };
+          //D.print("past it");
+
+          //debug if(debug_channel.streaming) D.print("item:" # debug_show(item));
+
+          //D.print("what?");
           
           switch(SB.getOpt(item,1)){
               case(null){
                   //nofiledata
+                  debug if(debug_channel.streaming) D.print("no file data");
                   return {
                       body  = Blob.fromArray([]);
                       token = null;
                   };
               };
               case(?zone){
+                  debug if(debug_channel.streaming) D.print("callint stream conent" # debug_show(tk.key, tk.index, state.state.use_stableBTree));
                   return stream_content(
                       tk.key,
                       tk.index,
@@ -1075,7 +1085,7 @@ module {
                     let rStart = Option.get(Conversion.textToNat(rStartText),0);
                     let rEnd = Option.get(Conversion.textToNat(rEndText),0);
                     let size = Option.get(Conversion.textToNat(sizeText),0);
-                                        debug if(debug_channel.streaming) D.print(debug_show(rStart, rEnd, size));
+                    debug if(debug_channel.streaming) D.print(debug_show(rStart, rEnd, size));
                     return stream_media(
                         token_id,
                         library_id,
@@ -1109,6 +1119,7 @@ module {
         use_stable : Bool,
         //btreemap : Types.Stable_Memory,
     ) : StreamingCallbackResponse {
+        //D.print("in stream_content");
         let result = _stream_content(
             key,
             index,
@@ -1117,8 +1128,8 @@ module {
             //btreemap,
         );
 
-        D.print("the stream content " # key);
-        D.print(debug_show(result));
+        debug if(debug_channel.streaming) D.print("the stream content " # key);
+        debug if(debug_channel.streaming) D.print(debug_show(result));
         {
             body  = result.payload;
             token = result.callback;

@@ -501,20 +501,23 @@ module {
   * @returns {Result.Result<CandyTypes.Workspace, Types.OrigynError>} A result containing either the library item or an error.
   */
   public func get_library_item_from_store(store : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>, token_id: Text,library_id: Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError>{
+    //D.print("get_library_item_from_store");
     switch(store.get(token_id)){
       case(null){
         //no library exists
-        D.print("token id empty");
+        if(debug_channel.update_metadata) D.print("token id empty");
         return #err(Types.errors(null,  #library_not_found, "getLibraryStore - cannot find token_id in library store", null));
       };
       case(?token){
-        D.print("looking for token" # debug_show(Iter.toArray<Text>(token.keys())));
+        if(debug_channel.update_metadata) D.print("looking for token" # debug_show(Iter.toArray<Text>(token.keys())));
         switch(token.get(library_id)){
           case(null){
             //no libaray exists
+            if(debug_channel.update_metadata) D.print("no libaray exists");
             return #err(Types.errors(null,  #library_not_found, "getLibraryStore - cannot find library_id in library store", null));
           };
           case(?item){
+            //if(debug_channel.update_metadata) D.print("ok..found item" # debug_show(item));
             return #ok(item);
           };
         };
@@ -919,11 +922,11 @@ module {
     //D.print("have meta protocol");
     switch(Properties.getClassPropertyShared(metadata, Types.metadata.primary_protocol)){
       case(null){
-         D.print("have err1 protocol");
+         if(debug_channel.update_metadata) D.print("have err1 protocol");
         return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_protocol - cannot find primaryProtocol id in metadata", null));
       };
       case(?val){
-         D.print("have meta protocol23");
+         if(debug_channel.update_metadata) D.print("have meta protocol23");
          return #ok(
            switch(val.value){
 
@@ -931,7 +934,7 @@ module {
              case(#Text(val)){val};
              
              case(_){
-                D.print("err 45 meta protocol");
+                if(debug_channel.update_metadata) D.print("err 45 meta protocol");
                return #err(Types.errors(?state.canistergeekLogger,  #owner_not_found, "get_primary_protocol - unknown host type", null));
              }
            });

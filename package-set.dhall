@@ -108,7 +108,7 @@ let additions =
   , dependencies = [ "base"]
   },
   { name = "canistergeek"
-  , repo = "https://github.com/ORIGYN-SA/canistergeek-motoko"
+  , repo = "https://gitlab.origyn.ch/origyn/engineering/opensource/canistergeek-motoko"
   , version = "nft_0_1_4"
   , dependencies = ["base", "candy_0_1_10" ]
   },

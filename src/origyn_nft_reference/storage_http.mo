@@ -860,8 +860,8 @@ module {
             data,
         );
 
-        D.print("the stream content " # key);
-        D.print(debug_show(result));
+        debug if(debug_channel.streaming) D.print("the stream content " # key);
+        debug if(debug_channel.streaming) D.print(debug_show(result));
         {
             body  = result.payload;
             token = result.callback;

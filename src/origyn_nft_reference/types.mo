@@ -28,6 +28,7 @@ import DROUTE "mo:droute_client/Droute";
 import KYC "mo:icrc17_kyc";
 import CanistergeekTypes "mo:canistergeek/canistergeek";
 import http "mo:http/Http";
+import Testable "mo:matchers/Testable";
 
 
 module {
@@ -867,11 +868,16 @@ module {
 
     public type GovernanceRequest = {
         #clear_shared_wallets : Text; //token_id of shared wallets to clear
-
+        #update_system_var : {
+          token_id: Text;
+          key: Text;
+          val: CandyTypes.CandyShared;
+        };
     };
 
     public type GovernanceResponse = {
         #clear_shared_wallets : Bool; //result
+        #update_system_var : Bool; //result
 
     };
 
