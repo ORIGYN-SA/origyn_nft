@@ -2087,6 +2087,20 @@ module {
                 
             };
 
+            switch(auction_details.buy_now){
+              case(?buy_now){
+                if(buy_now < auction_details.start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
+              };
+              case(_){};
+            };
+
+            switch(auction_details.buy_now, auction_details.reserve){
+              case(?buy_now, ?reserve){
+                if(buy_now < reserve) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
+              };
+              case(_){};
+            };
+
             let kyc_result = try{
               await* KYC.pass_kyc_seller(state, {
                 seller = owner;

@@ -16,7 +16,6 @@ query balance_of_nft_origyn(account: Account) -> Result<BalanceResponse, OrigynE
 returns:
 
 type BalanceResult = {
-        multiCanister: ?[Principal];  // will hold other canisters that are part of the collection - not yet implemented
         nfts: [Text]; //nft ids owned by the user
         escrow: [EscrowRecord]; // escrow records that the user has on file
         sales: [EscrowRecord]; // sale records that the user has on file
@@ -116,8 +115,9 @@ Owner Tranfers moves an NFT from one wallet of an owner to another owner of a wa
 
     public type ICTokenSpec = {
         canister: Principal;
-        fee: Nat;
+        fee: ?Nat;
         symbol: Text;
+        id: ?Nat;
         decimals: Nat;
         standard: {
             #DIP20; //NYI
