@@ -177,7 +177,7 @@ module {
 
     found_metadata := #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(Buffer.toArray(new_list)))}])){
         case(#err(errType)){
-            return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "update_app_nft_origyn - set metadata status", ?caller));
+            return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "update_app_nft_origyn - set metadata status" # debug_show(errType), ?caller));
         };
         case(#ok(result)){result};
     });

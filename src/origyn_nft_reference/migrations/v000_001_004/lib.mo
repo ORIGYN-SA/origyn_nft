@@ -156,6 +156,8 @@ module {
                                         Map_lib.Map<Text,
                                             Map_lib.Map<v0_1_4.TokenSpec,v0_1_4.EscrowRecord>>>>();
 
+     D.print("in upgrading escrows");
+
     for(thisFrom in Map_lib.entries(state.escrow_balances)){
       let to = Map_lib.new<v0_1_4.Account,
                                         Map_lib.Map<Text,
@@ -197,6 +199,7 @@ module {
     };
 
 
+    D.print("in upgrading sales");
     let sales = Map_lib.new<v0_1_4.Account, 
                                     Map_lib.Map<v0_1_4.Account,
                                         Map_lib.Map<Text,
@@ -240,6 +243,7 @@ module {
                                             Map_lib.Map<v0_1_4.TokenSpec,v0_1_4.EscrowRecord>>>>(sales, v0_1_4.account_handler, upgradeAccount(thisTo.0), from);
     };
 
+    D.print("in upgrading ledgers");
     let new_ledgers = Map_lib.map<
       Text, 
       SB_lib.StableBuffer<v0_1_3.TransactionRecord>, 
@@ -408,9 +412,12 @@ module {
         return buffer;
       });
 
+    D.print("in upgrading sale staus");
     let new_sales : Map_lib.Map<Text, v0_1_4.SaleStatus> = Map_lib.map<Text, v0_1_3.SaleStatus, v0_1_4.SaleStatus>(state.nft_sales, func(k : Text, V1 : v0_1_3.SaleStatus) : v0_1_4.SaleStatus {
         upgradeSaleStatus(V1);
     });
+
+      D.print("in upgrading offers");
 
     let new_offers = Map_lib.new<v0_1_4.Account, Map_lib.Map<v0_1_4.Account, Int>>();
 
