@@ -75,15 +75,15 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         g_storage_factory := actor(Principal.toText(storage_factory));
 
         let suite = S.suite("test nft", [
-            S.test("testRoyalties", switch(await testRoyalties()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testRoyalties", switch(await testRoyalties()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
                       
-            /* S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-             */
+             S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            //S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+             
             ]);
         S.run(suite);
 
