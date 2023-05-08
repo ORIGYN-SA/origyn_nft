@@ -65,7 +65,39 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
     private var g_canister_factory : canister_factory_actor = actor(Principal.toText(Principal.fromBlob("\04")));
     private var g_storage_factory: storage_factory_actor = actor(Principal.toText(Principal.fromBlob("\04")));
 
+    public shared func add_controller(canister : Principal, new_controller: Principal) : async Bool{
+
+      type canister_settings = {
+        freezing_threshold : ?Nat;
+        controllers : ?[Principal];
+        memory_allocation : ?Nat;
+        compute_allocation : ?Nat;
+      };
+
+      
+      type service = actor {
+        update_settings : shared {
+        canister_id : Principal;
+        settings : canister_settings;
+          } -> async ();
+       
+      };
+
+      let ic = actor "aaaaa-aa" : service;
+      
+      await ic.update_settings({
+        canister_id = canister;
+        settings = {
+          freezing_threshold = null;
+          controllers = ?[Principal.fromActor(this), deployer.caller, new_controller];
+          memory_allocation = null;
+          compute_allocation = null;
+        };
+      });
+
+      return true;
     
+    };
 
     public shared func test(canister_factory : Principal, storage_factory: Principal) : async {#success; #fail : Text} {
         
