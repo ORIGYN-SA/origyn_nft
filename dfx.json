@@ -5,6 +5,10 @@
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko"
         },
+        "opie_test": {
+          "main": "src/origyn_nft_reference/main.mo",
+          "type": "motoko"
+      },
 
         "yumi-gold-test": {
           "main": "src/origyn_nft_reference/main.mo",

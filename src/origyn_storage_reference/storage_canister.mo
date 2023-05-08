@@ -23,6 +23,7 @@ import StableBTree "mo:stableBTree/btreemap";
 import StableBTreeTypes "mo:stableBTree/types";
 import StableMemory "mo:stableBTree/memory";
 
+import CandyTypesOld "mo:candy_0_1_12/types";
 
 import DIP721 "../origyn_nft_reference/DIP721";
 import Metadata "../origyn_nft_reference/metadata";
@@ -57,7 +58,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
         refresh = false;
     };
 
-    stable var nft_library_stable : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
+    stable var nft_library_stable : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])] = [];
+    stable var nft_library_stable_2 : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
     stable var tokens_stable : [(Text, MigrationTypes.Current.HttpAccess)] = [];
 
     let initial_storage = switch (__initargs.storage_space) {
@@ -552,7 +554,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
             nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
         };
 
-        nft_library_stable := nft_library_stable_buffer.toArray();
+        nft_library_stable_2 := nft_library_stable_buffer.toArray();
 
     };
 

@@ -18,6 +18,8 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
+import CandyTypesOld "mo:candy_0_1_12/types";
+import CandyUpgrade "mo:candy_0_2_0/upgrade";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
@@ -160,13 +162,37 @@ module {
     * @returns {TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>} The resulting TrieMap object.
     */
 
-    public func build_library(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
+    public func build_library(items: [(Text,[(Text,CandyTypesOld.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
         
         let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal,Text.hash);
         for(this_item in items.vals()){
             let bMap = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal,Text.hash);
             for(thatItem in this_item.1.vals()){
-                bMap.put(thatItem.0, Workspace.fromAddressedChunks(thatItem.1));
+                //upgrade Addressed chunk array
+                let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
+                for(thisOldItem in thatItem.1.vals()){
+                  newItems.add((thisOldItem.0, thisOldItem.1, CandyUpgrade.upgradeCandyShared(thisOldItem.2)));
+                };
+                bMap.put(thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
+            };
+            aMap.put(this_item.0, bMap);
+        };
+
+        return aMap;
+    };
+
+    public func build_library_new(items: [(Text,[(Text,CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>{
+        
+        let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal,Text.hash);
+        for(this_item in items.vals()){
+            let bMap = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal,Text.hash);
+            for(thatItem in this_item.1.vals()){
+                //upgrade Addressed chunk array
+                let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
+                for(thisOldItem in thatItem.1.vals()){
+                  newItems.add((thisOldItem.0, thisOldItem.1, thisOldItem.2));
+                };
+                bMap.put(thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
             };
             aMap.put(this_item.0, bMap);
         };
