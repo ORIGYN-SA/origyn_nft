@@ -2,7 +2,6 @@
 .vscode/
 .idea/
 **/*~
-.vessel/
 .mops/
 
 # Github Access Token
