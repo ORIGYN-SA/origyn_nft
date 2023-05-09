@@ -8,7 +8,6 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 
 import CandyTypes "mo:candy/types";
 import Conversions "mo:candy/conversion";

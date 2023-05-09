@@ -1,3 +1,4 @@
+/// The entry point for an ORIGYN NFT actor
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
@@ -26,7 +27,6 @@ import Canistergeek "mo:canistergeek/canistergeek";
 import CanistergeekOld "mo:canistergeekold/canistergeek";
 import CandyUpgrade "mo:candy_0_2_0/upgrade";
 
-
 import Droute "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
@@ -54,7 +54,6 @@ import http "http";
 import StableBTree "mo:stableBTree/btreemap";
 import MemoryManager "mo:stableBTree/memoryManager";
 import Memory "mo:stableBTree/memory";
-
 
 shared (deployer) actor class Nft_Canister() = this {
 
@@ -195,9 +194,9 @@ shared (deployer) actor class Nft_Canister() = this {
     ignore Timer.setTimer(#seconds(0), func(): async () {
     await* Droute.init(state_current.droute);
 
-    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.auction_bid", null);
-    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.mint", null);
-    ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.sale_ended", null);
+    //ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.auction_bid", null);
+    //ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.mint", null);
+    //ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.sale_ended", null);
   });
 
 

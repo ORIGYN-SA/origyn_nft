@@ -137,12 +137,12 @@
     "defaults": {
         "build": {
             "args": "",
-            "packtool": "vessel sources"
+            "packtool": "mops sources"
         },
         "replica": {
             "subnet_type": "system"
         }
     },
-    "dfx": "0.13.1",
+    "dfx": "0.14.0",
     "version": 1
 }

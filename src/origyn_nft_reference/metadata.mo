@@ -31,7 +31,7 @@ module {
 
   let debug_channel = {
     function_announce = false;
-    update_metadata = true;
+    update_metadata = false;
   };
 
   //builds a library from a stable type

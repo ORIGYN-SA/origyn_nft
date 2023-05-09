@@ -26,8 +26,8 @@ shared (deployer) actor class test_wallet() = this {
     let Workspace = MigrationTypes.Current.Workspace;
 
     let debug_channel= {
-      throws = true;
-      deposit_info = true;
+      throws = false;
+      deposit_info = false;
     };
     
     public type Operation = {
