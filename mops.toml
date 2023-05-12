@@ -1,7 +1,7 @@
 [package]
-name = "origyn-nft-next"
+name = "origyn-nft"
 version = "0.1.4"
-description = "Experimental Branch - Do not use in production. - The reference implementation for the ORIGYN NFT - Experimental Branch - Do not use in production."
+description = "The reference implementation for the ORIGYN NFT."
 repository = "https://github.com/ORIGYN_SA/origyn_nft"
 
 [dependencies]
