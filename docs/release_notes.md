@@ -43,8 +43,13 @@ v0.1.4
 * Refactor - Buffer.toArrays refactored to new syntax
 * ICRC1 - ICRC1 is now used internally for transfers on the #Ledger Type
 * Bug Fix - mutable items would overwrite collection data when using #UpdateMetadata on collection
+* Bug Fix - can no longer start a buy it now auction with a 0 minimum price.
 * Logging - Errors are now reported to canister geek
-* Network Royalties are now sent to network accounts on a per token basis for better tracking. The hash used is:  
+* Network Royalties are now sent to network accounts on a per token basis for better tracking.
+* Upgrade to CandyLibrary 0.2.0
+* Upgrade to Mops Package Manager
+* Added JSDoc style documentation
+* Removed params for deployment to make it easier to launch a canister. Be sure to set the network, set storage, and update your owner after deployment.
 
 ```
 public func get_network_royalty_account(principal : Principal) : [Nat8]{
