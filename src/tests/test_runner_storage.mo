@@ -1,26 +1,35 @@
-import C "mo:matchers/Canister";
-import Conversion "mo:candy/conversion";
-import D "mo:base/Debug";
 import Blob "mo:base/Blob";
-import M "mo:matchers/Matchers";
-import StorageCanisterDef "../origyn_nft_reference/storage_canister";
+import D "mo:base/Debug";
+import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Nat "mo:base/Nat";
+import Time "mo:base/Time";
+
+import C "mo:matchers/Canister";
+import Conversion "mo:candy/conversion";
+import M "mo:matchers/Matchers";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
-import Time "mo:base/Time";
+
+import Instant "test_runner_instant_transfer";
+import StorageCanisterDef "../origyn_storage_reference/storage_canister";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
-//import Instant "test_runner_instant_transfer";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
     let it = C.Tester({ batchSize = 8 });
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();
@@ -48,8 +57,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             S.test("testAllocation", switch(await testAllocation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testCollectionLibrary", switch(await testCollectionLibrary()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testLibraryPostMint", switch(await testLibraryPostMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            
                       
             ]);
         S.run(suite);
@@ -124,13 +132,13 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister_b)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(2048000); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name ="read";value = #Text("public"); immutable = false}
                 ]);
             chunk = 0;
-            content = Conversion.valueToBlob(#Text("after mint"));
+            content = Conversions.candySharedToBlob(#Text("after mint"));
         });
 
 
@@ -343,7 +351,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(redirect)){"unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hello world"))))){
                                     "hello world";
                                 } else {
                                     "wrong content";
@@ -393,7 +401,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(remote_data)){ "unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hidden hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hidden hello world"))))){
                                     "hidden hello world";
                                 }else {
                                     "somthing unexpected"
@@ -668,7 +676,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(redirect)){"unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hello world"))))){
                                     "hello world";
                                 } else {
                                     "wrong content";
@@ -718,7 +726,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(remote_data)){ "unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hidden hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hidden hello world"))))){
                                     "hidden hello world";
                                 }else {
                                     "somthing unexpected"
@@ -1003,7 +1011,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(redirect)){"unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hello world"))))){
                                     "hello world";
                                 } else {
                                     "wrong content";
@@ -1085,7 +1093,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(remote_data)){ "unexpected remote"};
                             case(#chunk(res)){
-                                if(Blob.equal(res.content, Blob.fromArray(Conversion.valueToBytes(#Text("hidden hello world"))))){
+                                if(Blob.equal(res.content, Blob.fromArray(Conversions.candySharedToBytes(#Text("hidden hello world"))))){
                                     "hidden hello world";
                                 }else {
                                     "somthing unexpected"
@@ -1108,7 +1116,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         switch(res){
                             case(#remote(remote_data)){ "unexpected remote"};
                             case(#chunk(res)){
-                                Conversion.bytesToText(Blob.toArray(res.content));
+                                Conversions.bytesToText(Blob.toArray(res.content));
                             };
                         };
                     };

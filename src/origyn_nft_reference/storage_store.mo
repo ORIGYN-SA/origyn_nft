@@ -10,12 +10,8 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
+
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
-import SB "mo:stablebuffer/StableBuffer";
-import Workspace "mo:candy/workspace";
 
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
@@ -28,14 +24,29 @@ module {
     stage = false;
   };
 
+  let CandyTypes = MigrationTypes.Current.CandyTypes;
+  let Conversions = MigrationTypes.Current.Conversions;
+  let Workspace = MigrationTypes.Current.Workspace;
+  let Properties = MigrationTypes.Current.Properties;
+  let SB = MigrationTypes.Current.SB;
+
+  /**
+  * Stores a chunk of NFT data in the storage.
+  * @param {Types.StorageState} state - The current state of the storage.
+  * @param {Types.StageChunkArg} chunk - The chunk of data to be stored.
+  * @param {Types.AllocationRecordStable} source_allocation - The record of the source allocation.
+  * @param {CandyTypes.CandyShared} metadata - The metadata for the chunk.
+  * @param {Principal} caller - The principal that triggered the function.
+  * @returns {Result.Result<Types.StageLibraryResponse, Types.OrigynError>} The result of the operation.
+  */
   public func stage_library_nft_origyn(
     state : Types.StorageState,
     chunk : Types.StageChunkArg,
     source_allocation : Types.AllocationRecordStable,
-    metadata: CandyTypes.CandyValue, //do we need metadata here? probably for http request...surely for file data
+    metadata: CandyTypes.CandyShared, //do we need metadata here? probably for http request...surely for file data
     caller : Principal) : async* Result.Result<Types.StageLibraryResponse, Types.OrigynError> {
 
-    if(state.state.collection_data.owner != caller){return #err(Types.errors(#unauthorized_access, "stage_library_nft_origyn - storage - not the gateway", ?caller))};
+    if(state.state.collection_data.owner != caller){return #err(Types.errors(null, #unauthorized_access, "stage_library_nft_origyn - storage - not the gateway", ?caller))};
 
     debug if(debug_channel.stage) D.print("in the remote canister");
 
@@ -84,7 +95,7 @@ module {
 
     if(chunk.chunk == 0 and bDelete == false){
       //the first chunk comes with the metadata
-      Map.set<Text, CandyTypes.CandyValue>(state.state.nft_metadata, Map.thash, chunk.token_id, metadata);
+      Map.set<Text, CandyTypes.CandyShared>(state.state.nft_metadata, Map.thash, chunk.token_id, metadata);
     };
 
                       debug if(debug_channel.stage) D.print("looking for workspace");
@@ -99,7 +110,7 @@ module {
           debug if(debug_channel.stage) D.print("puting Zone");
           debug if(debug_channel.stage) D.print(debug_show(chunk.filedata));
           
-          new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+          SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
           debug if(debug_channel.stage) D.print("put the zone");
           var new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal, Text.hash);
@@ -117,7 +128,7 @@ module {
               //nftdoesn't exist;
               let new_workspace = Workspace.initWorkspace(2);
 
-              new_workspace.add(Workspace.initDataZone(CandyTypes.destabalizeValue(chunk.filedata)));
+              SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
               library.put(chunk.library_id, new_workspace);
               new_workspace;
             };
@@ -139,16 +150,16 @@ module {
     } else {
       //file the chunk
       //D.print("filing the chunk");
-      let file_chunks = switch(found_workspace.getOpt(1)){
+      let file_chunks = switch(SB.getOpt(found_workspace,1)){
         case(null){
-          if(found_workspace.size()==0){
+          if(SB.size(found_workspace)==0){
             //todo: should be an error because no filedata
-            found_workspace.add(Workspace.initDataZone(#Empty));
+            SB.add(found_workspace,Workspace.initDataZone(#Option(null)));
           };
-          if(found_workspace.size()==1){
-            found_workspace.add(Buffer.Buffer<CandyTypes.DataChunk>(0));
+          if(SB.size(found_workspace)==1){
+            SB.add(found_workspace, SB.init<CandyTypes.DataChunk>());
           };
-          found_workspace.get(1);
+          SB.get(found_workspace,1);
         };
         case(?dz){
           dz;
@@ -165,7 +176,7 @@ module {
           SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
           if(allocation.available_space >= Nat.sub(chunk.content.size(), current_size)){
             allocation.available_space -= Nat.sub(chunk.content.size(), current_size);
-          } else return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space >= (chunk.content.size() - current_size)" # debug_show((allocation.available_space,chunk.content.size(), current_size)), ?caller));
+          } else return #err(Types.errors(null, #storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space >= (chunk.content.size() - current_size)" # debug_show((allocation.available_space,chunk.content.size(), current_size)), ?caller));
         } else if (chunk.content.size() != current_size){
           //give space back
           SB.put<Nat>(allocation.chunks, chunk.chunk, chunk.content.size());
@@ -178,24 +189,59 @@ module {
 
             if(allocation.available_space >= chunk.content.size()){
               allocation.available_space -= chunk.content.size();
-            } else return #err(Types.errors(#storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space -= chunk.content.size()" # debug_show((allocation.available_space,chunk.content.size())), ?caller));
+            } else return #err(Types.errors(null, #storage_configuration_error, "stage_library_nft_origyn - storage - allocation.available_space -= chunk.content.size()" # debug_show((allocation.available_space,chunk.content.size())), ?caller));
           } else SB.add<Nat>(allocation.chunks, 0);
         };
       };
 
+       // We need the following code to create unique keys for stablebtree
+        var tokenId = "";
+        var lib = "";
+
+        if (chunk.token_id == "") {
+            tokenId #= "none";
+        } else {
+            tokenId #= chunk.token_id;
+        };
+        if (chunk.library_id == "") {
+            lib #= "none";
+        } else {
+            lib #= chunk.library_id;
+        };
+        /////////////////////////////////////////////
+
       //D.print("putting the chunk");
-      if(chunk.chunk + 1 <= file_chunks.size()){
-        file_chunks.put(chunk.chunk, #Blob(chunk.content));
+      if(chunk.chunk + 1 <= SB.size(file_chunks)){
+            if(state.use_stable_storage){
+              let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
+              let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                SB.add(file_chunks,#Nat32(btreeKey));
+            } else {
+              SB.put(file_chunks, chunk.chunk, #Blob(chunk.content));
+            };        
       } else {
         debug if(debug_channel.stage) D.print("in putting the chunk iter");
         debug if(debug_channel.stage) D.print(debug_show(chunk.chunk));
-        debug if(debug_channel.stage) D.print(debug_show(file_chunks.size()));
+        debug if(debug_channel.stage) D.print(debug_show(SB.size(file_chunks)));
 
-        for(this_index in Iter.range(file_chunks.size(),chunk.chunk)){
+        for(this_index in Iter.range(SB.size(file_chunks),chunk.chunk)){
+            let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
+
             if(this_index == chunk.chunk){
-              file_chunks.add(#Blob(chunk.content));
+              // If flag use_stable_storage is true we insert Blobs into stablebtree
+                if (state.use_stable_storage) {                   
+                    let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                    SB.add(file_chunks,#Nat32(btreeKey));
+                } else {
+                    SB.add(file_chunks, #Blob(chunk.content));
+                };              
             } else {
-              file_chunks.add(#Blob(Blob.fromArray([])));
+              if (state.use_stable_storage) {                 
+                  let insertBtree = state.btreemap_storage.insert(btreeKey, []);
+                  SB.add(file_chunks, #Nat32(btreeKey));
+              } else {
+                  SB.add(file_chunks, #Blob(Blob.fromArray([])));
+              };              
             }
         };
       };

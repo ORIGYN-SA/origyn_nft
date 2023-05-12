@@ -116,7 +116,7 @@ module {
             #DIP20;
             #Ledger;
             #EXTFungible;
-            #ICRC1;
+            #ICRC1; //use #Ledger instead
         };
     };
 
@@ -133,7 +133,7 @@ module {
             reserve: ?Nat;
         };
         #auction: AuctionConfig;
-        #extensible:{
+        #extensible: {
             #candyClass
         }
     };

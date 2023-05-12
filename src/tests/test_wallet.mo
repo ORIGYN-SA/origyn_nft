@@ -1,6 +1,6 @@
 
 
-import CandyType "mo:candy/types";
+
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import D "mo:base/Debug";
@@ -16,11 +16,18 @@ import Types "../origyn_nft_reference/types";
 import SaleTypes "../origyn_sale_reference/types";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 
+import MigrationTypes "../origyn_nft_reference/migrations/types";
+
 shared (deployer) actor class test_wallet() = this {
 
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
     let debug_channel= {
-      throws = true;
-      deposit_info = true;
+      throws = false;
+      deposit_info = false;
     };
     
     public type Operation = {
@@ -99,7 +106,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared func try_get_nft(canister: Principal, token_id: Text) : async Result.Result<Types.NFTInfoStable, Types.OrigynError> {
+    public shared func try_get_nft(canister: Principal, token_id: Text) : async Types.NFTInfoResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        switch(await acanister.nft_origyn(token_id)){
@@ -117,7 +124,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared func try_publish_meta(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_publish_meta(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let stage = await acanister.stage_nft_origyn({metadata = #Class([
@@ -125,18 +132,18 @@ shared (deployer) actor class test_wallet() = this {
             {name = "primary_asset"; value=#Text("page"); immutable=false},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(acanister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(acanister)); immutable= false}
         ])});
 
@@ -151,7 +158,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_publish_change(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_publish_change(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let stage = await acanister.stage_nft_origyn({metadata = #Class([
@@ -176,7 +183,7 @@ shared (deployer) actor class test_wallet() = this {
        let fileStage = await acanister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 0;
             content = Blob.fromArray([104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]);
         });
@@ -194,7 +201,7 @@ shared (deployer) actor class test_wallet() = this {
 
     
 
-    public shared func try_get_bearer(canister: Principal) : async Result.Result<Types.Account, Types.OrigynError> {
+    public shared func try_get_bearer(canister: Principal) : async Types.BearerResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let fileStage = await acanister.bearer_nft_origyn("1");
@@ -210,7 +217,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_mint(canister: Principal) : async Result.Result<Text, Types.OrigynError> {
+    public shared func try_mint(canister: Principal) : async Types.OrigynTextResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        let mint = await acanister.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
@@ -226,7 +233,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_sale_staged(current_owner: Principal, canister: Principal, ledger: Principal) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared func try_sale_staged(current_owner: Principal, canister: Principal, ledger: Principal) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("caling market transfer  origyn");
@@ -244,7 +251,8 @@ shared (deployer) actor class test_wallet() = this {
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     amount = 100_000_000;
                   };
@@ -274,7 +282,7 @@ shared (deployer) actor class test_wallet() = this {
       seller: Principal, 
       token_id: Text, 
       amount: Nat, 
-      token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+      token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("escrow withdraw");
@@ -289,7 +297,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -307,7 +316,7 @@ shared (deployer) actor class test_wallet() = this {
              case(_){
                D.print("this should not have happened");
                
-               return #err(Types.errors(#nyi, "this should not have happened", null));
+               return #err(Types.errors(null,  #nyi, "this should not have happened", null));
              }
            }
          };
@@ -325,7 +334,7 @@ shared (deployer) actor class test_wallet() = this {
       ledger: Principal,  
       seller: Principal, 
       token_id: Text,
-      token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+      token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        //D.print("escrow withdraw");
@@ -340,7 +349,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -357,7 +367,7 @@ shared (deployer) actor class test_wallet() = this {
              case(_){
                D.print("this should not have happened");
                
-               return #err(Types.errors(#nyi, "this should not have happened", null));
+               return #err(Types.errors(null,  #nyi, "this should not have happened", null));
              }
            }
          };
@@ -368,7 +378,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared func try_sale_withdraw(canister: Principal, buyer: Principal, ledger: Principal,  seller: Principal, token_id: Text, amount: Nat, token: ?Types.TokenSpec) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared func try_sale_withdraw(canister: Principal, buyer: Principal, ledger: Principal,  seller: Principal, token_id: Text, amount: Nat, token: ?Types.TokenSpec) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        D.print("sale withdraw");
@@ -383,7 +393,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -400,7 +411,7 @@ shared (deployer) actor class test_wallet() = this {
                 return #ok(result);
               };
               case(_){
-                return #err(Types.errors(#nyi,"test", null));
+                return #err(Types.errors(null,  #nyi,"test", null));
               }
               
             };
@@ -430,7 +441,8 @@ shared (deployer) actor class test_wallet() = this {
                   standard = #Ledger;
                   decimals = 8;
                   symbol = "LDG";
-                  fee = 200000;
+                  fee = ?200000;
+                  id = null;
                 });
               };
               case(?val){val};
@@ -451,7 +463,7 @@ shared (deployer) actor class test_wallet() = this {
            return #err(theerror);
          };
          case(_){
-           return #err(Types.errors(#improper_interface, "should not be here", null));
+           return #err(Types.errors(null,  #improper_interface, "should not be here", null));
          }
        };
 
@@ -481,7 +493,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -506,7 +519,7 @@ shared (deployer) actor class test_wallet() = this {
            return #err(theerror);
          };
          case(_){
-           return #err(Types.errors(#improper_interface, "should not be here", null));
+           return #err(Types.errors(null,  #improper_interface, "should not be here", null));
          }
        };
 
@@ -532,7 +545,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -559,7 +573,8 @@ shared (deployer) actor class test_wallet() = this {
                     standard = #Ledger;
                     decimals = 8;
                     symbol = "LDG";
-                    fee = 200000;
+                    fee = ?200000;
+                    id = null;
                   });
                 };
                 case(?val){val};
@@ -592,7 +607,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
     
-    public shared(msg) func send_ledger_payment(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<DFXTypes.BlockIndex, DFXTypes.TransferError> {
+    public shared(msg) func send_ledger_payment(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<Nat, DFXTypes.ICRC1TransferError> {
 
       let dfx : DFXTypes.Service = actor(Principal.toText(ledger));
 
@@ -605,13 +620,14 @@ shared (deployer) actor class test_wallet() = this {
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have deposit info: " # debug_show(deposit_info))}};
 
-      let funding_result = await dfx.transfer({
-            to =  deposit_info.account_id;
-            fee = {e8s = 200_000 : Nat64};
-            memo = Nat64.fromNat(Nat32.toNat(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
+      let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = deposit_info.account.principal;
+            subaccount = ?Blob.toArray(deposit_info.account.sub_account)};
+            fee = ?200_000;
+            memo = ?Conversions.candySharedToBytes(#Nat32(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
             from_subaccount = null;
-            created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))};
-            amount = {e8s = Nat64.fromNat(amount)};});
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount = amount;});
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have funding result: " # debug_show(funding_result))}};
 
@@ -640,7 +656,7 @@ shared (deployer) actor class test_wallet() = this {
             return #ok(result);
          };
          case(#Err(theerror)){
-           return #err(Types.errors( #nyi, debug_show(theerror), ?msg.caller));
+           return #err(Types.errors(null,   #nyi, debug_show(theerror), ?msg.caller));
          };
        };
     };
@@ -667,12 +683,12 @@ shared (deployer) actor class test_wallet() = this {
             return #ok(result);
          };
          case(#Err(theerror)){
-           return #err(Types.errors( #nyi, debug_show(theerror), ?msg.caller));
+           return #err(Types.errors(null,   #nyi, debug_show(theerror), ?msg.caller));
          };
        };
     };
 
-    public shared(msg) func try_owner_transfer(canister: Principal, token_id: Text, to: Types.Account) : async Result.Result<Types.OwnerTransferResponse, Types.OrigynError> {
+    public shared(msg) func try_owner_transfer(canister: Principal, token_id: Text, to: Types.Account) : async Types.OwnerUpdateResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -690,7 +706,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared(msg) func try_offer_refresh(canister: Principal) : async Result.Result<Types.ManageSaleResponse, Types.OrigynError> {
+    public shared(msg) func try_offer_refresh(canister: Principal) : async Types.ManageSaleResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -709,7 +725,7 @@ shared (deployer) actor class test_wallet() = this {
     };
 
 
-    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyType.CandyValue) : async Result.Result<Types.NFTUpdateResponse, Types.OrigynError> {
+    public shared(msg) func try_set_nft(canister: Principal, token_id: Text, data: CandyTypes.CandyShared) : async Types.NFTUpdateResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -727,7 +743,7 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
-    public shared(msg) func try_start_auction(canister: Principal, ledger: Principal, token_id: Text, allow_list : ?[Principal]) : async Result.Result<Types.MarketTransferRequestReponse, Types.OrigynError> {
+    public shared(msg) func try_start_auction(canister: Principal, ledger: Principal, token_id: Text, allow_list : ?[Principal]) : async Types.MarketTransferResult {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        
@@ -743,7 +759,8 @@ shared (deployer) actor class test_wallet() = this {
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(500 * 10 ** 8);
                     start_price = (1 * 10 ** 8);
@@ -782,8 +799,9 @@ shared (deployer) actor class test_wallet() = this {
                         canister = ledger;
                         standard =  #Ledger;
                         decimals = 8;
+                        id = null;
                         symbol = "LDG";
-                        fee = 200000;
+                        fee = ?200000;
                       });
               amount = amount}})); 
 
@@ -796,7 +814,7 @@ shared (deployer) actor class test_wallet() = this {
                #ok(result);
              };
              case(_){
-                return #err(Types.errors(#unreachable,"shouldnt be here", ?msg.caller)); 
+                return #err(Types.errors(null,  #unreachable,"shouldnt be here", ?msg.caller)); 
              };
            };
             

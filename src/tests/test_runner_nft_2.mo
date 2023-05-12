@@ -1,6 +1,6 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import C "mo:matchers/Canister";
-import Conversion "mo:candy/conversion";
+
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 import D "mo:base/Debug";
 import Blob "mo:base/Blob";
@@ -10,7 +10,7 @@ import Metadata "../origyn_nft_reference/metadata";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy/properties";
+
 import Result "mo:base/Result";
 import Nat "mo:base/Nat";
 import S "mo:matchers/Suite";
@@ -19,14 +19,22 @@ import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
+import KYCService "../../.mops/_github/icrc17_kyc@master/test/service_example";
+
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
     let it = C.Tester({ batchSize = 8 });
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var ledger_fee = 200_000;
+    private var ledger_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();
@@ -53,10 +61,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         g_storage_factory := actor(Principal.toText(storage_factory));
 
         let suite = S.suite("test nft", [
+          
+           S.test("testKYC", switch(await testKYC()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testMint", switch(await testMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testStage", switch(await testStage()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testOwnerAndManager", switch(await testOwnerAndManager()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),         
+            S.test("testBuyItNow", switch(await testBuyItNow()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),   
             ]);
         S.run(suite);
 
@@ -156,18 +166,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         //MINT0019 - you can now upload here but must provide proper metadata and have storagebthis will fail with id not found
         let fileStage3 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "1" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         D.print("trying to upload before meta" # debug_show(fileStage3));
@@ -197,18 +207,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
             {name = "hidden"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -220,18 +230,18 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "primary_asset"; value=#Text("page"); immutable= true},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false},
             //below is what we are testing
             {name = "__system"; value=#Class([
@@ -246,20 +256,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "primary_asset"; value=#Text("page2"); immutable= true},
             {name = "preview"; value=#Text("page"); immutable= true},
             {name = "experience"; value=#Text("page"); immutable= true},
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
         
@@ -283,7 +293,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             if((switch(res.current_chunk){case(?val){val};case(null){9999999}}) + 1 == res.total_chunks){
                                 "unexpectd eof chunks";
                             } else {
-                                Conversion.bytesToText(Blob.toArray(res.content));
+                                Conversions.bytesToText(Blob.toArray(res.content));
                             }
                         };
                     };
@@ -297,7 +307,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         case(#remote(redirect)){"unexpected redirect"};
                         case(#chunk(res)){
                             if((switch(res.current_chunk){case(?val){val};case(null){9999999}}) + 1 == res.total_chunks){
-                            Conversion.bytesToText(Blob.toArray(res.content));
+                            Conversions.bytesToText(Blob.toArray(res.content));
                             } else {
                                 "unexpecte not eof";
                             }
@@ -384,12 +394,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 }, M.equals<Text>(T.text("Cannot find token."))), //MINT0025
             S.test("can update metadata", switch(test_metadata_replace){
                 case(#ok(res)){
-                    switch(Properties.getClassProperty(res.metadata,"primary_asset")){
+                    switch(Properties.getClassPropertyShared(res.metadata,"primary_asset")){
                         case(null){
                             "should have this property";
                         };
                         case(?val){
-                            Conversion.valueToText(val.value);
+                            Conversions.candySharedToText(val.value);
                         }
                     }
                 };
@@ -446,9 +456,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let fileStage2 = await canister.stage_library_nft_origyn({
             token_id = "1" : Text;
             library_id = "page" : Text;
-            filedata  = #Empty;
+            filedata  = #Option(null);
             chunk = 1;
-            content = Conversion.valueToBlob(#Text("nice to meet you"));
+            content = Conversions.candySharedToBlob(#Text("nice to meet you"));
         });
 
         D.print("after file stage");
@@ -487,20 +497,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page6"); immutable= true},
             
-            {name = "__system"; value=#Array(#thawed([
+            {name = "__system"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -508,20 +518,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page3"); immutable= true},
             
-            {name = "library"; value=#Array(#thawed([
+            {name = "library"; value=#Array([
                 #Class([
                     {name = "library_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             {name = "owner"; value=#Principal(Principal.fromActor(canister)); immutable= false}
         ])});
 
@@ -534,20 +544,20 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
          let test_metadata_replace_command_with_apps = await canister.stage_nft_origyn({metadata = #Class([
             {name = "id"; value=#Text("1"); immutable= true},
             {name = "primary_asset"; value=#Text("page5"); immutable= true},
-            {name = "__apps"; value=#Array(#thawed([
+            {name = "__apps"; value=#Array([
                 #Class([
                     {name = "app_id"; value=#Text("page2"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
                     {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
-                    {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true},
+                    {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},
                     {name = "sort"; value=#Nat(0); immutable= true},
                     {name = "read"; value=#Text("public"); immutable= false},
 
                 ])
-            ])); immutable= true},
+            ]); immutable= true},
             
         ])});
 
@@ -590,9 +600,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
               
               
 
-              switch(Properties.getClassProperty(res.metadata, "primary_asset")){
+              switch(Properties.getClassPropertyShared(res.metadata, "primary_asset")){
                 case(null){"cant find primary"};
-                case(?val){Conversion.valueToText(val.value)};
+                case(?val){Conversions.candySharedToText(val.value)};
               };
               
               };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("page2"))), 
@@ -656,35 +666,35 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let b_wallet = await TestWalletDef.test_wallet();
         let c_wallet = await TestWalletDef.test_wallet();
         
-        let funding_result_a = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(a_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
-        let funding_result_b = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+        let funding_result_b = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
-        let funding_result_b2 = await dfx2.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(b_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
-        let funding_result_c = await dfx.transfer({
-            to =  Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(Principal.fromActor(c_wallet), null)));
-            fee = {e8s = 200_000};
-            memo = 1;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_c = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
             from_subaccount = null;
             created_at_time = null;
-            amount = {e8s = 1000 * 10 ** 8};});
+            amount =  1000 * 10 ** 8;});
 
         let newPrincipal = await g_canister_factory.create({
             owner = Principal.fromActor(this);
@@ -717,7 +727,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
-                      fee = 200000;
+                      fee = ?200000;
+                      id = null;
                     });
                     buy_now = ?(10 * 10 ** 8);
                     start_price = (10 * 10 ** 8);
@@ -1002,7 +1013,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;}))){
+                                fee = ?200000;
+                                id = null;}))){
                                 "correct response";
                         } else {
                             "details didnt match" # debug_show(details);
@@ -1028,7 +1040,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                 standard = #Ledger;
                                 decimals = 8;
                                 symbol = "LDG";
-                                fee = 200000;
+                                fee = ?200000;
+                                id = null;
                                 }))){
                                 "correct response";
                         } else {
@@ -1048,7 +1061,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                             item.metadata;
                         };
                         case(#err(err)){
-                           #Empty;
+                           #Option(null);
                         };
                     })){
                         case(#err(err)){
@@ -1092,6 +1105,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                             };
                                             
                                         };
+                                        case(_){
+                                          "wrong sale type";
+                                        };
                                         
                                     };
                                 };
@@ -1121,7 +1137,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                                             standard = #Ledger;
                                             decimals = 8;
                                             symbol = "LDG";
-                                            fee = 200000;}))){
+                                            fee = ?200000;
+                                            id = null;}))){
                                             "correct response";
                                     } else {
                                         "details didnt match" # debug_show(details);
@@ -1172,6 +1189,444 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                 };
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found a record"))), //todo: NFT-94
            
+            
+            
+                
+         ]);
+
+         S.run(suite);
+
+        return #success;
+        
+          
+
+    };
+
+    public shared func take_a_hot_minute() : async Bool{
+      return true;
+    };
+
+
+
+    public shared func testKYC() : async {#success; #fail : Text} {
+        D.print("running KYC");
+
+        let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
+        
+        let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
+        
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        let b_wallet = await TestWalletDef.test_wallet();
+        let c_wallet = await TestWalletDef.test_wallet();
+        
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        let funding_result_b = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+        let funding_result_c = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(c_wallet); subaccount= null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        let newPrincipal = await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+
+        let canister : Types.Service =  actor(Principal.toText(newPrincipal));
+
+        let kyc_service = await KYCService.kyc_service(?3);
+
+
+
+        let mode = canister.__set_time_mode(#test);
+        let atime = canister.__advance_time(Time.now());
+
+        let standardStage_collection = await utils.buildCollection( 
+            canister, 
+            Principal.fromActor(canister), 
+            Principal.fromActor(canister),
+            Principal.fromActor(this),
+            2048000);
+
+        let some_metadata = await canister.nft_origyn("");
+
+         D.print("the nft" # debug_show(some_metadata));
+
+        let add_kyc = await canister.collection_update_nft_origyn(#UpdateMetadata("com.origyn.kyc_canister_buyer", ?#Principal(Principal.fromActor(kyc_service)), false));
+
+         let some_metadata2 = await canister.nft_origyn("");
+
+         D.print("the nft" # debug_show(some_metadata2));
+
+        D.print("able to add kyc  buyer" # debug_show(add_kyc));
+
+        let add_kyc_seller = await canister.collection_update_nft_origyn(#UpdateMetadata("com.origyn.kyc_canister_seller", ?#Principal(Principal.fromActor(kyc_service)), false));
+
+         let some_metadata3 = await canister.nft_origyn("");
+
+         D.print("the nft" # debug_show(some_metadata3));
+
+        D.print("able to add kyc  seller" # debug_show(add_kyc_seller));
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
+
+        D.print("Minting");
+        let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account
+        let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this))); //mint to the test account
+
+        
+        D.print("start auction owner should fail");
+        //start an auction by owner
+        let start_auction_attempt_owner_fail = await canister.market_transfer_nft_origyn({token_id = "2";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #auction{
+                    reserve = ?(10 * 10 ** 8);
+                    token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    });
+                    buy_now = ?(10 * 10 ** 8);
+                    start_price = (10 * 10 ** 8);
+                    start_date = 0;
+                    ending = #date(get_time() + DAY_LENGTH);
+                    min_increase = #amount(10*10**8);
+                    allow_list = ?[Principal.fromActor(a_wallet), Principal.fromActor(b_wallet)];
+                };
+            }; } );
+
+       D.print("auction start fail  was " # debug_show(start_auction_attempt_owner_fail));
+
+
+        D.print("start auction owner");
+        //start an auction by owner
+        let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({token_id = "1";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #auction{
+                    reserve = ?(10 * 10 ** 8);
+                    token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    });
+                    buy_now = ?(10 * 10 ** 8);
+                    start_price = (10 * 10 ** 8);
+                    start_date = 0;
+                    ending = #date(get_time() + DAY_LENGTH);
+                    min_increase = #amount(10*10**8);
+                    allow_list = ?[Principal.fromActor(a_wallet), Principal.fromActor(b_wallet)];
+                };
+            }; } );
+
+        D.print("get sale id.  auction start was " # debug_show(start_auction_attempt_owner));
+        let current_sales_id = switch(start_auction_attempt_owner){
+            case(#ok(val)){
+                switch(val.txn_type){
+                    case(#sale_opened(sale_data)){
+                        sale_data.sale_id;
+                    };
+                    case(_){
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    }
+                };
+               
+            };
+            case(#err(item)){
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+        let current_sale = await canister.sale_info_nft_origyn(#status(current_sales_id));
+
+        //place escrow
+        D.print("sending tokens to canisters. auction creation: " # debug_show(current_sale));
+
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (20 * 10 ** 8) + 200000, Principal.fromActor(canister));
+
+        D.print("does a have tokens" # debug_show(a_wallet_send_tokens_to_canister));
+
+        let block = switch(a_wallet_send_tokens_to_canister){
+            case(#ok(ablock)){
+                ablock;
+            };
+            case(#err(other)){
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        D.print("Sending real escrow now");
+        let a_wallet_try_escrow_general_staged = await a_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, 10 * 10 ** 8, "1", ?current_sales_id, null, null);
+
+        D.print("sending real escrow" # debug_show(a_wallet_try_escrow_general_staged));
+
+        let block2 = switch(a_wallet_send_tokens_to_canister){
+            case(#ok(ablock)){
+                ablock;
+            };
+            case(#err(other)){
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        //place a bid to fail kyc
+        let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), (10*10**8), "1", current_sales_id, null);
+
+
+        D.print("a try bid " # debug_show(a_wallet_try_bid_valid));
+
+
+        let a_balance_after_bad_bid4 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+
+        let dfx_a_balance_after_bad_bid = await dfx.icrc1_balance_of({owner = Principal.fromActor(a_wallet); subaccount= null});
+
+        D.print("a balance 4 " # debug_show(dfx_a_balance_after_bad_bid));
+
+        //check transaction log for returned escrow
+        let a_history_1 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+       
+        D.print("passed this");
+        //place escrow b
+        let new_bid_val = 12*10**8;
+
+        //place escrow
+        D.print("sending tokens to canisters");
+        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
+
+        D.print("did the payment? ");
+        D.print(debug_show(b_wallet_send_tokens_to_canister_correct_ledger));
+
+        let block2_b = switch(b_wallet_send_tokens_to_canister_correct_ledger){
+            case(#ok(ablock)){
+                ablock;
+            };
+            case(#err(other)){
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        D.print("Sending escrow for correct currency escrow now");
+        let b_wallet_try_escrow_correct_currency = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, new_bid_val, "1", ?current_sales_id, null, null);
+
+        D.print("did the deposit work? ");
+        D.print(debug_show(b_wallet_try_escrow_correct_currency));
+
+
+        let notification_count1 = await kyc_service.get_notification_counter();
+
+        //b should bit and should pass kyc
+        let b_wallet_try_bid_valid = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), (10*10**8) + 1, "1", current_sales_id, null);
+
+
+        D.print("waiting");
+        ignore await take_a_hot_minute();
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        ignore await take_a_hot_minute(); 
+        
+        //forces a roundtrip;
+        let y =  await canister.sale_info_secure_nft_origyn(#status(current_sales_id));
+        D.print("done waiting");
+
+        let notification_count2 = await kyc_service.get_notification_counter();
+
+        D.print(debug_show(notification_count2));
+
+       
+        //NFT-94 check ownership
+        //check balance and make sure we see the nft
+        let a_balance_after_close = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+         //NFT-94 check ownership
+        //check balance and make sure we see the nft
+        let b_balance_after_close = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(b_wallet)));
+        
+        // //MKT0029, MKT0036
+        let a_sale_status_over_new_owner = await canister.nft_origyn("1");
+
+        //check transaction log for sale
+        let a_history_3 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+         let suite = S.suite("test staged Nft", [
+
+          
+
+             S.test("fail if kyc doesn't fail on start_auction", switch(start_auction_attempt_owner_fail){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 4011){ //wrong asset
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))), 
+            S.test("fail if kyc doesn't fail", switch(a_wallet_try_bid_valid){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 4011){ //wrong asset
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+                }};}, M.equals<Text>(T.text("correct number"))), 
+              S.test("b kyc succesful", switch(b_wallet_try_bid_valid){case(#ok(res)){
+                 D.print("as bid");
+                 D.print(debug_show(b_wallet_try_bid_valid));
+               switch(res.txn_type){
+                   case(#sale_ended(details)){
+                       if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
+                            details.amount == ((10*10**8) + 1) and
+                            (switch(details.sale_id){case(null){"x"};case(?val){val}}) == current_sales_id and
+                            Types.account_eq(details.seller, #principal(Principal.fromActor(this))) and
+                            Types.token_eq(details.token, #ic({
+                                canister = (Principal.fromActor(dfx)); 
+                                standard = #Ledger;
+                                decimals = 8;
+                                symbol = "LDG";
+                                fee = ?200000;
+                                id = null;}))){
+                                "correct response";
+                        } else {
+                            "details didnt match" # debug_show(details);
+                        };
+                   };
+                   case(_){
+                       D.print("bad transaction bid " # debug_show(res));
+                       "bad transaction bid";
+                   };
+               }; 
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
+            S.test("transaction history has the bid", switch(a_history_3){case(#ok(res)){
+               
+               D.print("where ismy history");
+               D.print(debug_show(a_history_1));
+               switch(res[res.size()-1].txn_type){ 
+                   case(#sale_ended(details)){
+                       if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
+                            details.amount == ((10*10**8) + 1) and
+                            details.sale_id == ?current_sales_id and
+                            Types.token_eq(details.token, #ic({
+                                canister = (Principal.fromActor(dfx)); 
+                                standard = #Ledger;
+                                decimals = 8;
+                                symbol = "LDG";
+                                fee = ?200000;
+                                id = null;
+                                }))){
+                                "correct response";
+                        } else {
+                            "details didnt match" # debug_show(details);
+                        };
+                   };
+                   case(_){
+                       "bad history bid";
+                   };
+               }
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
+            S.test("auction winner is the new owner", switch(a_sale_status_over_new_owner){case(#ok(res)){
+
+                let new_owner = switch(Metadata.get_nft_owner(
+                    switch (a_sale_status_over_new_owner){
+                        case(#ok(item)){
+                            item.metadata;
+                        };
+                        case(#err(err)){
+                           #Option(null);
+                        };
+                    })){
+                        case(#err(err)){
+                            #account_id("wrong");
+                        };
+                        case(#ok(val)){
+                            val;
+                        };
+                    };
+                D.print("new owner");
+                D.print(debug_show(new_owner));
+                D.print(debug_show(Principal.fromActor(a_wallet)));
+                if(Types.account_eq(new_owner, #principal(Principal.fromActor(b_wallet)))){
+                    "found correct owner"
+                } else {
+                    D.print(debug_show(res));
+                    "didnt find record "
+            }};case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found correct owner"))), //MKT0029
+            S.test("current sale status is ended", switch(a_sale_status_over_new_owner){case(#ok(res)){
+                D.print("a_sale_status_over_new_owner");
+                D.print(debug_show(a_sale_status_over_new_owner));
+                //MKT0036 sale should be over and there should be a record with status #ended
+                    switch (a_sale_status_over_new_owner){
+                        case(#ok(res)){
+                           
+                            switch(res.current_sale){
+                                case(null){
+                                    "current sale improperly removed"
+                                };
+                                case(?val){
+                                    switch(val.sale_type){
+                                        case(#auction(state)){
+                                            D.print("state");
+                                            D.print(debug_show(state));
+                                            let current_status = switch(state.status){case(#closed){true;};case(_){false}};
+                                            if(current_status == true and
+                                                val.sale_id == current_sales_id){
+                                                    "found closed sale";
+                                            } else {
+                                                "didnt find closed sale";
+                                            };
+                                            
+                                        };
+                                        case(_){
+                                            "wrong sale type"
+                                            
+                                        };
+                                        
+                                    };
+                                };
+                            };
+                                    
+                         };
+                         case(#err(err)){
+                            "error getting";
+                         };
+                     };
+                 };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found closed sale"))),
+
+              S.test("kyc service is notified", notification_count2, M.equals<Nat>(T.nat(notification_count1 + 1))),
             
             
                 
