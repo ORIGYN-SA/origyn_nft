@@ -89,15 +89,19 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
             if (typeof dupeObj.length == 'number') var retObj = new Array();
 
             for (var objInd in dupeObj) {
-                if (dupeObj[objInd] == null) dupeObj[objInd] = 'Empty';
+                if (dupeObj[objInd] == null) dupeObj[objInd] = {Option: []};
                 if (typeof dupeObj[objInd] == 'object') {
                     retObj[objInd] = iterateObj(dupeObj[objInd]);
                 } else if (typeof dupeObj[objInd] == 'string') {
                     if (objInd == 'Principal') {
                         retObj[objInd] = Principal.fromText(dupeObj[objInd]);
-                    } else if (objInd == 'Nat') {
+                    } else if (['Nat', 'Nat64', 'Int', 'Int64'].includes(objInd)) {
                         retObj[objInd] = BigInt(dupeObj[objInd]);
+                      } else if (['Nat8', 'Nat16', 'Nat32', 'Int8', 'Int16', 'Int32', 'Float'].includes(objInd)) {
+                        retObj[objInd] = Number(dupeObj[objInd]);
                     } else {
+                  
+                    
                         retObj[objInd] = dupeObj[objInd];
                     }
                 } else if (typeof dupeObj[objInd] == 'number') {
@@ -157,7 +161,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
                     content: content,
                     token_id: token_id,
                     chunk: i,
-                    filedata: { Empty: null },
+                    filedata: { Option: [] },
                     library_id: library_id,
                 });
                 return res;
@@ -172,7 +176,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
         };
         for (let i = 0; i < chunks.length; i++) {
             const chnk = chunks[i];
-            console.log('appending item ', i);
+            console.log('appending item ', i, chnk, i, library_id);
             const result = await stageLibraryNft(
                 Array.from(chnk),
                 argv.token_id.toString(),

@@ -1,4 +1,4 @@
-# origyn_nft_reference
+# origyn_nft_reference - v0.1.4
 
 <img src="https://gitlab.origyn.ch/origyn/engineering/opensource/origyn_nft/-/blob/develop/origyn_nft_pic.jpeg" />
 
@@ -97,4 +97,16 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 It is important to note that every now and then there are new items in the motoko base library. One example of this is Timer. If you are using an older vesion of the motoko base library in vessel you will have an error complaining about a non existent Timer. In this repo we try to keep libs up-to-date, however, just be aware that from time to time you might need to change the upstream varible in the package-set.dhall to reflect the lastest motoko library.
 
 [Audit document](./docs/audit.md)
+
+### How to update Motoko Compiler
+
+Origyn NFT version 0.1.4 needs Motoko Compiler version >= 0.8.5. This is included in DFX 0.14.0.  If you have 0.13.x, see below:
+
+Here are the instructions about how to do it:
+
+- [Download MOC zip file for your Operating System](https://github.com/dfinity/motoko/releases/tag/0.8.5)
+- Run the following command `dfx cache show` to get Motoko version directory installation
+- Unzip file and copy `mo-ide, mo-doc, moc` files to the directory mentioned in step 2
+- Make sure you give the right persmissions to those files
+- Run `$(dfx cache show)/moc --version` to verify you have the downloaded version
 

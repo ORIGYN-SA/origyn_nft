@@ -17,14 +17,22 @@ import T "mo:matchers/Testable";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 
+import MigrationTypes "../origyn_nft_reference/migrations/types";
+
 
 
 shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
     let it = C.Tester({ batchSize = 8 });
 
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();

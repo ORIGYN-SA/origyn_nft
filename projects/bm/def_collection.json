@@ -26,8 +26,7 @@
                 {
                     "name": "library",
                     "value": {
-                        "Array": {
-                            "thawed": [
+                        "Array": [
                                 {
                                     "Class": [
                                         {
@@ -358,15 +357,14 @@
                                     ]
                                 }
                             ]
-                        }
+                   
                     },
                     "immutable": false
                 },
                 {
                     "name": "com.origyn.royalties.primary.default",
                     "value": {
-                        "Array": {
-                            "frozen": [
+                        "Array": [
                                 {
                                     "Class": [
                                         {
@@ -400,15 +398,14 @@
                                     ]
                                 }
                             ]
-                        }
+                        
                     },
                     "immutable": false
                 },
                 {
                     "name": "com.origyn.royalties.secondary.default",
                     "value": {
-                        "Array": {
-                            "frozen": [
+                        "Array":  [
                                 {
                                     "Class": [
                                         {
@@ -481,15 +478,14 @@
                                     ]
                                 }
                             ]
-                        }
+                      
                     },
                     "immutable": false
                 },
                 {
                     "name": "__apps",
                     "value": {
-                        "Array": {
-                            "thawed": [
+                        "Array":  [
                                 {
                                     "Class": [
                                         {
@@ -518,13 +514,12 @@
                                                     {
                                                         "name": "list",
                                                         "value": {
-                                                            "Array": {
-                                                                "thawed": [
+                                                            "Array":  [
                                                                     {
                                                                         "Principal": "APP-ID"
                                                                     }
                                                                 ]
-                                                            }
+                                                          
                                                         },
                                                         "immutable": false
                                                     }
@@ -546,13 +541,12 @@
                                                     {
                                                         "name": "list",
                                                         "value": {
-                                                            "Array": {
-                                                                "thawed": [
+                                                            "Array":  [
                                                                     {
                                                                         "Principal": "APP-ID"
                                                                     }
                                                                 ]
-                                                            }
+                                                           
                                                         },
                                                         "immutable": false
                                                     }
@@ -599,7 +593,7 @@
                                     ]
                                 }
                             ]
-                        }
+                       
                     },
                     "immutable": true
                 },

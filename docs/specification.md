@@ -10,13 +10,12 @@ query balance_of_nft_origyn(account: Account) -> Result<BalanceResponse, OrigynE
         #principal : Principal; //just a principal and default to null subaccount
         #account : {owner: Principal; sub_account: ?Blob}; //for future icrc-1
         #account_id : Text; //raw account id for compatability...some features not available
-        #extensible : CandyTypes.CandyValue; //for future extensibility
+        #extensible : CandyTypes.CandyShared; //for future extensibility
     };
 
 returns:
 
 type BalanceResult = {
-        multiCanister: ?[Principal];  // will hold other canisters that are part of the collection - not yet implemented
         nfts: [Text]; //nft ids owned by the user
         escrow: [EscrowRecord]; // escrow records that the user has on file
         sales: [EscrowRecord]; // sale records that the user has on file
@@ -68,7 +67,7 @@ Market transfers are the standard way to transact with Origyn NFTs. To help esta
 
     public type OwnerTransferResponse = {
         transaction: TransactionRecord;
-        assets: [CandyTypes.CandyValue];  //assets included in the transfer
+        assets: [CandyTypes.CandyShared];  //assets included in the transfer
     };
 
     share_wallet_nft_origyn(ShareWalletRequest) -> Result<OwnerTransferResponse, OrigynError>
@@ -111,13 +110,14 @@ Owner Tranfers moves an NFT from one wallet of an owner to another owner of a wa
 
     public type TokenSpec = {
         #ic: ICTokenSpec;
-        #extensible : CandyTypes.CandyValue; //#Class
+        #extensible : CandyTypes.CandyShared; //#Class
     };
 
     public type ICTokenSpec = {
         canister: Principal;
-        fee: Nat;
+        fee: ?Nat;
         symbol: Text;
+        id: ?Nat;
         decimals: Nat;
         standard: {
             #DIP20; //NYI
@@ -195,7 +195,7 @@ Stages Chunks of Data
 stage_library_nft_origyn(StageChunkArg = {
     token_id: Text;
     library_id: Text;
-    filedata: CandyTypes.CandyValue;
+    filedata: CandyTypes.CandyShared;
     chunk: Nat;
     content: Bool; //up to 2MB
 }) : Result<#ok(bool),#err(OrigynError)>; - Stages the content
@@ -283,7 +283,7 @@ currentSale - If the NFT is for sale, it will return info about the current sale
         owner: #Principal
         { "name": "is_soulbound", "value": { "Bool": false },"immutable": false}
         {"name":"default_royalty_primary", "value":{"Array":{ //royalties are assigned at the colletion level and then copied to each nft in the system vars. they become immutable except for the network
-            "thawed": [
+            [
                 {"Class":[
                     {"name":"tag", "value":{"Text":"com.origyn.royalty.broker"}, "immutable":true},
                     {"name":"rate", "value":{"Float":0.05}, "immutable":true},
@@ -296,8 +296,7 @@ currentSale - If the NFT is for sale, it will return info about the current sale
                 ]}
             ]
         }}, "immutable":false},
-        {"name":"default_royalty_secondary", "value":{"Array":{
-            "thawed": [
+        {"name":"default_royalty_secondary", "value":{"Array": [
                 {"Class":[
                     {"name":"tag", "value":{"Text":"com.origyn.royalty.broker"}, "immutable":true},
                     {"name":"rate", "value":{"Float":0.05}, "immutable":true},
@@ -319,7 +318,7 @@ currentSale - If the NFT is for sale, it will return info about the current sale
                     {"name":"account", "value":{"Principal":"rrkah-fqaaa-aaaaa-aaaaq-cai"}, "immutable":false}
                 ]}
             ]
-        }}, "immutable":false},
+        }, "immutable":false},
 
     }
 ```
@@ -334,7 +333,7 @@ preview - suggested - Text - points to the library id you would lke shown as the
 
 experience - suggested - Text - points to the library id you would lke shown as the experience asset in lists and marketplaces - usually an html single page app.
 
-library - required - Array(thawed) - list of assets in the nft
+library - required - Array() - list of assets in the nft
 
 ```
 #Class([
@@ -343,19 +342,19 @@ library - required - Array(thawed) - list of assets in the nft
   {name = "location_type"; value=#Text("canister"); immutable= true}, // ipfs, arweave, portal, canister = on this canister, collection = at collection level
   {name = "location"; value=#Text("collection/-/collection_banner"); immutable= true}, //relative or absolute path to resource
   {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true}, //used by http server to send proper type to browsers
-  {name = "content_hash"; value=#Bytes(#frozen([0,0,0,0])); immutable= true}, //should be the content hash of your content.
+  {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true}, //should be the content hash of your content.
   {name = "size"; value=#Nat(file_size); immutable= true}, //needs to be the accurate size as it is used for allocation.
   {name = "sort"; value=#Nat(0); immutable= true}, //can be used by dapps to list your assets in order.
   {name = "read"; value=#Text("public"); immutable=false;}, //read is public by default.  other values NYI: "collection_owner", "nft_owner", "former_nft_owner", "collection_participant", "allow_list", "network"
-  {name = "read_allow_list"; value=#Array(#thawed([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
+  {name = "read_allow_list"; value=#Array([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
   name = "write"; value=#Text("collection_owner"); immutable=false;}, //NYI so far.write is collection_owner by default.  other values NYI: "collection_owner", "nft_owner", "former_nft_owner", "collection_participant", "allow_list", "network"
-  {name = "write_allow_list"; value=#Array(#thawed([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
+  {name = "write_allow_list"; value=#Array([#Principal("XXXXXX")]); immutable=false;}, //NYI: list of allowed viewers.
 
     ])
 ])); immutable= false},
 ```
 
-__apps - optional - Array(thawed) - Data dapps added to the collection.  Permissioned data pages/document data
+__apps - optional - Array() - Data dapps added to the collection.  Permissioned data pages/document data
 
 Each data dapp is a Candy Class of values. Each node can have read(default to public), write(default to collection_owner), and permissions(default to collection_owner).
 
@@ -367,12 +366,12 @@ Each data dapp is a Candy Class of values. Each node can have read(default to pu
       immutable=false;},
   {name = "write"; value=#Class([
       {name = "type"; value=#Text("allow"); immutable= false},
-      {name = "list"; value=#Array(#thawed([#Principal(app)]));
+      {name = "list"; value=#Array([#Principal(app)]);
       immutable=false;}]);
       immutable=false;},
   {name = "permissions"; value=#Class([
       {name = "type"; value=#Text("allow"); immutable= false},
-      {name = "list"; value=#Array(#thawed([#Principal(app)]));
+      {name = "list"; value=#Array([#Principal(app)]);
       immutable=false;}]);
   immutable=false;},
   {name = "data"; value=#Class([
@@ -384,7 +383,7 @@ Each data dapp is a Candy Class of values. Each node can have read(default to pu
           immutable=false;},
           {name = "write"; value=#Class([
               {name = "type"; value=#Text("allow"); immutable= false},
-              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              {name = "list"; value=#Array([#Principal(app)]);
               immutable=false;}]);
           immutable=false;}]);
       immutable=false;},
@@ -392,12 +391,12 @@ Each data dapp is a Candy Class of values. Each node can have read(default to pu
           {name = "data"; value=#Text("val4"); immutable= false},
           {name = "read"; value=#Class([
               {name = "type"; value=#Text("allow"); immutable= false},
-              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              {name = "list"; value=#Array([#Principal(app)]);
               immutable=false;}]);
           immutable=false;},
           {name = "write"; value=#Class([
               {name = "type"; value=#Text("allow"); immutable= false},
-              {name = "list"; value=#Array(#thawed([#Principal(app)]));
+              {name = "list"; value=#Array([#Principal(app)]);
               immutable=false;}]);
           immutable=false;}]);
       immutable=false;}]);
@@ -416,10 +415,10 @@ com.origyn.node  - suggested - Node that endorses and authenticates NFTs minted 
 
 com.origyn.originator  - suggested - Originator of the collection - used for paying node royalties
 
-com.origyn.royalties.primary.default - Array(frozen) - List of Classes of rates used for primary sales.  These will be copied to NFTs in the collection during minting.
+com.origyn.royalties.primary.default - Array() - List of Classes of rates used for primary sales.  These will be copied to NFTs in the collection during minting.
 
 ```
-{name = "com.origyn.royalties.primary.default"; value=#Array(#frozen([
+{name = "com.origyn.royalties.primary.default"; value=#Array([
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
                     {name = "rate"; value=#Float(0.06); immutable= true}
@@ -433,14 +432,14 @@ com.origyn.royalties.primary.default - Array(frozen) - List of Classes of rates 
                     {name = "rate"; value=#Float(0.005); immutable= true}
                 ]),
                 
-            ])); immutable= false},
+            ]); immutable= false},
 ```
 
-com.origyn.royalties.secondary.default - Array(frozen) - List of Classes of rates used for secondary sales.  These will be copied to NFTs in the collection during minting.
+com.origyn.royalties.secondary.default - Array() - List of Classes of rates used for secondary sales.  These will be copied to NFTs in the collection during minting.
 
 ```
 
-{name = "com.origyn.royalties.secondary.default"; value=#Array(#frozen([
+{name = "com.origyn.royalties.secondary.default"; value=#Array([
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
                     {name = "rate"; value=#Float(0.01); immutable= true}
@@ -465,7 +464,7 @@ com.origyn.royalties.secondary.default - Array(frozen) - List of Classes of rate
                     {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
                     {name = "rate"; value=#Float(0.005); immutable= true}
                 ]),
-            ])); immutable= false},
+            ]); immutable= false},
 
 ```
 
@@ -504,7 +503,7 @@ NFTs hold data inside of them on a per app basis.  Data can be updated by those 
     public type NFTUpdateRequest ={
         #replace:{
             token_id: Text;
-            data: CandyTypes.CandyValue;
+            data: CandyTypes.CandyShared;
         };
         #update:{// NYI
             token_id: Text;
@@ -556,7 +555,7 @@ public type TransactionRecord = {
                 amount: Nat;
                 token: TokenSpec;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #mint : {
                 from: Account;
@@ -565,7 +564,7 @@ public type TransactionRecord = {
                 sale: ?{token: TokenSpec;
                     amount: Nat; //Nat to support cycles
                     };
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_ended : {
                 seller: Account;
@@ -574,27 +573,27 @@ public type TransactionRecord = {
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #royalty_paid : {
                 seller: Account;
                 buyer: Account;
-                 reciever: Account;
+                receiver: Account;
                 tag: Text;
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_opened : {
                 pricing: PricingConfig;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #owner_transfer : {
                 from: Account;
                 to: Account;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             }; 
             #escrow_deposit : {
                 seller: Account;
@@ -603,7 +602,7 @@ public type TransactionRecord = {
                 token_id: Text;
                 amount: Nat;//Nat to support cycles
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #escrow_withdraw : {
                 seller: Account;
@@ -613,7 +612,7 @@ public type TransactionRecord = {
                 amount: Nat;//Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_withdraw : {
                 seller: Account;
@@ -623,23 +622,23 @@ public type TransactionRecord = {
                 amount: Nat; //Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_owner_updated : {
                 owner: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_managers_updated : {
                 managers: [Principal];
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_network_updated : {
                 network: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #data; //nyi
             #burn;
-            #extensible : CandyTypes.CandyValue;
+            #extensible : CandyTypes.CandyShared;
 
         };
         timestamp: Int;
@@ -851,7 +850,7 @@ Passing null to the following function will get you the current information abou
         token_ids_count: ?Nat;
         multi_canister: ?[Principal];
         multi_canister_count: ?Nat;
-        metadata: ?CandyTypes.CandyValue;
+        metadata: ?CandyTypes.CandyShared;
         allocated_storage : ?Nat;
         available_space : ?Nat;
     };
@@ -871,7 +870,7 @@ Collection updates are handled with collection_update_nft_origyn:
         #UpdateLogo : ?Text;
         #UpdateName : ?Text;
         #UpdateSymbol : ?Text;
-        #UpdateMetadata: (Text, ?CandyTypes.CandyValue, Bool);
+        #UpdateMetadata: (Text, ?CandyTypes.CandyShared, Bool);
     };
 
 
@@ -987,8 +986,8 @@ Features:
     storage_info_secure_nft_origyn() : async Result.Result<Types.StorageMetrics, Types.OrigynError>
 
 ### mint_nft_origyn
-    stage_nft_origyn({metadata: CandyTypes.CandyValue}) -> async Result.Result<Text, Types.OrigynError>
-    stage_batch_nft_origyn([{metadata: CandyTypes.CandyValue}]) -> async [Result.Result<Text, Types.OrigynError>]
+    stage_nft_origyn({metadata: CandyTypes.CandyShared}) -> async Result.Result<Text, Types.OrigynError>
+    stage_batch_nft_origyn([{metadata: CandyTypes.CandyShared}]) -> async [Result.Result<Text, Types.OrigynError>]
     stage_library_nft_origyn(Types.StageChunkArg)-> async Result.Result<Types.StageLibraryResponse,Types.OrigynError>
     mint_nft_origyn(token_id: Text, new_owner : Types.Account) -> async Result.Result<Text,Types.OrigynError>
     mint_batch_nft_origyn([(Text, Types.Account)]) -> async [Result.Result<Text,Types.OrigynError>]
@@ -1018,7 +1017,7 @@ Features:
         var logo: ?Text;
         var name: ?Text;
         var symbol: ?Text;
-        var metadata: ?CandyTypes.CandyValue;
+        var metadata: ?CandyTypes.CandyShared;
         var owner : Principal;
         var managers: [Principal];
         var network: ?Principal;
@@ -1049,7 +1048,7 @@ Features:
     public type LogEntry = {
         event : Text;
         timestamp: Int;
-        data: CandyTypes.CandyValue;
+        data: CandyTypes.CandyShared;
         caller: ?Principal;
     };
 
@@ -1081,7 +1080,7 @@ Features:
         #principal : Principal;
         #account : {owner: Principal; sub_account: ?Blob};
         #account_id : Text;
-        #extensible : CandyTypes.CandyValue;
+        #extensible : CandyTypes.CandyShared;
     };
 
     public type EscrowRecord = {
@@ -1097,7 +1096,7 @@ Features:
 
     public type TokenSpec = {
         #ic: ICTokenSpec;
-        #extensible : CandyTypes.CandyValue; //#Class
+        #extensible : CandyTypes.CandyShared; //#Class
     };
 
     public type ICTokenSpec = {
@@ -1162,7 +1161,7 @@ Features:
                 amount: Nat;
                 token: TokenSpec;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #mint : {
                 from: Account;
@@ -1171,7 +1170,7 @@ Features:
                 sale: ?{token: TokenSpec;
                     amount: Nat; //Nat to support cycles
                     };
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_ended : {
                 seller: Account;
@@ -1180,27 +1179,27 @@ Features:
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #royalty_paid : {
                 seller: Account;
                 buyer: Account;
-                 reciever: Account;
+                 receiver: Account;
                 tag: Text;
                 token: TokenSpec;
                 sale_id: ?Text;
                 amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_opened : {
                 pricing: PricingConfig;
                 sale_id: Text;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #owner_transfer : {
                 from: Account;
                 to: Account;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             }; 
             #escrow_deposit : {
                 seller: Account;
@@ -1209,7 +1208,7 @@ Features:
                 token_id: Text;
                 amount: Nat;//Nat to support cycles
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #escrow_withdraw : {
                 seller: Account;
@@ -1219,7 +1218,7 @@ Features:
                 amount: Nat;//Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #sale_withdraw : {
                 seller: Account;
@@ -1229,23 +1228,23 @@ Features:
                 amount: Nat; //Nat to support cycles
                 fee: Nat;
                 trx_id: TransactionID;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_owner_updated : {
                 owner: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_managers_updated : {
                 managers: [Principal];
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #canister_network_updated : {
                 network: Principal;
-                extensible: CandyTypes.CandyValue;
+                extensible: CandyTypes.CandyShared;
             };
             #data; //nyi
             #burn;
-            #extensible : CandyTypes.CandyValue;
+            #extensible : CandyTypes.CandyShared;
 
         };
         timestamp: Int;
@@ -1255,7 +1254,7 @@ Features:
     public type TransactionID = {
         #nat : Nat;
         #text : Text;
-        #extensible : CandyTypes.CandyValue
+        #extensible : CandyTypes.CandyShared
     };
 
     public type SaleStatus = {
@@ -1323,7 +1322,7 @@ Features:
         #UpdateLogo : ?Text;
         #UpdateName : ?Text;
         #UpdateSymbol : ?Text;
-        #UpdateMetadata: (Text, ?CandyTypes.CandyValue, Bool);
+        #UpdateMetadata: (Text, ?CandyTypes.CandyShared, Bool);
     };
 
     // RawData type is a tuple of Timestamp, Data, and Principal
@@ -1396,7 +1395,7 @@ Features:
     public type StageChunkArg = {
         token_id: Text;
         library_id: Text;
-        filedata: CandyTypes.CandyValue;
+        filedata: CandyTypes.CandyShared;
         chunk: Nat;
         content: Blob;
     };
@@ -1428,7 +1427,7 @@ Features:
 
     public type OwnerTransferResponse = {
         transaction: TransactionRecord;
-        assets: [CandyTypes.CandyValue];
+        assets: [CandyTypes.CandyShared];
     };
 
     public type ShareWalletRequest = {
@@ -1447,7 +1446,7 @@ Features:
 
     public type TokenSpec = MigrationTypes.Current.TokenSpec;
 
-    public let TokenSpecDefault = #extensible(#Empty);
+    public let TokenSpecDefault = #extensible(#Option(null));
 
 
     //nyi: anywhere a deposit address is used, check blob for size in inspect message
@@ -1512,7 +1511,7 @@ Features:
 
     public type NFTInfoStable = {
         current_sale : ?SaleStatusStable;
-        metadata : CandyTypes.CandyValue;
+        metadata : CandyTypes.CandyShared;
     };
 
     
@@ -1592,7 +1591,7 @@ Features:
     public type NFTUpdateRequest ={
         #replace:{
             token_id: Text;
-            data: CandyTypes.CandyValue;
+            data: CandyTypes.CandyShared;
         };
         #update:{
             token_id: Text;
@@ -1610,7 +1609,7 @@ Features:
     public type ManageSaleRequest = {
         #end_sale : Text; //token_id
         #open_sale: Text; //token_id;
-        #escrow_deposit: EscrowRequest;
+        #escrow_deposit: EscrowRequest; //<-- Use this to make an offer
         #refresh_offers: ?Account;
         #bid: BidRequest;
         #withdraw: WithdrawRequest;
@@ -1661,7 +1660,7 @@ Features:
     public type LocalStageLibraryResponse = {
         #stage_remote : {
             allocation :AllocationRecord;
-            metadata: CandyTypes.CandyValue;
+            metadata: CandyTypes.CandyShared;
         };
         #staged : Principal;
     };
@@ -1688,8 +1687,9 @@ Features:
 
     public type WithdrawRequest = { 
         #escrow: WithdrawDescription;
-        #sale: WithdrawDescription;
+        #sale: WithdrawDescription; //<-- Only used if autopayout of sale breaks
         #reject:RejectDescription;
+        #deposit:RejectDescription;
     };
     
 
@@ -1708,7 +1708,7 @@ Features:
         token_ids_count: ?Nat;
         multi_canister: ?[Principal];
         multi_canister_count: ?Nat;
-        metadata: ?CandyTypes.CandyValue;
+        metadata: ?CandyTypes.CandyShared;
         allocated_storage : ?Nat;
         available_space : ?Nat;
     };
@@ -1717,7 +1717,7 @@ Features:
         var logo: ?Text;
         var name: ?Text;
         var symbol: ?Text;
-        var metadata: ?CandyTypes.CandyValue;
+        var metadata: ?CandyTypes.CandyShared;
         var owner : Principal;
         var managers: [Principal];
         var network: ?Principal;
@@ -1745,7 +1745,7 @@ Features:
     public type LogEntry = {
         event : Text;
         timestamp: Int;
-        data: CandyTypes.CandyValue;
+        data: CandyTypes.CandyShared;
         caller: ?Principal;
     };
 
@@ -1818,10 +1818,10 @@ Features:
     };
 
     public type StorageService = actor{
-        stage_library_nft_origyn : shared (StageChunkArg, AllocationRecordStable, CandyTypes.CandyValue) -> async Result.Result<StageLibraryResponse,OrigynError>;
+        stage_library_nft_origyn : shared (StageChunkArg, AllocationRecordStable, CandyTypes.CandyShared) -> async Result.Result<StageLibraryResponse,OrigynError>;
         storage_info_nft_origyn : shared query () -> async Result.Result<StorageMetrics, OrigynError>;
         chunk_nft_origyn : shared query ChunkRequest -> async Result.Result<ChunkContent, OrigynError>;
-        refresh_metadata_nft_origyn : (token_id: Text, metadata: CandyTypes.CandyValue) -> async Result.Result<Bool, OrigynError>
+        refresh_metadata_nft_origyn : (token_id: Text, metadata: CandyTypes.CandyShared) -> async Result.Result<Bool, OrigynError>
     };
 
     public type Service = actor {
@@ -1864,7 +1864,7 @@ Features:
         sale_nft_origyn : shared ManageSaleRequest -> async Result.Result<ManageSaleResponse,OrigynError>;
         sale_info_nft_origyn : shared SaleInfoRequest -> async Result.Result<SaleInfoResponse,OrigynError>;
         stage_library_nft_origyn : shared StageChunkArg -> async Result.Result<StageLibraryResponse,OrigynError>;
-        stage_nft_origyn : shared { metadata : CandyTypes.CandyValue } -> async Result.Result<Text, OrigynError>;
+        stage_nft_origyn : shared { metadata : CandyTypes.CandyShared } -> async Result.Result<Text, OrigynError>;
         storage_info_nft_origyn : shared query () -> async Result.Result<StorageMetrics, OrigynError>;
         transfer : shared EXT.TransferRequest -> async EXT.TransferResponse;
         transferEXT : shared EXT.TransferRequest -> async EXT.TransferResponse;

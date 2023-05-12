@@ -5,6 +5,20 @@
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko"
         },
+        "opie_test": {
+          "main": "src/origyn_nft_reference/main.mo",
+          "type": "motoko"
+      },
+
+        "yumi-gold-test": {
+          "main": "src/origyn_nft_reference/main.mo",
+          "type": "motoko"
+      },
+         "droute": {
+          "type": "custom",
+          "candid": "droute.did",
+          "wasm": "droute.wasm.gz"
+      },
         "egg": {
           "main": "src/origyn_nft_reference/main.mo",
           "type": "motoko"
@@ -112,23 +126,23 @@
         "dfxledger": {
             "type": "custom",
             "candid": "src/tests/ledger_dfx_v2.did",
-            "wasm": "src/tests/ledger-canister-min.wasm"
+            "wasm": "src/tests/ledger-icrc1-dfinity-sync.wasm.gz"
         },
         "dfxledger2": {
           "type": "custom",
           "candid": "src/tests/ledger_dfx_v2.did",
-          "wasm": "src/tests/ledger-canister-min.wasm"
+          "wasm": "src/tests/ledger-icrc1-dfinity-sync.wasm.gz"
         }
     },
     "defaults": {
         "build": {
             "args": "",
-            "packtool": "vessel sources"
+            "packtool": "mops sources"
         },
         "replica": {
             "subnet_type": "system"
         }
     },
-    "dfx": "0.13.1",
+    "dfx": "0.14.0",
     "version": 1
 }

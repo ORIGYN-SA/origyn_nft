@@ -13,17 +13,16 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
-import CandyTypes "mo:candy/types";
-import Conversion "mo:candy/conversion";
-import JSON "mo:candy/json";
+
 import Map "mo:map/Map";
-import Properties "mo:candy/properties";
+
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
 
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
+import HttpLib "http";
 import MigrationTypes "migrations_storage/types";
 
 
@@ -37,6 +36,10 @@ module {
         library = false;
         request = false;
     };
+
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversion = MigrationTypes.Current.Conversions;
+    let SB = MigrationTypes.Current.SB;
 
     let { ihash; nhash; thash; phash; calcHash } = Map;
 
@@ -68,23 +71,41 @@ module {
         token : ?StreamingCallbackToken;
     };
 
-    public type HeaderField = (Text, Text);
+    
 
     public type HttpRequest = {
         body: Blob;
-        headers: [HeaderField];
+        headers: [http.HeaderField];
         method: Text;
         url: Text;
     };
 
     // generates a random access key for use with procuring owner's assets
-    public func gen_access_key(): async* Text {
+    /**
+    * Generates an access key by generating a random string of characters.
+    * @returns {Async<Text>} - Returns an AsyncIterable that yields a random string of characters as a Text object.
+    */
+    public func gen_access_key(): async Text {
         let entropy = await Random.blob(); // get initial entropy
         var rand = Text.replace(debug_show(entropy), #text("\\"), "");
         Text.replace(rand, #text("\""), "");
     };
 
     //handels stream content with chunk requests
+    /**
+    * Handles streaming content for an NFT
+    *
+    * @param {Types.State} state - The current state of the canister
+    * @param {Text} token_id - The ID of the token being streamed
+    * @param {Text} library_id - The ID of the library containing the token
+    * @param {Nat | null} start - The starting byte position of the streaming content
+    * @param {Nat | null} end - The ending byte position of the streaming content
+    * @param {Text} contentType - The content type of the streaming content
+    * @param {CandyTypes.Workspace} data - The workspace containing the streaming content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * 
+    * @returns {HTTPResponse} - The HTTP response containing the streaming content
+    */
     public func handle_stream_content(
         state : Types.StorageState,
         token_id         : Text,
@@ -104,17 +125,10 @@ module {
                         debug if(debug_channel.streaming) D.print("Handling an range streaming NFT" # debug_show(token_id));
         var size : Nat = 0;
         //find the right data zone
-        for(this_item in data.vals()){
+        for(this_item in SB.vals(data)){
             switch(this_item){
                 case(#Bytes(bytes)){
-                    switch(bytes){
-                        case(#thawed(aArray)){
-                            size := size + aArray.size();
-                        };
-                        case(#frozen(aArray)){
-                            size := size + aArray.size();
-                        };
-                    };
+                    size := size + SB.size(bytes)
                 };
                 case(#Blob(bytes)){
                     
@@ -197,6 +211,15 @@ module {
     };
 
     //handles non-streaming large content
+    /**
+    * Handles non-streaming large content
+    * @param {Types.State} state - The current state
+    * @param {string} key - The key of the content to handle
+    * @param {string} contentType - The content type of the content
+    * @param {CandyTypes.Workspace} data - The workspace containing the content
+    * @param {httpparser.ParsedHttpRequest} req - The parsed HTTP request
+    * @returns {HTTPResponse} - The response containing the content
+    */
     public func handleLargeContent(
         state : Types.StorageState,
         key         : Text,
@@ -237,6 +260,19 @@ module {
 
     };
 
+
+    /**
+    * Streams the media content for a specific NFT.
+    *
+    * @param {Text} token_id - The ID of the NFT.
+    * @param {Text} library_id - The ID of the library containing the NFT.
+    * @param {Nat} index - The starting index for the media content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the media content.
+    * @param {Nat} rStart - The starting range for the media content.
+    * @param {Nat} rEnd - The ending range for the media content.
+    * @param {Nat} size - The size of the media content.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the media content.
+    */
     public func _stream_media(
         token_id : Text,
         library_id :Text,
@@ -269,10 +305,10 @@ module {
         let payload : Buffer.Buffer<Nat8> =  Buffer.Buffer<Nat8>(buf_size);
         var blob_payload = Blob.fromArray([]);
         
-        label getData for(this_item in data.vals()){
+        label getData for(this_item in SB.vals(data)){
 
                             debug if(debug_channel.streaming) D.print("zone processing" # debug_show(tracker) # "nft-m/" # token_id # "|" # library_id # "|" # Nat.toText(rStart) # "|" # Nat.toText(rEnd) # "|" # Nat.toText(size));
-            let chunk = Conversion.valueUnstableToBlob(this_item);
+            let chunk = Conversion.candyToBlob(this_item);
             
             let chunkSize = chunk.size();
             if(chunkSize + tracker < index){
@@ -311,7 +347,7 @@ module {
         //D.print("tracker: " # Nat.toText(tracker));
 
         if(blob_payload.size() == 0){
-            blob_payload := Blob.fromArray(payload.toArray());
+            blob_payload := Blob.fromArray(Buffer.toArray(payload));
         };
 
         let token = if(tracker >= size or tracker >= rEnd){
@@ -330,6 +366,16 @@ module {
         {payload = blob_payload; callback=token};
     };
 
+    /**
+    * Streams content for a specified key.
+    *
+    * @param {Text} key - The key for the content to be streamed.
+    * @param {Nat} index - The starting index for the content.
+    * @param {CandyTypes.Workspace} data - The workspace data containing the content.
+    * @param {Bool} use_stable - Whether or not to use the stable memory.
+    * @param {Types.Stable_Memory} btreemap - The stable memory to use.
+    * @returns {{payload: Blob, callback: ?StreamingCallbackToken}} - An object containing the payload and callback token for the content.
+    */
     public func _stream_content(
         key   : Text,
         index : Nat,
@@ -338,13 +384,13 @@ module {
         payload :Blob;                        // Payload based on the index.
         callback: ?StreamingCallbackToken // Callback for next chunk (if applicable).
     } {
-        let payload = data.get(index);
+        let payload = SB.get(data,index);
                             debug if(debug_channel.streaming) D.print("in private call back");
-                            debug if(debug_channel.streaming)D.print(debug_show(data.size()));
-        if (index + 1 == data.size()) return {payload = Conversion.valueUnstableToBlob(payload); callback = null};
+                            debug if(debug_channel.streaming)D.print(debug_show(SB.size(data)));
+        if (index + 1 == SB.size(data)) return {payload = Conversion.candyToBlob(payload); callback = null};
                             debug if(debug_channel.streaming)D.print("returning a new key" # key);
                             debug if(debug_channel.streaming)D.print(debug_show(key));
-        {payload = Conversion.valueUnstableToBlob(payload);
+        {payload = Conversion.candyToBlob(payload);
         callback = ?{
             content_encoding = "gzip";
             index            = index + 1;
@@ -381,14 +427,23 @@ module {
     };
 
     //determines how a library item should be rendere in an http request
+    /**
+    * Determines how a library item should be rendered in an HTTP request.
+    * @param {Types.State} state - The state of the canister.
+    * @param {httpparser.ParsedHttpRequest} req - The HTTP request.
+    * @param {CandyTypes.CandyShared} metadata - The metadata for the NFT.
+    * @param {string} token_id - The ID of the token.
+    * @param {string} library_id - The ID of the library.
+    * @returns
+    */
     public func renderLibrary(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
-                            debug if(debug_channel.library) D.print("in render library)");
+        debug if(debug_channel.library) D.print("in render library)");
 
         let library_meta = switch(Metadata.get_library_meta(metadata, library_id)){
             case(#err(err)){return _not_found("meta not found - " # token_id # " " # library_id);};
@@ -461,6 +516,9 @@ module {
             };
         };
 
+        let header_result = HttpLib.handle_range_headers(req.headers.original);
+
+
         if(location_type == "canister"){
             //on this canister
                                 debug if(debug_channel.library)  D.print("canister");
@@ -474,45 +532,23 @@ module {
                 case(#ok(val)){val};
             };
 
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return _not_found("file data not found");
                 };
                 case(?zone){
-                                        debug if(debug_channel.library)  D.print("size of zone" # debug_show(zone.size()));
-
-                    var split : [Text] = [];
-                    var split2 : [Text] = [];
-                    var start : ?Nat = null;
-                    var end : ?Nat = null;
-                    var b_foundRange : Bool = false;
-                    for(this_header in req.headers.original.vals()){
-
-                        if(this_header.0 == "range" or this_header.0 == "Range"){
-                            b_foundRange := true;
-                            split := Iter.toArray(Text.tokens(this_header.1, #char('=')));
-                            split2 := Iter.toArray(Text.tokens(split[1],#char('-')));
-                            if(split2.size() == 1){
-                                start := Conversion.textToNat(split2[0]);
-                            } else {
-                                start := Conversion.textToNat(split2[0]);
-                                end := Conversion.textToNat(split2[1]);
-                            };
-                                            debug if(debug_channel.library) D.print("split2 " # debug_show(split2));
-                        };
-                    };
-
-
-                    if(b_foundRange == true){
+                                        debug if(debug_channel.library)  D.print("size of zone" # debug_show(SB.size(zone)));
+                  if(header_result.b_foundRange == true){
+                    
                         //range request
                                             debug if(debug_channel.library)  D.print("dealing with a range request");
                         let result = handle_stream_content(
                                 state,
                                 token_id,
                                 library_id,
-                                start,
-                                end,
+                                header_result.start,
+                                header_result.end,
                                 content_type,
                                 zone,
                                 req
@@ -529,11 +565,11 @@ module {
                         return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
+                                body               = Conversion.candySharedToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
                                 streaming_strategy = null;
                             }; */
                         //standard content request
-                        if(zone.size() > 1){
+                        if(SB.size(zone) > 1){
                             //streaming required
                             let result = handleLargeContent(
                                 state,
@@ -550,7 +586,7 @@ module {
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = Conversion.candyToBlob(SB.get(zone,0));
                                 streaming_strategy = null;
                             };
                         };
@@ -577,14 +613,14 @@ module {
                 case(#ok(val)){val};
             };
 
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return _not_found("file data not found");
                 };
                 case(?zone){
                                         debug if(debug_channel.library) D.print("size of zone");
-                                        debug if(debug_channel.library) D.print(debug_show(zone.size()));
+                                        debug if(debug_channel.library) D.print(debug_show(SB.size(zone)));
 
                     var split : [Text] = [];
                     var split2 : [Text] = [];
@@ -635,11 +671,11 @@ module {
                         return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", "text/plain")];
-                                body               = Conversion.valueToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
+                                body               = Conversion.candySharedToBlob(#Text(debug_show(req.headers.original) # "|||" # debug_show(req.original.headers)));
                                 streaming_strategy = null;
                             }; */
                         //standard content request
-                        if(zone.size() > 1){
+                        if(SB.size(zone) > 1){
                             //streaming required
                             let result = handleLargeContent(
                                 state,
@@ -656,7 +692,7 @@ module {
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
-                                body               = Conversion.valueUnstableToBlob(zone.get(0));
+                                body               = Conversion.candyToBlob(SB.get(zone, 0));
                                 streaming_strategy = null;
                             };
                         };
@@ -686,7 +722,7 @@ module {
     public func renderSmartRoute(
         state : Types.StorageState,
         req : httpparser.ParsedHttpRequest,
-        metadata : CandyTypes.CandyValue,
+        metadata : CandyTypes.CandyShared,
         token_id: Text, smartRoute: Text) : HTTPResponse {
         //D.print("path is ex");
         let library_id = switch(Metadata.get_nft_text_property(metadata, smartRoute)){
@@ -708,6 +744,12 @@ module {
         };
     };
 
+    /**
+    * Callback function used for NFT streaming. Handles streaming NFT content
+    * @param tk - StreamingCallbackToken, token containing streaming info
+    * @param state - Types.State, state object containing library data and other metadata
+    * @returns StreamingCallbackResponse object, containing payload and streaming token
+    */
     public func nftStreamingCallback(
         tk : StreamingCallbackToken,
         state: Types.StorageState) :  StreamingCallbackResponse {
@@ -735,7 +777,7 @@ module {
                 case(#ok(val)){val};
             };
             
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                     return {
@@ -773,7 +815,7 @@ module {
                                 }};
                 case(#ok(val)){val};
             };
-            switch(item.getOpt(1)){
+            switch(SB.getOpt(item,1)){
                 case(null){
                     //nofiledata
                                         debug if(debug_channel.streaming) D.print("no file bytes found");
@@ -818,14 +860,22 @@ module {
             data,
         );
 
-        D.print("the stream content " # key);
-        D.print(debug_show(result));
+        debug if(debug_channel.streaming) D.print("the stream content " # key);
+        debug if(debug_channel.streaming) D.print(debug_show(result));
         {
             body  = result.payload;
             token = result.callback;
         };
     };
 
+    /**
+    * Callback function for streaming large content over HTTP.
+    * Determines how a library item should be rendered in an HTTP request.
+    *
+    * @param {StreamingCallbackToken} tk - Token representing the current streaming session.
+    * @param {Types.State} state - State object containing the current allocation and other relevant data.
+    * @returns {StreamingCallbackResponse} - A response object containing the payload and callback for the next chunk (if applicable).
+    */
     public func http_request_streaming_callback(
         tk : StreamingCallbackToken,
         state : Types.StorageState) : StreamingCallbackResponse {
@@ -859,7 +909,7 @@ module {
 
             //D.print("have item");
 
-            switch (item.getOpt(1)) {
+            switch (SB.getOpt(item,1)) {
                 case (null) { };
                 case (?zone)  {
                     return stream_content(
@@ -894,7 +944,7 @@ module {
 
                                 debug if(debug_channel.large_content) //D.print("have item");
 
-            switch (item.getOpt(1)) {
+            switch (SB.getOpt(item,1)) {
                 case (null) { };
                 case (?zone)  {
                     return stream_media(
@@ -920,228 +970,12 @@ module {
         };
     };
 
-    //pulls 
-    private func json(message: CandyTypes.CandyValue, _query: ?Text) : HTTPResponse {
-        let message_response = switch(_query) {
-            case(null) {
-                message
-            };
-            case(?q) {
-                switch(splitQuery(Text.replace(q, #text("--"), "~"), '~')) {
-                    case(#ok(qs)) {
-                        switch(get_deep_properties(message, qs)) {
-                            case(#ok(data)) {
-                                data;
-                            };
-                            case(#back){
-                              message;
-                            };
-                            case(#err(err)) {
-                                return _not_found("properties not found: " # q);
-                            };
-                           
-                        };
-                    };
-                    case(#err(err)) {
-                        return _not_found(err);
-                    };
-                    /* case(_){
-                        return _not_found("unexpected value: " # debug_show(message));
-                    }; */
-                };
-            };
-        };
-
-        return {
-            body = Text.encodeUtf8(JSON.value_to_json(message_response));
-            headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
-            status_code = 200;
-            streaming_strategy = null;
-        };
-    };
+     
 
     type sQuery = { #standard: Text; #multi: Text };
-    //handles queries
-    public func splitQuery(q: Text, p: Char): Result.Result<List.List<sQuery>, Text> {
-        var queries = List.nil<sQuery>();
-        var key : Text = "";
-        var multi : Bool  = false;
-        var open : Bool  = false;
-
-        let addQueries = func(key: Text, current: List.List<sQuery>, multi: Bool): Result.Result<List.List<sQuery>, Text> {
-            //D.print(debug_show(multi, key));
-            if(multi) {
-                if(Text.contains(key, #char(p))) {
-                   return #err("multi: not supported split")
-                };
-                #ok(List.push<sQuery>(#multi(key), current));
-            } else {
-                if(Text.contains(key, #char(','))) {
-                    return #err("Standard: not supported [,]");
-                };
-                #ok(List.push<sQuery>(#standard(key), current));
-            };
-        };
-
-        for(thisChar in Text.toIter(q)) {
-            if(thisChar == '[') {
-                open := true;
-                multi := true;
-            } else if(thisChar == ']') {
-                 open := false;
-            } else {
-                if(thisChar == p and open == false) {
-                    switch(addQueries(key, queries, multi)) {
-                        case(#ok(res)){queries:=res;};
-                        case(err){return err;};
-                    };
-                    multi := false;
-                    key := "";
-                } else {
-                    key:= key # Char.toText(thisChar);
-                };
-            };
-        };
-
-        switch(addQueries(key, queries, multi)) {
-            case(#ok(res)){queries:=res;};
-            case(err){return err;};
-        };
-        return #ok(List.reverse(queries));
-    };
-
-    //gets prroperties from deep in a structure
-    public func get_deep_properties(metadata: CandyTypes.CandyValue, qs: List.List<sQuery>): {#ok: CandyTypes.CandyValue; #err: (); #back: ()} {
-        if(List.isNil(qs)) {
-            return #back();
-        };
-
-        let item = List.pop(qs);
-
-        let key = switch(item.0){
-          case(null){return #err;};
-          case(?val){val;};
-        };
-        let listQs = item.1;
-
-        switch(metadata) {
-            case(#Class(properties)) {
-                switch(key) {
-                    case(#standard(standard)) {
-                        switch(Properties.getClassProperty(metadata, standard)){
-                            case(null) {
-                                return #err();
-                            };
-                            case(?val){
-                                switch(get_deep_properties(val.value, listQs)) {
-                                    case(#ok(res)){#ok(res);};
-                                    case(#back()){#ok(#Class([val]));};
-                                    case(err){err;};
-                                };
-                            };
-                        };
-                    };
-                    case(#multi(multi)) {
-                        if(List.isNil(listQs)) {
-                            let props = Array.map<Text, CandyTypes.Query>(
-                                split_text(multi, ','),
-                                func (key: Text): CandyTypes.Query {
-                                    return {
-                                        name = key;
-                                        next = [];
-                                    };
-                                }
-                            );
-                            return switch(Properties.getProperties(properties, props)) {
-                                case(#ok(val)){#ok(#Class(val));};
-                                case(#err(err)){#err()};
-                            };
-                        } else {
-                            return #err();
-                        };
-                    };
-                };
-            };
-            case(#Array(_)) {
-                switch(key) {
-                    case(#standard(standard)) {
-                        var len = 0;
-                        for(this_item in Conversion.valueToValueArray(metadata).vals()) {
-                            if(Nat.toText(len) == standard) {
-                                switch(get_deep_properties(this_item, listQs)) {
-                                    case(#ok(res)){return #ok(res);};
-                                    case(#back()){return #ok(this_item);};
-                                    case(err){return err;};
-                                };
-                            };
-                            len := len + 1;
-                        };
-                    };
-                    case(#multi(multi)) {
-                        var splitMulti: [Text] = split_text(multi, ',');
-                        let list: Buffer.Buffer<CandyTypes.CandyValue> = Buffer.Buffer<CandyTypes.CandyValue>(1);
-                        var len = 0;
-                        for(this_item in Conversion.valueToValueArray(metadata).vals()) {
-                            switch(Array.find<Text>(splitMulti, func (key: Text) {
-                                return key == Nat.toText(len);
-                            })) {
-                                case(null) {};
-                                case(?find) {
-                                    switch(get_deep_properties(this_item, listQs)) {
-                                        case(#ok(res)){
-                                            list.add(res);
-                                        };
-                                        case(#back()){
-                                            list.add(this_item);
-                                        };
-                                        case(err){return err;};
-                                    };
-                                };
-                            };
-                            len := len + 1;
-                        };
-
-                        if(list.size() == splitMulti.size()) {
-                            return #ok(#Array(#thawed(list.toArray())));
-                        } else {
-                            return #err();
-                        };
-                    };
-                };
-
-                return #err();
-            };
-            case(_) {
-                if(List.isNil(qs)) {
-                    return #back();
-                };
-
-               return #err();
-            };
-        };
-    };
-
-    
-
-    public func split_text(q: Text, p: Char): [Text] {
-        var queries: Buffer.Buffer<Text> = Buffer.Buffer<Text>(1);
-        var key : Text = "";
-
-        for(thisChar in Text.toIter(q)) {
-            if(thisChar != '[' and thisChar != ']') {
-                if(thisChar == p) {
-                    queries.add(key);
-                    key := "";
-                } else {
-                    key:= key # Char.toText(thisChar);
-                };
-            };
-        };
-        queries.add(key);
-        return queries.toArray();
-    };
 
     //checks that a access token holder is the collection owner
+    //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
     public func http_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {
@@ -1173,7 +1007,7 @@ module {
 
     //checks that a access token holder is an owner of an NFT
     //**NOTE:  NOTE:  Data stored on the IC should not be considered secure. It is possible(though not probable) that node operators could look at the data at rest and see access tokens. The only current method for hiding data from node providers is to encrypt the data before putting it into a canister. It is highly recommended that any personally identifiable information is encrypted before being stored on a canister with a separate and secure decryption system in place.**
-    public func http_nft_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyValue): Result.Result<(), Text> {
+    public func http_nft_owner_check(stateBody : Types.StorageState, req : httpparser.ParsedHttpRequest, metadata: CandyTypes.CandyShared): Result.Result<(), Text> {
         switch(req.url.queryObj.get("access")) {
             case(null) {
                 return #err("no access code in request when nft not minted");
@@ -1262,14 +1096,14 @@ module {
                             return renderSmartRoute(state,req, metadata, token_id, Types.metadata.primary_asset);
                         };
                         if(path_array[2] == "info"){
-                            return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                            return HttpLib.json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                         };
                         if(path_array[2] == "library"){
                             let libraries = switch(Metadata.get_nft_library(Metadata.get_clean_metadata(metadata, caller), ?caller)){
                                 case(#err(err)){return _not_found("libraries not found");};
                                 case(#ok(val)){ val };
                             };
-                            return json(libraries, null);
+                            return HttpLib.json(libraries, null);
                         };
                     };
                     if(path_size > 3){
@@ -1299,7 +1133,7 @@ module {
                               };
 
                                 let library_id =if(library_id_buffer.size() > 1){
-                                Text.join("/", library_id_buffer.toArray().vals());
+                                Text.join("/", Buffer.toArray(library_id_buffer).vals());
                               } else {
                                 library_id_buffer.get(0);
                               };
@@ -1309,7 +1143,7 @@ module {
                                     case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                     case(#ok(val)){val};
                                 };
-                                return json(library_meta, queryObj.get("query"));
+                                return HttpLib.json(library_meta, queryObj.get("query"));
                               };
 
                               return renderLibrary(state, req, metadata, token_id, library_id);
@@ -1362,7 +1196,7 @@ module {
                           };
 
                             let library_id = if(library_id_buffer.size() > 1){
-                            Text.join("/", library_id_buffer.toArray().vals());
+                            Text.join("/", Buffer.toArray(library_id_buffer).vals());
                           } else {
                             library_id_buffer.get(0);
                           };
@@ -1372,7 +1206,7 @@ module {
                                 case(#err(err)){return _not_found("library by " # library_id # " not found");};
                                 case(#ok(val)){val};
                             };
-                            return json(library_meta, queryObj.get("query"));
+                            return HttpLib.json(library_meta, queryObj.get("query"));
                           };
 
                           return renderLibrary(state, req, metadata, token_id, library_id);
@@ -1401,7 +1235,7 @@ module {
                     };
                     if(path_array[1] == "info"){
                                             debug if(debug_channel.request) D.print("render info "  # token_id );
-                        return json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
+                        return HttpLib.json(Metadata.get_clean_metadata(metadata, caller), queryObj.get("query"));
                     };
                     if(path_array[1] == "library"){
                                             debug if(debug_channel.request) D.print("render library "  # token_id );
@@ -1409,7 +1243,7 @@ module {
                             case(#err(err)){return _not_found("libraries not found");};
                             case(#ok(val)){ val };
                         };
-                        return json(libraries, null);
+                        return HttpLib.json(libraries, null);
                     };
                 };
             } else if(path_array[0] == "metrics"){

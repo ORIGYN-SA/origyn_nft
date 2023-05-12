@@ -8,11 +8,9 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
-import CandyTypes "mo:candy/types";
-import Conversions "mo:candy/conversion";
+
 import EXT "mo:ext/Core";
-import Properties "mo:candy/properties";
-import Workspace "mo:candy/workspace";
+
 
 import DIP721 "DIP721";
 import Market "market";
@@ -31,143 +29,158 @@ module {
         owner = false;
     };
 
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
+    /**
+    * Share ownership of an NFT token within the same principal or account ID.
+    * This should only be used by the owner to transfer between wallets they own.
+    * To protect this, any assets in the canister associated with the account/principal should be moved along with the token.
+    * 
+    * @param {StateAccess} state - the state of the canister
+    * @param {Types.ShareWalletRequest} request - the request object containing the token ID, the current owner's account, and the new owner's account
+    * @param {Principal} caller - the principal of the caller
+    * 
+    * @returns {Types.OwnerUpdateResult} the transaction record and a list of assets associated with the token
+    */
     public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
-        //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
-        //should be moved along with the the token
+      //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
+      //should be moved along with the the token
 
-        //nyi: transfers from one accountid to another must be from the same principal.Array
-        //to transfer from accountId they must be in the null subaccount
+      //nyi: transfers from one accountid to another must be from the same principal.Array
+      //to transfer from accountId they must be in the null subaccount
 
-        var metadata = switch(Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-            case(#err(err)){
-                return #err(Types.errors(#token_not_found, "share_nft_origyn token not found" # err.flag_point, ?caller));
-            };
-            case(#ok(val)){
-                val;
-            };
+      var metadata = switch(Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
+        case(#err(err)){
+          return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "share_nft_origyn token not found" # err.flag_point, ?caller));
         };
-
-        //can't owner transfer if token is soulbound
-        if (Metadata.is_soulbound(metadata)) {
-            return #err(Types.errors(#token_non_transferable, "share_nft_origyn ", ?caller));
+        case(#ok(val)){
+          val;
         };
+      };
 
-        let owner = switch(Metadata.get_nft_owner(metadata)){
-            case(#err(err)){
-                return #err(Types.errors(err.error, "share_nft_origyn " # err.flag_point, ?caller));
-            };
-            case(#ok(val)){
-                val;
-            };
+      //can't owner transfer if token is soulbound
+      if (Metadata.is_soulbound(metadata)) {
+        return #err(Types.errors(?state.canistergeekLogger,  #token_non_transferable, "share_nft_origyn ", ?caller));
+      };
+
+      let owner = switch(Metadata.get_nft_owner(metadata)){
+        case(#err(err)){
+          return #err(Types.errors(?state.canistergeekLogger,  err.error, "share_nft_origyn " # err.flag_point, ?caller));
         };
-
-        
-
-        if(Types.account_eq(owner, #principal(caller)) == false){
-            //cant transfer something you dont own;
-            debug if(debug_channel.owner) D.print("should be returning item not owned");
-            return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+        case(#ok(val)){
+          val;
         };
+      };
+
+      if(Types.account_eq(owner, #principal(caller)) == false){
+        //cant transfer something you dont own;
+        debug if(debug_channel.owner) D.print("should be returning item not owned");
+        return #err(Types.errors(?state.canistergeekLogger,  #item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+      };
 
 
-        //look for an existing sale
-        switch(Market.is_token_on_sale(state, metadata, caller)){
-            case(#err(err)){return #err(Types.errors(err.error, "share_nft_origyn ensure_no_sale " # err.flag_point, ?caller))};
-            case(#ok(val)){
-                if(val == true){
-                    return #err(Types.errors(#existing_sale_found, "share_nft_origyn - sale exists " # request.token_id , ?caller));
-                };
-            };
-            
+      //look for an existing sale
+      switch(Market.is_token_on_sale(state, metadata, caller)){
+        case(#err(err)){return #err(Types.errors(?state.canistergeekLogger,  err.error, "share_nft_origyn ensure_no_sale " # err.flag_point, ?caller))};
+        case(#ok(val)){
+          if(val == true){
+            return #err(Types.errors(?state.canistergeekLogger,  #existing_sale_found, "share_nft_origyn - sale exists " # request.token_id , ?caller));
+          };
         };
+      };
 
+      debug if(debug_channel.owner) D.print(debug_show(owner));
+      debug if(debug_channel.owner) D.print(debug_show(request.from));
+      if(Types.account_eq(owner, request.from) == false){
+        //cant transfer something you dont own;
+        debug if(debug_channel.owner) D.print("should be returning item not owned");
+        return #err(Types.errors(?state.canistergeekLogger,  #item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+      };
 
-                            debug if(debug_channel.owner) D.print(debug_show(owner));
-                            debug if(debug_channel.owner) D.print(debug_show(request.from));
-        if(Types.account_eq(owner, request.from) == false){
-            //cant transfer something you dont own;
-                                debug if(debug_channel.owner) D.print("should be returning item not owned");
-            return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+      //set new owner
+      //D.print("Setting new Owner");
+      metadata := switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(metadata), [
+        {
+          name = Types.metadata.owner;
+          mode = #Set(Metadata.account_to_candy(request.to));
+        }
+      ])){
+          case(#ok(props)){
+              #Class(props);
+          };
+          case(#err(err)){
+              //maybe the owner is immutable
+              return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "share_nft_origyn - error setting owner " # request.token_id, ?caller));
+          };
+      };
+
+      let wallets = Buffer.Buffer<CandyTypes.CandyShared>(1);
+      //add the wallet share
+      switch(Metadata.get_system_var(metadata, Types.metadata.__system_wallet_shares)){
+        case(#Option(null)){};
+        case(#Array(val)){
+          let result = Map.new<Types.Account, Bool>();
+          for(thisItem in val.vals()){
+            wallets.add(thisItem);
+          };
         };
-
-        //set new owner
-        //D.print("Setting new Owner");
-        metadata := switch(Properties.updateProperties(Conversions.valueToProperties(metadata), [
-            {
-                name = Types.metadata.owner;
-                mode = #Set(Metadata.account_to_candy(request.to));
-            }
-        ])){
-            case(#ok(props)){
-                #Class(props);
-            };
-            case(#err(err)){
-                //maybe the owner is immutable
-
-                return #err(Types.errors(#update_class_error, "share_nft_origyn - error setting owner " # request.token_id, ?caller));
-
-            };
+        case(_){
+          return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "share_nft_origyn - wallet_share not an array", null));
         };
+      };
 
-        let wallets = Buffer.Buffer<CandyTypes.CandyValue>(1);
-        //add the wallet share
-        switch(Metadata.get_system_var(metadata, Types.metadata.__system_wallet_shares)){
-            case(#Empty){};
-            case(#Array(#thawed(val))){
-              let result = Map.new<Types.Account, Bool>();
-              for(thisItem in val.vals()){
-                wallets.add(thisItem);
-              };
-            };
-            case(#Array(#frozen(val))){
-              for(thisItem in val.vals()){
-                wallets.add(thisItem);
-              };
-            };
-            case(_){
-                return #err(Types.errors(#improper_interface, "share_nft_origyn - wallet_share not an array", null));
-            };
-        };
+      wallets.add(Metadata.account_to_candy(owner));
 
-        wallets.add(Metadata.account_to_candy(owner));
-
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(#frozen(wallets.toArray())));
+      metadata := Metadata.set_system_var(metadata, Types.metadata.__system_wallet_shares, #Array(Buffer.toArray(wallets)));
 
 
-                            debug if(debug_channel.owner) D.print("updating metadata");
-        Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
+      debug if(debug_channel.owner) D.print("updating metadata");
+      Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
 
-        //D.print("Adding transaction");
-        let txn_record = switch(Metadata.add_transaction_record(state, {
-                token_id = request.token_id;
-                index = 0; //mint should always be 0
-                txn_type = #owner_transfer({
-                    from = request.from;
-                    to = request.to;
-                    extensible = #Empty;
-                });
-                timestamp = Time.now();
-                chain_hash = [];
-            }, caller)){
-            case(#err(err)){
-                //potentially big error once certified data is in place...may need to throw
-                return #err(Types.errors(err.error, "share_nft_origyn add_transaction_record" # err.flag_point, ?caller));
-            };
-            case(#ok(val)){val};
-        };
+      //D.print("Adding transaction");
+      let txn_record = switch(Metadata.add_transaction_record(state, {
+            token_id = request.token_id;
+            index = 0; //mint should always be 0
+            txn_type = #owner_transfer({
+                from = request.from;
+                to = request.to;
+                extensible = #Option(null);
+            });
+            timestamp = Time.now();
+            chain_hash = [];
+        }, caller)){
+          case(#err(err)){
+              //potentially big error once certified data is in place...may need to throw
+              return #err(Types.errors(?state.canistergeekLogger,  err.error, "share_nft_origyn add_transaction_record" # err.flag_point, ?caller));
+          };
+          case(#ok(val)){val};
+      };
 
-        //D.print("returning transaction");
-        #ok({
-            transaction =txn_record;
-            assets= []});
+      //D.print("returning transaction");
+      #ok({
+          transaction =txn_record;
+          assets= []});
     };
 
 
-    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async* DIP721.Result{
+    /**
+    * Transfer a DIP721 token from one principal to another by finding the appropriate escrow record and using it for the transfer.
+    * If the escrow does not exist, the function fails.
+    *
+    * @param {StateAccess} state - StateAccess to the canister's state
+    * @param {Principal} from - The principal that currently owns the token
+    * @param {Principal} to - The principal that will own the token after the transfer
+    * @param {Nat} tokenAsNat - The token ID encoded as a Nat value
+    * @param {Principal} caller - The principal that called the function
+    * 
+    * @returns {DIP721.Result} - A DIP721 result object indicating the success or failure of the transfer operation.
+    */
+    public func transferDip721(state: StateAccess, from: Principal, to: Principal, tokenAsNat: Nat, caller: Principal) : async* DIP721.DIP721NatResult{
         //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
         //if the escrow doesn't exist then we should fail
-        
-        
         //nyi: determine if this is a marketable NFT and take proper action
         //marketable NFT may not be transfered between owner wallets execpt through share_nft_origyn
         let token_id = NFTUtils.get_nat_as_token_id(tokenAsNat);
@@ -214,6 +227,16 @@ module {
         };
     };
 
+    /**
+    * Transfer an EXT token from one principal to another by finding the appropriate escrow record and using it for the transfer.
+    * If the escrow does not exist, the function fails.
+    *
+    * @param {StateAccess} state - StateAccess to the canister's state
+    * @param {EXT.TransferRequest} request - The transfer request object, which includes information about the token and the principals involved in the transfer
+    * @param {Principal} caller - The principal that called the function
+    * 
+    * @returns {EXT.TransferResponse} - A transfer response object indicating the success or failure of the transfer operation.
+    */
     public func transferExt(state: StateAccess, request: EXT.TransferRequest, caller : Principal) : async* EXT.TransferResponse {
       //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
       //if the escrow doesn't exist then we should fail
@@ -298,6 +321,14 @@ module {
         };
     };
 
+    /**
+    * Gets the NFT with the specified token identifier.
+    * 
+    * @param {StateAccess} state - The state accessor.
+    * @param {EXT.TokenIdentifier} token - The token identifier to search for.
+    * 
+    * @returns {Result.Result<Text,Types.OrigynError>} Returns a result indicating success or failure with the data or an error message.
+    */
     public func getNFTForTokenIdentifier(state: StateAccess, token: EXT.TokenIdentifier) : Result.Result<Text,Types.OrigynError> {
 
         for(this_nft in Map.entries(state.state.nft_metadata)){
@@ -312,10 +343,19 @@ module {
             };
 
         };
-        return #err(Types.errors(#token_not_found, "getNFTForTokenIdentifier", null));
+        return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "getNFTForTokenIdentifier", null));
     };
 
-    public func bearerEXT(state: StateAccess, tokenIdentifier: EXT.TokenIdentifier, caller :Principal) : Result.Result<EXT.AccountIdentifier, EXT.CommonError>{
+    /**
+    * Gets the account identifier of the bearer of the NFT with the specified token identifier.
+    * 
+    * @param {StateAccess} state - The state accessor.
+    * @param {EXT.TokenIdentifier} tokenIdentifier - The token identifier for which to get the account identifier of the bearer.
+    * @param {Principal} caller - The caller principal.
+    * 
+    * @returns {Types.EXTBearerResult} Returns a result indicating success or failure with the data or an error message.
+    */
+    public func bearerEXT(state: StateAccess, tokenIdentifier: EXT.TokenIdentifier, caller :Principal) : Types.EXTBearerResult{
 
         switch(getNFTForTokenIdentifier(state, tokenIdentifier)){
             case(#ok(data)){
@@ -353,10 +393,5 @@ module {
                 return #err(#InvalidToken(tokenIdentifier));
             };
         };
-
     };
-
-    
-
-
 }

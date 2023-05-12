@@ -1,470 +1,168 @@
-
-
-type CanisterId = principal;
-
-type HeaderField = record {text; text};
-type HttpRequest = record {
-  url: text;
-  method: text;
-  body: vec nat8;
-  headers: vec HeaderField;
-};
-
-type HttpResponse = record {
-  body: vec nat8;
-  headers: vec HeaderField;
-  status_code: nat16;
-};
-
-//check
-type TipOfChainRes = record {
-    certification: opt vec nat8;
-    tip_index: BlockHeight;
-};
-
-//check
-type Hash = opt record {
-  inner: blob;
-};
-
-//check
-type BlockArg = BlockHeight;
-
-//check
-//maybe needs to be BlockDFX
-type BlockRes = opt variant {
-    Ok: opt variant {
-        Ok: Block;
-        Err: CanisterId;
-    };
-    Err: text;
-};
-
-
-//----------------------------------------------
-//check
-type Duration = record {
-    secs: nat64;
-    nanos: nat32;
-};
-
-//check
+type Account = record { owner : principal; subaccount : opt vec nat8 };
+type AccountBalanceArgs = record { account : text };
+type ArchiveInfo = record { canister_id : principal };
 type ArchiveOptions = record {
-    trigger_threshold : nat64;
-    num_blocks_to_archive : nat64;
-    node_max_memory_size_bytes: opt nat64;
-    max_message_size_bytes: opt nat64;
-    controller_id: principal;
-    cycles_for_archive_creation: opt nat64;
+  num_blocks_to_archive : nat64;
+  max_transactions_per_response : opt nat64;
+  trigger_threshold : nat64;
+  max_message_size_bytes : opt nat64;
+  cycles_for_archive_creation : opt nat64;
+  node_max_memory_size_bytes : opt nat64;
+  controller_id : principal;
 };
-
-// Height of a ledger block.
-//check
-type BlockHeight = nat64;
-
-
-//check
-type OperationDFX = variant {
-    Burn: record {
-        from: AccountIdentifierDFX;
-        amount: Tokens;
-    };
-    Mint: record {
-        to: AccountIdentifierDFX;
-        amount: Tokens;
-    };
-    Send: record {
-        from: AccountIdentifierDFX;
-        to: AccountIdentifierDFX;
-        amount: Tokens;
-    };
+type ArchivedBlocksRange = record {
+  callback : func (GetBlocksArgs) -> (
+      variant { Ok : BlockRange; Err : GetBlocksError },
+    ) query;
+  start : nat64;
+  length : nat64;
 };
-
-// Arguments for the `send_dfx` call.
-//check
-type SendArgs = record {
-    memo: Memo;
-    amount: Tokens;
-    fee: Tokens;
-    from_subaccount: opt SubAccount;
-    to: AccountIdentifier;
-    created_at_time: opt TimeStamp;
+type Archives = record { archives : vec ArchiveInfo };
+type BinaryAccountBalanceArgs = record { account : vec nat8 };
+type BlockRange = record { blocks : vec CandidBlock };
+type CandidBlock = record {
+  transaction : CandidTransaction;
+  timestamp : TimeStamp;
+  parent_hash : opt vec nat8;
 };
-
-type SendArgsDFX = record {
-    memo: Memo;
-    amount: Tokens;
-    fee: Tokens;
-    from_subaccount: opt SubAccount;
-    to: AccountIdentifierDFX;
-    created_at_time: opt TimeStamp;
+type CandidOperation = variant {
+  Approve : record {
+    fee : Tokens;
+    from : vec nat8;
+    allowance_e8s : int;
+    expires_at : opt TimeStamp;
+    spender : vec nat8;
+  };
+  Burn : record { from : vec nat8; amount : Tokens };
+  Mint : record { to : vec nat8; amount : Tokens };
+  Transfer : record {
+    to : vec nat8;
+    fee : Tokens;
+    from : vec nat8;
+    amount : Tokens;
+  };
+  TransferFrom : record {
+    to : vec nat8;
+    fee : Tokens;
+    from : vec nat8;
+    amount : Tokens;
+    spender : vec nat8;
+  };
 };
-
-
-// Arguments for the `notify` call.
-//check
-type NotifyCanisterArgs = record {
-    // The of the block to send a notification about.
-    block_height: BlockHeight;
-    // Max fee, should be 10000 e8s.
-    max_fee: Tokens;
-    // Subaccount the payment came from.
-    from_subaccount: opt SubAccount;
-    // Canister that received the payment.
-    to_canister: principal;
-    // Subaccount that received the payment.
-    to_subaccount: opt SubAccount;
+type CandidTransaction = record {
+  memo : nat64;
+  icrc1_memo : opt vec nat8;
+  operation : CandidOperation;
+  created_at_time : TimeStamp;
 };
-
-
-//check
+type Decimals = record { decimals : nat32 };
+type Duration = record { secs : nat64; nanos : nat32 };
+type GetBlocksArgs = record { start : nat64; length : nat64 };
+type GetBlocksError = variant {
+  BadFirstBlockIndex : record {
+    requested_index : nat64;
+    first_valid_index : nat64;
+  };
+  Other : record { error_message : text; error_code : nat64 };
+};
 type LedgerCanisterInitPayload = record {
-    minting_account: AccountIdentifierDFX;
-    initial_values: vec record {AccountIdentifierDFX; Tokens};
-    max_message_size_bytes: opt nat64;
-    transaction_window: opt Duration;
-    archive_options: opt ArchiveOptions;
-    send_whitelist: vec principal;
-    standard_whitelist: vec principal;
-    transfer_fee: opt Tokens;
-    token_symbol: opt text;
-    token_name: opt text;
-    admin: principal;
+  send_whitelist : vec principal;
+  token_symbol : opt text;
+  transfer_fee : opt Tokens;
+  minting_account : text;
+  transaction_window : opt Duration;
+  max_message_size_bytes : opt nat64;
+  icrc1_minting_account : opt Account;
+  archive_options : opt ArchiveOptions;
+  initial_values : vec record { text; Tokens };
+  token_name : opt text;
 };
-
-//-------------------
-//-------------------
-//check
-type Tokens = record {
-     e8s : nat64;
-};
-
-// Number of nanoseconds from the UNIX epoch in UTC timezone.
-//check
-type TimeStamp = record {
-    timestamp_nanos: nat64;
-};
-
-// AccountIdentifier is a 32-byte array.
-// The first 4 bytes is big-endian encoding of a CRC32 checksum of the last 28 bytes.
-//problem = is this vec nat8 or text
-type AccountIdentifierDFX = text;
-
-type AccountIdentifier = blob;
-
-// Subaccount is an arbitrary 32-byte byte array.
-// Ledger uses subaccounts to compute the source address, which enables one
-// principal to control multiple ledger accounts.
-//check - problem - used to be vec nat8
-type SubAccount = blob;
-
-// Sequence number of a block produced by the ledger.
-//check
-type BlockIndex = nat64;
-
-// An arbitrary number associated with a transaction.
-// The caller can set it in a `transfer` call as a correlation identifier.
-//check
-type Memo = nat64;
-
-// Arguments for the `transfer` call.
-//check
-type TransferArgs = record {
-    // Transaction memo.
-    // See comments for the `Memo` type.
-    memo: Memo;
-    // The amount that the caller wants to transfer to the destination address.
-    amount: Tokens;
-    // The amount that the caller pays for the transaction.
-    // Must be 10000 e8s.
-    fee: Tokens;
-    // The subaccount from which the caller wants to transfer funds.
-    // If null, the ledger uses the default (all zeros) subaccount to compute the source address.
-    // See comments for the `SubAccount` type.
-    from_subaccount: opt SubAccount;
-    // The destination account.
-    // If the transfer is successful, the balance of this address increases by `amount`.
-    to: AccountIdentifier;
-    // The point in time when the caller created this request.
-    // If null, the ledger uses current IC time as the timestamp.
-    created_at_time: opt TimeStamp;
-};
-
-// Arguments for the `transfer_standard_stdldg` call.
-//check
-type TransferStandardArgs = record {
-    // Transaction memo.
-    // See comments for the `Memo` type.
-    memo: Memo;
-    // The amount that the caller wants to transfer to the destination address.
-    amount: Tokens;
-    // The amount that the caller pays for the transaction.
-    // Must be 10000 e8s.
-    fee: Tokens;
-    // The principal from which the standard canister wants to transfer funds.
-    
-    from_principal: principal;
-    // The subaccount from which the caller wants to transfer funds.
-    // If null, the ledger uses the default (all zeros) subaccount to compute the source address.
-    // See comments for the `SubAccount` type.
-    from_subaccount: opt SubAccount;
-    // The destination account.
-    // If the transfer is successful, the balance of this address increases by `amount`.
-    to: AccountIdentifier;
-    // The point in time when the caller created this request.
-    // If null, the ledger uses current IC time as the timestamp.
-    created_at_time: opt TimeStamp;
-};
-
-//check
-type TransferError = variant {
-    // The fee that the caller specified in the transfer request was not the one that ledger expects.
-    // The caller can change the transfer fee to the `expected_fee` and retry the request.
-    BadFee : record { expected_fee : Tokens; };
-    // The account specified by the caller doesn't have enough funds.
-    InsufficientFunds : record { balance: Tokens; };
-    // The request is too old.
-    // The ledger only accepts requests created within 24 hours window.
-    // This is a non-recoverable error.
-    TxTooOld : record { allowed_window_nanos: nat64 };
-    // The caller specified `created_at_time` that is too far in future.
-    // The caller can retry the request later.
-    TxCreatedInFuture : null;
-    // The ledger has already executed the request.
-    // `duplicate_of` field is equal to the index of the block containing the original transaction.
-    TxDuplicate : record { duplicate_of: BlockIndex; }
-};
-
-//check
-type TransferResult = variant {
-    Ok : BlockIndex;
-    Err : TransferError;
-};
-
-// Arguments for the `account_balance_dfx` call.
-//check
-type AccountBalanceArgsDFX = record {
-    account: AccountIdentifierDFX;
-};
-
-// Arguments for the `account_balance` call.
-//check
-type AccountBalanceArgs = record {
-    account: AccountIdentifier;
-};
-
-//check
-type TransferFeeArg = record {};
-
-//check
-type TransferFee = record {
-    // The fee to pay to perform a transfer
-    transfer_fee: Tokens;
-};
-
-//check
-type GetBlocksArgs = record {
-    // The index of the first block to fetch.
-    start : BlockIndex;
-    // Max number of blocks to fetch.
-    length : nat64;
-};
-
-//check
-type Operation = variant {
-    Mint : record {
-        to : AccountIdentifier;
-        amount : Tokens;
-    };
-    Burn : record {
-        from : AccountIdentifier;
-        amount : Tokens;
-    };
-    Transfer : record {
-        from : AccountIdentifier;
-        to : AccountIdentifier;
-        amount : Tokens;
-        fee : Tokens;
-    };
-};
-
-//check
-type Transaction = record {
-    memo : Memo;
-    operation : opt Operation;
-    created_at_time : TimeStamp;
-};
-
-//check
-type TransactionDFX = record {
-    memo : Memo;
-    operation : opt OperationDFX;
-    created_at_time : TimeStamp;
-};
-
-//check
-type Block = record {
-    parent_hash : opt blob;
-    transaction : Transaction;
-    timestamp : TimeStamp;
-};
-
-type BlockDFX = record {
-    parent_hash : opt blob;
-    transaction : TransactionDFX;
-    timestamp : TimeStamp;
-};
-
-// A prefix of the block range specified in the [GetBlocksArgs] request.
-//check
-type BlockRange = record {
-    // A prefix of the requested block range.
-    // The index of the first block is equal to [GetBlocksArgs.from].
-    //
-    // Note that the number of blocks might be less than the requested
-    // [GetBlocksArgs.len] for various reasons, for example:
-    //
-    // 1. The query might have hit the replica with an outdated state
-    //    that doesn't have the full block range yet.
-    // 2. The requested range is too large to fit into a single reply.
-    //
-    // NOTE: the list of blocks can be empty if:
-    // 1. [GetBlocksArgs.len] was zero.
-    // 2. [GetBlocksArgs.from] was larger than the last block known to the canister.
-    blocks : vec Block;
-};
-
-// An error indicating that the arguments passed to [QueryArchiveFn] were invalid.
-//check
-type QueryArchiveError = variant {
-    // [GetBlocksArgs.from] argument was smaller than the first block
-    // served by the canister that received the request.
-    BadFirstBlockIndex : record {
-        requested_index : BlockIndex;
-        first_valid_index : BlockIndex;
-    };
-
-    // Reserved for future use.
-    Other : record {
-        error_code : nat64;
-        error_message : text;
-    };
-};
-
-//check
-type QueryArchiveResult = variant {
-    // Successfully fetched zero or more blocks.
-    Ok : BlockRange;
-    // The [GetBlocksArgs] request was invalid.
-    Err : QueryArchiveError;
-};
-
-// A function that is used for fetching archived ledger blocks.
-//check
-type QueryArchiveFn = func (GetBlocksArgs) -> (QueryArchiveResult) query;
-
-// The result of a "query_blocks" call.
-//
-// The structure of the result is somewhat complicated because the main ledger canister might
-// not have all the blocks that the caller requested: One or more "archive" canisters might
-// store some of the requested blocks.
-//
-// Note: as of Q4 2021 when this interface is authored, the IC doesn't support making nested 
-// query calls within a query call.
-//check
+type Name = record { name : text };
 type QueryBlocksResponse = record {
-    // The total number of blocks in the chain.
-    // If the chain length is positive, the index of the last block is `chain_len - 1`.
-    chain_length : nat64;
-
-    // System certificate for the hash of the latest block in the chain.
-    // Only present if `query_blocks` is called in a non-replicated query context.
-    certificate : opt blob;
-
-    // List of blocks that were available in the ledger when it processed the call.
-    //
-    // The blocks form a contiguous range, with the first block having index
-    // [first_block_index] (see below), and the last block having index
-    // [first_block_index] + len(blocks) - 1.
-    //
-    // The block range can be an arbitrary sub-range of the originally requested range.
-    blocks : vec Block;
-
-    // The index of the first block in "blocks".
-    // If the blocks vector is empty, the exact value of this field is not specified.
-    first_block_index : BlockIndex;
-
-    // Encoding of instructions for fetching archived blocks whose indices fall into the
-    // requested range.
-    //
-    // For each entry `e` in [archived_blocks], `[e.from, e.from + len)` is a sub-range
-    // of the originally requested block range.
-    archived_blocks : vec record {
-        // The index of the first archived block that can be fetched using the callback.
-        start : BlockIndex;
-
-        // The number of blocks that can be fetch using the callback.
-        length : nat64;
-
-        // The function that should be called to fetch the archived blocks.
-        // The range of the blocks accessible using this function is given by [from]
-        // and [len] fields above.
-        callback : QueryArchiveFn;
-    };
+  certificate : opt vec nat8;
+  blocks : vec CandidBlock;
+  chain_length : nat64;
+  first_block_index : nat64;
+  archived_blocks : vec ArchivedBlocksRange;
 };
-
-//check
-type Archive = record {
-    canister_id: principal;
+type Result = variant { Ok : nat; Err : TransferError };
+type Result_1 = variant { Ok : nat64; Err : TransferError_1 };
+type SendArgs = record {
+  to : text;
+  fee : Tokens;
+  memo : nat64;
+  from_subaccount : opt vec nat8;
+  created_at_time : opt TimeStamp;
+  amount : Tokens;
 };
-
-//check
-type Archives = record {
-    archives: vec Archive;
+type StandardRecord = record { url : text; name : text };
+type Symbol = record { symbol : text };
+type TimeStamp = record { timestamp_nanos : nat64 };
+type Tokens = record { e8s : nat64 };
+type TransferArg = record {
+  to : Account;
+  fee : opt nat;
+  memo : opt vec nat8;
+  from_subaccount : opt vec nat8;
+  created_at_time : opt nat64;
+  amount : nat;
 };
-
-service: (LedgerCanisterInitPayload) -> {
-  send_dfx : (SendArgsDFX) -> (BlockHeight);
-  notify_dfx: (NotifyCanisterArgs) -> ();
-  account_balance_dfx : (AccountBalanceArgsDFX) -> (Tokens) query;
-  get_nodes : () -> (vec CanisterId) query;
-  http_request: (HttpRequest) -> (HttpResponse) query;
-
-  get_admin: (record {}) -> (principal) query;
-  get_send_whitelist_dfx: (record {}) -> (vec principal) query;
-  get_minting_account_id_dfx: (record {}) -> (opt AccountIdentifier) query;
-  
-  set_admin: (principal) -> ();
-  set_send_whitelist_dfx: (vec principal) -> ();
-  set_standard_whitelist_dfx: (vec principal) -> ();
-  set_minting_account_id_dfx: (AccountIdentifier) -> ();
-  
-  
-  total_supply_dfx : (record {}) -> (Tokens) query;
-  tip_of_chain_dfx : (record {}) -> (TipOfChainRes) query;
-  transfer : (TransferArgs) -> (TransferResult);
-  transfer_standard_stdldg : (TransferStandardArgs) -> (TransferResult);
-
-  // Returns the amount of Tokens on the specified account.
-  account_balance : (AccountBalanceArgs) -> (Tokens) query;
-
-  // Returns the current transfer_fee.
-  transfer_fee : (TransferFeeArg) -> (TransferFee) query;
-
-  block_dfx : (BlockArg) -> (BlockRes) query;
-
-  // Queries blocks in the specified range.
-  query_blocks : (GetBlocksArgs) -> (QueryBlocksResponse) query;
-
-  // Returns token symbol.
-  symbol : () -> (record { symbol: text }) query;
-
-  // Returns token name.
-  name : () -> (record { name: text }) query;
-
-  // Returns token decimals.
-  decimals : () -> (record { decimals: nat32 }) query;
-
-  // Returns the existing archive canisters information.
+type TransferArgs = record {
+  to : vec nat8;
+  fee : Tokens;
+  memo : nat64;
+  from_subaccount : opt vec nat8;
+  created_at_time : opt TimeStamp;
+  amount : Tokens;
+};
+type TransferError = variant {
+  GenericError : record { message : text; error_code : nat };
+  TemporarilyUnavailable;
+  BadBurn : record { min_burn_amount : nat };
+  Duplicate : record { duplicate_of : nat };
+  BadFee : record { expected_fee : nat };
+  CreatedInFuture : record { ledger_time : nat64 };
+  TooOld;
+  InsufficientFunds : record { balance : nat };
+};
+type TransferError_1 = variant {
+  TxTooOld : record { allowed_window_nanos : nat64 };
+  BadFee : record { expected_fee : Tokens };
+  TxDuplicate : record { duplicate_of : nat64 };
+  TxCreatedInFuture;
+  InsufficientFunds : record { balance : Tokens };
+};
+type TransferFee = record { transfer_fee : Tokens };
+type TransferStandardArgs = record {
+  to : vec nat8;
+  fee : Tokens;
+  memo : nat64;
+  from_subaccount : opt vec nat8;
+  from_principal : principal;
+  created_at_time : opt TimeStamp;
+  amount : Tokens;
+};
+type Value = variant { Int : int; Nat : nat; Blob : vec nat8; Text : text };
+service : (LedgerCanisterInitPayload) -> {
+  account_balance : (BinaryAccountBalanceArgs) -> (Tokens) query;
+  account_balance_dfx : (AccountBalanceArgs) -> (Tokens) query;
   archives : () -> (Archives) query;
+  decimals : () -> (Decimals) query;
+  icrc1_balance_of : (Account) -> (nat) query;
+  icrc1_decimals : () -> (nat8) query;
+  icrc1_fee : () -> (nat) query;
+  icrc1_metadata : () -> (vec record { text; Value }) query;
+  icrc1_minting_account : () -> (opt Account) query;
+  icrc1_name : () -> (text) query;
+  icrc1_supported_standards : () -> (vec StandardRecord) query;
+  icrc1_symbol : () -> (text) query;
+  icrc1_total_supply : () -> (nat) query;
+  icrc1_transfer : (TransferArg) -> (Result);
+  name : () -> (Name) query;
+  query_blocks : (GetBlocksArgs) -> (QueryBlocksResponse) query;
+  send_dfx : (SendArgs) -> (nat64);
+  symbol : () -> (Symbol) query;
+  transfer : (TransferArgs) -> (Result_1);
+  transfer_fee : (record {}) -> (TransferFee) query;
+  transfer_standard_stdldg : (TransferStandardArgs) -> (Result_1);
 }

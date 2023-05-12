@@ -3,8 +3,7 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import C "mo:matchers/Canister";
-import CandyTypes "mo:candy/types";
-import Conversion "mo:candy/conversion";
+
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Iter "mo:base/Iter";
@@ -13,7 +12,7 @@ import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
-import Properties "mo:candy/properties";
+
 import Result "mo:base/Result";
 import S "mo:matchers/Suite";
 import T "mo:matchers/Testable";
@@ -22,14 +21,20 @@ import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
+import MigrationTypes "../origyn_nft_reference/migrations/types";
 
 
 shared (deployer) actor class test_runner_collection(dfx_ledger: Principal, dfx_ledger2: Principal) = this {
     let it = C.Tester({ batchSize = 8 });
 
+    let CandyTypes = MigrationTypes.Current.CandyTypes;
+    let Conversions = MigrationTypes.Current.Conversions;
+    let Properties = MigrationTypes.Current.Properties;
+    let Workspace = MigrationTypes.Current.Workspace;
+
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
-    private var dip20_fee = 200_000;
+    private var dip20_fee = ?200_000;
 
     private func get_time() : Int{
         return Time.now();
