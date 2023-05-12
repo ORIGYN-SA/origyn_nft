@@ -1,4 +1,4 @@
-# origyn_nft_reference - v0.1.4-rc1
+# origyn_nft_reference - v0.1.4
 
 <img src="https://gitlab.origyn.ch/origyn/engineering/opensource/origyn_nft/-/blob/develop/origyn_nft_pic.jpeg" />
 
@@ -100,7 +100,7 @@ It is important to note that every now and then there are new items in the motok
 
 ### How to update Motoko Compiler
 
-Origyn NFT version 0.1.4 needs Motoko Compiler version >= 0.8.5
+Origyn NFT version 0.1.4 needs Motoko Compiler version >= 0.8.5. This is included in DFX 0.14.0.  If you have 0.13.x, see below:
 
 Here are the instructions about how to do it:
 
