@@ -15,7 +15,6 @@ import EXT "mo:ext/Core";
 import Properties "mo:candy/properties";
 import Workspace "mo:candy/workspace";
 
-
 import DIP721 "DIP721";
 import Metadata "./metadata";
 import MigrationTypes "./migrations/types";

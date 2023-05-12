@@ -76,9 +76,9 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
             S.test("testManagement", switch(await testManagement()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testAllocation", switch(await testAllocation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testRedeemAllocation", switch(await testRedeemAllocation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testRegistration", switch(await testRegistration()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testReservation", switch(await testReservation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testReservationNoReg", switch(await testReservationNoReg()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testRegistration", switch(await testRegistration()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testReservation", switch(await testReservation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            S.test("testReservationNoReg", switch(await testReservationNoReg()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             ]);
         S.run(suite);
 

@@ -57,8 +57,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             S.test("testAllocation", switch(await testAllocation()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testCollectionLibrary", switch(await testCollectionLibrary()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
             S.test("testLibraryPostMint", switch(await testLibraryPostMint()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            //S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+            
                       
             ]);
         S.run(suite);

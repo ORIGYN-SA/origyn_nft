@@ -36,7 +36,6 @@ import Set "mo:map/Set";
 //todo: remove in 0.1.5
 import CandyTypesOld "mo:candy_0_1_12/types";
 
-
 import Current "migrations/v000_001_000/types";
 import DIP721 "DIP721";
 import Governance "governance";
@@ -104,7 +103,6 @@ shared (deployer) actor class Nft_Canister() = this {
     // *** END CANISTER GEEK ***
     // *************************
     
-
     ///for migration information and pattern see
     //https://github.com/ZhenyaUsenko/motoko-migrations
     let StateTypes = MigrationTypes.Current;
@@ -117,9 +115,6 @@ shared (deployer) actor class Nft_Canister() = this {
     stable var halt : Bool = false;
     stable var data_harvester_page_size : Nat = 100;
 
-    debug if (debug_channel.instantiation) D.print("migrating");
-
-    
     debug if (debug_channel.instantiation) D.print("migrating");
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
@@ -137,7 +132,6 @@ shared (deployer) actor class Nft_Canister() = this {
       timeout = ?OneDay;
       cache = ?state_current.kyc_cache;
     });
-
 
     let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
 
@@ -269,7 +263,6 @@ shared (deployer) actor class Nft_Canister() = this {
                 var update_data = val.token_id;
                 // canistergeekLogger.logMessage("update_app_nft_origyn",update_data,?msg.caller);
             };
-
         };
 
         canistergeekMonitor.collectMetrics();

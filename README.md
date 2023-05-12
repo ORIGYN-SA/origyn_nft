@@ -1,6 +1,12 @@
 # origyn_nft_reference - v0.1.4-rc1
 
-<img src="https://github.com/ORIGYN-SA/origyn_nft/blob/add-origyn-nft-pic/origyn_nft_pic.jpeg" />
+<img src="https://gitlab.origyn.ch/origyn/engineering/opensource/origyn_nft/-/blob/develop/origyn_nft_pic.jpeg" />
+
+### Purpose
+
+This repo contains the refrernce implementation of the ORIGYN NFT in motoko, the sales canister reference implementation, and the storage canister implementation that allows unlimited storage for NFT canisters.
+
+### Usage
 
 ## NFT Canister
 
@@ -84,6 +90,11 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 [Logs and metrics documentation](./docs/logs_and_metrics.md)
 
 ### Audit
+
+
+### Motoko base
+
+It is important to note that every now and then there are new items in the motoko base library. One example of this is Timer. If you are using an older vesion of the motoko base library in vessel you will have an error complaining about a non existent Timer. In this repo we try to keep libs up-to-date, however, just be aware that from time to time you might need to change the upstream varible in the package-set.dhall to reflect the lastest motoko library.
 
 [Audit document](./docs/audit.md)
 

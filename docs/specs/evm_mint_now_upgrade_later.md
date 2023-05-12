@@ -55,32 +55,101 @@ Once an NFT has been upgraded it can only return back to an EVM chain via the br
 
 evm_network_id, evm_chain_id, evm_contract_address, evm_standard will need to be defined in the collection metadata and will be used to validate the item is owned by a contract on an evm chain.
 
+If the following items are on the collection, they will be copied into the __system node of an NFT when it is minted:
+
+
+{name = "com.origyn.evm.network_id"; value=#Nat({network id}); immutable= true},
+{name = "com.origyn.evm.chain_id"; value=#Nat({network id}); immutable= true},
+{name = "com.origyn.evm.contract_address"; value=#Text({hex of address}); immutable= true},
+{name = "com.origyn.evm.standard"; value=#Text("erc721"); immutable= true},
+
+If com.origyn.evm.contract_address is present for a collection, then com.origyn.evm.chain_native should be set on the NFT in the __System node.  This will keep the nft from trading on the native Origyn marketplace.
+
+{name = "com.origyn.evm.chain_native"; value=#Bool(true); immutable=false},
+
+A burn block value keeps track of what block has been proven through(no-rewind) so that transactions can't be replayed.
+{name = "com.origyn.evm.block_burn"; value=#Nat(0); immutable=false},
+
+A nonce must be kept so that if the canister needs to write future transactions to EVM that the nonce is manged
+{name = "com.origyn.evm.trx_nonce"; value=#Nat(0); immutable=false},
+
 _system.evm_chain_native can be set to true to indicate that a collection/NFT are off chain. For NFTs this flag will only be changed via the evm_upgrade_origyn endpoint.
+
+ERC721 Specifics:
+
+For now we will only support erc721 tokens.
+
+Each NFT should have an immutable entry for ERC721 token
+{name = "com.origyn.evm.token_id"; value=#Nat({evm_token_id}); immutable=true},
+
+The evm token ID for erc 721 is a Nat.  The token can have text id elsewhere.
+
 
 ### Function Spec
 
 ```
-  public type NFTInfoStable = {
-        current_sale : ?SaleStatusStable;
-        metadata : CandyTypes.CandyShared;
-        evm: { //add this element to NFTInfo and NFTInfoStable
-          address: [Nat8];
-          address_text: Text;
-        }
+  actor {
+    upgrade_nft_origyn : (
+      #request_upgrade_evm_address : {
+        token_id : Text;
+        account : Account;
+      };
+      #upgrade: {
+        #evm_erc721 {
+          witness: Blob;
+          block: Nat;
+          token_id;
+          account : Account;
+        };
+      };
+      #request_registered_root: {
+        #evm_erc721;
+      }
+    ) -> async ({ 
+      #request_upgrade_evm_address : Text;
+      #upgrade: TransactionRecord; //see nft we will need to add a new transaction type
+      #request_registered_root : Nat;
+     });
+    upgrade_info_nft_origyn : (
+      #request_upgrade_evm_address : async {
+        token_id : Text;
+        account : Account;
+      };
+      #check_registered_block(block: Nat) : async Bool;
+    ) -> async {
+      #request_upgrade_evm_address : ?Text;
+      #get_last_registered_block : Bool;
     };
+  };
 ```
 
-Querying nft_origyn will return the evm information that makes up the evm address associated with the NFT using the seed H(gateway_canister  + token_id).  This is the address that will need to own an NFT for it to be upgraded
 
-```
-public shared(msg) evm_upgrade_nft_origyn(#broadcast(
-  {
-    token_id: Text;
-  } : async bool))
-```
+Querying nft_origyn will return the evm information if the item is evm native. This info makes up the evm address associated with the NFT using the seed H(account_hash).  This is the address that will need to own an NFT for it to be upgraded
 
-1. Checks the ownership of an NFT on a remote chain and makes sure it matches the H(gateway_canister  + token_id).
-2. Changes the _system.evm_native flag.
+upgrade_nft_origyn(#request_upgrade_evm_address())
+
+1. check a cache to see if a value already exists.
+2. If not, calculate the derivation for the H(account_hash)
+3. call ecdsa_public_key of the tECDSA canister to get the proper target address
+4. Return the address
+
+upgrade_nft_origyn(#upgrade())
+
+1. Checks to make sure there is an available root for the requested block height.
+2. Confirm the witness calculates to the root and confirms the calling owing account is the same as the evm account associated with the requested account H(account_hash).
+2. Changes the _system.evm_native flag to false. Now the account owns this and can sell on the origyn marketplace.
+
+upgrade_nft_origyn(#request_registered_root())
+
+1. Use native evm_functionality to query a root at a particular block and put it in the cache for the NFT.
+
+upgrade_info_nft_origyn(#request_upgrade_evm_address);
+
+1. Return the evm address for the account if it is in the cache.
+
+upgrade_info_nft_origyn(#get_last_registered_block());
+
+1. Checks if the requested block has a registered root.
 
 evm_network_id, evm_chain_id, evm_contract_address, and evm_standard will need to be defined in the collection metadata. Initially only support erc721
 
@@ -92,4 +161,7 @@ Network ID - Each evm chain has an associated network ID that must be used in th
 
 
 ## FAQ:
+
+Q. Why not have the canister go get the witness?  Why is the user passing it in?
+A. We think that having the canister will be expensive. It will be cheaper for the user to get this from Infura or some other service. Since it is cryptographically secure it should be ok to have the user pass it in.
 
