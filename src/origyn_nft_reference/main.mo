@@ -33,6 +33,8 @@ import EXTCommon "mo:ext/Common";
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 
+import Star "mo:star/star";
+
 //todo: remove in 0.1.5
 import CandyTypesOld "mo:candy_0_1_12/types";
 
@@ -793,7 +795,7 @@ shared (deployer) actor class Nft_Canister() = this {
         return switch (request.sales_config.pricing) {
             case (#instant(item)) {
                 //instant transfers involve the movement of tokens on remote servers so the call must be async
-                return await* Market.market_transfer_nft_origyn_async(get_state(), request, msg.caller);
+                return await* Market.market_transfer_nft_origyn_async(get_state(), request, msg.caller, false);
             };
             case (_) {
                 //handles #auction types
@@ -846,7 +848,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
             switch (this_item.sales_config.pricing) {
                 case (#instant(item)) {
-                    result_buffer.add(Market.market_transfer_nft_origyn_async(get_state(), this_item, msg.caller));
+                    result_buffer.add(Market.market_transfer_nft_origyn_async(get_state(), this_item, msg.caller, false));
                 };
                 case(_){
                     result_buffer.add(Market.market_transfer_nft_origyn(get_state(), this_item, msg.caller));
@@ -896,6 +898,11 @@ shared (deployer) actor class Nft_Canister() = this {
                  let log_data = "Type : escrow deposit, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
                 return await* Market.escrow_nft_origyn(get_state(), val, caller);
+            };
+            case (#recognize_escrow(val)) {
+                 let log_data = "Type : recognize escrow, token id : " # debug_show(val);
+                canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data),?caller);
+                return Star.toResult(await* Market.recognize_escrow_nft_origyn(get_state(), val, caller));
             };
             case (#refresh_offers(val)) {
                  let log_data = "Type : refresh offers " # debug_show(val);
@@ -1049,6 +1056,9 @@ shared (deployer) actor class Nft_Canister() = this {
             };
             case (#deposit_info(val)) {
                 Market.deposit_info_nft_origyn(get_state(), val, caller);
+            };
+            case (#escrow_info(val)) {
+                Market.escrow_info_nft_origyn(get_state(), val, caller);
             };
         };
     };

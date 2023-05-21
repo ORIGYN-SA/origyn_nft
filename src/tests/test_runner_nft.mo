@@ -86,14 +86,17 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let suite = S.suite(
             "test nft",
             [
+
+              
+               S.test("testRecognizeEscrow", switch (await testRecognizeEscrow()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
                 S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
 
                 S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), 
              
             ],
         );
@@ -185,11 +188,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         D.print("funding result 2 " # debug_show(funding_result2));
 
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (4 * 10 ** 8) + 800000, Principal.fromActor(canister));
-        //let a_wallet_send_tokens_to_b = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), 1 * 10 ** 8, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (4 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        //let a_wallet_send_tokens_to_b = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), 1 * 10 ** 8, Principal.fromActor(canister));
 
-        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), (2 * 10 ** 8) + 400000, Principal.fromActor(canister));
-        //let b_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), 1 * 10 ** 8, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), (2 * 10 ** 8) + 400000, Principal.fromActor(canister));
+        //let b_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), 1 * 10 ** 8, Principal.fromActor(canister));
 
         D.print("Done funding");
         //send an escrow locked until a certain lock time
@@ -607,7 +610,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //send a payment to the ledger
         D.print("sending tokens to canisters");
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("send to canister");
         D.print(debug_show (a_wallet_send_tokens_to_canister));
@@ -741,9 +744,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //send a payment to the the new owner(this actor- after mint)
         D.print("sending tokens to canisters");
 
-        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
-        D.print("send to canister");
+        D.print("send to canister market transfer b");
         D.print(debug_show (b_wallet_send_tokens_to_canister));
 
         let b_block = switch (b_wallet_send_tokens_to_canister) {
@@ -802,11 +805,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             [
 
                 S.test(
-                    "fail if no escrow exists for general staged sale",
+                    "fail if no escrow exists for general staged sale a",
                     switch (blind_market_fail) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
-                            if (err.number == 3000) {
+                            if (err.number == 4) {
                                 //since the requestor isnt the owner and this isnt minted we wont reveal it is a real token
                                 "correct number";
                             } else {
@@ -817,11 +820,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     M.equals<Text>(T.text("correct number")),
                 ), //MKT0015
                 S.test(
-                    "fail if non owner trys to sell",
+                    "fail if non owner trys to sell a",
                     switch (a_wallet_try_staged_market) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
-                            if (err.number == 3000) {
+                            if (err.number == 4) {
                                 //no escrow
                                 "correct number";
                             } else {
@@ -929,7 +932,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 ), //MKT0011
 
                 S.test(
-                    "fail if escrow already spent",
+                    "fail if escrow already spent a",
                     switch (blind_market2) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -959,7 +962,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     M.equals<Text>(T.text("correct number")),
                 ), //ESC0003
                 S.test(
-                    "fail if escrowing for a non existant deposit",
+                    "fail if escrowing for a non existant deposit a",
                     switch (a_wallet_try_escrow_general_fake) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -974,7 +977,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     M.equals<Text>(T.text("correct number")),
                 ), //ESC0006
                 S.test(
-                    "fail if escrowing for an existing deposit but fake amount",
+                    "fail if escrowing for an existing deposit but fake amount a",
                     switch (a_wallet_try_escrow_general_fake_amount) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -1155,6 +1158,692 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         return #success;
     };
 
+
+    public shared func testRecognizeEscrow() : async { #success; #fail : Text } {
+        D.print("running testMarketTransfer");
+
+        D.print("making wallets");
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        let b_wallet = await TestWalletDef.test_wallet();
+
+        D.print("making factory");
+        
+        let newPrincipal = try{await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+        } catch(e){
+          D.print(Error.message(e));
+          return #fail(Error.message(e));
+        };
+
+        D.print("have canister");
+
+        let canister : Types.Service = actor (Principal.toText(newPrincipal));
+
+        D.print("calling stage");
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(canister), 1024, false, Principal.fromActor(this));
+
+        D.print("finished stage");
+        D.print(debug_show (standardStage.0));
+
+        //MKT0015 try the sale before there is an escrow
+        let blind_market_fail = await canister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = ?{
+                    seller = #principal(Principal.fromActor(canister));
+                    buyer = #principal(Principal.fromActor(a_wallet));
+                    token_id = "";
+                    token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard = #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                    });
+                    amount = 100_000_000;
+                };
+                pricing = #instant;
+                broker_id = null;
+            };
+
+        });
+
+        D.print("blind market fail");
+        D.print(debug_show (blind_market_fail));
+
+        //MKT0008 Should fail
+        D.print("calling try_sale_staged");
+        let a_wallet_try_staged_market = await a_wallet.try_sale_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx));
+
+        D.print(debug_show (a_wallet_try_staged_market));
+
+        D.print("calling try_escrow_specific_staged");
+        //ESC0003. try to escrow for the specific item; should fail
+        let a_wallet_try_recognize_escrow_specific_staged = await a_wallet.try_recognize_escrow_specific_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?1, 1 * 10 ** 8, "1", null, null, null);
+
+        D.print(debug_show (a_wallet_try_recognize_escrow_specific_staged));
+
+        //ESC0002. try to escrow for the canister; should succeed
+        //fund a_wallet
+        let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+        D.print("funding result");
+        D.print(debug_show (funding_result));
+
+
+        let funding_result2 = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+        D.print("funding result2");
+        D.print(debug_show (funding_result2));
+
+        //sent an escrow for a dip20 deposit that doesn't exist
+        D.print("sending an escrow with no deposit");
+        let a_wallet_try_recognize_general_staged_fake = await a_wallet.try_recognize_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?34, 1 * 10 ** 8, null, null);
+
+        //send a payment to the ledger
+        D.print("sending tokens to canisters");
+
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          seller = #principal(Principal.fromActor(canister));
+          buyer = #principal(Principal.fromActor(a_wallet));
+          token_id = "";
+          token = #ic({
+              canister = Principal.fromActor(dfx);
+              standard = #Ledger;
+              decimals = 8;
+              symbol = "LDG";
+              fee = ?200000;
+              id = null;
+          });
+          amount = 100_000_001;
+        }, Principal.fromActor(canister));
+
+        D.print("send to canister a wallet");
+        D.print(debug_show (a_wallet_send_tokens_to_canister));
+
+        let block = switch (a_wallet_send_tokens_to_canister) {
+            case (#ok(ablock)) {
+                ablock;
+            };
+            case (#err(other)) {
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        //sent an escrow for a ledger deposit that doesn't exist
+        let a_wallet_try_recognize_general_staged_fake_amount = await a_wallet.try_recognize_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 2 * 10 ** 8, null, null);
+
+        ////need to resend amount because last amount was refunded
+
+        let a_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          seller = #principal(Principal.fromActor(canister));
+          buyer = #principal(Principal.fromActor(a_wallet));
+          token_id = "";
+          token = #ic({
+              canister = Principal.fromActor(dfx);
+              standard = #Ledger;
+              decimals = 8;
+              symbol = "LDG";
+              fee = ?200000;
+              id = null;
+          });
+          amount = 100_000_000;
+        }, Principal.fromActor(canister));
+
+        ////ESC0001
+
+        D.print("Sending real escrow now");
+        let a_wallet_try_recognize_general_staged = await a_wallet.try_recognize_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, null, null);
+
+        D.print("try escrow genreal stage");
+        D.print(debug_show (a_wallet_try_recognize_general_staged));
+
+        //should succeed if you try to calim a recognize a second time
+        let a_wallet_try_escrow_general_staged_retry = await a_wallet.try_recognize_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, null, null);
+
+        D.print("try escrow genreal stage retry");
+        D.print(debug_show (a_wallet_try_escrow_general_staged_retry));
+
+        //check balance and make sure we see the escrow and that it is only 1 * 10 ** 8
+        let a_balance = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+        D.print("thebalance");
+        D.print(debug_show (a_balance));
+
+        //MKT0007, MKT0014
+        D.print("blind market");
+        let blind_market = await canister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = ?{
+                    seller = #principal(Principal.fromActor(canister));
+                    buyer = #principal(Principal.fromActor(a_wallet));
+                    token_id = "";
+                    token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard = #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                    });
+                    amount = 100_000_000;
+                };
+                pricing = #instant;
+                broker_id = null;
+            };
+
+        });
+
+        D.print(debug_show (blind_market));
+
+        //MKT0014 todo: check the transaction record and confirm the gensis reocrd
+
+        //BAL0005
+        let b_balance2 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(b_wallet)));
+
+        //BAL0003
+        let canister_balance = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(canister)));
+
+        //MKT0013, MKT0011 this item should be minted now
+        let test_metadata = await canister.nft_origyn("1");
+        D.print("This thing should have been minted");
+        D.print(debug_show (test_metadata));
+        switch (test_metadata) {
+            case (#ok(val)) {
+                D.print(debug_show (Metadata.is_minted(val.metadata)));
+            };
+            case (_) {};
+        };
+
+        //ESC0009
+        let blind_market2 = await canister.market_transfer_nft_origyn({
+            token_id = "2";
+            sales_config = {
+                escrow_receipt = ?{
+                    seller = #principal(Principal.fromActor(canister));
+                    buyer = #principal(Principal.fromActor(a_wallet));
+                    token_id = "";
+                    token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard = #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                    });
+                    amount = 100_000_000;
+                };
+                pricing = #instant;
+                broker_id = null;
+            };
+
+        });
+
+        D.print("This thing should have not been minted either");
+        D.print(debug_show (blind_market2));
+
+        //mint the second item to test a specific sale
+        let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this)));
+
+        //mint the third item to test a specific sale
+        let mint_attempt3 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(this)));
+
+        D.print("mint attempt 3");
+        D.print(debug_show (mint_attempt3));
+
+        //creae an new wallet for testing
+
+        //send a payment to the the new owner(this actor- after mint)
+        D.print("sending tokens to canisters");
+
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          seller = #principal(Principal.fromActor(this));
+          buyer = #principal(Principal.fromActor(b_wallet));
+          token_id = "2";
+          token = #ic({
+              canister = Principal.fromActor(dfx);
+              standard = #Ledger;
+              decimals = 8;
+              symbol = "LDG";
+              fee = ?200000;
+              id = null;
+          });
+          amount = 100_000_000;
+        }, Principal.fromActor(canister));
+
+        D.print("send to canister b wallet");
+        D.print(debug_show (b_wallet_send_tokens_to_canister));
+
+        let b_block = switch (b_wallet_send_tokens_to_canister) {
+            case (#ok(ablock)) {
+                ablock;
+            };
+            case (#err(other)) {
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        let b_wallet_send_tokens_to_canister2 = await b_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          seller = #principal(Principal.fromActor(this));
+          buyer = #principal(Principal.fromActor(b_wallet));
+          token_id = "3";
+          token = #ic({
+              canister = Principal.fromActor(dfx);
+              standard = #Ledger;
+              decimals = 8;
+              symbol = "LDG";
+              fee = ?200000;
+              id = null;
+          });
+          amount = 100_000_000;
+        }, Principal.fromActor(canister));
+
+        D.print("send to canister b wallet 2");
+        D.print(debug_show (b_wallet_send_tokens_to_canister2));
+
+        let b_block2 = switch (b_wallet_send_tokens_to_canister2) {
+            case (#ok(ablock)) {
+              D.print(debug_show(ablock));
+                ablock;
+            };
+            case (#err(other)) {
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        D.print("trying to recognize for wrong owner");
+        //make sure a user can't escrow for an owner that doesn't own NFT
+        let b_wallet_try_recognize_escrow_wrong_owner = await b_wallet.try_recognize_escrow_specific_staged(Principal.fromActor(a_wallet), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "3", null, null, null);
+        D.print("b_wallet_try_escrow_wrong_owner: " # debug_show (b_wallet_try_recognize_escrow_wrong_owner));
+
+        D.print(debug_show (b_wallet_try_recognize_escrow_wrong_owner));
+
+        D.print("trying to recongize escrow for token 2");
+        //make sure we can recognize an escrow for a specific item
+        let b_wallet_try_recognize_escrow_specific = await b_wallet.try_recognize_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "2", null, null, null);
+
+        D.print(debug_show (b_wallet_try_recognize_escrow_specific));
+
+        //MKT0010
+        D.print("apecific market");
+        let specific_market = await canister.market_transfer_nft_origyn({
+            token_id = "3";
+            sales_config = {
+                escrow_receipt = ?{
+                    seller = #principal(Principal.fromActor(this));
+                    buyer = #principal(Principal.fromActor(b_wallet));
+                    token_id = "3";
+                    token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard = #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                    });
+                    amount = 100_000_000;
+                };
+                pricing = #instant;
+                broker_id = null;
+            };
+
+        });
+
+        D.print(debug_show (specific_market));
+
+        //test balances
+        D.print(debug_show ("ready to start testing"));
+
+        let suite = S.suite(
+            "test recognize escrow Nft",
+            [
+
+                S.test(
+                    "fail if no escrow exists for general staged sale b",
+                    switch (blind_market_fail) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            D.print("fail if no escrow exists for general staged sale has error");
+                            if (err.number == 3000) {
+                                //since the requestor isnt the owner and this isnt minted we wont reveal it is a real token
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0015
+                S.test(
+                    "fail if non owner trys to sell b",
+                    switch (a_wallet_try_staged_market) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                          D.print("fail if non owner trys to sell has error");
+                            if (err.number == 4) {
+                                //no escrow
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0008
+                S.test(
+                    "owner can sell staged NFT - produces transaction",
+                    switch (blind_market) {
+                        case (#ok(res)) {
+                            D.print("found blind market response");
+                            D.print(debug_show (res));
+                            if (res.index == 0) {
+                                "found genesis record id";
+                            } else {
+                                "no sales id ";
+                            };
+                        };
+                        case (#err(err)) {
+                            D.print("blind market has error");
+                            "unexpected error: " # err.flag_point # debug_show (err);
+                        };
+                    },
+                    M.equals<Text>(T.text("found genesis record id")),
+                ), //MKT0007, MKT0014
+                S.test(
+                    "fail if escrow is double processed",
+                    switch (a_wallet_try_escrow_general_staged_retry) {
+                        case (#ok(res)) { 
+                          if(res.balance == 100_000_000){
+                            "correct response";
+                          } else {
+                            "wrong response"  # debug_show(res);
+                          }
+                         };
+                        case (#err(err)) {
+                            
+                                "wrong error " # debug_show (err.number);
+                           
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //ESC0005
+                S.test(
+                    "item is minted now",
+                    switch (test_metadata) {
+                        case (#ok(res)) {
+                            if (Metadata.is_minted(res.metadata) == true) {
+                                "was minted";
+                            } else {
+                                "was not minted";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("was minted")),
+                ), //MKT0013
+                S.test(
+                    "item is owned by correct owner after minting",
+                    switch (test_metadata) {
+                        case (#ok(res)) {
+                            if (
+                                Types.account_eq(
+                                    switch (Metadata.get_nft_owner(res.metadata)) {
+                                        case (#err(err)) {
+                                            #account_id("invalid");
+                                        };
+                                        case (#ok(val)) {
+                                            D.print(debug_show (val));
+                                            val;
+                                        };
+                                    },
+                                    #principal(Principal.fromActor(a_wallet)),
+                                ) == true,
+                            ) {
+                                "was transfered";
+                            } else {
+                                D.print("testing owner was not transfered");
+                                D.print("awallet");
+                                D.print(debug_show (Principal.fromActor(a_wallet)));
+                                "was not transfered";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("was transfered")),
+                ), //MKT0011
+
+                S.test(
+                    "fail if escrow already spent b",
+                    switch (blind_market2) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                             D.print("blind market 2 error");
+                            if (err.number == 3000) {
+                                //
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //ESC0009
+                S.test(
+                    "fail if escrowing for a specific item and it is only staged",
+                    switch (a_wallet_try_recognize_escrow_specific_staged) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            D.print("a wallet escrow specific error");
+                            if (err.number == 4) {
+                                //
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //ESC0003
+                S.test(
+                    "fail if escrowing for a non existant deposit b",
+                    switch (a_wallet_try_recognize_general_staged_fake) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            D.print("a wallet recognize general staged fake error");
+                            if (err.number == 3000) {
+                                //
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //ESC0006
+                S.test(
+                    "fail if escrowing for an existing deposit but fake amount b",
+                    switch (a_wallet_try_recognize_general_staged_fake_amount) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            D.print("a wallet try recognize stage fake amount");
+                            if (err.number == 3011) {
+                                //
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //ESC0011
+                S.test(
+                    "can escrow for general unminted item",
+                    switch (a_wallet_try_recognize_general_staged) {
+                        case (#ok(res)) {
+                            D.print("an amount for escrow");
+                            D.print(debug_show (res.receipt));
+                            if (res.receipt.amount == 1 * 10 ** 8) {
+                                "was escrowed";
+                            } else {
+                                "was not escrowed";
+                            };
+                        };
+                        case (#err(err)) {
+                            D.print("a wallet try recognize general error");
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("was escrowed")),
+                ), //ESC0002
+                S.test(
+                    "escrow deposit transaction",
+                    switch (a_wallet_try_recognize_general_staged) {
+                        case (#ok(res)) {
+                            D.print("escrow deposit transaction ok");
+
+                            switch (res.transaction) {
+                              case(?val){
+                                switch(val.txn_type){
+                                  case (#escrow_deposit(details)) {
+                                      if (
+                                          Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and Types.account_eq(details.seller, #principal(Principal.fromActor(canister))) and details.amount == ((1 * 10 ** 8)) and details.token_id == "" and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                      ) {
+                                          "correct response";
+                                      } else {
+                                          "details didnt match" # debug_show (details);
+                                      };
+                                  };
+                                  case (_) {
+                                      "bad history sale";
+                                  };
+                                };
+                              };
+                          
+                              case(null){
+                                "bad history sale null";
+                              };
+                            };
+                        };
+                        case (#err(err)) {
+                            D.print("escrow deposit transaction error");
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //NFT-72
+                S.test(
+                    "can't escrow for wrong NFT owner",
+                    switch (b_wallet_try_recognize_escrow_wrong_owner) {
+                        case (#err(err)) {
+                            D.print("wrong owner error");
+                            if (err.number == 3002) {
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err.number);
+                            };
+                        };
+                        case (#ok(res)) {
+                            "unexpected success: " # debug_show (res);
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ),
+                S.test(
+                    "can escrow for specific item",
+                    switch (b_wallet_try_recognize_escrow_specific) {
+                        case (#ok(res)) {
+                            D.print("escrow sepecific ok");
+                            if (res.receipt.amount == 1 * 10 ** 8) {
+                                "was escrowed";
+                            } else {
+                                "was not escrowed";
+                            };
+                        };
+                        case (#err(err)) {
+                            D.print("escrow specific error");
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("was escrowed")),
+                ), //ESC0001
+                S.test(
+                    "owner can sell specific NFT - produces sale_id",
+                    switch (specific_market) {
+                        case (#ok(res)) {
+                            D.print("specific market ok");
+                            if (res.token_id == "3") {
+                                "found tx record";
+                            } else {
+                                D.print(debug_show (res));
+                                "no sales id ";
+                            };
+                        };
+                        case (#err(err)) {
+                            D.print("specific market error");
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("found tx record")),
+                ), //MKT0010
+                S.test(
+                    "escrow balance is shown",
+                    switch (a_balance) {
+                        case (#ok(res)) {
+                            D.print("escrow balance ok");
+                            D.print(debug_show (res));
+                            D.print(debug_show (#principal(Principal.fromActor(canister))));
+                            D.print(debug_show (#principal(Principal.fromActor(a_wallet))));
+                            D.print(debug_show (Principal.fromActor(dfx)));
+                            D.print("escrow size" #  debug_show(res.escrow.size()));
+                            if (
+                                Types.account_eq(res.escrow[0].seller, #principal(Principal.fromActor(canister))) and Types.account_eq(res.escrow[0].buyer, #principal(Principal.fromActor(a_wallet))) and res.escrow[0].token_id == "" and Types.token_eq(res.escrow[0].token, #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                            ) {
+                                "found escrow record";
+                            } else {
+                                D.print(debug_show (res));
+                                "didnt find record ";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("found escrow record")),
+                ), //BAL0001
+
+            ],
+        );
+
+        S.run(suite);
+
+        return #success;
+    };
+
     public shared func testRoyalties() : async { #success; #fail : Text } {
         D.print("running testRoyalties");
         D.print("making wallets");
@@ -1245,9 +1934,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //send a payment to the ledger
         D.print("sending tokens to canisters");
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (5 * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (5 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
-        D.print("send to canister");
+        D.print("send to canister a wallet royalties");
         D.print(debug_show (a_wallet_send_tokens_to_canister));
 
         let block = switch (a_wallet_send_tokens_to_canister) {
@@ -1720,7 +2409,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //place escrow
         D.print("sending tokens to canisters");
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (4 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (4 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
         //balance should be 4 ICP + 800000
 
@@ -1771,7 +2460,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //try a bid in th wrong currency
         //place escrow
         D.print("sending tokens to canisters b");
-        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_payment(Principal.fromActor(dfx2), (200 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx2), (200 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         let block2b = switch (b_wallet_send_tokens_to_canister) {
             case (#ok(ablock)) {
@@ -1882,7 +2571,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //deposit escrow for two upcoming bids
         D.print("sending tokens to canisters");
-        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), (new_bid_val * 2) + 400000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), (new_bid_val * 2) + 400000, Principal.fromActor(canister));
 
         D.print("Sending escrow for correct currency escrow now");
         let b_wallet_try_escrow_too_low = await b_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(canister), Principal.fromActor(dfx), null, new_bid_val - 10, "1", ?current_sales_id, null, null);
@@ -1944,7 +2633,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("the balance before third escrow is");
         D.print(debug_show (a_balance_before_third_escrow));
 
-        let a_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (101 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (101 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         let block3 = switch (a_wallet_send_tokens_to_canister2) {
             case (#ok(ablock)) {
@@ -3045,7 +3734,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //send a payment to the ledger
         D.print("sending tokens to canisters");
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("send to canister a");
         D.print(debug_show (a_wallet_send_tokens_to_canister));
@@ -3069,6 +3758,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //ESC0005 should fail if you try to calim a deposit a second time
         let a_wallet_try_escrow_general_staged_retry = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), Principal.fromActor(dfx), ?block, 1 * 10 ** 8, ?#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  }), null);
+
+        D.print("try escrow genreal stage retry");
+        D.print(debug_show (a_wallet_try_escrow_general_staged_retry));
 
         //check balance and make sure we see the escrow BAL0002
         let a_balance = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
@@ -3178,7 +3870,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //send a payment to the the new owner(this actor- after mint)
         D.print("sending tokens to canisters");
 
-        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("send to canister b");
         D.print(debug_show (b_wallet_send_tokens_to_canister));
@@ -3313,7 +4005,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 ), //MKT0011
 
                 S.test(
-                    "fail if escrow already spent",
+                    "fail if escrow already spent c",
                     switch (blind_market2) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -3329,7 +4021,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 ), //ESC0009
 
                 S.test(
-                    "fail if escrowing for a non existant deposit",
+                    "fail if escrowing for a non existant deposit c",
                     switch (a_wallet_try_escrow_general_fake) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -3344,7 +4036,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     M.equals<Text>(T.text("correct number")),
                 ), //ESC0006
                 S.test(
-                    "fail if escrowing for an existing deposit but fake amount",
+                    "fail if escrowing for an existing deposit but fake amount c",
                     switch (a_wallet_try_escrow_general_fake_amount) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
@@ -3529,7 +4221,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let a_ledger_balance_before_escrow = await a_wallet.ledger_balance(Principal.fromActor(dfx), Principal.fromActor(a_wallet));
         D.print("the a ledger balance" # debug_show (a_ledger_balance_before_escrow));
 
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("send to canister a");
         D.print(debug_show (a_wallet_send_tokens_to_canister));

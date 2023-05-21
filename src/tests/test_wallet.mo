@@ -27,7 +27,7 @@ shared (deployer) actor class test_wallet() = this {
 
     let debug_channel= {
       throws = false;
-      deposit_info = false;
+      deposit_info = true;
     };
     
     public type Operation = {
@@ -525,6 +525,61 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
+    public shared func try_recognize_escrow_specific_staged(
+      current_owner: Principal, 
+      canister: Principal, 
+      ledger: Principal, 
+      block: ?Nat, 
+      amount : Nat, 
+      token_id : Text, 
+      sale_id: ?Text, 
+      token: ?Types.TokenSpec,
+      lock: ?Int) : async Result.Result<Types.RecognizeEscrowResponse, Types.OrigynError> {
+
+       let acanister : Types.Service = actor(Principal.toText(canister));
+       //D.print("escrow origyn");
+       let tryescrow = await acanister.sale_nft_origyn(#recognize_escrow({
+            token_id = token_id;
+            deposit = {
+              token = switch(token){
+                case(null){
+                  #ic({
+                    canister = ledger;
+                    standard = #Ledger;
+                    decimals = 8;
+                    symbol = "LDG";
+                    fee = ?200000;
+                    id = null;
+                  });
+                };
+                case(?val){val};
+              };
+              seller = #principal(current_owner);
+              buyer = #principal(Principal.fromActor(this));
+              amount = amount;
+              sale_id = sale_id;
+              trx_id = switch(block){
+                case(null){null};
+                case(?block){?#nat(block)};
+              };
+            };
+            lock_to_date = lock;
+       }));
+
+       switch(tryescrow){
+         case(#ok(#recognize_escrow((result)))){
+            return #ok(result);
+         };
+         case(#err(theerror)){
+           return #err(theerror);
+         };
+         case(_){
+           return #err(Types.errors(null,  #improper_interface, "should not be here", null));
+         }
+       };
+
+    };
+
     public shared func try_escrow_general_staged(
       current_owner: Principal, 
       canister: Principal, 
@@ -606,14 +661,94 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
+    public shared func try_recognize_general_staged(
+      current_owner: Principal, 
+      canister: Principal, 
+      ledger: Principal, 
+      block: ?Nat, 
+      amount: Nat,
+      token: ?Types.TokenSpec,
+      lock: ?Int) : async Result.Result<Types.RecognizeEscrowResponse, Types.OrigynError> {
+
+       let acanister : Types.Service = actor(Principal.toText(canister));
+       D.print("trying recognize" # debug_show(#recognize_escrow({
+            token_id = "";
+            deposit = {
+              token = switch(token){
+                case(null){
+                  #ic({
+                    canister = ledger;
+                    standard = #Ledger;
+                    decimals = 8;
+                    symbol = "LDG";
+                    fee = ?200000;
+                    id = null;
+                  });
+                };
+                case(?val){val};
+              };
+              seller = #principal(current_owner);
+              buyer = #principal(Principal.fromActor(this));
+              amount = amount;
+              sale_id = null;
+              trx_id = switch(block){
+                case(null){null};
+                case(?val){?#nat(val)};
+              };
+            };
+            lock_to_date = lock;
+       })));
+
+       let tryescrow = await acanister.sale_nft_origyn(#recognize_escrow({
+            token_id = "";
+            deposit = {
+              token = switch(token){
+                case(null){
+                  #ic({
+                    canister = ledger;
+                    standard = #Ledger;
+                    decimals = 8;
+                    symbol = "LDG";
+                    fee = ?200000;
+                    id = null;
+                  });
+                };
+                case(?val){val};
+              };
+              seller = #principal(current_owner);
+              buyer = #principal(Principal.fromActor(this));
+              amount = amount;
+              sale_id = null;
+              trx_id = switch(block){
+                case(null){null};
+                case(?val){?#nat(val)};
+              };
+            };
+            lock_to_date = lock;
+       }));
+        //D.print("result for escrow was");
+       //D.print(debug_show(tryescrow));
+
+       switch(tryescrow){
+         case(#ok(result)){
+           D.print("have result" # debug_show(result));
+           let #recognize_escrow(aResult) = result;
+            return #ok(aResult);
+         };
+         case(#err(theerror)){
+           return #err(theerror);
+         };
+       };
+
+    };
     
-    public shared(msg) func send_ledger_payment(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<Nat, DFXTypes.ICRC1TransferError> {
+    public shared(msg) func send_ledger_deposit(ledger: Principal, amount: Nat, to: Principal) : async Result.Result<Nat, DFXTypes.ICRC1TransferError> {
 
       let dfx : DFXTypes.Service = actor(Principal.toText(ledger));
 
       let canister : Types.Service = actor(Principal.toText(to));
 
-      debug{if(debug_channel.throws == true){ D.print("checking deposit info in send_ledger_payment for " # debug_show(Principal.fromActor(this)))}};
+      debug{if(debug_channel.throws == true){ D.print("checking deposit info in send_ledger_deposit for " # debug_show(Principal.fromActor(this)))}};
 
       let #ok(#deposit_info(deposit_info)) = await canister.sale_info_nft_origyn(#deposit_info(?#principal(Principal.fromActor(this))));
 
@@ -628,6 +763,43 @@ shared (deployer) actor class test_wallet() = this {
             from_subaccount = null;
             created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
             amount = amount;});
+
+      debug{if(debug_channel.deposit_info == true){ D.print("Have funding result: " # debug_show(funding_result))}};
+
+
+       switch(funding_result){
+         case(#Ok(result)){
+           D.print("an ok result" # debug_show(result));
+            return #ok(result);
+         };
+         case(#Err(theerror)){
+           D.print("an error" # debug_show(theerror));
+           return #err(theerror);
+         };
+       };
+    };
+
+    public shared(msg) func send_ledger_escrow(ledger: Principal, escrow: Types.EscrowReceipt, to: Principal,) : async Result.Result<Nat, DFXTypes.ICRC1TransferError> {
+
+      let dfx : DFXTypes.Service = actor(Principal.toText(ledger));
+
+      let canister : Types.Service = actor(Principal.toText(to));
+
+      debug{if(debug_channel.throws == true){ D.print("checking deposit info in send_ledger_deposit for " # debug_show(Principal.fromActor(this)))}};
+
+      let #ok(#escrow_info(deposit_info)) = await canister.sale_info_nft_origyn(#escrow_info(escrow));
+
+
+      debug{if(debug_channel.deposit_info == true){ D.print("Have deposit info: " # debug_show(deposit_info))}};
+
+      let funding_result = await dfx.icrc1_transfer({
+            to =  {owner = deposit_info.account.principal;
+            subaccount = ?Blob.toArray(deposit_info.account.sub_account)};
+            fee = ?200_000;
+            memo = ?Conversions.candySharedToBytes(#Nat32(Text.hash(Principal.toText(to) # Principal.toText(msg.caller))));
+            from_subaccount = null;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            amount = escrow.amount;});
 
       debug{if(debug_channel.deposit_info == true){ D.print("Have funding result: " # debug_show(funding_result))}};
 

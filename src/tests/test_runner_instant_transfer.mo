@@ -98,7 +98,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
 
         D.print("sending funds");
         //create an escrow by sending tokens to the ledger
-        let send_tokens_to_canister = await a_wallet.send_ledger_payment(ledger_principal, (1 * 10 ** 8) + 200000, canister_principal);
+        let send_tokens_to_canister = await a_wallet.send_ledger_deposit(ledger_principal, (1 * 10 ** 8) + 200000, canister_principal);
 
         D.print("funds sent " # debug_show(send_tokens_to_canister));
         //retreive block information
@@ -201,6 +201,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             };
         }; */
 
+        D.print("auction started for second " # debug_show(start_auction_unminted));
+
         D.print("all started");
 
         //Sending a valid escrow for minted item
@@ -211,7 +213,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         let escrow_unminted_same_block = await a_wallet.try_escrow_general_staged(canister_principal, canister_principal, ledger_principal, null, 1 * 10 ** 8, null, null);
 
         //create another escrow
-        let send_tokens_to_canister_again = await a_wallet.send_ledger_payment(ledger_principal, (1 * 10 ** 8) + 200000 + 1, canister_principal);
+        let send_tokens_to_canister_again = await a_wallet.send_ledger_deposit(ledger_principal, (1 * 10 ** 8) + 200000 + 1, canister_principal);
 
         //get block information
         //      ¿Can you use the same block twice? - seems not
@@ -311,6 +313,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                   broker_id = null;
               };            
         });
+
+
         let transfer_while_auction_unminted = await canister.market_transfer_nft_origyn({
             token_id = "second";
             sales_config = 
@@ -333,6 +337,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
                   broker_id = null;
               };            
         });
+
+        D.print("transfer_while_auction_unminted" # debug_show(transfer_while_auction_unminted));
 
         let set_time2 = await canister.__advance_time(get_time()+ 518400000000000 + 518400000000000);
         
@@ -497,7 +503,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             S.test("Instant transfer with no bid on unminted item",         
                 switch(instant_transfer_no_bid_unminted) {
                   case(#err(err)) { 
-                      if (err.error == #no_escrow_found) { "correct error" }
+                      if (err.error == #token_not_found) { "correct error" }
                       else { "wrong error: " # debug_show(err.error)}; };
                   case(_) { "nft should not have been transferred: " # debug_show(instant_transfer_no_bid_unminted) };},
                 M.equals<Text>(T.text("correct error"))),
@@ -534,7 +540,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
             S.test("Instant transfer while auction is still open (unminted NFT)",         
                 switch(transfer_while_auction_unminted) {
                   case(#err(err)) { 
-                      if (err.error == #unauthorized_access) { "correct error" }
+                      if (err.error == #token_not_found) { "correct error" }
                       else { "wrong error: " # debug_show(err.error)}; };
                   case(_) { "nft should not have been transferred: " # debug_show(transfer_while_auction_unminted) };},
                 M.equals<Text>(T.text("correct error"))),
@@ -656,7 +662,7 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger: Principal
         let mint_nft = await canister.mint_nft_origyn("soulbound", #principal(this_principal));
 
         //create an escrow by sending tokens to the ledger
-        let send_tokens_to_canister = await a_wallet.send_ledger_payment(ledger_principal, (1 * 10 ** 8) + 200000, canister_principal);
+        let send_tokens_to_canister = await a_wallet.send_ledger_deposit(ledger_principal, (1 * 10 ** 8) + 200000, canister_principal);
 
         //retreive block information
         let block = switch(send_tokens_to_canister){

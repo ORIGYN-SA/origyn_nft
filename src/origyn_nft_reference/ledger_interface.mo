@@ -10,6 +10,7 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Star "mo:star/star";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Hex "mo:encoding/Hex";
@@ -24,7 +25,7 @@ class Ledger_Interface() {
   //this file provides services around moving tokens around a standard ledger(ICP/OGY)
 
   let debug_channel = {
-    deposit = false;
+    deposit = true;
     sale = false;
     transfer = false;
   };
@@ -140,6 +141,59 @@ class Ledger_Interface() {
       return #ok({transaction_id= result_block; subaccount_info = escrow_account_info});
 
     } catch (e) return #err(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(escrow.deposit), ?caller));
+  };
+
+
+  //gets a balance for an escrow account
+  /**
+  * Gets the balance in an escrow subaccount
+  * @param {Principal} host - The canister ID of the ledger that manages the deposit
+  * @param {Types.EscrowRequest} escrow - The deposit request to be transferred to an escrow account
+  * @param {Principal} caller - The principal that initiated the transfer deposit request
+  * @returns {async* Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError>} The result of the transfer deposit operation containing the transaction ID and subaccount information if successful, or an error if unsuccessful.
+  */
+  public func escrow_balance(host: Principal, escrow : Types.EscrowRequest, caller: Principal) : async* Star.Star<{balance: Nat; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
+    debug if(debug_channel.deposit) D.print("in escrow_balance ledger deposit");
+    debug if(debug_channel.deposit) D.print(Principal.toText(host));
+    debug if(debug_channel.deposit) D.print(debug_show(escrow));
+
+     //nyi: extra safety make sure the caller is the buyer(or the network?)
+    let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info({
+      amount = escrow.deposit.amount;
+      buyer = escrow.deposit.buyer;
+      seller = escrow.deposit.seller;
+      token = escrow.deposit.token;
+      token_id = escrow.token_id;
+    }, host);
+
+
+    let #ic(ledger) = escrow.deposit.token else return #err(#trappable(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(escrow), ?caller)));
+
+    try {
+       //D.print("sending transfer blocks # " # debug_show(escrow.deposit.amount - ledger.fee));
+
+      debug if(debug_channel.deposit) D.print("getting balance " # debug_show(escrow_account_info));
+
+      let result = await* balance(
+        {
+          ledger = ledger.canister;
+          account = {
+            owner = escrow_account_info.account.principal;
+            subaccount = ?Blob.toArray(escrow_account_info.account.sub_account);
+          };
+          caller = caller;
+        }
+      );
+
+      debug if(debug_channel.deposit) D.print("found balance " # debug_show(result));
+
+
+      switch(result){
+        case(#awaited(val)){return #awaited({balance = val; subaccount_info = escrow_account_info})};
+        case(#trappable(val)){return #awaited({balance = val; subaccount_info = escrow_account_info})};
+        case(#err(val)) return #err(val);
+      };
+    } catch (e) return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(escrow.deposit), ?caller)));
   };
 
   //allows a user to withdraw money from a sale
@@ -286,6 +340,48 @@ class Ledger_Interface() {
 
     } catch (e){
         return #err(Types.errors(null,  #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show(request), ?request.caller));
+    };
+   
+  };
+
+  //a raw balance check
+  /**
+  * Get the balance of a subaccount
+  * 
+  * @param {object} request - An object containing details about the transfer.
+  * @param {Principal} request.ledger - The ledger to which the transfer is to be made.
+  * @param {Principal} request.from - The principal of the account to which the balance is to be queried.
+  * @param {Array.<number>} [request.from_subaccount=null] - The subaccount of the account from which the balance is to be queried.
+  * @returns {Promise.<Result.Result>} A promise that returns either an ok result containing the transaction ID of the transfer or an error containing information about the failed transfer.
+  */
+  private func balance(request : {
+    ledger: Principal;
+    account: DFXTypes.Account;
+    caller: Principal
+    }) : async* Star.Star<Nat, Types.OrigynError> {
+     debug if(debug_channel.transfer) D.print("in balance ledger");
+     debug if(debug_channel.transfer) D.print(Principal.toText(request.ledger));
+
+     
+    let ledger_actor : DFXTypes.Service = actor(Principal.toText(request.ledger));
+
+    
+    let from_account = {owner = request.account.owner; subaccount = request.account.subaccount};
+    
+
+                        debug if(debug_channel.transfer) D.print("getting balance");
+                        debug if(debug_channel.transfer) D.print("from account" # debug_show(request.account));
+    try{
+                        debug if(debug_channel.transfer) D.print("sending balacne blocks # " # debug_show(request));
+        let result = await ledger_actor.icrc1_balance_of(from_account);
+
+                            debug if(debug_channel.transfer) D.print("result is " # debug_show(result));
+        
+
+        return #awaited(result);
+
+    } catch (e){
+        return #err(#awaited(Types.errors(null,  #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show(request), ?request.caller)));
     };
    
   };

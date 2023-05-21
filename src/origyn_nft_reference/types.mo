@@ -280,6 +280,13 @@ module {
         transaction : TransactionRecord;
     };
 
+
+    public type RecognizeEscrowResponse = {
+        receipt : EscrowReceipt;
+        balance : Nat;
+        transaction : ?TransactionRecord;
+    };
+
     public type BidRequest = {
         escrow_receipt : EscrowReceipt;
         sale_id : Text;
@@ -828,6 +835,7 @@ module {
         #end_sale : Text; //token_id
         #open_sale : Text; //token_id;
         #escrow_deposit : EscrowRequest;
+        #recognize_escrow : EscrowRequest;
         #refresh_offers : ?Account;
         #bid : BidRequest;
         #withdraw : WithdrawRequest;
@@ -838,6 +846,7 @@ module {
         #end_sale : EndSaleResponse; //trx record if succesful
         #open_sale : Bool; //true if opened, false if not;
         #escrow_deposit : EscrowResponse;
+        #recognize_escrow : RecognizeEscrowResponse;
         #refresh_offers : [EscrowRecord];
         #bid : BidResponse;
         #withdraw : WithdrawResponse;
@@ -848,6 +857,7 @@ module {
         #active : ?(Nat, Nat); //get al list of active sales
         #history : ?(Nat, Nat); //skip, take
         #status : Text; //saleID
+        #escrow_info : EscrowReceipt;
         #deposit_info : ?Account;
     };
 
@@ -864,6 +874,7 @@ module {
         };
         #status : ?SaleStatusStable;
         #deposit_info : SubAccountInfo;
+        #escrow_info : SubAccountInfo;
     };
 
     public type GovernanceRequest = {
@@ -1027,6 +1038,7 @@ module {
         #escrow_cannot_be_removed;
         #escrow_owner_not_the_owner;
         #escrow_withdraw_payment_failed;
+        #escrow_not_large_enough;
         #existing_sale_found;
         #id_not_found_in_metadata;
         #improper_interface;
@@ -1057,6 +1069,7 @@ module {
         #validate_trx_wrong_host;
         #withdraw_too_large;
         #nyi;
+        #noop;
         #kyc_error;
         #kyc_fail;
     };
@@ -1231,11 +1244,20 @@ module {
                     caller = caller;
                 };
             };
+            case (#noop) {
+                return {
+                    number = 1997;
+                    text = "not yet implemented";
+                    error = the_error;
+                    flag_point = flag_point;
+                    caller = caller;
+                };
+            };
 
             case (#unreachable) {
                 return {
                     number = 1998;
-                    text = "unreachable";
+                    text = "no op";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;
@@ -1309,6 +1331,7 @@ module {
                     caller = caller;
                 };
             };
+            
             case (#validate_deposit_failed) {
                 return {
                     number = 3003;
@@ -1376,6 +1399,15 @@ module {
                 return {
                     number = 3010;
                     text = "could not pay the sales withdraw";
+                    error = the_error;
+                    flag_point = flag_point;
+                    caller = caller;
+                };
+            };
+            case(#escrow_not_large_enough){
+               return {
+                    number = 3011;
+                    text = "the balance in the escrow is not large enough for the escrow required";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;

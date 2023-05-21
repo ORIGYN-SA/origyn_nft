@@ -761,7 +761,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
 
         //fund c to send an invalid bid
-        let c_wallet_send_tokens_to_canister = await c_wallet.send_ledger_payment(Principal.fromActor(dfx), (10 * 10 ** 8 ) + 200000, Principal.fromActor(canister));
+        let c_wallet_send_tokens_to_canister = await c_wallet.send_ledger_deposit(Principal.fromActor(dfx), (10 * 10 ** 8 ) + 200000, Principal.fromActor(canister));
 
         let block_c = switch(c_wallet_send_tokens_to_canister){
             case(#ok(ablock)){
@@ -786,7 +786,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         
         //place escrow
         D.print("sending tokens to canisters");
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         let block = switch(a_wallet_send_tokens_to_canister){
             case(#ok(ablock)){
@@ -818,7 +818,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //restake after refund
         D.print("sending tokens to canisters 3");
-        let a_wallet_send_tokens_to_canister2b = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), ((10 * 10 ** 8) + 1) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister2b = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), ((10 * 10 ** 8) + 1) + 200000, Principal.fromActor(canister));
 
         D.print("sending tokens after refund" # debug_show(a_wallet_send_tokens_to_canister2b));
         let block2 = switch(a_wallet_send_tokens_to_canister2b){
@@ -841,7 +841,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //try a bid in th wrong currency
         //place escrow
         D.print("sending tokens to canisters");
-        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_payment(Principal.fromActor(dfx2), (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx2), (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         let block2b = switch(b_wallet_send_tokens_to_canister){
             case(#ok(ablock)){
@@ -891,7 +891,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //try a bid in th wrong currency
         //place escrow
         D.print("sending tokens to canisters");
-        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
 
         D.print("did the payment? ");
         D.print(debug_show(b_wallet_send_tokens_to_canister_correct_ledger));
@@ -1377,7 +1377,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //place escrow
         D.print("sending tokens to canisters. auction creation: " # debug_show(current_sale));
 
-        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_payment(Principal.fromActor(dfx), (20 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (20 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         D.print("does a have tokens" # debug_show(a_wallet_send_tokens_to_canister));
 
@@ -1430,7 +1430,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //place escrow
         D.print("sending tokens to canisters");
-        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_payment(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
+        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_deposit(Principal.fromActor(dfx), new_bid_val + 200000, Principal.fromActor(canister));
 
         D.print("did the payment? ");
         D.print(debug_show(b_wallet_send_tokens_to_canister_correct_ledger));
