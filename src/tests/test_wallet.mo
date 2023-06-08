@@ -429,7 +429,7 @@ shared (deployer) actor class test_wallet() = this {
       canister: Principal, 
       ledger: Principal, 
       amount : Nat, 
-      token: ?Types.TokenSpec) : async Result.Result<Types.TransactionRecord, Types.OrigynError> {
+      token: ?Types.TokenSpec) : async Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError> {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
        D.print("deposit refund origyn");

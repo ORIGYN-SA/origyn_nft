@@ -55,6 +55,7 @@ import http "http";
 import StableBTree "mo:stableBTree/btreemap";
 import MemoryManager "mo:stableBTree/memoryManager";
 import Memory "mo:stableBTree/memory";
+import TypesModule "mo:canistergeekold/typesModule";
 
 shared (deployer) actor class Nft_Canister() = this {
 
@@ -122,10 +123,10 @@ shared (deployer) actor class Nft_Canister() = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-    migration_state := Migrations.migrate(migration_state, #v0_1_4(#id), { owner = deployer.caller; storage_space = 0;});
+    migration_state := Migrations.migrate(migration_state, #v0_1_5(#id), { owner = deployer.caller; storage_space = 0;});
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_4(#data(state_current)) = migration_state;
+    let #v0_1_5(#data(state_current)) = migration_state;
 
     debug if (debug_channel.instantiation) D.print("finished migration");
 
@@ -770,18 +771,15 @@ shared (deployer) actor class Nft_Canister() = this {
                 case (#instant) {
                     ", type : instant " # debug_show (request);
                 };
-                case (#flat(val)) {
-                    ", type : flat, amount : " # Nat.toText(val.amount) # debug_show (request);
-                };
+
                 case (#auction(val)) {
                     ", type : auction, start price : " # Nat.toText(val.start_price) # debug_show (request);
                 };
-                case (#dutch(val)) {
-                    ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show (request);
+
+                 case (#ask(val)) {
+                    ", type : ask "  # debug_show (request);
                 };
-                case (#nifty(val)) {
-                        ", type : nifty, start price : " # Nat.toText(val.amount) # debug_show (request);
-                    };
+                
                 case (#extensible(val)) {
                     ", type : extensible " # debug_show (request);
                 };
@@ -826,18 +824,14 @@ shared (deployer) actor class Nft_Canister() = this {
                     case (#instant) {
                         ", type : instant " # debug_show (request);
                     };
-                    case (#flat(val)) {
-                        ", type : flat, amount : " # Nat.toText(val.amount) # debug_show (request);
-                    };
+                    
                     case (#auction(val)) {
                         ", type : auction, start price : " # Nat.toText(val.start_price) # debug_show (request);
                     };
-                    case (#dutch(val)) {
-                        ", type : dutch, start price : " # Nat.toText(val.start_price) # debug_show (request);
+                    case (#ask(val)) {
+                        ", type : ask, start price : "  # debug_show(request);
                     };
-                    case (#nifty(val)) {
-                        ", type : nifty, start price : " # Nat.toText(val.amount) # debug_show (request);
-                    };
+                    
                     case (#extensible(val)) {
                         ", type : extensible " # debug_show (request);
                     };
@@ -877,7 +871,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @param {Array<Types.MarketTransferRequest>} request - An array of market transfer requests
     * @returns {Array<Types.MarketTransferResult>} - An array of results for each market transfer request
     */
-    private func _sale_nft_origyn(request: Types.ManageSaleRequest, caller : Principal): async* Types.ManageSaleResult{
+    private func _sale_nft_origyn(request: Types.ManageSaleRequest, caller : Principal): async* Types.ManageSaleStar {
 
         var log_data : Text = "";
         canistergeekMonitor.collectMetrics();
@@ -892,22 +886,33 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#open_sale(val)) {
                 let log_data =  "Type : open sale, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
-                Market.open_sale_nft_origyn(get_state(), val, caller);
+                switch(Market.open_sale_nft_origyn(get_state(), val, caller)){
+                   case(#ok(val)) #trappable(val);
+                  case(#err(err)) #err(#trappable(err));
+                };
             };
             case (#escrow_deposit(val)) {
                  let log_data = "Type : escrow deposit, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
-                return await* Market.escrow_nft_origyn(get_state(), val, caller);
+                await* Market.escrow_nft_origyn(get_state(), val, caller);
             };
             case (#recognize_escrow(val)) {
                  let log_data = "Type : recognize escrow, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data),?caller);
-                return Star.toResult(await* Market.recognize_escrow_nft_origyn(get_state(), val, caller));
+                await*  Market.recognize_escrow_nft_origyn(get_state(), val, caller);
+            };
+             case (#ask_subscribe(val)) {
+                 let log_data = "Type : ask subscribe " # debug_show(val);
+                canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data),?caller);
+                await*  Market.ask_subscribe_nft_origyn(get_state(), val, caller);
             };
             case (#refresh_offers(val)) {
                  let log_data = "Type : refresh offers " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
-                Market.refresh_offers_nft_origyn(get_state(), val, caller);
+                switch(Market.refresh_offers_nft_origyn(get_state(), val, caller)){
+                  case(#ok(val)) #trappable(val);
+                  case(#err(err)) #err(#trappable(err));
+                };
             };
             case (#bid(val)) {
                  let log_data = "Type : bid " # debug_show(val);
@@ -950,7 +955,7 @@ shared (deployer) actor class Nft_Canister() = this {
     */
     public shared (msg) func sale_nft_origyn(request: Types.ManageSaleRequest) : async Types.ManageSaleResult{
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
-        return await* _sale_nft_origyn(request, msg.caller);
+        return Star.toResult<Types.ManageSaleResponse, Types.OrigynError>(await* _sale_nft_origyn(request, msg.caller));
     };
 
     /**
@@ -970,7 +975,7 @@ shared (deployer) actor class Nft_Canister() = this {
         };        
         
         let result = Buffer.Buffer<Types.ManageSaleResult>(requests.size());
-        let result_buffer = Buffer.Buffer<async* Types.ManageSaleResult>(requests.size());
+        let result_buffer = Buffer.Buffer<async* Types.ManageSaleStar>(requests.size());
         for (this_item in requests.vals()) {
             var log_data : Text = "";
             switch (this_item) {
@@ -1008,6 +1013,16 @@ shared (deployer) actor class Nft_Canister() = this {
                     result_buffer.add(Market.distribute_sale(get_state(), val, msg.caller));
 
                 };
+                case (#ask_subscribe(val)) {
+                    let log_data = "Type : ask subscribe " # debug_show (val);
+                    canistergeekLogger.logMessage("sale_nft_origyn", # Text(log_data), ?msg.caller);
+                    result_buffer.add(Market.ask_subscribe_nft_origyn(get_state(), val, msg.caller));
+                };
+                 case (#recognize_escrow(val)) {
+                    let log_data = "Type : recognize escreow " # debug_show (val);
+                    canistergeekLogger.logMessage("sale_nft_origyn", # Text(log_data), ?msg.caller);
+                    result_buffer.add(Market.recognize_escrow_nft_origyn(get_state(), val, msg.caller));
+                };
                 case (#withdraw(val)) {
                     let log_data = switch (val) {
                         case (#escrow(v)) {
@@ -1030,13 +1045,13 @@ shared (deployer) actor class Nft_Canister() = this {
 
             if (result_buffer.size() > 9) {
                 for (thisItem in result_buffer.vals()) {
-                    result.add(await* thisItem);
+                    result.add(Star.toResult<Types.ManageSaleResponse, Types.OrigynError>( await* thisItem));
                 };
                 result_buffer.clear();
             };
         };
         for (thisItem in result_buffer.vals()) {
-            result.add(await* thisItem);
+            result.add(Star.toResult<Types.ManageSaleResponse, Types.OrigynError>(await* thisItem));
         };
         canistergeekMonitor.collectMetrics();
         return Buffer.toArray(result);
@@ -1090,7 +1105,8 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#active(val)) { "Type : active " # debug_show (val) };
             case (#history(val)) { "Type : history " # debug_show (val) };
             case (#status(val)) { "Type : status " # debug_show (val) };
-            case (#deposit_info(val)) { "Type : deposit " # debug_show (val) };
+            case (#deposit_info(val)) { "Type : deposit info " # debug_show (val) };
+            case (#escrow_info(val)) { "Type : escrow info " # debug_show (val) };
         };
         canistergeekLogger.logMessage("sale_info_secure_nft_origyn", #Text(log_data), ?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -1128,7 +1144,10 @@ shared (deployer) actor class Nft_Canister() = this {
                 case (#history(val)) { "Type : history " # debug_show (val) };
                 case (#status(val)) { "Type : status " # debug_show (val) };
                 case (#deposit_info(val)) {
-                    "Type : deposit " # debug_show (val);
+                    "Type : deposit info" # debug_show (val);
+                };
+                case (#escrow_info(val)) {
+                    "Type : escrow info " # debug_show (val);
                 };
             };
             canistergeekLogger.logMessage("sale_info_batch_secure_nft_origyn", #Text(log_data), ?msg.caller);
@@ -1443,7 +1462,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @param {Nat} [start] - Optional. The starting index of the transaction record to retrieve.
     * @param {Nat} [end] - Optional. The ending index of the transaction record to retrieve.
     * @param {Principal} caller - The principal of the caller.
-    * @returns {Result.Result<Array<Types.TransactionRecord>, Types.OrigynError>} - A Result object containing an array of transaction records or an error message.
+    * @returns {Result.Result<Array<MigrationTypes.Current.TransactionRecord>, Types.OrigynError>} - A Result object containing an array of transaction records or an error message.
     */
 
     private func _history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat, caller : Principal) : Types.HistoryResult{
@@ -1470,7 +1489,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
             if(thisEnd >= thisStart){
 
-                let result = Buffer.Buffer<Types.TransactionRecord>((thisEnd + 1) - thisStart);
+                let result = Buffer.Buffer<MigrationTypes.Current.TransactionRecord>((thisEnd + 1) - thisStart);
                 for(this_item in Iter.range(thisStart, thisEnd)){
                     result.add(switch(SB.getOpt(val, this_item)){case(?item){item};case(null){
                         return #err(Types.errors(?get_state().canistergeekLogger,  #asset_mismatch, "history_nft_origyn - index out of range  " # debug_show(this_item) # " " # debug_show(SB.size(val)), ?caller));
@@ -1492,7 +1511,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @param {Text} token_id - The ID of the token to retrieve information for.
     * @param {Nat} [start] - Optional. The starting index of the transaction history to retrieve.
     * @param {Nat} [end] - Optional. The ending index of the transaction history to retrieve.
-    * @returns {Promise<Result.Result<Array<Types.TransactionRecord>, Types.OrigynError>>} - A promise that resolves to a Result object containing the array of transaction records or an error message.
+    * @returns {Promise<Result.Result<Array<MigrationTypes.Current.TransactionRecord>, Types.OrigynError>>} - A promise that resolves to a Result object containing the array of transaction records or an error message.
     */
     public query (msg) func history_nft_origyn(token_id : Text, start : ?Nat, end : ?Nat) : async Types.HistoryResult {
         // Warning: this func does not use msg.caller. If you decide to use it, fix the secure caller
@@ -1507,7 +1526,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @param {Text} token_id - The ID of the token.
     * @param {Nat} [start] - The starting index (inclusive) of the token history to return.
     * @param {Nat} [end] - The ending index (inclusive) of the token history to return.
-    * @returns {Promise<Result.Result<Array<Types.TransactionRecord>, Types.OrigynError>>} - A promise that resolves to a Result object containing an array of TransactionRecord objects or an error message.
+    * @returns {Promise<Result.Result<Array<MigrationTypes.Current.TransactionRecord>, Types.OrigynError>>} - A promise that resolves to a Result object containing an array of TransactionRecord objects or an error message.
     */
     public shared (msg) func history_secure_nft_origyn(token_id : Text, start : ?Nat, end : ?Nat) : async Types.HistoryResult {
 
@@ -1529,7 +1548,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @param {string} tokens.token_id - The ID of the token.
     * @param {number} [tokens.start] - Optional. The index of the first transaction record to be returned.
     * @param {number} [tokens.end] - Optional. The index of the last transaction record to be returned.
-    * @returns {Array.<Promise<Result.Result<Array.<Types.TransactionRecord>, Types.OrigynError>>>} - An array of promises that resolve to Result objects containing the transaction records or an error message for each token ID.
+    * @returns {Array.<Promise<Result.Result<Array.<MigrationTypes.Current.TransactionRecord>, Types.OrigynError>>>} - An array of promises that resolve to Result objects containing the transaction records or an error message for each token ID.
     */
     public query (msg) func history_batch_nft_origyn(tokens : [(token_id : Text, start : ?Nat, end : ?Nat)]) : async [Types.HistoryResult] {
         debug if (debug_channel.function_announce) D.print("in history_batch_nft_origyn");
@@ -2874,13 +2893,13 @@ shared (deployer) actor class Nft_Canister() = this {
         // *** NFT ledgers ***
         var nft_ledgers : Types.StableNftLedger = [];
         let nft_ledgers_size = Map.size(state.state.nft_ledgers);
-        let nft_ledgers_buffer = Buffer.Buffer<(Text, Types.TransactionRecord)>(nft_ledgers_size);
+        let nft_ledgers_buffer = Buffer.Buffer<(Text, MigrationTypes.Current.TransactionRecord)>(nft_ledgers_size);
         if (targetStart < globalTracker + nft_ledgers_size and targetEnd > globalTracker) {
             for ((tok_key, tok_val) in Map.entries(state.state.nft_ledgers)) {
                 if (globalTracker >= targetStart and targetEnd > globalTracker) {
                     let recordsArr = SB.toArray(tok_val);
                     for (this_item in recordsArr.vals()) {
-                        // nft_ledgers := Array.append<(Text, Types.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
+                        // nft_ledgers := Array.append<(Text, MigrationTypes.Current.TransactionRecord)>(nft_ledgers, [(tok_key,this_item)]);
                         nft_ledgers_buffer.add((tok_key, this_item));
                     };
                 };

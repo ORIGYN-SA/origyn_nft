@@ -18,6 +18,8 @@ import Time "mo:base/Time";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
+import Map_8_1_0 "mo:map_8_1_0/Map";
+import MapUtil_8_1_0 "mo:map_8_1_0/Map";
 
 import Star "mo:star/star";
 
@@ -338,12 +340,11 @@ module {
     };
     
     debug if(debug_channel.verify_sale) D.print("switching config");
-    let config = switch(current_sale_state.config){
-      case(#auction(config)) config;
+    switch(current_sale_state.config){
+      case(#auction(config)) {debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));};
+      case(#ask(config)) {debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));};
       case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "is_token_on_sale - sales type check not implemented", ?caller));
     };
-
-    debug if(debug_channel.verify_sale) D.print("current config" # debug_show(config));
 
     switch(current_sale_state.status){
       case(#closed) return #ok(false);
@@ -386,23 +387,19 @@ module {
       case(#ok(val)) val;
     };
 
-    switch(current_sale_state.config){
-      case(#auction(config)){
-        let #auctio(current_pricing) = current_sale_state.config else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
 
-        switch(current_sale_state.status){
-          case(#closed) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
-          case(#not_started){
-            if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
-              current_sale_state.status := #open;
-              return(#ok(#open_sale(true)));
-            } else return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_pricing.start_date), ?caller));
-          };
-          case(#open)  return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
-        };
+    switch(current_sale_state.status){
+      case(#closed) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "open_sale_nft_origyn - auction already closed ", ?caller));
+      case(#not_started){
+        if(state.get_time() >= current_sale_state.start_date and state.get_time() < current_sale_state.end_date){
+          current_sale_state.status := #open;
+          return(#ok(#open_sale(true)));
+        } else return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction does not need to be opened " # debug_show(current_sale_state.start_date), ?caller));
       };
-      case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "open_sale_nft_origyn - not an auction type ", ?caller));
+      case(#open)  return #err(Types.errors(?state.canistergeekLogger,  #auction_not_started, "open_sale_nft_origyn - auction already open", ?caller));
     };
+     
+    
   };
 
   //reports information about a sale
@@ -427,9 +424,9 @@ module {
         case(#auction(val)){
             #auction(Types.AuctionState_stabalize_for_xfer(val))
         };
-        case(_){
+        /* case(_){
             return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
-        };
+        }; */
       };
     }));
 
@@ -445,7 +442,6 @@ module {
   * @param {Principal} caller - The principal of the caller.
   * @returns {Result.Result.<Types.SaleInfoResponse,Types.OrigynError>} - A `Result` object that either contains the sale information as a `Types.SaleInfoResponse` object or an error as a `Types.OrigynError` object.
   */
-
   public func active_sales_nft_origyn(state: StateAccess, pages: ?(Nat, Nat), caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
       
     var tracker = 0 : Nat;
@@ -516,8 +512,9 @@ module {
 
       switch(current_sale_state.config){
         case(#auction(config)){
-          let current_pricing = switch(current_sale_state.config){
-            case(#auction(config)) config;
+          switch(current_sale_state.config){
+            case(#auction(config)) {};
+            case(#ask(config)) {};
             case(_){
               //nyi: handle other sales types
               //results.add(this_token.0, null);
@@ -537,12 +534,6 @@ module {
                   case(#auction(val)){
                     #auction(Types.AuctionState_stabalize_for_xfer(val))
                   };
-                  case(#dutch(val)){
-                    #dutch(Types.DutchState_stabalize_for_xfer(val))
-                  };
-                  case(#nifty(val)){
-                    #nifty(Types.NiftyState_stabalize_for_xfer(val))
-                  };
                 };
               });
 
@@ -554,6 +545,7 @@ module {
             foundTotal += 1;
           };
         };
+        
         case(_){
             //results.add(this_token.0, null);
             tracker += 1;
@@ -622,8 +614,9 @@ module {
 
             switch(current_sale_state.config){
               case(#auction(config)){
-                let current_pricing = switch(current_sale_state.config){
-                  case(#auction(config)) config;
+                switch(current_sale_state.config){
+                  case(#auction(config)) {};
+                  case(#ask(config)) {};
                   case(_){
                       //nyi: handle other sales types
                       //results.add( null);
@@ -638,12 +631,6 @@ module {
                       case(#auction(val)){
                           #auction(Types.AuctionState_stabalize_for_xfer(val))
                       };
-                      case(#dutch(val)){
-                          #dutch(Types.DutchState_stabalize_for_xfer(val))
-                      };
-                      case(#nifty(val)){
-                          #nifty(Types.NiftyState_stabalize_for_xfer(val))
-                      }
                   };
                 });
               };
@@ -704,45 +691,46 @@ module {
     };
 
     //ends a sale if it is past the date or a buy it now has occured
-    public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
         debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
         var metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-          case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller));
+          case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller)));
           case(#ok(val)) val;
         };
 
         let owner = switch(Metadata.get_nft_owner(metadata)){
-          case(#err(err))return #err(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+          case(#err(err))return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller)));
           case(#ok(val))val;
         };
 
         //look for an existing sale
         let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-          case(#Option(null)) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+          case(#Option(null)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
           case(#Text(val)){
             switch(Map.get(state.state.nft_sales, Map.thash,val)){
               case(?status){
                 status;
               };
-              case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+              case(null) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
             };
           };
-          case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller));
+          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
         };
 
         let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
           case(#ok(val)) val;
-          case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn - find state " # err.flag_point, ?caller));
+          case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn - find state " # err.flag_point, ?caller)));
         };
 
-        let config = switch(current_sale_state.config){
-          case(#auction(config)) config;
-          case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));
+        switch(current_sale_state.config){
+          case(#auction(config)) {};
+          case(#ask(config)) {};
+          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
         };
 
         let current_pricing = switch(current_sale_state.config){
           case(#auction(config)){config;};
-          case(_) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller));
+          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
         };
 
         let buy_now = switch(current_pricing.buy_now){
@@ -792,26 +780,41 @@ module {
                 txn_type = #sale_ended {
                     seller = owner;
                     buyer = owner;
-                    token = config.token;
+                    token = current_sale_state.token;
                     sale_id = ?current_sale.sale_id;
                     amount = 0;
                     extensible = #Text("owner canceled");
                 };
                 timestamp = state.get_time();
               }, caller)){
-                case(#ok(new_trx)) return #ok(#end_sale(new_trx));
-                case(#err(err)) return #err(err);
+                case(#ok(new_trx)) return #trappable(#end_sale(new_trx));
+                case(#err(err)) return #err(#trappable(err));
               };
             };
 
-            return #err(Types.errors(?state.canistergeekLogger,  #sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller));
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_over, "end_sale_nft_origyn - auction still running ", ?caller)));
           };
         };
 
-        debug if(debug_channel.end_sale) D.print("checking reserve" # debug_show(config.reserve));
-
         //check reserve MKT0038
-        switch(config.reserve){
+        let reserve = switch(current_sale_state.config){
+          case(#auction(config)){
+            config.reserve
+          };
+          case(#ask(?config)){
+            switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
+              case(?(#reserve(val))) ?val;
+              case(_) null;
+            };
+          };
+          case(_){
+            null;
+          };
+        };
+
+        debug if(debug_channel.end_sale) D.print("checking reserve" # debug_show(reserve)); 
+
+        switch(reserve){
           case(?reserve){
             if(current_sale_state.current_bid_amount < reserve){
               //end sale but don't move NFT
@@ -823,15 +826,15 @@ module {
                 txn_type = #sale_ended {
                   seller = owner;
                   buyer = owner;
-                  token = config.token;
+                  token = current_sale_state.token;
                   sale_id = ?current_sale.sale_id;
                   amount = 0;
                   extensible = #Text("reserve not met");
                 };
                 timestamp = state.get_time();
               }, caller)){
-                case(#ok(new_trx))  return #ok(#end_sale(new_trx));
-                case(#err(err))return #err(err);
+                case(#ok(new_trx))  return #trappable(#end_sale(new_trx));
+                case(#err(err)) return #err(#trappable(err));
               };
             };
           };
@@ -851,15 +854,15 @@ module {
               txn_type = #sale_ended {
                 seller = owner;
                 buyer = owner;
-                token = config.token;
+                token = current_sale_state.token;
                 sale_id = ?current_sale.sale_id;
                 amount = 0;
                 extensible = #Text("no bids");
               };
               timestamp = state.get_time();
             }, caller)){
-              case(#ok(new_trx)) return #ok(#end_sale(new_trx));
-              case(#err(err)) return #err(err);
+              case(#ok(new_trx)) return #trappable(#end_sale(new_trx));
+              case(#err(err)) return #err(#trappable(err));
             };
               
           };
@@ -867,7 +870,7 @@ module {
               debug if(debug_channel.end_sale) D.print("verifying escrow");
               debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
               let verified = switch(verify_escrow_receipt(state, winning_escrow, ?owner, ?current_sale.sale_id)){
-                case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn verifying escrow " # err.flag_point, ?caller));
+                case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn verifying escrow " # err.flag_point, ?caller)));
                 case(#ok(res)) res;
               };
 
@@ -877,7 +880,7 @@ module {
               debug if(debug_channel.end_sale) D.print(debug_show(winning_escrow));
 
               if(verified.found_asset.escrow.amount < winning_escrow.amount){
-                  return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller));
+                  return #err(#trappable(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "end_sale_nft_origyn - error finding escrow, now less than bid " # debug_show(winning_escrow), ?caller)));
               } else {
                   if(verified.found_asset.escrow.amount > winning_escrow.amount ){
                       let total_amount = Nat.sub(verified.found_asset.escrow.amount, winning_escrow.amount);
@@ -900,7 +903,7 @@ module {
 
               //reentancy risk so change the owner to inflight
               metadata := switch(Metadata.set_nft_owner(state, token_id, #extensible(#Text("trx in flight")), caller)){
-                case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller)));
                 case(#ok(new_metadata)) new_metadata;
               };
 
@@ -955,11 +958,11 @@ module {
 
                             //put the owner back if the transaction fails
                             metadata := switch(Metadata.set_nft_owner(state, token_id, owner, caller)){
-                              case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                              case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller)));
                               case(#ok(new_metadata)) new_metadata;
                             };
 
-                            return #err(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller));
+                            return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller)));
                           };
                       };
                     } catch(e){
@@ -999,20 +1002,20 @@ module {
 
                       //put the owner back if the transaction fails
                       metadata := switch(Metadata.set_nft_owner(state, token_id, owner, caller)){
-                        case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller));
+                        case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller)));
                         case(#ok(new_metadata)) new_metadata;
                       };
                     
 
-                      return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "end_sale_nft_origyn catch branch" # Error.message(e), ?caller));
+                      return #err(#awaited(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "end_sale_nft_origyn catch branch" # Error.message(e), ?caller)));
                     };
 
 
                     };
-                    case(_)  return #err(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - non ic type nyi - " # debug_show(token), ?caller));
+                    case(_)  return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - non ic type nyi - " # debug_show(token), ?caller)));
                   };
                 };
-                case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - extensible token nyi - " # debug_show(val), ?caller));
+                case(#extensible(val)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - extensible token nyi - " # debug_show(val), ?caller)));
               };
 
               //change owner
@@ -1020,7 +1023,7 @@ module {
                 case(#ok(new_metadata)){new_metadata};
                 case(#err(err)) {
                                                 //changing owner failed but the tokens are already gone....what to do...leave up to governance
-                              return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller));
+                              return #err(#awaited(Types.errors(?state.canistergeekLogger,  #update_class_error, "end_sale_nft_origyn - error setting owner " # token_id, ?caller)));
 
                 };
               };
@@ -1114,12 +1117,12 @@ module {
                 };
                 timestamp = state.get_time();
               }, caller)){
-                case(#ok(new_trx)) return #ok(#end_sale(new_trx));
-                case(#err(err)) return #err(err);
+                case(#ok(new_trx)) return #awaited(#end_sale(new_trx));
+                case(#err(err)) return #err(#awaited(err));
               };
           };
         };
-        return #err(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - nyi - " , ?caller));
+        return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "end_sale_nft_origyn - nyi - " , ?caller)));
     };
 
     /**
@@ -1131,8 +1134,8 @@ module {
     * 
     * @returns {async* Types.ManageSaleResult} - The result of the sale distribution.
     */
-    public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
-      if(NFTUtils.is_owner_network(state, caller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "distribute_sale - not a canister owner or network", ?caller));
+    public func distribute_sale(state : StateAccess, request: Types.DistributeSaleRequest, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
+      if(NFTUtils.is_owner_network(state, caller) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "distribute_sale - not a canister owner or network", ?caller)));
 
       let request_buffer : Buffer.Buffer<Types.ManageSaleRequest> = Buffer.Buffer<Types.ManageSaleRequest>(1);
 
@@ -1157,8 +1160,12 @@ module {
       };
 
       let service : Types.Service = actor((Principal.toText(state.canister())));
-      let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-      return #ok(#distribute_sale(future));
+      let future = try{
+        await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
+      } catch(e){
+        return #err(#awaited(Types.errors(?state.canistergeekLogger,  #improper_interface, "distribute_sale - error with self call" # Error.message(e), ?caller)));
+      };
+      return #awaited(#distribute_sale(future));
     };
 
     //processes a change in escrow balance
@@ -1174,7 +1181,7 @@ module {
     public func put_escrow_balance(
       state: StateAccess, 
       escrow: Types.EscrowRecord, 
-      append: Bool): Types.EscrowRecord{
+      append: Bool): Types.EscrowRecord {
       //add the escrow
 
       var a_from = switch(Map.get<Types.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer)){
@@ -1912,11 +1919,18 @@ module {
     * 
     * @returns {Array<Nat8>} An array of 8-bit natural numbers representing the calculated network royalty account.
     */
-    public func get_network_royalty_account(principal : Principal) : [Nat8]{
+    public func get_network_royalty_account(principal : Principal, ledger_token_id: ?Nat) : [Nat8]{
       let h = SHA256.New();
       h.write(Conversions.candySharedToBytes(#Text("com.origyn.network_royalty")));
       h.write(Conversions.candySharedToBytes(#Text("canister-id")));
       h.write(Conversions.candySharedToBytes(#Text(Principal.toText(principal))));
+       switch(ledger_token_id){
+        case(?val) {
+          h.write(Conversions.candySharedToBytes(#Text("token-id")));
+          h.write(Conversions.candySharedToBytes(#Nat(val)));
+        };
+        case(null) {};
+      };
       h.sum([]);
     };
 
@@ -1980,10 +1994,10 @@ module {
 
                 
 
-                debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister)));
+                debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
                 switch(state.state.collection_data.network){
                   case(null) [{owner = dev_fund; sub_account = null;}] ; //dev fund
-                  case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister)}] ;
+                  case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister,tokenSpec.id)}] ;
                 };
 
               } else if(tag == Types.metadata.royalty_node){
@@ -2166,33 +2180,52 @@ module {
 
         debug if(debug_channel.market) D.print("checking pricing");
 
-        switch(request.sales_config.pricing){
+        //what does an escrow reciept do for an auction? Place a bid?
+        //for now fail if provided
+        switch(request.sales_config.escrow_receipt){
+          case(?val) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn - handling escrow for auctions NYI", ?caller));
+          case(_){};
+        };
+
+        if(this_is_minted == false){
+          return #err(Types.errors(?state.canistergeekLogger,  #nyi, "cannot auction off a unminted item", ?caller))
+        };
+
+        let {
+          reserve : ?Nat; 
+          buy_now : ?Nat; 
+          token : MigrationTypes.Current.TokenSpec;
+          start_date: Int;
+          start_price: Nat;
+          end_date: Int;
+          allow_list : ?Map.Map<Principal, Bool>;
+        } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
-            //what does an escrow reciept do for an auction? Place a bid?
-            //for now ignore
-            switch(request.sales_config.escrow_receipt){
-              case(?val) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn - handling escrow for auctions NYI", ?caller));
-              case(_){};
-            };
+            
+            let start_date : Int = if(auction_details.  start_date > 0) {
+                auction_details.start_date;
+              } else {
+                state.get_time();
+              };
 
             switch(auction_details.ending){
               case(#date(val)){
                 if(val <= auction_details.start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
               };
-                case(#waitForQuiet(val)){
+                case(#wait_for_quiet(val)){
                 if(val.date <= auction_details.start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
               };
             };
-            
 
-            if(this_is_minted == false){
-                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "cannot auction off a unminted item", ?caller))
-                
+            let start_price : Nat = if(auction_details.start_price == 0){
+              1;
+            } else {
+              auction_details.start_price
             };
 
             switch(auction_details.buy_now){
               case(?buy_now){
-                if(buy_now < auction_details.start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
+                if(buy_now < start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
               };
               case(_){};
             };
@@ -2203,48 +2236,6 @@ module {
               };
               case(_){};
             };
-
-            let kyc_result = try{
-              await* KYC.pass_kyc_seller(state, {
-                seller = owner;
-                buyer = #extensible(#Option(null));
-                amount = 0;
-                account_hash = null;
-                token_id = request.token_id;
-                lock_to_date = null;
-                sale_id = null;
-                token = auction_details.token;
-              }, caller);
-            } catch(e){
-              return #err(Types.errors(?state.canistergeekLogger,  #kyc_error, "market_transfer_nft_origyn seller kyc failed " # Error.message(e), ?caller))
-            };
-
-            switch(kyc_result){
-              case(#ok(val)){
-
-                if(val.result.kyc == #Fail or val.result.aml == #Fail){
-                  
-                  return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
-                };
-                
-                //amount doesn't matter for seller
-               
-
-              };
-              case(#err(err)){
-                return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
-              };
-            };
-
-            let h = SHA256.New();
-            h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.sale-id")));
-            h.write(Conversions.candySharedToBytes(#Text("token-id")));
-            h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
-            h.write(Conversions.candySharedToBytes(#Text("seller")));
-            h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
-            h.write(Conversions.candySharedToBytes(#Text("timestamp")));
-            h.write(Conversions.candySharedToBytes(#Int(state.get_time())));
-            let sale_id = Conversions.candySharedToText(#Bytes(h.sum([])));
 
             var allow_list : ?Map.Map<Principal, Bool> = null;
             switch(auction_details.allow_list) {
@@ -2259,69 +2250,224 @@ module {
               };
             };
 
-            var participants = Map.new<Principal, Int>();
-            Map.set<Principal, Int>(participants, Map.phash, caller, state.get_time());
-
-            Map.set<Text,Types.SaleStatus>(state.state.nft_sales, Map.thash, sale_id, {
-              sale_id = sale_id;
-              original_broker_id = request.sales_config.broker_id;
-              broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
-              token_id = request.token_id;
-              sale_type = #auction({
-                config = request.sales_config.pricing;
-                var current_bid_amount = 0;
-                var current_broker_id = request.sales_config.broker_id;
-                var end_date = switch(auction_details.ending){
-                  case(#date(theDate)){theDate};
-                  case(#waitForQuiet(details)){details.date};
+            {
+              reserve = auction_details.reserve; 
+              buy_now = auction_details.buy_now; 
+              token : MigrationTypes.Current.TokenSpec = auction_details.token;
+              start_date : Int = start_date;
+              start_price : Nat = start_price;
+              end_date : Int  = switch(auction_details.ending){
+                  case(#date(theDate)){theDate : Int};
+                  case(#wait_for_quiet(details)){details.date : Int};
                 };
-                var min_next_bid = auction_details.start_price;
-                var current_escrow = null;
-                var wait_for_quiet_count = ?0;
-                var status = if(state.get_time() >= auction_details.start_date){
-                    #open;
-                } else {
-                    #not_started;
-                };
-                var winner = null;
-                var allow_list = allow_list;
-                var participants = participants
-              });
-            });
-
-            
-            debug if(debug_channel.market) D.print("Setting sale id");
-            metadata := Metadata.set_system_var(metadata, Types.metadata.__system_current_sale_id, #Text(sale_id));
-
-            Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
-
-            let this_ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, request.token_id)){
-                case(null){
-                    let newBuf = SB.init<Types.TransactionRecord>();
-                    Map.set(state.state.nft_ledgers, Map.thash, request.token_id, newBuf);
-                    newBuf;
-                };
-                case(?val){val;};
-            };
-
-            let txn = {
-                token_id = request.token_id;
-                index = SB.size(this_ledger);
-                timestamp = state.get_time();
-                txn_type = #sale_opened({
-                    sale_id = sale_id;
-                    pricing = request.sales_config.pricing;
-                    extensible = #Option(null);});
-            };
-            SB.add(this_ledger, txn);
-
-            return #ok(txn);
-
+              allow_list = allow_list;
+            }
           };
+          case(#ask(null)){
+            {
+              reserve = null; 
+              buy_now = null; 
+              token : MigrationTypes.Current.TokenSpec = NFTUtils.OGY();
+              start_date : Int = state.get_time();
+              start_price : Nat = 1;
+              end_date : Int  = state.get_time() + NFTUtils.MINUTE_LENGTH;
+              allow_list = null;
+            }
+          };
+          case(#ask(?val)){
+            //what does an escrow reciept do for an auction? Place a bid?
+            //for now ignore
+
+            let ask_details = MigrationTypes.Current.features_to_map(val);
+            
+            let start_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+              case(?#start_date(val)) val;
+              case(_) state.get_time();
+            };
+
+            let start_price : Nat = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)){
+              case(?#start_price(val)) val;
+              case(_) 1; //todo: calculate the minimum price for the token
+            };
+
+            let end_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)){
+              case(?#date(val)){
+                if(val <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
+                val : Int;
+              };
+              case(?#timeout(val)){
+                let target_end_date : Int = state.get_time() + val;
+                if(target_end_date <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
+                target_end_date;
+              };
+              case(_){
+                //default length of an sale is one minute
+                (state.get_time() + NFTUtils.MINUTE_LENGTH) : Int;
+              };
+            };
+
+
+            let buy_now = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+              case(?#buy_now(val)){
+                if(val < start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
+                ?val;
+              };
+              case(_){null};
+            };
+
+            let reserve = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
+              case(?#reserve(val)){
+                ?val;
+              };
+              case(_){null};
+            };
+
+            let token : MigrationTypes.Current.TokenSpec= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
+              case(?#token(val)){
+                val;
+              };
+              case(_){
+                NFTUtils.OGY();
+              };
+            };
+
+            switch(buy_now, reserve){
+              case(?buy_now, ?reserve){
+                if(buy_now < reserve) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
+              };
+              case(_){};
+            };
+
+            let allow_list : Map.Map<Principal, Bool> = Map.new<Principal, Bool>();
+
+            switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)){
+              case(?#allow_list(val)){
+                for(thisitem in val.vals()){
+                  Map.set<Principal, Bool>(allow_list, Map.phash, thisitem, true);
+                };
+              };
+              case(_){};
+            };
+
+            {
+              reserve = reserve; 
+              buy_now = buy_now; 
+              token : MigrationTypes.Current.TokenSpec = token;
+              start_date : Int = start_date;
+              start_price : Nat = start_price;
+              end_date : Int  = end_date;
+              allow_list = if(Map.size(allow_list) == 0){
+                null;
+              } else {
+                ?allow_list;
+              };
+            }
+          };
+          
           case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn nyi pricing type", ?caller));
         };
 
-        return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn nyi ", ?caller));
+        let kyc_result = try{
+          await* KYC.pass_kyc_seller(state, {
+            seller = owner;
+            buyer = #extensible(#Option(null));
+            amount = 0;
+            account_hash = null;
+            token_id = request.token_id;
+            lock_to_date = null;
+            sale_id = null;
+            token = token;
+          }, caller);
+        } catch(e){
+          return #err(Types.errors(?state.canistergeekLogger,  #kyc_error, "market_transfer_nft_origyn seller kyc failed " # Error.message(e), ?caller))
+        };
+
+        switch(kyc_result){
+          case(#ok(val)){
+
+            if(val.result.kyc == #Fail or val.result.aml == #Fail){
+              
+              return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "market_transfer_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
+            };
+            
+            //amount doesn't matter for seller
+            
+
+          };
+          case(#err(err)){
+            return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
+          };
+        };
+
+        let h = SHA256.New();
+        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.sale-id")));
+        h.write(Conversions.candySharedToBytes(#Text("token-id")));
+        h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
+        h.write(Conversions.candySharedToBytes(#Text("seller")));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
+        h.write(Conversions.candySharedToBytes(#Text("timestamp")));
+        h.write(Conversions.candySharedToBytes(#Int(state.get_time())));
+        let sale_id = Conversions.candySharedToText(#Bytes(h.sum([])));
+
+        
+
+        var participants = Map.new<Principal, Int>();
+        Map.set<Principal, Int>(participants, Map.phash, caller, state.get_time());
+
+        Map.set<Text,Types.SaleStatus>(state.state.nft_sales, Map.thash, sale_id, {
+          sale_id = sale_id;
+          original_broker_id = request.sales_config.broker_id;
+          broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
+          token_id = request.token_id;
+          sale_type = #auction({
+            config = MigrationTypes.Current.pricing_shared_to_pricing(request.sales_config.pricing);
+            var current_bid_amount = 0;
+            var current_broker_id = request.sales_config.broker_id;
+            var end_date = end_date;
+            var start_date : Int = start_date;
+            var min_next_bid = start_price;
+            var current_escrow = null;
+            var wait_for_quiet_count = ?0;
+            token = token;
+            notify_queue = null;
+            var status = if(state.get_time() >=         start_date){
+                #open;
+            } else {
+                #not_started;
+            };
+            var winner = null;
+            allow_list = allow_list;
+            var participants = participants
+          });
+        });
+
+        
+        debug if(debug_channel.market) D.print("Setting sale id");
+        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_current_sale_id, #Text(sale_id));
+
+        Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
+
+        let this_ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, request.token_id)){
+            case(null){
+                let newBuf = SB.init<MigrationTypes.Current.TransactionRecord>();
+                Map.set(state.state.nft_ledgers, Map.thash, request.token_id, newBuf);
+                newBuf;
+            };
+            case(?val){val;};
+        };
+
+        let txn = {
+            token_id = request.token_id;
+            index = SB.size<MigrationTypes.Current.TransactionRecord>(this_ledger);
+            timestamp = state.get_time();
+            txn_type = #sale_opened({
+                sale_id = sale_id;
+                pricing = request.sales_config.pricing;
+                extensible = #Option(null);});
+        };
+        SB.add(this_ledger, txn);
+
+        return #ok(txn);
     };
 
     //refreshes the offers collection
@@ -2386,14 +2532,14 @@ module {
     };
 
     //moves tokens from a deposit into an escrow
-    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
         //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
         //we will also allow a canister/canister owner to create escrows for itself
         if(Types.account_eq(#principal(caller), request.deposit.buyer) == false and 
             Types.account_eq(#principal(caller), #principal(state.canister())) == false and
              Types.account_eq(#principal(caller), #principal(state.state.collection_data.owner)) == false and
                Array.filter<Principal>(state.state.collection_data.managers, func(item: Principal){item == caller}).size() == 0){
-            return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "escrow_nft_origyn - escrow - buyer and caller do not match", ?caller));
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "escrow_nft_origyn - escrow - buyer and caller do not match", ?caller)));
         };
 
         debug if(debug_channel.escrow) D.print("in escrow");
@@ -2401,7 +2547,7 @@ module {
         switch(request.lock_to_date){
             case(?val){
                 if(val > state.get_time() *10){ // if an extra digit is fat fingered this will trip....gives 474 years in the future as the max
-                    return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "escrow_nft_origyn time lock should not be that far in the future", ?caller));
+                    return #err(#trappable(Types.errors(?state.canistergeekLogger,  #improper_interface, "escrow_nft_origyn time lock should not be that far in the future", ?caller)));
                 };
             };
             case(null){};
@@ -2414,24 +2560,24 @@ module {
         if(request.token_id != ""){
           let metadata = switch(Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
               case(#err(err)){
-                  return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "escrow_nft_origyn " # err.flag_point, ?caller));
+                  return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "escrow_nft_origyn " # err.flag_point, ?caller)));
               };
               case(#ok(val)){val;};
           };
           let this_is_minted = Metadata.is_minted(metadata);
           if(this_is_minted == false){
               //cant escrow for an unminted item
-              return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "escrow_nft_origyn ", ?caller));
+              return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "escrow_nft_origyn ", ?caller)));
           };
 
           let owner = switch(Metadata.get_nft_owner(metadata)){
-            case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "escrow_nft_origyn " # err.flag_point, ?caller));
+            case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
             case(#ok(val)) val;
           };
 
           //cant escrow for an owner that doesn't own the token
           if(owner != request.deposit.seller)
-            return #err(Types.errors(?state.canistergeekLogger,  #escrow_owner_not_the_owner, "escrow_nft_origyn cannot create escrow for item someone does not own", ?caller));
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_owner_not_the_owner, "escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
         };
 
         //move the deposit to an escrow account
@@ -2445,13 +2591,13 @@ module {
                 let checker = Ledger_Interface.Ledger_Interface();
                 switch(await* checker.transfer_deposit(state.canister(), request,  caller)){
                   case(#ok(val)) (val.transaction_id, ?val.subaccount_info.account.sub_account);
-                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "escrow_nft_origyn " # err.flag_point, ?caller));
+                  case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
                 };
               };
-              case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - ic type nyi - " # debug_show(request), ?caller));
+              case(_) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - ic type nyi - " # debug_show(request), ?caller)));
             };
           };
-          case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show(request), ?caller));
+          case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show(request), ?caller)));
         };
 
         //put the escrow
@@ -2484,14 +2630,14 @@ module {
             debug if(debug_channel.escrow) D.print("in a bad error");
             debug if(debug_channel.escrow) D.print(debug_show(err));
             //nyi: this is really bad and will mess up certificatioin later so we should really throw
-            return #err(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show(request), ?caller));
+            return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show(request), ?caller)));
           };
           case(#ok(new_trx)) new_trx;
         };
 
         debug if(debug_channel.escrow) D.print("have the trx");
         debug if(debug_channel.escrow) D.print(debug_show(new_trx));
-        return #ok(#escrow_deposit({
+        return #awaited(#escrow_deposit({
           receipt = {
             request.deposit with 
             token_id = request.token_id;
@@ -2499,6 +2645,10 @@ module {
           balance = escrow_result.amount;
           transaction = new_trx;
         }));
+    };
+
+    public func ask_subscribe_nft_origyn(state: StateAccess, request: Types.AskSubscribeRequest, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
+      return #trappable(#ask_subscribe(false));
     };
 
     //recognizes tokens already at an escrow address but not yet recognized as an escrow - saves one fee
@@ -2735,13 +2885,13 @@ module {
     * @param {Principal} caller - The caller of the function.
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - The result of the operation which may contain an error.
     */
-    private func _withdraw_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
       debug if(debug_channel.withdraw_deposit) D.print("in deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
       if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false){
         //cant withdraw for someone else
-        return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller));
+        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller)));
       };
 
       debug if(debug_channel.withdraw_deposit) D.print("about to verify");
@@ -2752,10 +2902,10 @@ module {
       let fee = switch(details.token){
         case(#ic(token)){
           let token_fee = Option.get(token.fee, 0);
-          if(details.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller));
+          if(details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller)));
           token_fee;
         };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller));
+        case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller)));
       };
 
       //attempt to send payment
@@ -2774,23 +2924,23 @@ module {
               try{
                 switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)){
                   case(#ok(val)) ?val;
-                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller));
+                  case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
 
                 };
               } catch (e){
-                return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller));
+                return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
               };
             };
-            case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller));
+            case(_) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller)));
           };
         };
-        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller));
+        case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller)));
       };
 
       debug if(debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
 
       switch(transaction_id){
-        case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
+        case(null) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller)));
         case(?transaction_id){
           switch(Metadata.add_transaction_record(state,{
             token_id = "";
@@ -2805,8 +2955,8 @@ module {
             );
             timestamp = state.get_time();
           }, caller)) {
-            case(#ok(val)) return #ok(#withdraw(val));
-            case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
+            case(#ok(val)) return #awaited(#withdraw(val));
+            case(#err(err))  return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller)));
           };
         };
       };
@@ -2822,11 +2972,11 @@ module {
     * @param {Principal} caller - the caller of the function
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - the result of the function execution
     */
-    private func _withdraw_escrow(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_escrow(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
 
       debug if(debug_channel.withdraw_escrow) D.print("an escrow withdraw");
       debug if(debug_channel.withdraw_escrow) D.print(debug_show(withdraw));
-      if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match" , ?caller));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match" , ?caller)));
 
       debug if(debug_channel.withdraw_escrow) D.print("about to verify");
       
@@ -2834,7 +2984,7 @@ module {
         case(#err(err)){
           debug if(debug_channel.withdraw_escrow) D.print("an error");
           debug if(debug_channel.withdraw_escrow) D.print(debug_show(err));
-          return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
+          return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller)));
         };
         case(#ok(verified)) verified;
       };
@@ -2842,7 +2992,7 @@ module {
       let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
       if(verified.found_asset.escrow.amount < details.amount){
         debug if(debug_channel.withdraw_escrow) D.print("in check amount " # debug_show(verified.found_asset.escrow.amount) # " " # debug_show( details.amount));
-        return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large" , ?caller));
+        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large" , ?caller)));
       };
 
       let a_ledger = verified.found_asset.escrow;
@@ -2850,7 +3000,7 @@ module {
       switch(a_ledger.lock_to_date){
         case(?val){
           debug if(debug_channel.withdraw_escrow) D.print("found a lock date " # debug_show((val, state.get_time())));
-          if(state.get_time() < val) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show(val)  , ?caller));
+          if(state.get_time() < val) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show(val)  , ?caller)));
         };
         case(null){
           debug if(debug_channel.withdraw_escrow) D.print("no lock date " # debug_show(( state.get_time())));
@@ -2861,10 +3011,10 @@ module {
       let fee = switch(details.token){
         case(#ic(token)){
             let token_fee = Option.get(token.fee, 0);
-            if(a_ledger.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller));
+            if(a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount" , ?caller)));
             token_fee;
         };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller));
+        case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show(details), ?caller)));
       };
 
       //D.print("got to sale id");
@@ -2873,7 +3023,7 @@ module {
         case(?sale_id){
           //check that the owner isn't still the bidder in the sale
           let sale = switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-              case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
+              case(null) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller)));
               case(?sale) sale;
           };
 
@@ -2881,7 +3031,7 @@ module {
 
           let current_sale_state = switch(NFTUtils.get_auction_state_from_status(sale)){
             case(#ok(val)) val;
-            case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller));
+            case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller)));
           };
 
           switch(current_sale_state.status){
@@ -2896,7 +3046,7 @@ module {
                   debug if(debug_channel.withdraw_escrow) D.print("found a winner");
                   if(Types.account_eq(val, details.buyer)){
                     debug if(debug_channel.withdraw_escrow) D.print("should be throwing an error");
-                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner" , ?caller));
+                    return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner" , ?caller)));
                   };
                 };
                 case(null){
@@ -2911,7 +3061,7 @@ module {
                   debug if(debug_channel.withdraw_escrow) D.print(debug_show(val.buyer));
                   if(Types.account_eq(val.buyer, details.buyer)){
                     debug if(debug_channel.withdraw_escrow) D.print("passed");
-                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid" , ?caller));
+                    return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid" , ?caller)));
                   };
                 };
                 case(null){
@@ -2932,7 +3082,7 @@ module {
       debug if(debug_channel.withdraw_escrow) D.print(debug_show(details.amount));
       //ok...so we should be good to withdraw
       //first update the escrow
-      if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller));
+      if(verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller)));
       
       let target_escrow = {
         details with 
@@ -2968,26 +3118,26 @@ module {
                   case(#ok(val)) ?val;
                   case(#err(err)){
                     handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller));
+                    return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller)));
                   };
                 };
               } catch (e){
                 //put the escrow back because something went wrong
                 handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller));
+                return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller)));
               };
 
             };
-            case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show(details), ?caller));
+            case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show(details), ?caller)));
           };
         };
-        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show(details), ?caller));
+        case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show(details), ?caller)));
       };
 
       debug if(debug_channel.withdraw_escrow) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
 
       switch(transaction_id){
-        case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
+        case(null) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller)));
         case(?transaction_id){
           switch(Metadata.add_transaction_record(state,{
             token_id = details.token_id;
@@ -3002,8 +3152,8 @@ module {
             );
             timestamp = state.get_time();
           }, caller)) {
-            case(#ok(val)) return #ok(#withdraw(val));
-            case(#err(err))  return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller));
+            case(#ok(val)) return #awaited(#withdraw(val));
+            case(#err(err))  return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller)));
           };
         };
       };
@@ -3020,24 +3170,24 @@ module {
     * @param {Principal} caller - The caller of the function.
     * @returns {Types.ManageSaleResult} - A Result object that either contains a ManageSaleResponse or an OrigynError if the withdrawal failed.
     */
-    private func _withdraw_sale(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_sale(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
       debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
       debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
       debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
-      if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show((#principal(caller), details.seller)) , ?caller)));
 
       let verified = switch(verify_sales_reciept(state, details)){
           case(#ok(verified)) verified;
           case(#err(err)){
                                   debug if(debug_channel.withdraw_sale) D.print("an error");
                                   debug if(debug_channel.withdraw_sale) D.print(debug_show(err));
-              return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show(details), ?caller));
+              return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show(details), ?caller)));
           };
       };
           
       debug if(debug_channel.withdraw_sale) D.print("have verified");
 
-      if(verified.found_asset.escrow.amount < details.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large" , ?caller));
+      if(verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large" , ?caller)));
 
       let a_ledger = verified.found_asset.escrow;
 
@@ -3051,12 +3201,12 @@ module {
             let token_fee = Option.get(token.fee, 0);
             if(a_ledger.amount <= token_fee){
               debug if(debug_channel.withdraw_sale) D.print("withdraw fee");
-              return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount" , ?caller));
+              return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount" , ?caller)));
             };
         };
         case(_){
           debug if(debug_channel.withdraw_sale) D.print("nyi err");
-          return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
+          return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller)));
         };
       };
 
@@ -3066,7 +3216,7 @@ module {
       debug if(debug_channel.withdraw_sale) D.print(debug_show(details.amount));
       //ok...so we should be good to withdraw
       //first update the escrow
-      if(verified.found_asset.escrow.amount < details.amount)return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller));
+      if(verified.found_asset.escrow.amount < details.amount)return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller)));
 
       let target_escrow = {
         a_ledger with 
@@ -3099,26 +3249,26 @@ module {
                         debug if(debug_channel.withdraw_sale) D.print("failed, putting back ledger");
                         
                         handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-                        return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller));
+                        return #err(#awaited(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller)));
                     };
                   };
                 } catch(e){
                   //put the escrow back
                   handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-                  return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller));
+                  return #err(#awaited(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller)));
                 };
             };
             case(_){
-              return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show(details), ?caller));
+              return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show(details), ?caller)));
             };
           };
         };
-        case(#extensible(val)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller));
+        case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show(details), ?caller)));
       };
 
       //D.print("have a transactionid and will crate a transaction");
       switch(transaction_id){
-        case(null)return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller));
+        case(null)return #err(#awaited(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller)));
         case(?transaction_id){
             switch(Metadata.add_transaction_record(state,{
               token_id = details.token_id;
@@ -3133,8 +3283,8 @@ module {
               );
               timestamp = state.get_time();
             }, caller)) {
-              case(#ok(val)) return #ok(#withdraw(val));
-              case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller));
+              case(#ok(val)) return #awaited(#withdraw(val));
+              case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show(transaction_id) , ?caller)));
             };
         };
       };
@@ -3149,13 +3299,13 @@ module {
     * @param {Principal} caller - The caller principal.
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} A Result type containing either a Types.ManageSaleResponse object or a Types.OrigynError object.
     */
-    private func _reject_offer(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.RejectDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _reject_offer(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.RejectDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
       // rejects and offer and sends the tokens back to the source
       debug if(debug_channel.withdraw_reject) D.print("an escrow reject");
       if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network){
         //cant withdraw for someone else
         debug if(debug_channel.withdraw_reject) D.print(debug_show((caller, state.canister(), details.seller, state.state.collection_data.network)));
-        return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - reject - unauthorized" , ?caller));
+        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - reject - unauthorized" , ?caller)));
       };
 
       debug if(debug_channel.withdraw_reject) D.print("about to verify");
@@ -3171,7 +3321,7 @@ module {
         case(#err(err)){
           debug if(debug_channel.withdraw_reject) D.print("an error");
           debug if(debug_channel.withdraw_reject) D.print(debug_show(err));
-          return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller));
+          return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show(details), ?caller)));
         };
       };
         
@@ -3186,10 +3336,10 @@ module {
       let fee = switch(details.token){
         case(#ic(token)){
           let token_fee = Option.get(token.fee, 0);
-          if(a_ledger.amount <= token_fee) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller));
+          if(a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount" , ?caller)));
           token_fee;
         };
-        case(_)return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show(details), ?caller));
+        case(_)return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show(details), ?caller)));
       };
 
       debug if(debug_channel.withdraw_reject) D.print("got to sale id");
@@ -3198,7 +3348,7 @@ module {
         case(?sale_id){
             //check that the owner isn't still the bidder in the sale
           switch(Map.get(state.state.nft_sales, Map.thash,sale_id)){
-            case(null) return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller));
+            case(null) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show(a_ledger) #  " " # debug_show(withdraw) , ?caller)));
             case(?val){
 
               debug if(debug_channel.withdraw_reject) D.print("testing current state");
@@ -3206,7 +3356,7 @@ module {
               let current_sale_state = switch(NFTUtils.get_auction_state_from_status(val)){
                   case(#ok(val)){val};
                   case(#err(err)){
-                    return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller));
+                    return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller)));
                   };
               };
 
@@ -3222,7 +3372,7 @@ module {
                       debug if(debug_channel.withdraw_reject) D.print("found a winner");
                       if(Types.account_eq(val, details.buyer)){
                         debug if(debug_channel.withdraw_reject) D.print("should be throwing an error");
-                        return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner" , ?caller));
+                        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner" , ?caller)));
                       };
                     };
                     case(null){
@@ -3237,7 +3387,7 @@ module {
                       debug if(debug_channel.withdraw_reject) D.print(debug_show(val.buyer));
                       if(Types.account_eq(val.buyer, details.buyer)){
                         debug if(debug_channel.withdraw_reject)  D.print("passed");
-                        return #err(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid" , ?caller));
+                        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid" , ?caller)));
                       };
                     };
                     case(null){
@@ -3286,18 +3436,18 @@ module {
                     //make sure things havent changed in the mean time
                     //D.print("failed, putting back ledger");
                     handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                    return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller));
+                    return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller)));
                   };
                 };
 
               };
               case(_){
-                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show(details), ?caller));
+                return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show(details), ?caller)));
               };
             };
           };
           case(#extensible(val)){
-            return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show(details), ?caller));
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show(details), ?caller)));
           };
         };
       } catch (e){
@@ -3306,7 +3456,7 @@ module {
         //D.print("failed, putting back throw");
         handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
 
-        return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e) , ?caller));
+        return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e) , ?caller)));
       };
 
       debug if(debug_channel.withdraw_reject) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
@@ -3314,7 +3464,7 @@ module {
       switch(transaction_id){
         case(null){
           //really should have failed already
-          return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller));
+          return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller)));
         };
         case(?transaction_id){
           switch(Metadata.add_transaction_record(state,{
@@ -3331,10 +3481,10 @@ module {
             timestamp = state.get_time();
           }, caller)) {
             case(#ok(val)){
-              return #ok(#withdraw(val));
+              return #awaited(#withdraw(val));
             };
             case(#err(err)){
-              return #err(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show(transaction_id) , ?caller));
+              return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show(transaction_id) , ?caller)));
             };
           };
         };
@@ -3350,7 +3500,7 @@ module {
     * @param {Principal} caller - The Principal of the caller.
     * @returns {async* Types.ManageSaleResult} - A Result object containing either a ManageSaleResponse or an OrigynError.
     */
-    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func withdraw_nft_origyn(state: StateAccess, withdraw: Types.WithdrawRequest, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
       switch(withdraw){
         case(#deposit(details)){
           return await* _withdraw_deposit(state, withdraw, details, caller);
@@ -3365,7 +3515,7 @@ module {
           return await* _reject_offer(state, withdraw, details, caller);
         };
       };
-      return #err(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn  - nyi - " , ?caller));
+      return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn  - nyi - " , ?caller)));
     };
 
 
@@ -3404,29 +3554,29 @@ module {
     * @param {Bool} canister_call - Determines if the function is being called from another function within the canister.
     * @returns {Types.ManageSaleResult} A result indicating either a successful bid or an error message.
     */
-    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
 
 
       //look for an existing sale
-      let ?current_sale = Map.get(state.state.nft_sales, Map.thash,request.sale_id) else return #err(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller));
+      let ?current_sale = Map.get(state.state.nft_sales, Map.thash,request.sale_id) else return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller)));
       
       let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
         case(#ok(val)) val;
-        case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - find state " # err.flag_point, ?caller));
+        case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - find state " # err.flag_point, ?caller)));
       };
 
-      let #auction(current_pricing) = current_sale_state.config else return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller));
+      let #auction(current_pricing) = current_sale_state.config else return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller)));
 
       switch(current_sale_state.status){
         case(#open){ 
-          if(state.get_time() >= current_sale_state.end_date) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - sale is past close date " # request.sale_id, ?caller));
+          if(state.get_time() >= current_sale_state.end_date) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - sale is past close date " # request.sale_id, ?caller)));
         };
         case(#not_started){
           if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
             current_sale_state.status := #open;
           };
         };
-        case(_) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - sale is not open " # request.sale_id, ?caller));
+        case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - sale is not open " # request.sale_id, ?caller)));
       };
 
       switch(current_sale_state.allow_list){
@@ -3436,34 +3586,34 @@ module {
         case(?val){
           debug if(debug_channel.bid) D.print("allow list inst null");
           switch(Map.get<Principal, Bool>(val, Map.phash, caller)){
-              case(null){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "bid_nft_origyn - not on allow list ", ?caller))};
+              case(null){return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "bid_nft_origyn - not on allow list ", ?caller)))};
               case(?val){}
           };
         };
       };
       
       var metadata = switch(Metadata.get_metadata_for_token(state,request.escrow_receipt.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-        case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "bid_nft_origyn " # err.flag_point, ?caller));
+        case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "bid_nft_origyn " # err.flag_point, ?caller)));
         case(#ok(val)) val;
       };
 
       let owner = switch(Metadata.get_nft_owner(metadata)){
-          case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn " # err.flag_point, ?caller));
+          case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn " # err.flag_point, ?caller)));
          case(#ok(val)) val;
       };
 
       //make sure token ids match
-      if(current_sale.token_id != request.escrow_receipt.token_id) return #err(Types.errors(?state.canistergeekLogger,  #token_id_mismatch, "bid_nft_origyn - token id of sale does not match escrow receipt " # request.escrow_receipt.token_id, ?caller));
+      if(current_sale.token_id != request.escrow_receipt.token_id) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_id_mismatch, "bid_nft_origyn - token id of sale does not match escrow receipt " # request.escrow_receipt.token_id, ?caller)));
 
       //make sure assets match
       debug if(debug_channel.bid) D.print("checking asset sale type " # debug_show((_get_token_from_sales_status(current_sale), request.escrow_receipt.token)));
-      if(Types.token_eq(_get_token_from_sales_status(current_sale), request.escrow_receipt.token) == false) return #err(Types.errors(?state.canistergeekLogger,  #asset_mismatch, "bid_nft_origyn - asset in sale and escrow receipt do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+      if(Types.token_eq(_get_token_from_sales_status(current_sale), request.escrow_receipt.token) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #asset_mismatch, "bid_nft_origyn - asset in sale and escrow receipt do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller)));
      
       //make sure owners match
-      if(Types.account_eq(owner, request.escrow_receipt.seller) == false) return #err(Types.errors(?state.canistergeekLogger,  #receipt_data_mismatch, "bid_nft_origyn - owner and seller do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+      if(Types.account_eq(owner, request.escrow_receipt.seller) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #receipt_data_mismatch, "bid_nft_origyn - owner and seller do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller)));
 
       //make sure buyers match
-      if(Types.account_eq(#principal(caller), request.escrow_receipt.buyer) == false) return #err(Types.errors(?state.canistergeekLogger,  #receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller));
+      if(Types.account_eq(#principal(caller), request.escrow_receipt.buyer) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller)));
 
       //make sure the receipt is valid
       debug if(debug_channel.bid) D.print("verifying Escrow");
@@ -3483,20 +3633,24 @@ module {
                   lock_to_date = null; token_id = request.escrow_receipt.token_id}
                 , caller)){
                   //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
-                  case(#ok(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
-                  case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller));
+                  case(#trappable(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
+                  case(#awaited(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
+                  case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
+                  case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
                 };
-            } else return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller))
+            } else return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller)))
           };
           case(#ok(res)) res;
       };
 
-      if(verified.found_asset.escrow.amount < request.escrow_receipt.amount) return #err(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "bid_nft_origyn - escrow - amount more than in escrow verified: " # Nat.toText(verified.found_asset.escrow.amount) # " request: " # Nat.toText(request.escrow_receipt.amount) , ?caller));
+      //we can continue with trappable because the awaits above are returned.
+
+      if(verified.found_asset.escrow.amount < request.escrow_receipt.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "bid_nft_origyn - escrow - amount more than in escrow verified: " # Nat.toText(verified.found_asset.escrow.amount) # " request: " # Nat.toText(request.escrow_receipt.amount) , ?caller)));
 
       //make sure auction is still running
       let current_time = state.get_time();
       // MKT0028
-      if(state.get_time() > current_sale_state.end_date) return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - auction ended current_date" # debug_show(current_time) # " " # " end_time:" # debug_show(current_sale_state.end_date), ?caller));
+      if(state.get_time() > current_sale_state.end_date) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - auction ended current_date" # debug_show(current_time) # " " # " end_time:" # debug_show(current_sale_state.end_date), ?caller)));
 
       switch(current_sale_state.status){
         case(#closed){
@@ -3505,7 +3659,7 @@ module {
           //last_withdraw_result := ?refund_id;
 
           //debug if(debug_channel.bid) D.print(debug_show(refund_id));
-          return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "end_sale_nft_origyn - auction already closed - attempting escrow return ", ?caller));
+          return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "end_sale_nft_origyn - auction already closed - attempting escrow return ", ?caller)));
         };
         case(_){};
       };
@@ -3524,7 +3678,7 @@ module {
 
         //debug if(debug_channel.bid) D.print(debug_show(refund_id));
                 
-        return #err(Types.errors(?state.canistergeekLogger,  #bid_too_low, "bid_nft_origyn - bid too low - refund issued "  , ?caller));
+        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #bid_too_low, "bid_nft_origyn - bid too low - refund issued "  , ?caller)));
       };
 
       let buy_now = switch(current_pricing.buy_now){
@@ -3546,7 +3700,7 @@ module {
       let kyc_result = try{
         await* KYC.pass_kyc_buyer(state, verified.found_asset.escrow, caller);
       } catch(e){
-        return #err(Types.errors(?state.canistergeekLogger,  #kyc_error, "bid_nft_origyn auto try escrow failed " # Error.message(e), ?caller))
+        return #err(#awaited(Types.errors(?state.canistergeekLogger,  #kyc_error, "bid_nft_origyn auto try escrow failed " # Error.message(e), ?caller)))
       };
 
       switch(kyc_result){
@@ -3559,14 +3713,14 @@ module {
             //last_withdraw_result := ?refund_id;
 
             
-            return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show(val), ?caller));
+            return #err(#awaited(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show(val), ?caller)));
           };
           let kycamount = Option.get(val.result.amount, 0);
 
           if((kycamount > 0) and (request.escrow_receipt.amount > kycamount)){
             ignore refund_failed_bid(state, verified, request.escrow_receipt);
 
-            return #err(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml amount too large " # debug_show((val, kycamount, request.escrow_receipt)), ?caller))
+            return #err(#awaited(Types.errors(?state.canistergeekLogger,  #kyc_fail, "bid_nft_origyn kyc or aml amount too large " # debug_show((val, kycamount, request.escrow_receipt)), ?caller)))
           };
 
           if(val.did_async){
@@ -3576,7 +3730,8 @@ module {
         };
         case(#err(err)){
           ignore refund_failed_bid(state, verified, request.escrow_receipt);
-          return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
+          
+          return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try kyc failed " # err.flag_point, ?caller)))
         };
       };
 
@@ -3597,10 +3752,12 @@ module {
                     lock_to_date = null; token_id = request.escrow_receipt.token_id}
                   , caller)){
                     //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
-                    case(#ok(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
-                    case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller));
+                    case(#awaited(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
+                    case(#trappable(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
+                    case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
+                    case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
                   };
-              } else return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller))
+              } else return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller)))
             };
             case(#ok(res)) res;
         };
@@ -3633,7 +3790,7 @@ module {
           //update the sale
 
           let newMinBid = switch(current_pricing.min_increase){
-            case(#percentage(apercentage)) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "bid_nft_origyn - percentage increase not implemented " , ?caller));
+            case(#percentage(apercentage)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "bid_nft_origyn - percentage increase not implemented " , ?caller)));
             case(#amount(aamount)) request.escrow_receipt.amount + aamount;
           };
 
@@ -3691,18 +3848,18 @@ module {
             switch(result){
               case(#ok(val)){
                 switch(val){
-                  case(#end_sale(val)) return #ok(#bid(val));
-                  case(_)return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "bid_nft_origyn - buy it now call to end sale had odd response " # debug_show(result), ?caller ));
+                  case(#end_sale(val)) return #awaited(#bid(val));
+                  case(_)return #err(#awaited(Types.errors(?state.canistergeekLogger,  #improper_interface, "bid_nft_origyn - buy it now call to end sale had odd response " # debug_show(result), ?caller )));
                 };
               };
-              case(#err(err)) return #err(err);
+              case(#err(err)) return #err(#awaited(err));
             };
 
             //call ourseves to close the auction
           };
-          return #ok(#bid(val));
+          return #awaited(#bid(val));
         };
-        case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - create transaction record " # err.flag_point, ?caller));
+        case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - create transaction record " # err.flag_point, ?caller)));
 
       };
     };
@@ -3720,6 +3877,13 @@ module {
         case(#auction(auction_status)){
           return switch(auction_status.config){
             case(#auction(auction_config)) return auction_config.token;
+            case(#ask(?auction_config)) {
+              let ?(#token(spec)) = Map_8_1_0.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(auction_config, MigrationTypes.Current.ask_feature_set_tool, #token) else {
+                debug if(debug_channel.bid) D.print("strange askconfig");
+                D.trap("unreachable");
+              };
+              return spec;
+            };
             case(_){
               debug if(debug_channel.bid) D.print("getTokenfromSalesstatus not configured for type");
               assert(false);

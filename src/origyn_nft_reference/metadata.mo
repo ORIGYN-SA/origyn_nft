@@ -18,6 +18,7 @@ import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
 import StableBuffer "mo:stablebuffer/StableBuffer";
+import Map_8_1_0 "mo:map_8_1_0/Map";
 
 module {
 
@@ -580,13 +581,24 @@ module {
   * @param {Types.PricingConfig} val - The pricing configuration to convert.
   * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
-  public func pricing_to_candy(val : Types.PricingConfig) : CandyTypes.CandyShared{
+  public func pricing_to_candy(val : MigrationTypes.Current.PricingConfig) : CandyTypes.CandyShared{
     switch(val){
           case(#instant(val)){#Text("instant");};
-          case(#flat(val)){#Class([
-            {name="token"; value=token_spec_to_candy(val.token); immutable = true;},
-            {name="amount"; value=#Nat(val.amount); immutable = true;},
-          ])};
+          case(#ask(val)){ask_config_to_candy(val)};
+          case(#auction(val)){auction_config_to_candy(val)};
+          case(_){#Text("NYI")};
+    };
+  };
+
+  /**
+  * Converts a pricing configuration sared to a CandyShared.
+  * @param {Types.PricingConfigShared} val - The pricing configuration to convert.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
+  */
+  public func pricing_shared_to_candy(val : MigrationTypes.Current.PricingConfigShared) : CandyTypes.CandyShared{
+    switch(val){
+          case(#instant(val)){#Text("instant");};
+          case(#ask(val)){ask_config_shared_to_candy(val)};
           case(#auction(val)){auction_config_to_candy(val)};
           case(_){#Text("NYI")};
     };
@@ -615,7 +627,7 @@ module {
       {name="start_date"; value=#Int(val.start_date); immutable = true;},
       {name="ending"; value=switch(val.ending){
                   case(#date(val)){#Int(val);};
-                  case(#waitForQuiet(val)){#Class([
+                  case(#wait_for_quiet(val)){#Class([
                     {name="date"; value=#Int(val.date); immutable = true;},
                     {name="extention"; value=#Nat64(val.extention); immutable = true;},
                     {name="fade"; value=#Float(val.fade); immutable = true;},
@@ -633,6 +645,252 @@ module {
         }; immutable = true;},
 
     ]);
+    
+  };
+
+  /**
+  * Converts an ask configuration to a CandyShared.
+  * @param {Types.AskConfig} val - The ask configuration to convert.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
+  */
+  public func ask_config_to_candy(val : MigrationTypes.Current.AskConfig) : CandyTypes.CandyShared{
+
+    let candy_buffer = Buffer.Buffer<CandyTypes.PropertyShared>(1);
+
+    let items : Map_8_1_0.Map<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature> = switch(val){
+      case(?val) val;
+      case(null) Map_8_1_0.new<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(MigrationTypes.Current.ask_feature_set_tool);
+    };
+
+    for(thisItem in Map_8_1_0.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(items)){
+      switch(thisItem){
+        case(#atomic){
+          candy_buffer.add(
+            {name="atomic"; value=#Bool(true); immutable = true;});
+        };
+        case(#buy_now(e)){
+          candy_buffer.add(
+            {name="buy_now"; value=#Nat(e); immutable = true;});
+        };
+        case(#wait_for_quiet(e)){
+          candy_buffer.add({name="wait_for_quiet"; value=#Class([
+                    
+                    {name="extention"; value=#Nat64(e.extention); immutable = true;},
+                    {name="fade"; value=#Float(e.fade); immutable = true;},
+                    {name="max"; value=#Nat(e.max); immutable = true;},
+                  ]); immutable = true;});
+        };
+        case(#allow_list(e)){
+            candy_buffer.add({name="allow_list"; value=#Array(Array.map<Principal, CandyTypes.CandyShared>(e, func(x:Principal){#Principal(x)})); immutable = true;});
+        };
+        case(#notify(e)){
+          candy_buffer.add({name="notify"; value=#Array(Array.map<Principal, CandyTypes.CandyShared>(e, func(x:Principal){#Principal(x)})); immutable = true;});
+        };
+        case(#reserve(e)){
+          candy_buffer.add(
+            {name="reserve"; value=#Nat(e); immutable = true;});
+        };
+        case(#start_date(e)){
+          candy_buffer.add(
+            {name="start_date"; value=#Int(e); immutable = true;});
+        };
+        case(#start_price(e)){
+          candy_buffer.add(
+            {name="start_price"; value=#Nat(e); immutable = true;});
+        };
+        case(#min_increase(e)){
+         candy_buffer.add(
+            
+            switch(e){
+                  case(#percentage(val)){{name="min_increase_percent"; value=#Float(val); immutable = true;}};
+                  case(#amount(val)){{name="min_increase_amount"; value=#Nat(val); immutable = true;}};
+            });
+        };
+        case(#ending(e)){
+          candy_buffer.add(
+            switch(e){
+                  case(#date(val)){{name="ending_date"; value=#Int(val); immutable = true;}};
+                  case(#timeout(val)){{name="ending_timeout"; value=#Nat(val); immutable = true;}};
+            });
+        };
+        case(#token(e)){
+          candy_buffer.add(
+            {name="token"; value=token_spec_to_candy(e); immutable = true;});
+          
+        };
+        case(#dutch(e)){
+          candy_buffer.add({name="dutch"; value=#Map([
+            (#Text("time_unit"),switch(e.time_unit){
+                          
+                          case(#hour(val)){#Text("hour")};
+                          case(#minute(val)){#Text("minute")};
+                          case(#day(val)){#Text("day")};
+            }),
+            (#Text("time_value"),switch(e.time_unit){
+                          
+                          case(#hour(val)){#Nat(val)};
+                          case(#minute(val)){#Nat(val)};
+                          case(#day(val)){#Nat(val)};
+            }),
+            (#Text("decay_type"),switch(e.decay_type){
+                          case(#flat(val)){#Text("flat")};
+                          case(#percent(val)){#Text("percent")};
+            }),
+            (#Text("decay_value"),switch(e.decay_type){
+                          case(#flat(val)){#Nat(val)};
+                          case(#percent(val)){#Float(val)};
+            }),
+          
+          ]); immutable = true;});
+        };
+        case(#kyc(e)){
+          candy_buffer.add(
+            {name="kyc"; value=#Principal(e); immutable = true;});
+        };
+        case(#nifty_settlement(e)){
+          candy_buffer.add({name="nifty_settlement"; value=#Map([
+            (#Text("duration"),switch(e.duration){
+                          case(?val){#Int(val)};
+                          case(null){#Option(null)};
+            }),
+            (#Text("expiration"),switch(e.expiration){
+                          case(?val){#Int(val)};
+                          case(null){#Option(null)};
+            }),
+            (#Text("fixed"),#Bool(e.fixed)),
+            (#Text("lenderOffer"),#Bool(e.lenderOffer)),
+            (#Text("interestRatePerSecond"),#Float(e.interestRatePerSecond))
+          
+          ]); immutable = true;});
+        };
+      };
+
+    };
+
+    #Class(Buffer.toArray(candy_buffer));
+    
+  };
+
+  /**
+  * Converts an ask configuration to a CandyShared.
+  * @param {Types.AskConfigShared} val - The ask configuration to convert.
+  * @returns {CandyTypes.CandyShared} The converted CandyShared.
+  */
+  public func ask_config_shared_to_candy(val : MigrationTypes.Current.AskConfigShared) : CandyTypes.CandyShared{
+
+    let candy_buffer = Buffer.Buffer<CandyTypes.PropertyShared>(1);
+
+    let items : [MigrationTypes.Current.AskFeature] = switch(val){
+      case(?val) val;
+      case(null) [];
+    };
+
+    for(thisItem in items.vals()){
+      switch(thisItem){
+        case(#atomic){
+          candy_buffer.add(
+            {name="atomic"; value=#Bool(true); immutable = true;});
+        };
+        case(#buy_now(e)){
+          candy_buffer.add(
+            {name="buy_now"; value=#Nat(e); immutable = true;});
+        };
+        case(#wait_for_quiet(e)){
+          candy_buffer.add({name="wait_for_quiet"; value=#Class([
+                    
+                    {name="extention"; value=#Nat64(e.extention); immutable = true;},
+                    {name="fade"; value=#Float(e.fade); immutable = true;},
+                    {name="max"; value=#Nat(e.max); immutable = true;},
+                  ]); immutable = true;});
+        };
+        case(#allow_list(e)){
+            candy_buffer.add({name="allow_list"; value=#Array(Array.map<Principal, CandyTypes.CandyShared>(e, func(x:Principal){#Principal(x)})); immutable = true;});
+        };
+        case(#notify(e)){
+          candy_buffer.add({name="notify"; value=#Array(Array.map<Principal, CandyTypes.CandyShared>(e, func(x:Principal){#Principal(x)})); immutable = true;});
+        };
+        case(#reserve(e)){
+          candy_buffer.add(
+            {name="reserve"; value=#Nat(e); immutable = true;});
+        };
+        case(#start_date(e)){
+          candy_buffer.add(
+            {name="start_date"; value=#Int(e); immutable = true;});
+        };
+        case(#start_price(e)){
+          candy_buffer.add(
+            {name="start_price"; value=#Nat(e); immutable = true;});
+        };
+        case(#min_increase(e)){
+         candy_buffer.add(
+            
+            switch(e){
+                  case(#percentage(val)){{name="min_increase_percent"; value=#Float(val); immutable = true;}};
+                  case(#amount(val)){{name="min_increase_amount"; value=#Nat(val); immutable = true;}};
+            });
+        };
+        case(#ending(e)){
+          candy_buffer.add(
+            switch(e){
+                  case(#date(val)){{name="ending_date"; value=#Int(val); immutable = true;}};
+                  case(#timeout(val)){{name="ending_timeout"; value=#Nat(val); immutable = true;}};
+            });
+        };
+        case(#token(e)){
+          candy_buffer.add(
+            {name="token"; value=token_spec_to_candy(e); immutable = true;});
+          
+        };
+        case(#dutch(e)){
+          candy_buffer.add({name="dutch"; value=#Map([
+            (#Text("time_unit"),switch(e.time_unit){
+                          
+                          case(#hour(val)){#Text("hour")};
+                          case(#minute(val)){#Text("minute")};
+                          case(#day(val)){#Text("day")};
+            }),
+            (#Text("time_value"),switch(e.time_unit){
+                          
+                          case(#hour(val)){#Nat(val)};
+                          case(#minute(val)){#Nat(val)};
+                          case(#day(val)){#Nat(val)};
+            }),
+            (#Text("decay_type"),switch(e.decay_type){
+                          case(#flat(val)){#Text("flat")};
+                          case(#percent(val)){#Text("percent")};
+            }),
+            (#Text("decay_value"),switch(e.decay_type){
+                          case(#flat(val)){#Nat(val)};
+                          case(#percent(val)){#Float(val)};
+            }),
+          
+          ]); immutable = true;});
+        };
+        case(#kyc(e)){
+          candy_buffer.add(
+            {name="kyc"; value=#Principal(e); immutable = true;});
+        };
+        case(#nifty_settlement(e)){
+          candy_buffer.add({name="nifty_settlement"; value=#Map([
+            (#Text("duration"),switch(e.duration){
+                          case(?val){#Int(val)};
+                          case(null){#Option(null)};
+            }),
+            (#Text("expiration"),switch(e.expiration){
+                          case(?val){#Int(val)};
+                          case(null){#Option(null)};
+            }),
+            (#Text("fixed"),#Bool(e.fixed)),
+            (#Text("lenderOffer"),#Bool(e.lenderOffer)),
+            (#Text("interestRatePerSecond"),#Float(e.interestRatePerSecond))
+          
+          ]); immutable = true;});
+        };
+      };
+
+    };
+
+    #Class(Buffer.toArray(candy_buffer));
     
   };
 
@@ -977,7 +1235,7 @@ module {
                 for(this_item in item.vals()){
                   //D.print("processing an item");
                   //D.print(debug_show(this_item));
-                  let clean = (clean_node(this_item, owner, caller));
+                  let clean = (clean_node(metadata, this_item, owner, caller));
                   //D.print(debug_show(clean));
                   switch(clean){
                     case(#Option(null)){
@@ -1022,7 +1280,7 @@ module {
   * @param {Principal} caller - the principal making the request
   * @returns {CandyTypes.CandyShared} the cleaned node
   */
-  public func clean_node(a_class : CandyTypes.CandyShared, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyShared{
+  public func clean_node(root_class: CandyTypes.CandyShared, a_class : CandyTypes.CandyShared, owner : ?Types.Account, caller: Principal) : CandyTypes.CandyShared{
     switch(a_class){
       case(#Class(item)){
         let app_node = Properties.getClassPropertyShared(a_class, Types.metadata.__apps_app_id);
@@ -1039,7 +1297,7 @@ module {
                 if(read_detail == "public"){
                   //D.print("cleaning a public node");
                   //D.print(debug_show(data_node.value));
-                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                  let cleaned_node = clean_node(root_class, data_node.value, owner, caller);
                   switch(cleaned_node){
                     case(#Option(null)){
                       //D.print("recieved a cleaned node that was empty");
@@ -1073,14 +1331,17 @@ module {
                       };
                     };
                   };
-                } else if (read_detail == "owner"){
+                } else if (read_detail == "nft_owner"){
                   switch(owner){
                     case(null){return #Option(null)};
                     case(?owner){
-                      if(Types.account_eq(owner,#principal(caller))){
+                      if(switch(is_nft_owner(root_class, #principal(caller))){
+                        case(#ok(result)) result;
+                        case(#err(err)) false;
+                      }){
                         //D.print("cleaning an owner node");
                         //D.print(debug_show(data_node.value));
-                        let cleaned_node = clean_node(data_node.value, ?owner, caller);
+                        let cleaned_node = clean_node(root_class, data_node.value, ?owner, caller);
                         switch(cleaned_node){
                           case(#Option(null)){
                             //D.print("recieved a cleaned node that was empty");
@@ -1136,7 +1397,7 @@ module {
                                 if(caller == Conversions.candySharedToPrincipal(this_principal)){
                                   //D.print("cleaning an allow node");
                                   //D.print(debug_show(data_node.value));
-                                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                                  let cleaned_node = clean_node(root_class, data_node.value, owner, caller);
                                   switch(cleaned_node){
                                     case(#Option(null)){
                                       //D.print("recieved a cleaned node that was empty");
@@ -1215,11 +1476,14 @@ module {
                   //D.print("cleaning a public node");
                   return a_class;
                   
-                } else if (read_detail == "owner"){
+                } else if (read_detail == "nft_owner"){
                   switch(owner){
                     case(null){return #Option(null)};
                     case(?owner){
-                      if(Types.account_eq(owner,#principal(caller))){
+                      if(switch(is_nft_owner(root_class, #principal(caller))){
+                        case(#ok(result)) result;
+                        case(#err(err)) false;
+                      }){
                         //D.print("cleaning an owner node");
                         return a_class;
                       } else {
@@ -1285,7 +1549,7 @@ module {
                 if(read_detail == "public"){
                   //D.print("cleaning a public node");
                   //D.print(debug_show(data_node.value));
-                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                  let cleaned_node = clean_node(root_class, data_node.value, owner, caller);
                   switch(cleaned_node){
                     case(#Option(null)){
                       //D.print("recieved a cleaned node that was empty");
@@ -1333,7 +1597,7 @@ module {
                                 if(caller == Conversions.candySharedToPrincipal(this_principal)){
                                   //D.print("cleaning an allow node");
                                   //D.print(debug_show(data_node.value));
-                                  let cleaned_node = clean_node(data_node.value, owner, caller);
+                                  let cleaned_node = clean_node(root_class, data_node.value, owner, caller);
                                   switch(cleaned_node){
                                     case(#Option(null)){
                                       //D.print("recieved a cleaned node that was empty");
@@ -1401,7 +1665,7 @@ module {
             let collection = Buffer.Buffer<CandyTypes.PropertyShared>(item.size());
             //D.print("processing" # debug_show(item.size()));
             for(this_item in item.vals()){
-              let cleaned_node = clean_node(this_item.value, owner, caller);
+              let cleaned_node = clean_node(root_class, this_item.value, owner, caller);
               switch(cleaned_node){
                 case(#Option(null)){
                   //D.print("skipping " # this_item.name # " because empty");
@@ -1482,9 +1746,9 @@ module {
   /**
   * Adds a transaction record to the ledger
   * @param {Types.State} state - the current state of the canister
-  * @param {Types.TransactionRecord} rec - the transaction record to add
+  * @param {MigrationTypes.Current.TransactionRecord} rec - the transaction record to add
   * @param {Principal} caller - the caller of the function
-  * @returns {Result.Result<Types.TransactionRecord, Types.OrigynError>} - the result of the transaction record addition attempt
+  * @returns {Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError>} - the result of the transaction record addition attempt
   */
   public func add_transaction_record(state : Types.State, rec: MigrationTypes.Current.TransactionRecord, caller: Principal) : Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError>{
     //nyi: add indexes
@@ -1528,9 +1792,9 @@ module {
   /**
   * Announces a transaction
   * @param {Types.State} state - the current state of the canister
-  * @param {Types.TransactionRecord} rec - the transaction record being announced
+  * @param {MigrationTypes.Current.TransactionRecord} rec - the transaction record being announced
   * @param {Principal} caller - the caller of the function
-  * @param {Types.TransactionRecord} newTrx - the newly added transaction record
+  * @param {MigrationTypes.Current.TransactionRecord} newTrx - the newly added transaction record
   * @returns {void}
   */
   public func announceTransaction(state : Types.State, rec : MigrationTypes.Current.TransactionRecord, caller : Principal, newTrx : MigrationTypes.Current.TransactionRecord) : () {
@@ -1917,7 +2181,7 @@ module {
 
   /**
   * Converts a ledger of transaction records to an array of CandyShareds
-  * @param {SB.StableBuffer<Types.TransactionRecord>} ledger - The ledger to convert
+  * @param {SB.StableBuffer<MigrationTypes.Current.TransactionRecord>} ledger - The ledger to convert
   * @param {Nat} page - The page number of results to return
   * @param {Nat} size - The number of results to return per page
   * @returns {[CandyTypes.CandyShared]} - An array of CandyShareds
@@ -2009,7 +2273,7 @@ module {
             case(#sale_opened(val)){
               #Class([
                   {name="type"; value=#Text("sale_opened"); immutable = true;},
-                  {name="pricing"; value=pricing_to_candy(val.pricing); immutable = true;},
+                  {name="pricing"; value=pricing_shared_to_candy(val.pricing); immutable = true;},
 
                   { name="sale_id"; value=#Text(val.sale_id);immutable = true;},
                   

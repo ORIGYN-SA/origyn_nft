@@ -2,6 +2,7 @@ import MigrationTypes "./types";
 import v0_1_0 "./v000_001_000";
 import v0_1_3 "./v000_001_003";
 import v0_1_4 "./v000_001_004";
+import v0_1_5 "./v000_001_005";
 import D "mo:base/Debug";
 
 module {
@@ -9,6 +10,7 @@ module {
     v0_1_0.upgrade,
     v0_1_3.upgrade,
     v0_1_4.upgrade,
+    v0_1_5.upgrade,
     // do not forget to add your new migration upgrade method here
   ];
 
@@ -16,6 +18,7 @@ module {
     v0_1_0.downgrade,
     v0_1_3.downgrade,
     v0_1_4.downgrade,
+    v0_1_5.downgrade,
     // do not forget to add your new migration downgrade method here
   ];
 
@@ -25,6 +28,7 @@ module {
       case (#v0_1_0(_)) 1;
       case (#v0_1_3(_)) 2;
       case (#v0_1_4(_)) 3;
+      case (#v0_1_5(_)) 4;
       // do not forget to add your new migration id here
       // should be increased by 1 as it will be later used as an index to get upgrade/downgrade methods
     };

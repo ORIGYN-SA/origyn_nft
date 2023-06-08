@@ -35,6 +35,11 @@ Token-id - Each token in your collection has a unique text-based namespace id.
 
 Library-id - Each library item in your token's asset library has a unique text-based namespace id.
 
+v0.1.5
+
+* Network and collection owner can now add a data dapp to an NFT.
+* Breaking Change:  read permission for nft owner is now nft_origyn
+* Shared wallets can now read nft_owner data.
 
 v0.1.4
 

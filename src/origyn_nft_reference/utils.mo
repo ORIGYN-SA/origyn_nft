@@ -48,7 +48,23 @@ module {
     let Properties = MigrationTypes.Current.Properties;
     let Workspace = MigrationTypes.Current.Workspace;
 
+    
+    public let NANOS = 1_000_000_000;
+    public let SECOND_LENGTH = 60_000_000_000;
+    public let MINUTE_LENGTH = 3_600_000_000_000;
+    public let HOUR_LENGTH = 216_000_000_000_000;
+    public let DAY_LENGTH = 5_184_000_000_000_000;
+    public let YEAR_LENGTH = 1_892_160_000_000_000_000;
 
+    public func OGY() : MigrationTypes.Current.TokenSpec {#ic({
+        canister = Principal.fromText("jwcfb-hyaaa-aaaaj-aac4q-cai");
+      fee = ?200_000;
+      symbol = "OGY";
+      decimals = 8;
+      id = null;
+      standard =#ICRC1; //use #Ledger instead
+      });
+    };
 
     /**
     * Converts a Nat value to a token ID Text value.
@@ -133,9 +149,9 @@ module {
             case(#auction(state)){
                 #ok(state);
             };
-            case(_){
+            /* case(_){
                 return #err(Types.errors(null, #nyi, "get_auction_state_from_status - not an auction type " # current_sale.sale_id, null));
-            };
+            }; */
         };
     };
 
