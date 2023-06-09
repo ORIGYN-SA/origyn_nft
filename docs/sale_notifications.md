@@ -10,6 +10,7 @@ The ORIGYN NFT has a market based notification system. Those interested in recei
 
 A user listing an NFT for sale can specify a list of canisters to notify of their new sale.  This is done using the #notify variant in an ask request. An example request is below:
 
+
 ```
 market_transfer_nft_origyn(
   #ask({
