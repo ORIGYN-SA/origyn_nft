@@ -30,7 +30,11 @@ module {
           start_date = x.start_date;
           ending = switch(x.ending){
               case(#date(val)) #date(val);
-              case(#waitForQuiet(val)) #wait_for_quiet(val);
+              case(#waitForQuiet(val)) #wait_for_quiet({
+                  val with
+                  extension = val.extention;
+                }
+              );
           };
           min_increase = x.min_increase;
           allow_list = x.allow_list;
@@ -76,7 +80,10 @@ module {
             start_date = e.start_date;
             ending = switch(e.ending){
                 case(#date(val)) #date(val);
-                case(#waitForQuiet(val)) #wait_for_quiet(val);
+                case(#waitForQuiet(val)) #wait_for_quiet({
+                  val with 
+                  extension = val.extention
+            });
             };
             min_increase = e.min_increase;
             allow_list = e.allow_list;
@@ -140,7 +147,10 @@ module {
             start_date = e.start_date;
             ending = switch(e.ending){
                 case(#date(val)) #date(val);
-                case(#waitForQuiet(val)) #wait_for_quiet(val);
+                case(#waitForQuiet(val)) #wait_for_quiet({
+                  val with
+                  extension = val.extention;
+                });
             };
             min_increase = e.min_increase;
             allow_list = e.allow_list;
@@ -168,7 +178,6 @@ module {
    };
 
    let upgradeSaleStatus = func(key: Text, x : v0_1_4.SaleStatus) : ?v0_1_5.SaleStatus{
-
       let z : v0_1_5.AuctionState = switch(x.sale_type){
         case(#auction(val)){
           let config = upgradeAuctionConfig(val.config);
@@ -187,7 +196,7 @@ module {
             var participants = val.participants;
             var status = val.status;
             var winner = val.winner;
-            notify_queue = ?(Map_8_1_0.new<Principal, ?v0_1_5.AskSubscriptionInfo>(MapUtils_8_1_0.phash))
+            notify_queue = ?(Map_8_1_0.new<Principal, ?MigrationTypes.Current.SubscriptionID>(MapUtils_8_1_0.phash))
           };
         };
         case(_){
@@ -309,8 +318,7 @@ module {
       var kyc_cache = state.kyc_cache;
       var droute = state.droute;
       var use_stableBTree = state.use_stableBTree;
-     
-
+      var pending_sale_notifications = Set_8_1_0.new<Text>(MapUtils_8_1_0.thash);
     }));
 };
   

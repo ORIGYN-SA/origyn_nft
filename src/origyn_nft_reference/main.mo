@@ -209,6 +209,8 @@ shared (deployer) actor class Nft_Canister() = this {
             droute_client = state_current.droute;
             canistergeekLogger = canistergeekLogger;
             kyc_client = kyc_client;
+            handle_notify = handle_notify;
+            var notify_timer = null;
         };
     };
 
@@ -221,6 +223,12 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#test) { return __test_time };
         };
 
+    };
+
+    func handle_notify(): async () {
+      let state = get_state();
+      
+      await Market.handle_notify(get_state());
     };
 
     // set the `data_havester`
@@ -2086,7 +2094,7 @@ shared (deployer) actor class Nft_Canister() = this {
         let final_object = Metadata.get_clean_metadata(metadata, caller);
 
         // Identify a current sale
-        let current_sale : ?Types.SaleStatusStable = switch (Metadata.get_current_sale_id(metadata)) {
+        let current_sale : ?Types.SaleStatusShared = switch (Metadata.get_current_sale_id(metadata)) {
             case (#Option(null)) { null };
             case (#Text(val)) {
                 do ? {
@@ -2914,12 +2922,12 @@ shared (deployer) actor class Nft_Canister() = this {
         // *** NFT Sales ***
         var nft_sales : Types.StableNftSales = [];
         let nft_sales_size = Map.size(state.state.nft_sales);
-        let nft_sales_buffer = Buffer.Buffer<(Text, Types.SaleStatusStable)>(nft_sales_size);
+        let nft_sales_buffer = Buffer.Buffer<(Text, Types.SaleStatusShared)>(nft_sales_size);
         if (targetStart < globalTracker + nft_sales_size and targetEnd > globalTracker) {
             for ((key, val) in Map.entries(state.state.nft_sales)) {
                 if (globalTracker >= targetStart and targetEnd > globalTracker) {
                     let stableSale = Types.SalesStatus_stabalize_for_xfer(val);
-                    // nft_sales := Array.append<(Text, Types.SaleStatusStable)>(nft_sales, [(key,stableSale)]);
+                    // nft_sales := Array.append<(Text, Types.SaleStatusShared)>(nft_sales, [(key,stableSale)]);
                     nft_sales_buffer.add((key, stableSale));
                 };
                 globalTracker += 1;

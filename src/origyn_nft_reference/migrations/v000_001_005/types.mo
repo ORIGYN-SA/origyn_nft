@@ -26,6 +26,7 @@ import Droute "mo:droute_client/Droute";
 import KYCTypes "mo:icrc17_kyc/types";
 import KYCClass "mo:icrc17_kyc";
 import Map_8_1_0 "mo:map_8_1_0/Map";
+import Set_8_1_0 "mo:map_8_1_0/Set";
 import MapUtils_8_1_0 "mo:map_8_1_0/utils";
 
 // please do not import any types from your project outside migrations folder here
@@ -225,7 +226,7 @@ module {
                 #date: Int;
                 #wait_for_quiet: {
                     date: Int;
-                    extention: Nat64;
+                    extension: Nat64;
                     fade: Float;
                     max: Nat
                 };
@@ -258,7 +259,7 @@ module {
       #atomic;
       #buy_now: Nat;
       #wait_for_quiet: {
-          extention: Nat64;
+          extension: Nat64;
           fade: Float;
           max: Nat
       };
@@ -511,9 +512,11 @@ module {
         #closed;
         #not_started;
     };
-    notify_queue: ?Map_8_1_0.Map<Principal, ?AskSubscriptionInfo>;
+    notify_queue: ?Map_8_1_0.Map<Principal, ?SubscriptionID>;
     var winner: ?Account;
   };
+
+  public type SubscriptionID = Nat;
 
   public type AskSubscriptionInfo = {
      filter: ?{
@@ -852,6 +855,7 @@ module {
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
+    var pending_sale_notifications : Set_8_1_0.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;

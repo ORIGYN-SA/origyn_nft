@@ -157,10 +157,10 @@ module {
 
     /**
     * Returns the auction state from the provided stable sale status.
-    * @param {Types.SaleStatusStable} current_sale - The stable sale status to use.
-    * @returns {Result.Result<Types.AuctionStateStable, Types.OrigynError>} The resulting auction state.
+    * @param {Types.SaleStatusShared} current_sale - The stable sale status to use.
+    * @returns {Result.Result<Types.AuctionStateShared, Types.OrigynError>} The resulting auction state.
     */
-    public func get_auction_state_from_statusStable(current_sale : Types.SaleStatusStable ) : Result.Result<Types.AuctionStateStable, Types.OrigynError> {
+    public func get_auction_state_from_statusStable(current_sale : Types.SaleStatusShared ) : Result.Result<Types.AuctionStateShared, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
             case(#auction(state)){

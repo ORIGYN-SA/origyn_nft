@@ -629,7 +629,7 @@ module {
                   case(#date(val)){#Int(val);};
                   case(#wait_for_quiet(val)){#Class([
                     {name="date"; value=#Int(val.date); immutable = true;},
-                    {name="extention"; value=#Nat64(val.extention); immutable = true;},
+                    {name="extension"; value=#Nat64(val.extension); immutable = true;},
                     {name="fade"; value=#Float(val.fade); immutable = true;},
                     {name="max"; value=#Nat(val.max); immutable = true;},
                   ])};
@@ -675,7 +675,7 @@ module {
         case(#wait_for_quiet(e)){
           candy_buffer.add({name="wait_for_quiet"; value=#Class([
                     
-                    {name="extention"; value=#Nat64(e.extention); immutable = true;},
+                    {name="extension"; value=#Nat64(e.extension); immutable = true;},
                     {name="fade"; value=#Float(e.fade); immutable = true;},
                     {name="max"; value=#Nat(e.max); immutable = true;},
                   ]); immutable = true;});
@@ -798,7 +798,7 @@ module {
         case(#wait_for_quiet(e)){
           candy_buffer.add({name="wait_for_quiet"; value=#Class([
                     
-                    {name="extention"; value=#Nat64(e.extention); immutable = true;},
+                    {name="extension"; value=#Nat64(e.extension); immutable = true;},
                     {name="fade"; value=#Float(e.fade); immutable = true;},
                     {name="max"; value=#Nat(e.max); immutable = true;},
                   ]); immutable = true;});
@@ -941,10 +941,34 @@ module {
   * @param {CandyTypes.CandyShared} metadata - The metadata of the NFT.
   * @returns {Types.BearerResult} The owner of the NFT.
   */
-  public func get_nft_owner(metadata: CandyTypes.CandyShared) : Types.BearerResult{
+  public func get_nft_owner(metadata: CandyTypes.CandyShared) : Types.BearerResult {
     switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
       case(null){
         return #err(Types.errors(null,  #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
+      };
+      case(?val){
+         return candy_to_account(val.value)
+      };
+    };
+  };
+
+  //returns the owner of an NFT in the owner field
+  //this is not the only entity that has rights.  use is_nft_owner to determine ownership rights
+  /**
+  * Gets the owner of an NFT in the owner field.
+  * @param {Text} token_id - The id of the NFT.
+  * @returns {Types.BearerResult} The owner of the NFT.
+  */
+  public func get_nft_owner_by_id(state: Types.State, token_id: Text) : Types.BearerResult {
+
+    let metadata = switch(get_metadata_for_token(state,token_id, state.canister(), ?state.canister(), state.state.collection_data.owner)){
+       case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "get_nft_owner_by_id " # err.flag_point, ?state.canister()));
+       case(#ok(val)) val;
+    };
+
+    switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
+      case(null){
+        return #err(Types.errors(null,  #owner_not_found, "get_nft_owner_by_id - cannot find owner id in metadata", null));
       };
       case(?val){
          return candy_to_account(val.value)

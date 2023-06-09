@@ -8,6 +8,7 @@ import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Random "mo:base/Random";
 import Time "mo:base/Time";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
@@ -95,7 +96,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
               S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), 
               S.test("testAuction_v2", switch(await testAuction_v2()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-              S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+               S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -3768,7 +3769,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     #buy_now(500 * 10 ** 8),
                     #start_price(1 * 10 ** 8),
                     #ending(#date(get_time() + DAY_LENGTH)),
-                    #min_increase(#amount(10*10**8))
+                    #min_increase(#amount(10*10**8)),
+                    #notify([Principal.fromActor(a_wallet),
+                    Principal.fromActor(b_wallet)])
                 ]);
         //start an auction by owner
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({
@@ -3803,6 +3806,17 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let active_sale_info_1 = await canister.sale_info_nft_origyn(#active(null));
 
         D.print("active_sale_info_1" # debug_show(active_sale_info_1));
+
+        //force a round?
+
+        let aRandom = await TestWalletDef.test_wallet();
+
+        let aRandom2 = await TestWalletDef.test_wallet();
+
+        //lets make sure that we were notified
+        let notifications = await a_wallet.get_notifications();
+
+        D.print("found notifications" # debug_show(notifications));
 
         D.print("starting again");
         //try starting again//should fail MKT0018
@@ -5102,6 +5116,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 "some odd error in sale info" # debug_show(active_sale_info_3);
               }
             }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("a was notified of sale", notifications.size(), M.equals<Nat>(T.nat(1))),
          ]);
 
          D.print("suite running");

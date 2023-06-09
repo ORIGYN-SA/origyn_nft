@@ -42,7 +42,8 @@ v0.1.5
 * Shared wallets can now read nft_owner data.
 * Default minimum increase for asks set to 5%.
 * Default end date for ask is one minute after start.
-* Default start date for ask is the current time
+* Default start date for ask is the current time.
+* Default token is OGY.
 * Min increase by percentage activated.
 
 v0.1.4

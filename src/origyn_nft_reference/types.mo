@@ -163,6 +163,17 @@ module {
         canister_status : { canister_id : canister_id } -> async canister_status;
     };
 
+    public type Subscriber = actor {
+        notify_sale_nft_origyn : shared (SubscriberNotification) -> ();
+    };
+
+    public type SubscriberNotification = {
+          escrow_info : SubAccountInfo;
+          sale : SaleStatusShared;
+          seller : Account;
+          collection: Principal;
+        };
+
     public type StageChunkArg = {
         token_id : Text;
         library_id : Text;
@@ -316,7 +327,6 @@ module {
 
     public type PricingConfigShared = {
       #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
-      //below have not been signficantly desinged or vetted
       #auction: AuctionConfig; //depricated - use ask
       #ask: AskConfigShared;
       #extensible: CandyTypes.CandyShared;
@@ -359,7 +369,7 @@ module {
                 #date: Int;
                 #wait_for_quiet: {
                     date: Int;
-                    extention: Nat64;
+                    extension: Nat64;
                     fade: Float;
                     max: Nat
                 };
@@ -382,12 +392,12 @@ module {
     };
 
     public type NFTInfoStable = {
-        current_sale : ?SaleStatusStable;
+        current_sale : ?SaleStatusShared;
         metadata : CandyTypes.CandyShared;
     };
 
-    public type AuctionStateStable = {
-        config : PricingConfig;
+    public type AuctionStateShared = {
+        config : PricingConfigShared;
         current_bid_amount : Nat;
         current_broker_id : ?Principal;
         end_date : Int;
@@ -435,7 +445,7 @@ module {
 
 
 
-    public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateStable {
+    public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateShared {
       {
         config = switch(val.config){
           case(#instant) #instant;
@@ -467,19 +477,17 @@ module {
       };
     };
 
-    public type SaleStatusStable = {
+    public type SaleStatusShared = {
         sale_id : Text; //sha256?;
         original_broker_id : ?Principal;
         broker_id : ?Principal;
         token_id : Text;
         sale_type : {
-            #auction : AuctionStateStable;
-            #dutch : DutchStateStable;
-            #nifty : NiftyStateStable;
+            #auction : AuctionStateShared;
         };
     };
 
-    public func SalesStatus_stabalize_for_xfer(item : SaleStatus) : SaleStatusStable {
+    public func SalesStatus_stabalize_for_xfer(item : SaleStatus) : SaleStatusShared {
         {
             sale_id = item.sale_id;
             token_id = item.token_id;
@@ -514,10 +522,10 @@ module {
     };
     */
 
-    public type State = State_v0_1_4;
+    public type State = State_v0_1_5;
 
-    public type State_v0_1_4 = {
-        state : GatewayState_v0_1_4;
+    public type State_v0_1_5 = {
+        state : GatewayState_v0_1_5;
         canister : () -> Principal;
         get_time : () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
@@ -525,8 +533,9 @@ module {
         droute_client : DROUTE.Droute;
         kyc_client: KYC.kyc;
         canistergeekLogger : Canistergeek.Logger;
+        handle_notify : () -> async();
+        var notify_timer : ?Nat;
         //btreemap : Stable_Memory;
-
     };
 
     public type BucketDat = {
@@ -594,7 +603,7 @@ module {
     public type StableSalesBalances = [(Account, Account, Text, EscrowRecord)];
     public type StableOffers = [(Account, Account, Int)];
     public type StableNftLedger = [(Text, TransactionRecord)];
-    public type StableNftSales = [(Text, SaleStatusStable)];
+    public type StableNftSales = [(Text, SaleStatusShared)];
 
     public type NFTBackupChunk = {
         canister : Principal;
@@ -605,7 +614,7 @@ module {
         sales_balances : StableSalesBalances;
         offers : StableOffers;
         nft_ledgers : StableNftLedger;
-        nft_sales : [(Text, SaleStatusStable)];
+        nft_sales : [(Text, SaleStatusShared)];
     };
 
     public type StateSize = {
@@ -618,18 +627,18 @@ module {
         nft_sales : Nat;
     };
 
-    public type GatewayState = GatewayState_v0_1_4;
+    public type GatewayState = GatewayState_v0_1_5;
 
     
 
-    public type StorageState = StorageState_v_0_1_4;
+    public type StorageState = StorageState_v_0_1_5;
 
-    public type StorageState_v_0_1_4 = {
+    public type StorageState_v_0_1_5 = {
         var state : StorageMigrationTypes.Current.State;
         canister : () -> Principal;
         get_time : () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
-        refresh_state : () -> StorageState_v_0_1_4;
+        refresh_state : () -> StorageState_v_0_1_5;
         btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
         use_stable_storage : Bool;
     };
@@ -777,16 +786,16 @@ module {
 
     public type SaleInfoResponse = {
         #active : {
-            records : [(Text, ?SaleStatusStable)];
+            records : [(Text, ?SaleStatusShared)];
             eof : Bool;
             count : Nat;
         };
         #history : {
-            records : [?SaleStatusStable];
+            records : [?SaleStatusShared];
             eof : Bool;
             count : Nat;
         };
-        #status : ?SaleStatusStable;
+        #status : ?SaleStatusShared;
         #deposit_info : SubAccountInfo;
         #escrow_info : SubAccountInfo;
     };
@@ -1984,6 +1993,6 @@ module {
 
     public type AuctionState = MigrationTypes.Current.AuctionState;
     public type SaleStatus = MigrationTypes.Current.SaleStatus;
-    public type GatewayState_v0_1_4 = MigrationTypes.Current.State;
+    public type GatewayState_v0_1_5 = MigrationTypes.Current.State;
 
 };

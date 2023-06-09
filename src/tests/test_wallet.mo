@@ -1125,9 +1125,14 @@ shared (deployer) actor class test_wallet() = this {
        };
     };
 
-    
+    let notification_buffer = Buffer.Buffer<Types.SubscriberNotification>(1);
 
-    
-    
-    
+    public shared(msg) func notify_sale_nft_origyn(request : Types.SubscriberNotification) : (){
+      D.print("was notified!" # debug_show(request));
+      notification_buffer.add(request);
+    };
+
+    public shared(msg) func get_notifications() : async [Types.SubscriberNotification]{
+      Buffer.toArray<Types.SubscriberNotification>(notification_buffer);
+    };
 };

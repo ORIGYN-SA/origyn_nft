@@ -14,11 +14,13 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
 import Map_8_1_0 "mo:map_8_1_0/Map";
+import Set_8_1_0 "mo:map_8_1_0/Set";
 import MapUtil_8_1_0 "mo:map_8_1_0/Map";
 
 import Star "mo:star/star";
@@ -42,15 +44,16 @@ module {
       ensure = false;
       invoice = false;
       end_sale = true;
-      market = true;
+      market = false;
       royalties = false;
       offers = false;
-      escrow = true;
+      escrow = false;
       withdraw_escrow = false;
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      bid = true;
+      notifications = true;
+      bid = false;
       kyc = false;
   };
 
@@ -461,7 +464,7 @@ module {
       };
     };
 
-    let results = Buffer.Buffer<(Text, ?Types.SaleStatusStable)>(max - min);
+    let results = Buffer.Buffer<(Text, ?Types.SaleStatusShared)>(max - min);
 
     var foundTotal : Nat = 0;
     var eof : Bool = false;
@@ -610,7 +613,7 @@ module {
           };
         };
 
-        let results = Buffer.Buffer<?Types.SaleStatusStable>(max - min);
+        let results = Buffer.Buffer<?Types.SaleStatusShared>(max - min);
 
         label search for(thisSale in Map.entries(state.state.nft_sales)){
           if(tracker > max){break search;};
@@ -2267,6 +2270,7 @@ module {
           start_price: Nat;
           end_date: Int;
           allow_list : ?Map.Map<Principal, Bool>;
+          notify : [Principal];
         } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
             
@@ -2329,6 +2333,7 @@ module {
                   case(#wait_for_quiet(details)){details.date : Int};
                 };
               allow_list = allow_list;
+              notify = [];
             }
           };
           case(#ask(null)){
@@ -2340,6 +2345,7 @@ module {
               start_price : Nat = 1;
               end_date : Int  = state.get_time() + NFTUtils.MINUTE_LENGTH;
               allow_list = null;
+              notify = [];
             }
           };
           case(#ask(?val)){
@@ -2399,6 +2405,15 @@ module {
               };
             };
 
+            let notify : [Principal]= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #notify)){
+              case(?#notify(val)){
+                val;
+              };
+              case(_){
+                [];
+              };
+            };
+
             switch(buy_now, reserve){
               case(?buy_now, ?reserve){
                 if(buy_now < reserve) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
@@ -2429,6 +2444,7 @@ module {
               } else {
                 ?allow_list;
               };
+              notify = notify;
             }
           };
           
@@ -2496,9 +2512,14 @@ module {
             var min_next_bid = start_price;
             var current_escrow = null;
             var wait_for_quiet_count = ?0;
+            seller = owner;
             token = token;
-            notify_queue = null;
-            var status = if(state.get_time() >=         start_date){
+            notify_queue = if(notify.size() ==0){
+              null;
+            } else {
+              ?Map_8_1_0.fromIter<Principal, ?MigrationTypes.Current.SubscriptionID>(Array.map<Principal, (Principal, ?MigrationTypes.Current.SubscriptionID)>(notify, func(x : Principal){(x,null)}).vals(), MapUtil_8_1_0.phash);
+            };
+            var status = if(state.get_time() >= start_date){
                 #open;
             } else {
                 #not_started;
@@ -2535,7 +2556,118 @@ module {
         };
         SB.add(this_ledger, txn);
 
+        //set timer for notify
+        if(notify.size() > 0){
+          //handle notify
+          Set_8_1_0.add(state.state.pending_sale_notifications, MapUtil_8_1_0.thash, sale_id);
+          if(state.notify_timer == null){
+            state.notify_timer := ?Timer.setTimer(#nanoseconds(1), state.handle_notify );
+          }
+        };
+
         return #ok(txn);
+    };
+
+    public func handle_notify(state: StateAccess) : async (){ 
+
+      debug if(debug_channel.notifications) D.print("in handle_notify");
+
+      //let this be scheduled again;
+      state.notify_timer := null;
+
+      label search for(thisItem in Set_8_1_0.keys(state.state.pending_sale_notifications)){
+        let {notify; sale; notify_queue} = switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
+          case(null){
+            //should be unreachable, but lets remove it from the map anyway;
+            ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+            continue search;
+          };
+          case(?sale){
+            let (#auction(sale_type)) = sale.sale_type else continue search;
+            //make sure the sale is still open
+            if(sale_type.status == #closed){
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                  continue search;
+            };
+
+
+            let ?notify_queue = sale_type.notify_queue else{
+              //should be unreachable, but lets remove it from the map anyway;
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            } ;
+            if(Map_8_1_0.size(notify_queue) == 0){
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            };
+
+            let ?item = Map_8_1_0.peekFront(notify_queue) else{
+              //should be unreachable, but lets remove it from the map anyway;
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            };
+
+            {
+              notify =  item.0;
+              sale = sale;
+              notify_queue = notify_queue;
+            };
+          };
+        };
+
+        let #ok(sale_state) = NFTUtils.get_auction_state_from_status(sale) else{
+              //should be unreachable, but lets remove it from the map anyway;
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            };
+
+        let #ok(owner) = Metadata.get_nft_owner_by_id(state, sale.token_id) else {
+          ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+        };
+
+        let remote : Types.Subscriber = actor(Principal.toText(notify));
+        debug if(debug_channel.notifications) D.print("about to send");
+        remote.notify_sale_nft_origyn({
+          escrow_info = NFTUtils.get_escrow_account_info({
+            amount = sale_state.min_next_bid;
+            seller = owner;
+            buyer = #principal(notify);
+            token_id = sale.token_id;
+            token = sale_state.token;
+          }, state.canister());
+          sale = {sale with
+            sale_type = switch(sale.sale_type){
+              case(#auction(val)){
+                  #auction(Types.AuctionState_stabalize_for_xfer(val))
+              };
+              /* case(_){
+                  return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
+              }; */
+            };
+          };
+          seller = owner;
+          token_id = sale.token_id;
+          collection = state.canister();
+        });
+
+        //remove item
+        ignore Map_8_1_0.remove<Principal, ?MigrationTypes.Current.SubscriptionID>(notify_queue, MapUtil_8_1_0.phash, notify);
+
+        if(Map_8_1_0.size(notify_queue) == 0){
+          debug if(debug_channel.notifications) D.print("finished with this sale:" # thisItem);
+          ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+        };
+
+        continue search;
+      };
+
+      if(Set_8_1_0.size(state.state.pending_sale_notifications) > 0){
+        //set the timer to run again in 1 second;
+        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set_8_1_0.size(state.state.pending_sale_notifications)));
+        state.notify_timer := ?Timer.setTimer(#nanoseconds(1000000000), state.handle_notify );
+      };
+
     };
 
     //refreshes the offers collection
