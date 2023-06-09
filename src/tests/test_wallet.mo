@@ -4,6 +4,7 @@
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import D "mo:base/Debug";
+import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Blob "mo:base/Blob";
@@ -12,11 +13,13 @@ import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Nat64 "mo:base/Nat64";
 import Nat32 "mo:base/Nat32";
+import Buffer "mo:base/Buffer";
 import Types "../origyn_nft_reference/types";
 import SaleTypes "../origyn_sale_reference/types";
 import DFXTypes "../origyn_nft_reference/dfxtypes";
 
 import MigrationTypes "../origyn_nft_reference/migrations/types";
+import MigrationsStorage "../origyn_nft_reference/migrations_storage";
 
 shared (deployer) actor class test_wallet() = this {
 
@@ -955,12 +958,60 @@ shared (deployer) actor class test_wallet() = this {
 
     };
 
+    public shared(msg) func try_start_ask(canister: Principal, ledger: Principal, token_id: Text, allow_list : ?[Principal]) : async Types.MarketTransferResult {
+
+       let acanister : Types.Service = actor(Principal.toText(canister));
+
+       let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
+                    #reserve(100 * 10 ** 8),
+                    #token(#ic({
+                      canister = ledger;
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    })),
+                    #buy_now(500 * 10 ** 8),
+                    #start_price(1 * 10 ** 8),
+                    #ending(#date(1)),
+                    #min_increase(#amount(10*10**8))
+                ]);
+      switch(allow_list){
+        case(null){};
+        case(?allow_list){
+          option_buffer.add(#allow_list(allow_list));
+        }
+      };
+       
+       //D.print("calling set data");
+       let trystart = await acanister.market_transfer_nft_origyn({token_id = "1";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask(?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            }; 
+          } );
+
+       switch(trystart){
+         case(#ok(result)){
+            return #ok(result);
+         };
+         case(#err(theerror)){
+           return #err(theerror);
+         };
+       };
+
+    };
+
     public shared(msg) func try_bid(canister: Principal, owner: Principal, ledger: Principal, amount: Nat, token_id: Text, sale_id: Text, broker: ?Principal) : async Result.Result<Types.BidResponse, Types.OrigynError> {
 
        let acanister : Types.Service = actor(Principal.toText(canister));
+
+       D.print("in try bid");
        
        //D.print("calling set data");
-       let trystart = await acanister.sale_nft_origyn(#bid({
+       let trystart = try{await acanister.sale_nft_origyn(#bid({
             broker_id =  broker;
             sale_id = sale_id;
             escrow_receipt = {
@@ -976,6 +1027,10 @@ shared (deployer) actor class test_wallet() = this {
                         fee = ?200000;
                       });
               amount = amount}})); 
+       } catch(e){
+        D.print(Error.message(e));
+        D.trap(Error.message(e));
+       };
 
 
 

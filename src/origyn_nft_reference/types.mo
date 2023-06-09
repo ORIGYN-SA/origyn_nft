@@ -209,7 +209,7 @@ module {
     public type SalesConfig = {
         escrow_receipt : ?EscrowReceipt;
         broker_id : ?Principal;
-        pricing : PricingConfig;
+        pricing : PricingConfigShared;
     };
 
      public type ICTokenSpec = {

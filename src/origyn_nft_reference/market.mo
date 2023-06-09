@@ -41,7 +41,7 @@ module {
       verify_sale = false;
       ensure = false;
       invoice = false;
-      end_sale = false;
+      end_sale = true;
       market = true;
       royalties = false;
       offers = false;
@@ -50,7 +50,7 @@ module {
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      bid = false;
+      bid = true;
       kyc = false;
   };
 
@@ -512,17 +512,6 @@ module {
 
       switch(current_sale_state.config){
         case(#auction(config)){
-          switch(current_sale_state.config){
-            case(#auction(config)) {};
-            case(#ask(config)) {};
-            case(_){
-              //nyi: handle other sales types
-              //results.add(this_token.0, null);
-              tracker += 1;
-              continue search;
-            };
-          };
-
           if(current_sale_state.status == #open or current_sale_state.status == #not_started){
             
             if(tracker > max){}
@@ -545,7 +534,31 @@ module {
             foundTotal += 1;
           };
         };
-        
+
+        case(#ask(config)){
+          
+          if(current_sale_state.status == #open or current_sale_state.status == #not_started){
+            
+            if(tracker > max){}
+            else if( tracker >= min ){
+
+              results.add(this_token.0, ?{
+                current_sale with
+                sale_type = switch(current_sale.sale_type){
+                  case(#auction(val)){
+                    #auction(Types.AuctionState_stabalize_for_xfer(val))
+                  };
+                };
+              });
+
+              if(tracker + 1 == totalSize){
+                eof := true;
+              };
+            } else {};
+
+            foundTotal += 1;
+          };
+        };
         case(_){
             //results.add(this_token.0, null);
             tracker += 1;
@@ -614,16 +627,18 @@ module {
 
             switch(current_sale_state.config){
               case(#auction(config)){
-                switch(current_sale_state.config){
-                  case(#auction(config)) {};
-                  case(#ask(config)) {};
-                  case(_){
-                      //nyi: handle other sales types
-                      //results.add( null);
-                      tracker += 1;
-                      continue search;
+
+                results.add(?{
+                  thisSale.1 with
+                  sale_type = switch(thisSale.1.sale_type){
+                      case(#auction(val)){
+                          #auction(Types.AuctionState_stabalize_for_xfer(val))
+                      };
                   };
-                };
+                });
+              };
+              case(#ask(config)){
+               
 
                 results.add(?{
                   thisSale.1 with
@@ -635,8 +650,10 @@ module {
                 });
               };
               case(_){
-                  //nyi: implement other sales types
-                  //results.add(null);
+                  //nyi: handle other sales types
+                  //results.add( null);
+                  tracker += 1;
+                  continue search;
               };
             };
           };
@@ -693,20 +710,30 @@ module {
     //ends a sale if it is past the date or a buy it now has occured
     public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
         debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
+
         var metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
-          case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller)));
+          case(#err(err)){ return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller)));
+          };
           case(#ok(val)) val;
         };
 
+        debug if(debug_channel.end_sale) D.print("have metadata");
+
         let owner = switch(Metadata.get_nft_owner(metadata)){
-          case(#err(err))return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller)));
+          case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn " # err.flag_point, ?caller)));
           case(#ok(val))val;
         };
 
+        debug if(debug_channel.end_sale) D.print("have owner");
+
         //look for an existing sale
         let current_sale = switch(Metadata.get_current_sale_id(metadata)){
-          case(#Option(null)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
+          case(#Option(null)) {
+            debug if(debug_channel.end_sale) D.print("option null for sale id");
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
+          };
           case(#Text(val)){
+            debug if(debug_channel.end_sale) D.print("have text sale id" # val);
             switch(Map.get(state.state.nft_sales, Map.thash,val)){
               case(?status){
                 status;
@@ -714,26 +741,58 @@ module {
               case(null) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
             };
           };
-          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)));
+          case(_){
+            debug if(debug_channel.end_sale) D.print("other type");
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - could not find sale for token " # token_id, ?caller)))
+          };
         };
 
+        
         let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
           case(#ok(val)) val;
           case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "end_sale_nft_origyn - find state " # err.flag_point, ?caller)));
         };
 
-        switch(current_sale_state.config){
-          case(#auction(config)) {};
-          case(#ask(config)) {};
+
+        //debug if(debug_channel.end_sale) D.print("current sale state " # debug_show(current_sale_state));
+
+        let {buy_now_price; start_date;} = switch(current_sale_state.config){
+          case(#auction(config)){
+            {
+              buy_now_price = config.buy_now;
+              start_date = config.start_date;
+            };
+          };
+          case(#ask(config)){
+            let buy_now = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+                  case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            let start_date = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+                  case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            {buy_now_price = buy_now;
+            start_date = start_date};
+          };
           case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
         };
 
-        let current_pricing = switch(current_sale_state.config){
-          case(#auction(config)){config;};
-          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
-        };
-
-        let buy_now = switch(current_pricing.buy_now){
+        let buy_now = switch(buy_now_price){
           case(null){false};
           case(?val){
             if(val <= current_sale_state.current_bid_amount){
@@ -744,7 +803,10 @@ module {
           };
         };
 
-        debug if(debug_channel.end_sale) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
+        debug if(debug_channel.end_sale) D.print("past buy now " # debug_show(buy_now));
+
+
+        debug if(debug_channel.end_sale) D.print("have buy now" # debug_show(buy_now, buy_now_price, current_sale_state.current_bid_amount));
         
         switch(current_sale_state.status){
           case(#closed){
@@ -754,17 +816,18 @@ module {
           case(#not_started){
             debug if(debug_channel.end_sale) D.print("wasnt started");
     
-            if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
+            if(state.get_time() >= current_sale_state.start_date and state.get_time() < current_sale_state.end_date){
               current_sale_state.status := #open;
             };
           };
           case(_){};
         };
 
-        debug if(debug_channel.end_sale) D.print("handled current stauts" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
+        debug if(debug_channel.end_sale) D.print("handled current stauts" # debug_show(buy_now, buy_now_price, current_sale_state.current_bid_amount));
 
         //make sure auction is still over
         if(state.get_time() < current_sale_state.end_date ){
+           debug if(debug_channel.end_sale) D.print("current time is less tha end date" # debug_show(buy_now, buy_now_price, current_sale_state.end_date));
           if( buy_now == true and caller == state.canister()){
             //only the canister can end a buy now
           } else {
@@ -772,6 +835,10 @@ module {
             if(Types.account_eq(#principal(caller), owner) == true and current_sale_state.current_escrow == null){
               //an owner can cancel an auction that has no bids yet.
               //useful for buy it now sales with a long out end date.
+
+              debug if(debug_channel.end_sale) D.print("closing the sale via the owner" # debug_show(buy_now, buy_now_price, current_sale_state.end_date));
+
+
               current_sale_state.status := #closed; 
 
               switch(Metadata.add_transaction_record(state,{
@@ -818,6 +885,7 @@ module {
           case(?reserve){
             if(current_sale_state.current_bid_amount < reserve){
               //end sale but don't move NFT
+              debug if(debug_channel.end_sale) D.print("ending the sale but not moving the nft" # debug_show(buy_now, buy_now_price, current_sale_state.end_date));
               current_sale_state.status := #closed; 
               
               switch(Metadata.add_transaction_record(state,{
@@ -2202,7 +2270,7 @@ module {
         } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
             
-            let start_date : Int = if(auction_details.  start_date > 0) {
+            let start_date : Int = if(auction_details.start_date > 0) {
                 auction_details.start_date;
               } else {
                 state.get_time();
@@ -3565,14 +3633,61 @@ module {
         case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - find state " # err.flag_point, ?caller)));
       };
 
-      let #auction(current_pricing) = current_sale_state.config else return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller)));
+      let {buy_now_price; start_date; min_increase} = switch(current_sale_state.config){
+          case(#auction(config)){
+            {
+              buy_now_price = config.buy_now;
+              start_date = config.start_date;
+              min_increase = config.min_increase;
+            };
+          };
+          case(#ask(config)){
+            let buy_now = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+                  case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            let start_date = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+                  case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            let min_increase = switch(config){
+              case(null) #percentage(0.05);
+              case(?config){
+                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #min_increase)){
+                  case(?#min_increase(val)){
+                    val;
+                  };
+                  case(_){#percentage(0.05)};
+                };
+              };
+            };
+            {buy_now_price = buy_now;
+            start_date = start_date;
+            min_increase = min_increase};
+          };
+          case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller)));
+        };
 
       switch(current_sale_state.status){
         case(#open){ 
           if(state.get_time() >= current_sale_state.end_date) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "bid_nft_origyn - sale is past close date " # request.sale_id, ?caller)));
         };
         case(#not_started){
-          if(state.get_time() >= current_pricing.start_date and state.get_time() < current_sale_state.end_date){
+          if(state.get_time() >= current_sale_state.start_date and state.get_time() < current_sale_state.end_date){
             current_sale_state.status := #open;
           };
         };
@@ -3681,7 +3796,7 @@ module {
         return #err(#trappable(Types.errors(?state.canistergeekLogger,  #bid_too_low, "bid_nft_origyn - bid too low - refund issued "  , ?caller)));
       };
 
-      let buy_now = switch(current_pricing.buy_now){
+      let buy_now = switch(buy_now_price){
         case(null) false ;
         case(?val){
           if(val <= request.escrow_receipt.amount){
@@ -3763,7 +3878,7 @@ module {
         };
       };
 
-      debug if(debug_channel.bid) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
+      debug if(debug_channel.bid) D.print("have buy now" # debug_show(buy_now, buy_now_price, current_sale_state.current_bid_amount));
 
       let new_trx = Metadata.add_transaction_record(state,{
           token_id = request.escrow_receipt.token_id;
@@ -3789,8 +3904,8 @@ module {
 
           //update the sale
 
-          let newMinBid = switch(current_pricing.min_increase){
-            case(#percentage(apercentage)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "bid_nft_origyn - percentage increase not implemented " , ?caller)));
+          let newMinBid = switch(min_increase){
+            case(#percentage(apercentage)) Int.abs(Float.toInt(Float.fromInt(request.escrow_receipt.amount) * apercentage)) + request.escrow_receipt.amount;
             case(#amount(aamount)) request.escrow_receipt.amount + aamount;
           };
 
