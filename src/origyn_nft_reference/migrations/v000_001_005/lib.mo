@@ -188,6 +188,7 @@ module {
             var current_broker_id = val.current_broker_id;
             var end_date = val.end_date;
             var start_date = config.start_date;
+            var next_dutch_timer = null;
             token = config.token;
             var min_next_bid = val.min_next_bid;
             var current_escrow = val.current_escrow;
@@ -319,6 +320,7 @@ module {
       var droute = state.droute;
       var use_stableBTree = state.use_stableBTree;
       var pending_sale_notifications = Set_8_1_0.new<Text>(MapUtils_8_1_0.thash);
+      var pending_sale_dutch = Set_8_1_0.new<Text>(MapUtils_8_1_0.thash);
     }));
 };
   

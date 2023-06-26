@@ -255,6 +255,18 @@ module {
       #nifty_settlement;
     };
 
+    public type DutchParams = {
+        time_unit: {
+          #hour : Nat;
+          #minute : Nat;
+          #day : Nat;
+        };
+        decay_type:{
+          #flat: Nat;
+          #percent: Float;
+        };
+    };
+
     public type AskFeature = {
       #atomic;
       #buy_now: Nat;
@@ -277,17 +289,7 @@ module {
         #timeout: Nat;
       };
       #token: TokenSpec;
-      #dutch: {
-        time_unit: {
-          #hour : Nat;
-          #minute : Nat;
-          #day : Nat;
-        };
-        decay_type:{
-          #flat: Nat;
-          #percent: Float;
-        };
-      };
+      #dutch: DutchParams;
       #kyc: Principal;
       #nifty_settlement: {
         duration: ?Int;
@@ -503,6 +505,7 @@ module {
     var start_date: Int;
     token : TokenSpec;
     var min_next_bid: Nat;
+    var next_dutch_timer: ?(Nat, Int); //next price, date
     var current_escrow: ?EscrowReceipt;
     var wait_for_quiet_count: ?Nat;
     allow_list: ?Map.Map<Principal,Bool>; //empty set means everyone
@@ -856,6 +859,7 @@ module {
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var pending_sale_notifications : Set_8_1_0.Set<Text>;
+    var pending_sale_dutch : Set_8_1_0.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;

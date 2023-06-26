@@ -53,6 +53,7 @@ module {
       withdraw_reject = false;
       withdraw_deposit = false;
       notifications = true;
+      dutch = true;
       bid = false;
       kyc = false;
   };
@@ -2269,6 +2270,7 @@ module {
           start_date: Int;
           start_price: Nat;
           end_date: Int;
+          dutch : ?MigrationTypes.Current.DutchParams;
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
         } = switch(request.sales_config.pricing){
@@ -2333,6 +2335,7 @@ module {
                   case(#wait_for_quiet(details)){details.date : Int};
                 };
               allow_list = allow_list;
+              dutch = null;
               notify = [];
             }
           };
@@ -2345,107 +2348,15 @@ module {
               start_price : Nat = 1;
               end_date : Int  = state.get_time() + NFTUtils.MINUTE_LENGTH;
               allow_list = null;
+              dutch = null;
               notify = [];
             }
           };
           case(#ask(?val)){
-            //what does an escrow reciept do for an auction? Place a bid?
-            //for now ignore
-
-            let ask_details = MigrationTypes.Current.features_to_map(val);
-            
-            let start_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
-              case(?#start_date(val)) val;
-              case(_) state.get_time();
+            switch(_get_ask_sale_detail(state, val, caller)){
+              case(#ok(val)) val;
+              case(#err(err)) return #err(err);
             };
-
-            let start_price : Nat = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)){
-              case(?#start_price(val)) val;
-              case(_) 1; //todo: calculate the minimum price for the token
-            };
-
-            let end_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)){
-              case(?#date(val)){
-                if(val <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
-                val : Int;
-              };
-              case(?#timeout(val)){
-                let target_end_date : Int = state.get_time() + val;
-                if(target_end_date <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
-                target_end_date;
-              };
-              case(_){
-                //default length of an sale is one minute
-                (state.get_time() + NFTUtils.MINUTE_LENGTH) : Int;
-              };
-            };
-
-
-            let buy_now = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
-              case(?#buy_now(val)){
-                if(val < start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
-                ?val;
-              };
-              case(_){null};
-            };
-
-            let reserve = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
-              case(?#reserve(val)){
-                ?val;
-              };
-              case(_){null};
-            };
-
-            let token : MigrationTypes.Current.TokenSpec= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
-              case(?#token(val)){
-                val;
-              };
-              case(_){
-                NFTUtils.OGY();
-              };
-            };
-
-            let notify : [Principal]= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #notify)){
-              case(?#notify(val)){
-                val;
-              };
-              case(_){
-                [];
-              };
-            };
-
-            switch(buy_now, reserve){
-              case(?buy_now, ?reserve){
-                if(buy_now < reserve) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
-              };
-              case(_){};
-            };
-
-            let allow_list : Map.Map<Principal, Bool> = Map.new<Principal, Bool>();
-
-            switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)){
-              case(?#allow_list(val)){
-                for(thisitem in val.vals()){
-                  Map.set<Principal, Bool>(allow_list, Map.phash, thisitem, true);
-                };
-              };
-              case(_){};
-            };
-
-            {
-              reserve = reserve; 
-              buy_now = buy_now; 
-              token : MigrationTypes.Current.TokenSpec = token;
-              start_date : Int = start_date;
-              start_price : Nat = start_price;
-              end_date : Int  = end_date;
-              allow_list = if(Map.size(allow_list) == 0){
-                null;
-              } else {
-                ?allow_list;
-              };
-              notify = notify;
-            }
           };
           
           case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn nyi pricing type", ?caller));
@@ -2498,12 +2409,7 @@ module {
         var participants = Map.new<Principal, Int>();
         Map.set<Principal, Int>(participants, Map.phash, caller, state.get_time());
 
-        Map.set<Text,Types.SaleStatus>(state.state.nft_sales, Map.thash, sale_id, {
-          sale_id = sale_id;
-          original_broker_id = request.sales_config.broker_id;
-          broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
-          token_id = request.token_id;
-          sale_type = #auction({
+        let new_auction : MigrationTypes.Current.AuctionState = {
             config = MigrationTypes.Current.pricing_shared_to_pricing(request.sales_config.pricing);
             var current_bid_amount = 0;
             var current_broker_id = request.sales_config.broker_id;
@@ -2512,6 +2418,7 @@ module {
             var min_next_bid = start_price;
             var current_escrow = null;
             var wait_for_quiet_count = ?0;
+            var next_dutch_timer = null;
             seller = owner;
             token = token;
             notify_queue = if(notify.size() ==0){
@@ -2527,7 +2434,14 @@ module {
             var winner = null;
             allow_list = allow_list;
             var participants = participants
-          });
+          };
+
+        Map.set<Text,Types.SaleStatus>(state.state.nft_sales, Map.thash, sale_id, {
+          sale_id = sale_id;
+          original_broker_id = request.sales_config.broker_id;
+          broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
+          token_id = request.token_id;
+          sale_type = #auction(new_auction)
         });
 
         
@@ -2560,12 +2474,207 @@ module {
         if(notify.size() > 0){
           //handle notify
           Set_8_1_0.add(state.state.pending_sale_notifications, MapUtil_8_1_0.thash, sale_id);
-          if(state.notify_timer == null){
-            state.notify_timer := ?Timer.setTimer(#nanoseconds(1), state.handle_notify );
+          if(state.notify_timer.get() == null){
+            state.notify_timer.set(?Timer.setTimer(#nanoseconds(1), state.handle_notify ));
           }
         };
 
+        //set timer for dutch
+        switch(dutch){
+          case(?dutch){
+
+            debug if(debug_channel.dutch) D.print("dutch auction was submitted");
+
+            //if the auction has a delay we need to add this to the first timer;
+            let start_delay = if(start_date > state.get_time()){
+              debug if(debug_channel.dutch) D.print("dutch auction doesn't start yet. delay " # debug_show((start_date, state.get_time())));
+              Int.abs(start_date - state.get_time());
+            } else {
+              0;
+            };
+
+            let next_timer_set = start_delay + (switch(dutch.time_unit){
+              case(#minute(val)){
+                val * NFTUtils.MINUTE_LENGTH
+              };
+              case(#hour(val)){
+                val * NFTUtils.HOUR_LENGTH
+              };
+              case(#day(val)){
+                val * NFTUtils.DAY_LENGTH
+              };
+            });
+
+            let reduction_amount = switch(dutch.decay_type){
+              case(#flat(val))val;
+              case(#percent(val)){
+                 Int.abs(Float.toInt((Float.fromInt(new_auction.min_next_bid) * val)));
+              };
+            };
+
+            let next_price = 
+                if(new_auction.min_next_bid > reduction_amount){
+                  Nat.sub(new_auction.min_next_bid, reduction_amount);
+                } else {
+                  switch(reserve){
+                    case(null) 1;
+                    case(?val) val;
+                  };
+                };
+      
+            Set_8_1_0.add(state.state.pending_sale_dutch, MapUtil_8_1_0.thash, sale_id);
+
+            let next_date = state.get_time() + next_timer_set;
+
+            new_auction.next_dutch_timer := ?(next_price, next_date);
+
+            switch(state.dutch_timer.get()){
+              case(null){
+                state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(next_timer_set), state.handle_dutch), next_date));
+              };
+              case(?dutch_timer){
+                if(dutch_timer.1 > next_timer_set + state.get_time()){
+                  //kill the old timer and set this one.
+                  Timer.cancelTimer(dutch_timer.0);
+                  state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(next_timer_set), state.handle_dutch), next_date));
+                };
+              };
+            };
+          };
+          case(null){};
+        };
+
         return #ok(txn);
+    };
+
+    private func _get_ask_sale_detail(state: StateAccess, val: [Types.AskFeature], caller: Principal) : Result.Result<{
+          reserve : ?Nat; 
+          buy_now : ?Nat; 
+          token : MigrationTypes.Current.TokenSpec;
+          start_date: Int;
+          start_price: Nat;
+          end_date: Int;
+          dutch : ?MigrationTypes.Current.DutchParams;
+          allow_list : ?Map.Map<Principal, Bool>;
+          notify : [Principal];
+        }, Types.OrigynError>{
+      //what does an escrow reciept do for an auction? Place a bid?
+            //for now ignore
+
+            let ask_details = MigrationTypes.Current.features_to_map(val);
+            
+            let start_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+              case(?#start_date(val)) val;
+              case(_) state.get_time();
+            };
+
+            let dutch = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #dutch)){
+              case(?#dutch(val)){
+                ?val;
+              };
+              case(_){null};
+            };
+
+            let start_price : Nat = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)){
+              case(?#start_price(val)) val;
+              case(_) {
+                switch(dutch){
+                  case(null) 1;
+                  case(?val){
+                    return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - dutch auctions require a start price", ?caller));
+                  };
+                };
+              }; //todo: calculate the minimum price for the token
+            };
+
+            let end_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)){
+              case(?#ending(val)){
+                switch(val){
+                  case(#date(val)){
+                    if(val <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
+                    val : Int;
+                  };
+                  case(#timeout(val)){
+                    let target_end_date : Int = state.get_time() + val;
+                    if(target_end_date <= start_date) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
+                    target_end_date;
+                  };
+                };
+              };
+              case(_){
+                //default length of an sale is one minute
+                (state.get_time() + NFTUtils.MINUTE_LENGTH) : Int;
+              };
+            };
+
+            let buy_now = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+              case(?#buy_now(val)){
+                if(val < start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
+                ?val;
+              };
+              case(_){null};
+            };
+
+            let reserve = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
+              case(?#reserve(val)){
+                ?val;
+              };
+              case(_){null};
+            };
+
+            
+
+            let token : MigrationTypes.Current.TokenSpec= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
+              case(?#token(val)){
+                val;
+              };
+              case(_){
+                NFTUtils.OGY();
+              };
+            };
+
+            let notify : [Principal]= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #notify)){
+              case(?#notify(val)){
+                val;
+              };
+              case(_){
+                [];
+              };
+            };
+
+            switch(buy_now, reserve){
+              case(?buy_now, ?reserve){
+                if(buy_now < reserve) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
+              };
+              case(_){};
+            };
+
+            let allow_list : Map.Map<Principal, Bool> = Map.new<Principal, Bool>();
+
+            switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)){
+              case(?#allow_list(val)){
+                for(thisitem in val.vals()){
+                  Map.set<Principal, Bool>(allow_list, Map.phash, thisitem, true);
+                };
+              };
+              case(_){};
+            };
+
+            #ok({
+              reserve = reserve; 
+              buy_now = buy_now; 
+              token : MigrationTypes.Current.TokenSpec = token;
+              start_date : Int = start_date;
+              start_price : Nat = start_price;
+              end_date : Int  = end_date;
+              dutch = dutch;
+              allow_list = if(Map.size(allow_list) == 0){
+                null;
+              } else {
+                ?allow_list;
+              };
+              notify = notify;
+            });
     };
 
     public func handle_notify(state: StateAccess) : async (){ 
@@ -2573,7 +2682,7 @@ module {
       debug if(debug_channel.notifications) D.print("in handle_notify");
 
       //let this be scheduled again;
-      state.notify_timer := null;
+      state.notify_timer.set(null);
 
       label search for(thisItem in Set_8_1_0.keys(state.state.pending_sale_notifications)){
         let {notify; sale; notify_queue} = switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
@@ -2665,9 +2774,133 @@ module {
       if(Set_8_1_0.size(state.state.pending_sale_notifications) > 0){
         //set the timer to run again in 1 second;
         debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set_8_1_0.size(state.state.pending_sale_notifications)));
-        state.notify_timer := ?Timer.setTimer(#nanoseconds(1000000000), state.handle_notify );
+        state.notify_timer.set(?Timer.setTimer(#nanoseconds(1000000000), state.handle_notify));
       };
 
+    };
+
+    public func handle_dutch(state: StateAccess) : async (){ 
+
+      debug if(debug_channel.dutch) D.print("in handle_dutch");
+
+      //let this be scheduled again;
+      state.dutch_timer.set(null);
+
+      var min_diff : Int = 0;
+
+      label search for(thisItem in Set_8_1_0.keys(state.state.pending_sale_dutch)){
+        switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
+          case(null){
+            //should be unreachable, but lets remove it from the map anyway;
+            ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+            continue search;
+          };
+          case(?sale){
+            let (#auction(sale_type)) = sale.sale_type else continue search;
+            //make sure the sale is still open
+            if(sale_type.status == #closed){
+              debug if(debug_channel.dutch) D.print("sale is closed. will be removed " # thisItem);
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                  continue search;
+            };
+
+            
+
+            let ?next_dutch_timer = sale_type.next_dutch_timer else{
+              //should be unreachable, but lets remove it from the map anyway;
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            };
+
+            if(state.get_time() >= next_dutch_timer.1){
+              //not time yet, but check record the diff
+              debug if(debug_channel.dutch) D.print("skipping this auction. it isn't time to change the price yet.");
+              let diff = next_dutch_timer.1 - state.get_time();
+              if(min_diff == 0 or min_diff > diff){
+                min_diff := diff;
+              };
+              continue search;
+            };
+
+            //we should set the new price
+            debug if(debug_channel.dutch) D.print("updateing the price");
+            sale_type.min_next_bid := next_dutch_timer.0;
+
+            let config = switch(sale_type.config){
+              case(#ask(?val)){
+                  switch(_get_ask_sale_detail(state, Iter.toArray<MigrationTypes.Current.AskFeature>(Map_8_1_0.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(val)), state.canister())){
+                    case(#ok(val)) val;
+                    case(#err(err)) {
+                      //should be unreachable, but lets remove it from the map anyway;
+                      ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                      continue search;
+                    };
+                  };
+              };
+
+              case(_) {
+                //should be unreachable, but lets remove it from the map anyway;
+                ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                continue search;
+              }
+            };
+
+            
+
+            let ?dutch = config.dutch else {
+              //should be unreachable, but lets remove it from the map anyway;
+              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              continue search;
+            };
+       
+            let next_timer_set = switch(dutch.time_unit){
+              case(#minute(val)){
+                val * NFTUtils.MINUTE_LENGTH
+              };
+              case(#hour(val)){
+                val * NFTUtils.HOUR_LENGTH
+              };
+              case(#day(val)){
+                val * NFTUtils.DAY_LENGTH
+              };
+            };
+
+            let reduction_amount = switch(dutch.decay_type){
+              case(#flat(val))val;
+              case(#percent(val)){
+                 Int.abs(Float.toInt((Float.fromInt(sale_type.min_next_bid) * val)));
+              };
+            };
+
+            let next_price = 
+                if(sale_type.min_next_bid > reduction_amount){
+                  Nat.sub(sale_type.min_next_bid, reduction_amount);
+                } else {
+                  switch(config.reserve){
+                    case(null) 1;
+                    case(?val) val;
+                  };
+                };
+      
+
+            let next_date = next_dutch_timer.1 + next_timer_set;
+
+            if(next_date <= state.get_time()){
+              debug if(debug_channel.dutch) D.print("next timer has already passed. setting mindiff to 1 nano.");
+              min_diff := 1; //we need to run this immediately: note - if the caniser has been stopped for a while, this may take some time to catch up;
+            };
+
+            sale_type.next_dutch_timer := ?(next_price, next_date);
+          };
+        };
+        continue search;
+      };
+
+      if(Set_8_1_0.size(state.state.pending_sale_dutch) > 0){
+        //set the timer to run again in the min diff
+        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set_8_1_0.size(state.state.pending_sale_notifications)));
+        state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(Int.abs(min_diff)), state.handle_dutch), state.get_time() + min_diff));
+      };
     };
 
     //refreshes the offers collection
@@ -2764,6 +2997,7 @@ module {
               };
               case(#ok(val)){val;};
           };
+
           let this_is_minted = Metadata.is_minted(metadata);
           if(this_is_minted == false){
               //cant escrow for an unminted item

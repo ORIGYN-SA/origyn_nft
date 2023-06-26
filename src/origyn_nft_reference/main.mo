@@ -196,6 +196,9 @@ shared (deployer) actor class Nft_Canister() = this {
     //ignore await* Droute.registerPublication(state_current.droute,"com.origyn.nft.event.sale_ended", null);
   });
 
+    var notify_timer : ?Nat = null;
+    var dutch_timer : ?(Nat, Int) = null;
+
 
     // Let us access state and pass it to other modules
     let get_state : () -> Types.State = func() {
@@ -210,7 +213,15 @@ shared (deployer) actor class Nft_Canister() = this {
             canistergeekLogger = canistergeekLogger;
             kyc_client = kyc_client;
             handle_notify = handle_notify;
-            var notify_timer = null;
+            handle_dutch = handle_dutch;
+            notify_timer = {
+              get = get_notify_timer;
+              set = set_notify_timer;
+            };
+            dutch_timer = {
+              get = get_dutch_timer;
+              set = set_dutch_timer;
+            };
         };
     };
 
@@ -225,10 +236,32 @@ shared (deployer) actor class Nft_Canister() = this {
 
     };
 
+    private func get_notify_timer() : ?Nat {
+        notify_timer;
+    };
+
+    private func set_notify_timer(val : ?Nat) : () {
+        notify_timer := val;
+    };
+
+    private func get_dutch_timer() : ?(Nat,Int) {
+        dutch_timer;
+    };
+
+     private func set_dutch_timer(val : ?(Nat,Int)) : () {
+        dutch_timer := val;
+    };
+
     func handle_notify(): async () {
       let state = get_state();
       
       await Market.handle_notify(get_state());
+    };
+
+    func handle_dutch(): async () {
+      let state = get_state();
+      
+      await Market.handle_dutch(get_state());
     };
 
     // set the `data_havester`
@@ -3132,6 +3165,9 @@ shared (deployer) actor class Nft_Canister() = this {
         canistergeekLogger.setMaxMessagesCount(3000);
 
         upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
+
+        notify_timer := ?Timer.setTimer(#nanoseconds(1), handle_notify);
+        dutch_timer := ?(Timer.setTimer(#nanoseconds(1), handle_dutch), get_time() + 1);
 
         // End Canistergeek
     };
