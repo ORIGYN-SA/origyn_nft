@@ -168,11 +168,11 @@ module {
     };
 
     public type SubscriberNotification = {
-          escrow_info : SubAccountInfo;
-          sale : SaleStatusShared;
-          seller : Account;
-          collection: Principal;
-        };
+      escrow_info : SubAccountInfo;
+      sale : SaleStatusShared;
+      seller : Account;
+      collection: Principal;
+    };
 
     public type StageChunkArg = {
         token_id : Text;
@@ -403,6 +403,7 @@ module {
         end_date : Int;
         start_date : Int;
         min_next_bid : Nat;
+        next_dutch_timer : ?(Nat, Int);
         token : TokenSpec;
         current_escrow : ?EscrowReceipt;
         wait_for_quiet_count : ?Nat;
@@ -466,6 +467,7 @@ module {
         start_date = val.start_date;
         token = val.token;
         min_next_bid = val.min_next_bid;
+        next_dutch_timer = val.next_dutch_timer;
         current_escrow = val.current_escrow;
         wait_for_quiet_count = val.wait_for_quiet_count;
         allow_list = do ? {
@@ -534,7 +536,15 @@ module {
         kyc_client: KYC.kyc;
         canistergeekLogger : Canistergeek.Logger;
         handle_notify : () -> async();
-        var notify_timer : ?Nat;
+        handle_dutch : () -> async();
+        notify_timer : {
+          get: () ->?Nat;
+          set: (?Nat) -> ();
+        };
+        dutch_timer : {
+          get: () ->?(Nat,Int);
+          set: (?(Nat,Int)) -> ();
+        };
         //btreemap : Stable_Memory;
     };
 
@@ -1432,7 +1442,7 @@ module {
             case (#token_non_transferable) {
                 return {
                     number = 4009;
-                    text = "token is soulbound";
+                    text = "token is non-transferable";
                     error = the_error;
                     flag_point = flag_point;}
             }; 
