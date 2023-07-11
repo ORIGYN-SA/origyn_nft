@@ -2,6 +2,7 @@ import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import D "mo:base/Debug";
+import Deque "mo:base/Deque";
 import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Hash "mo:base/Hash";
@@ -19,9 +20,8 @@ import Timer "mo:base/Timer";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
-import Map_8_1_0 "mo:map_8_1_0/Map";
-import Set_8_1_0 "mo:map_8_1_0/Set";
-import MapUtil_8_1_0 "mo:map_8_1_0/Map";
+import Set "mo:map/Set";
+import MapUtil "mo:map/utils";
 
 import Star "mo:star/star";
 
@@ -43,7 +43,7 @@ module {
       verify_sale = false;
       ensure = false;
       invoice = false;
-      end_sale = true;
+      end_sale = false;
       market = false;
       royalties = false;
       offers = false;
@@ -52,8 +52,8 @@ module {
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      notifications = true;
-      dutch = true;
+      notifications = false;
+      dutch = false;
       bid = false;
       kyc = false;
   };
@@ -207,8 +207,6 @@ module {
         debug if(debug_channel.verify_escrow) D.print("didnt find asset");
         return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow buyer not found " # debug_show(escrow.buyer), null));
     };
-
-    
 
     debug if(debug_channel.verify_escrow) D.print("to_list is " # debug_show(Map.size(to_list)));
 
@@ -406,6 +404,8 @@ module {
     
   };
 
+  
+
   //reports information about a sale
   /**
   * Reports information about a sale.
@@ -426,7 +426,8 @@ module {
       current_sale with
       sale_type = switch(current_sale.sale_type){
         case(#auction(val)){
-            #auction(Types.AuctionState_stabalize_for_xfer(val))
+            #auction(Types.AuctionState_stabalize_for_xfer(
+              calc_dutch_price(state, val)));
         };
         /* case(_){
             return #err(Types.errors(?state.canistergeekLogger,  #sale_not_found, "sale_status_nft_origyn not an auction ", ?caller));
@@ -550,7 +551,9 @@ module {
                 current_sale with
                 sale_type = switch(current_sale.sale_type){
                   case(#auction(val)){
-                    #auction(Types.AuctionState_stabalize_for_xfer(val))
+                    #auction(Types.AuctionState_stabalize_for_xfer(
+                      calc_dutch_price(state, val)
+                    ));
                   };
                 };
               });
@@ -648,7 +651,9 @@ module {
                   thisSale.1 with
                   sale_type = switch(thisSale.1.sale_type){
                       case(#auction(val)){
-                          #auction(Types.AuctionState_stabalize_for_xfer(val))
+                          #auction(Types.AuctionState_stabalize_for_xfer(
+                            calc_dutch_price(state, val)
+                          ));
                       };
                   };
                 });
@@ -771,8 +776,19 @@ module {
             let buy_now = switch(config){
               case(null) null;
               case(?config){
-                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
                   case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            let dutch = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #dutch)){
+                  case(?#dutch(val)){
                     ?val;
                   };
                   case(_){null};
@@ -782,7 +798,7 @@ module {
             let start_date = switch(config){
               case(null) null;
               case(?config){
-                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
                   case(?#buy_now(val)){
                     ?val;
                   };
@@ -790,7 +806,18 @@ module {
                 };
               };
             };
-            {buy_now_price = buy_now;
+            {buy_now_price = switch(buy_now, dutch){
+              case(?buy_now, null){
+                ?buy_now;
+              };
+              case(null, ?dutch){
+                let current_state = calc_dutch_price(state, current_sale_state);
+                ?current_state.min_next_bid;
+              };
+              case(_,_){
+                null;
+              }
+            };
             start_date = start_date};
           };
           case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
@@ -815,7 +842,7 @@ module {
         switch(current_sale_state.status){
           case(#closed){
             //we will close later after we try to refund a valid bid
-            //return #err(Types.errors(?state.canistergeekLogger,  #auction_ended, "end_sale_nft_origyn - auction already closed ", ?caller));
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #auction_ended, "end_sale_nft_origyn - auction already closed ", ?caller)));
           };
           case(#not_started){
             debug if(debug_channel.end_sale) D.print("wasnt started");
@@ -873,7 +900,7 @@ module {
             config.reserve
           };
           case(#ask(?config)){
-            switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
+            switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
               case(?(#reserve(val))) ?val;
               case(_) null;
             };
@@ -1175,8 +1202,9 @@ module {
                     withdraw_to = thisRoyalty.seller;})));
                 };
                 debug if(debug_channel.royalties) D.print("attempt to distribute royalties request auction" # debug_show(Buffer.toArray(request_buffer)));
-                let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-                debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
+                //do not await
+                let future = service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
+                //debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
               switch(Metadata.add_transaction_record(state,{
@@ -2418,13 +2446,19 @@ module {
             var min_next_bid = start_price;
             var current_escrow = null;
             var wait_for_quiet_count = ?0;
-            var next_dutch_timer = null;
             seller = owner;
             token = token;
-            notify_queue = if(notify.size() ==0){
+            var notify_queue = if(notify.size() ==0){
               null;
             } else {
-              ?Map_8_1_0.fromIter<Principal, ?MigrationTypes.Current.SubscriptionID>(Array.map<Principal, (Principal, ?MigrationTypes.Current.SubscriptionID)>(notify, func(x : Principal){(x,null)}).vals(), MapUtil_8_1_0.phash);
+              var newQueue = Deque.empty<(Principal, ?MigrationTypes.Current.SubscriptionID)>();
+
+              ignore Array.map<Principal, (Principal, ?MigrationTypes.Current.SubscriptionID)>(notify, func(x : Principal){
+                newQueue := Deque.pushBack<(Principal, ?MigrationTypes.Current.SubscriptionID)>(newQueue, (x,null));
+                (x,null);
+              });
+
+              ?newQueue;
             };
             var status = if(state.get_time() >= start_date){
                 #open;
@@ -2473,7 +2507,7 @@ module {
         //set timer for notify
         if(notify.size() > 0){
           //handle notify
-          Set_8_1_0.add(state.state.pending_sale_notifications, MapUtil_8_1_0.thash, sale_id);
+          Set.add(state.state.pending_sale_notifications, thash, sale_id);
           if(state.notify_timer.get() == null){
             state.notify_timer.set(?Timer.setTimer(#nanoseconds(1), state.handle_notify ));
           }
@@ -2482,64 +2516,7 @@ module {
         //set timer for dutch
         switch(dutch){
           case(?dutch){
-
             debug if(debug_channel.dutch) D.print("dutch auction was submitted");
-
-            //if the auction has a delay we need to add this to the first timer;
-            let start_delay = if(start_date > state.get_time()){
-              debug if(debug_channel.dutch) D.print("dutch auction doesn't start yet. delay " # debug_show((start_date, state.get_time())));
-              Int.abs(start_date - state.get_time());
-            } else {
-              0;
-            };
-
-            let next_timer_set = start_delay + (switch(dutch.time_unit){
-              case(#minute(val)){
-                val * NFTUtils.MINUTE_LENGTH
-              };
-              case(#hour(val)){
-                val * NFTUtils.HOUR_LENGTH
-              };
-              case(#day(val)){
-                val * NFTUtils.DAY_LENGTH
-              };
-            });
-
-            let reduction_amount = switch(dutch.decay_type){
-              case(#flat(val))val;
-              case(#percent(val)){
-                 Int.abs(Float.toInt((Float.fromInt(new_auction.min_next_bid) * val)));
-              };
-            };
-
-            let next_price = 
-                if(new_auction.min_next_bid > reduction_amount){
-                  Nat.sub(new_auction.min_next_bid, reduction_amount);
-                } else {
-                  switch(reserve){
-                    case(null) 1;
-                    case(?val) val;
-                  };
-                };
-      
-            Set_8_1_0.add(state.state.pending_sale_dutch, MapUtil_8_1_0.thash, sale_id);
-
-            let next_date = state.get_time() + next_timer_set;
-
-            new_auction.next_dutch_timer := ?(next_price, next_date);
-
-            switch(state.dutch_timer.get()){
-              case(null){
-                state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(next_timer_set), state.handle_dutch), next_date));
-              };
-              case(?dutch_timer){
-                if(dutch_timer.1 > next_timer_set + state.get_time()){
-                  //kill the old timer and set this one.
-                  Timer.cancelTimer(dutch_timer.0);
-                  state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(next_timer_set), state.handle_dutch), next_date));
-                };
-              };
-            };
           };
           case(null){};
         };
@@ -2563,19 +2540,19 @@ module {
 
             let ask_details = MigrationTypes.Current.features_to_map(val);
             
-            let start_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+            let start_date : Int = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
               case(?#start_date(val)) val;
               case(_) state.get_time();
             };
 
-            let dutch = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #dutch)){
+            let dutch = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #dutch)){
               case(?#dutch(val)){
                 ?val;
               };
               case(_){null};
             };
 
-            let start_price : Nat = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)){
+            let start_price : Nat = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)){
               case(?#start_price(val)) val;
               case(_) {
                 switch(dutch){
@@ -2587,7 +2564,7 @@ module {
               }; //todo: calculate the minimum price for the token
             };
 
-            let end_date : Int = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)){
+            let end_date : Int = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)){
               case(?#ending(val)){
                 switch(val){
                   case(#date(val)){
@@ -2607,7 +2584,7 @@ module {
               };
             };
 
-            let buy_now = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+            let buy_now = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
               case(?#buy_now(val)){
                 if(val < start_price) return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
                 ?val;
@@ -2615,7 +2592,7 @@ module {
               case(_){null};
             };
 
-            let reserve = switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
+            let reserve = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #reserve)){
               case(?#reserve(val)){
                 ?val;
               };
@@ -2624,7 +2601,7 @@ module {
 
             
 
-            let token : MigrationTypes.Current.TokenSpec= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
+            let token : MigrationTypes.Current.TokenSpec= switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
               case(?#token(val)){
                 val;
               };
@@ -2633,7 +2610,7 @@ module {
               };
             };
 
-            let notify : [Principal]= switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #notify)){
+            let notify : [Principal]= switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #notify)){
               case(?#notify(val)){
                 val;
               };
@@ -2651,7 +2628,7 @@ module {
 
             let allow_list : Map.Map<Principal, Bool> = Map.new<Principal, Bool>();
 
-            switch(Map_8_1_0.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)){
+            switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)){
               case(?#allow_list(val)){
                 for(thisitem in val.vals()){
                   Map.set<Principal, Bool>(allow_list, Map.phash, thisitem, true);
@@ -2684,64 +2661,73 @@ module {
       //let this be scheduled again;
       state.notify_timer.set(null);
 
-      label search for(thisItem in Set_8_1_0.keys(state.state.pending_sale_notifications)){
-        let {notify; sale; notify_queue} = switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
+      label search for(thisItem in Set.keys(state.state.pending_sale_notifications)){
+        debug if(debug_channel.notifications) D.print("in loop " # thisItem);
+        let {notify; sale; notify_queue;} = switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
           case(null){
             //should be unreachable, but lets remove it from the map anyway;
-            ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+            ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
             continue search;
           };
           case(?sale){
             let (#auction(sale_type)) = sale.sale_type else continue search;
             //make sure the sale is still open
             if(sale_type.status == #closed){
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              debug if(debug_channel.notifications) D.print("removing because the sale is closed " # thisItem);
+              ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                   continue search;
             };
 
 
             let ?notify_queue = sale_type.notify_queue else{
               //should be unreachable, but lets remove it from the map anyway;
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
               continue search;
             } ;
-            if(Map_8_1_0.size(notify_queue) == 0){
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+
+            if(Deque.isEmpty<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue)){
+              ignore Set.remove<Text>(state.state.pending_sale_notifications, MapUtil.thash, thisItem);
               continue search;
             };
 
-            let ?item = Map_8_1_0.peekFront(notify_queue) else{
+            debug if(debug_channel.notifications) D.print("popping the notify que:" # debug_show(notify_queue));
+
+            let ?item = Deque.popFront<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue) else{
               //should be unreachable, but lets remove it from the map anyway;
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              ignore Set.remove<Text>(state.state.pending_sale_notifications, MapUtil.thash, thisItem);
               continue search;
             };
+
+            sale_type.notify_queue := ?item.1;
+
+            debug if(debug_channel.notifications) D.print("after the pop:" # debug_show(sale_type.notify_queue));
 
             {
               notify =  item.0;
               sale = sale;
-              notify_queue = notify_queue;
+              notify_queue = item.1;
             };
           };
         };
 
         let #ok(sale_state) = NFTUtils.get_auction_state_from_status(sale) else{
               //should be unreachable, but lets remove it from the map anyway;
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
               continue search;
             };
 
         let #ok(owner) = Metadata.get_nft_owner_by_id(state, sale.token_id) else {
-          ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+          ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
               continue search;
         };
 
-        let remote : Types.Subscriber = actor(Principal.toText(notify));
+        let remote : Types.Subscriber = actor(Principal.toText(notify.0));
         debug if(debug_channel.notifications) D.print("about to send");
         remote.notify_sale_nft_origyn({
           escrow_info = NFTUtils.get_escrow_account_info({
             amount = sale_state.min_next_bid;
             seller = owner;
-            buyer = #principal(notify);
+            buyer = #principal(notify.0);
             token_id = sale.token_id;
             token = sale_state.token;
           }, state.canister());
@@ -2760,39 +2746,152 @@ module {
           collection = state.canister();
         });
 
-        //remove item
-        ignore Map_8_1_0.remove<Principal, ?MigrationTypes.Current.SubscriptionID>(notify_queue, MapUtil_8_1_0.phash, notify);
+        
 
-        if(Map_8_1_0.size(notify_queue) == 0){
+        if(Deque.isEmpty<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue)){
           debug if(debug_channel.notifications) D.print("finished with this sale:" # thisItem);
-          ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+          ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
+        } else {
+          debug if(debug_channel.notifications) D.print("this sale is not finished:" # debug_show(notify_queue));
         };
 
         continue search;
       };
 
-      if(Set_8_1_0.size(state.state.pending_sale_notifications) > 0){
+      if(Set.size(state.state.pending_sale_notifications) > 0){
         //set the timer to run again in 1 second;
-        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set_8_1_0.size(state.state.pending_sale_notifications)));
+        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set.size(state.state.pending_sale_notifications)));
         state.notify_timer.set(?Timer.setTimer(#nanoseconds(1000000000), state.handle_notify));
       };
 
     };
 
-    public func handle_dutch(state: StateAccess) : async (){ 
+    public func calc_dutch_price(state: StateAccess, auction: Types.AuctionState) : Types.AuctionState{
+      //make sure the sale is still open
+      if(auction.status == #closed){
+        debug if(debug_channel.dutch) D.print("sale is closed. returning final price ");
+        return auction;
+      };
+
+      let config = switch(auction.config){
+        case(#ask(?val)){
+
+            switch(_get_ask_sale_detail(state, Iter.toArray<MigrationTypes.Current.AskFeature>(Map.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(val)), state.canister())){
+              case(#ok(val)) val;
+              case(#err(err)) {
+                //should be unreachable;
+                debug if(debug_channel.dutch) D.print("dutch price requested for non-dutch sale - error " # err.flag_point);
+                return auction;
+              };
+            };
+        };
+        case(_) {
+          //should be unreachable
+          debug if(debug_channel.dutch) D.print("dutch price requested for non-dutch sale");
+          return auction;
+        }
+      };
+
+      let ?dutch = config.dutch else {
+        //should be unreachable, 
+        debug if(debug_channel.dutch) D.print("dutch price requested but dutch not configured");
+        return auction;
+      };
+
+      let start_price : Nat = config.start_price;
+      
+      debug if(debug_channel.dutch) D.print("start price is " # debug_show(start_price));
+
+      let reserve = switch(config.reserve){
+        case(null) 1;
+        case(?val) val;
+      };
+
+      debug if(debug_channel.dutch) D.print("reserve price is " # debug_show(reserve));
+
+      if(state.get_time() < auction.start_date){
+        debug if(debug_channel.dutch) D.print("dutch price requested but auction isn't open yet");
+        return auction;
+      };
+
+      let time_diff = Int.abs(state.get_time() - auction.start_date);
+
+      debug if(debug_channel.dutch) D.print("time_diff is " # debug_show((time_diff,NFTUtils.MINUTE_LENGTH )));
+
+      let reduction_cycles : Nat = switch(dutch.time_unit){
+        case(#minute(val)){
+          debug if(debug_channel.dutch) D.print("minute " # debug_show(val));
+          time_diff / (NFTUtils.MINUTE_LENGTH * val);
+        };
+        case(#hour(val)){
+          debug if(debug_channel.dutch) D.print("hour " # debug_show(val));
+          time_diff / (NFTUtils.HOUR_LENGTH * val);
+        };
+        case(#day(val)){
+          debug if(debug_channel.dutch) D.print("day " # debug_show(val));
+          time_diff / (NFTUtils.DAY_LENGTH * val);
+        };
+      };
+
+      debug if(debug_channel.dutch) D.print("reduction_cycles is " # debug_show(reduction_cycles));
+
+      let new_price : Nat = switch(dutch.decay_type){
+        case(#flat(val)){
+          debug if(debug_channel.dutch) D.print("flat price reduction " # debug_show(val));
+          if(start_price > (val * reduction_cycles)){
+            (start_price - (val * reduction_cycles));
+          } else {
+            ///it should be the reserve price
+            reserve;
+          };
+        };
+        case(#percent(val)){
+          debug if(debug_channel.dutch) D.print("percent price reduction " # debug_show(val));
+          var thisLoop = 0;
+          let currentPrice : Float = Float.fromInt(start_price) * ((1 - val) ** Float.fromInt(reduction_cycles));
+          Int.abs(Float.toInt(currentPrice));
+        };
+      };
+
+      debug if(debug_channel.dutch) D.print("new price " # debug_show(new_price));
+
+      //make sure price is not less than minimum valid price
+      let final_price = if(new_price < reserve){
+        debug if(debug_channel.dutch) D.print("below reserve " # debug_show(reserve));
+        reserve;
+      } else {
+        new_price;
+      };
+
+      {
+        auction with
+        var current_bid_amount = auction.current_bid_amount;
+        var current_broker_id = auction.current_broker_id;
+        var end_date = auction.end_date;
+        var start_date = auction.start_date;
+        var min_next_bid = final_price;
+        var current_escrow = auction.current_escrow;
+        var wait_for_quiet_count = auction.wait_for_quiet_count;
+        var participants = auction.participants;
+        var status = auction.status;
+        var winner = auction.winner;
+        var notify_queue = auction.notify_queue;
+      };
+    };
+
+    /* public func handle_dutch(state: StateAccess) : async (){ 
 
       debug if(debug_channel.dutch) D.print("in handle_dutch");
 
       //let this be scheduled again;
-      state.dutch_timer.set(null);
 
       var min_diff : Int = 0;
 
-      label search for(thisItem in Set_8_1_0.keys(state.state.pending_sale_dutch)){
+      label search for(thisItem in Set.keys(state.state.pending_sale_dutch)){
         switch(Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)){
           case(null){
             //should be unreachable, but lets remove it from the map anyway;
-            ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+            ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
             continue search;
           };
           case(?sale){
@@ -2800,26 +2899,8 @@ module {
             //make sure the sale is still open
             if(sale_type.status == #closed){
               debug if(debug_channel.dutch) D.print("sale is closed. will be removed " # thisItem);
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                   continue search;
-            };
-
-            
-
-            let ?next_dutch_timer = sale_type.next_dutch_timer else{
-              //should be unreachable, but lets remove it from the map anyway;
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
-              continue search;
-            };
-
-            if(state.get_time() >= next_dutch_timer.1){
-              //not time yet, but check record the diff
-              debug if(debug_channel.dutch) D.print("skipping this auction. it isn't time to change the price yet.");
-              let diff = next_dutch_timer.1 - state.get_time();
-              if(min_diff == 0 or min_diff > diff){
-                min_diff := diff;
-              };
-              continue search;
             };
 
             //we should set the new price
@@ -2828,19 +2909,18 @@ module {
 
             let config = switch(sale_type.config){
               case(#ask(?val)){
-                  switch(_get_ask_sale_detail(state, Iter.toArray<MigrationTypes.Current.AskFeature>(Map_8_1_0.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(val)), state.canister())){
+                  switch(_get_ask_sale_detail(state, Iter.toArray<MigrationTypes.Current.AskFeature>(Map.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(val)), state.canister())){
                     case(#ok(val)) val;
                     case(#err(err)) {
                       //should be unreachable, but lets remove it from the map anyway;
-                      ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                      ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                       continue search;
                     };
                   };
               };
-
               case(_) {
                 //should be unreachable, but lets remove it from the map anyway;
-                ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+                ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                 continue search;
               }
             };
@@ -2849,7 +2929,7 @@ module {
 
             let ?dutch = config.dutch else {
               //should be unreachable, but lets remove it from the map anyway;
-              ignore Set_8_1_0.remove(state.state.pending_sale_notifications,MapUtil_8_1_0.thash, thisItem);
+              ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
               continue search;
             };
        
@@ -2881,27 +2961,17 @@ module {
                     case(?val) val;
                   };
                 };
-      
-
-            let next_date = next_dutch_timer.1 + next_timer_set;
-
-            if(next_date <= state.get_time()){
-              debug if(debug_channel.dutch) D.print("next timer has already passed. setting mindiff to 1 nano.");
-              min_diff := 1; //we need to run this immediately: note - if the caniser has been stopped for a while, this may take some time to catch up;
-            };
-
-            sale_type.next_dutch_timer := ?(next_price, next_date);
           };
         };
         continue search;
       };
 
-      if(Set_8_1_0.size(state.state.pending_sale_dutch) > 0){
+      if(Set.size(state.state.pending_sale_dutch) > 0){
         //set the timer to run again in the min diff
-        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set_8_1_0.size(state.state.pending_sale_notifications)));
+        debug if(debug_channel.notifications) D.print("resetting the timer left:" # debug_show(Set.size(state.state.pending_sale_notifications)));
         state.dutch_timer.set(?(Timer.setTimer(#nanoseconds(Int.abs(min_diff)), state.handle_dutch), state.get_time() + min_diff));
       };
-    };
+    }; */
 
     //refreshes the offers collection
     public func refresh_offers_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Types.ManageSaleResult{
@@ -3990,29 +4060,48 @@ module {
     */
     public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
 
-
+      debug if(debug_channel.bid) D.print("in bid " # debug_show((request, canister_call)));
+      D.print("ok here");
       //look for an existing sale
-      let ?current_sale = Map.get(state.state.nft_sales, Map.thash,request.sale_id) else return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller)));
+      let ?current_sale = Map.get(state.state.nft_sales, Map.thash,request.sale_id) else {
+        debug if(debug_channel.bid) D.print("could not find sale " # debug_show(request.sale_id));
+        return #err(#trappable(Types.errors(?state.canistergeekLogger, #sale_id_does_not_match, "bid_nft_origyn - sales id did not match " # request.sale_id, ?caller)));
+      };
+      D.print("ok here 2");
+
+      debug if(debug_channel.bid) D.print("found sale ");
       
       let current_sale_state = switch(NFTUtils.get_auction_state_from_status(current_sale)){
         case(#ok(val)) val;
         case(#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - find state " # err.flag_point, ?caller)));
       };
 
-      let {buy_now_price; start_date; min_increase} = switch(current_sale_state.config){
+      let {buy_now_price; start_date; min_increase; dutch} = switch(current_sale_state.config){
           case(#auction(config)){
             {
               buy_now_price = config.buy_now;
               start_date = config.start_date;
               min_increase = config.min_increase;
+              dutch = false;
             };
           };
           case(#ask(config)){
             let buy_now = switch(config){
               case(null) null;
               case(?config){
-                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #buy_now)){
                   case(?#buy_now(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
+            let dutch = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #dutch)){
+                  case(?#dutch(val)){
                     ?val;
                   };
                   case(_){null};
@@ -4022,8 +4111,8 @@ module {
             let start_date = switch(config){
               case(null) null;
               case(?config){
-                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
-                  case(?#buy_now(val)){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #start_date)){
+                  case(?#start_date(val)){
                     ?val;
                   };
                   case(_){null};
@@ -4033,7 +4122,7 @@ module {
             let min_increase = switch(config){
               case(null) #percentage(0.05);
               case(?config){
-                switch(Map_8_1_0.get(config, MigrationTypes.Current.ask_feature_set_tool, #min_increase)){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #min_increase)){
                   case(?#min_increase(val)){
                     val;
                   };
@@ -4041,9 +4130,27 @@ module {
                 };
               };
             };
-            {buy_now_price = buy_now;
-            start_date = start_date;
-            min_increase = min_increase};
+            {
+              buy_now_price = switch(buy_now, dutch){
+                case(?buy_now, null){
+                  ?buy_now;
+                };
+                case(null, ?dutch){
+                  let current_state = calc_dutch_price(state, current_sale_state);
+                  ?current_state.min_next_bid;
+                };
+                case(_,_){
+                  null;
+                }
+              };
+          
+              start_date = start_date;
+              min_increase = min_increase;
+              dutch = switch(dutch){
+                case(null) false;
+                case(?val) true;
+              };
+            };
           };
           case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "bid_nft_origyn - not an auction type ", ?caller)));
         };
@@ -4083,6 +4190,8 @@ module {
          case(#ok(val)) val;
       };
 
+      debug if(debug_channel.bid) D.print(" owner is " # debug_show(owner));
+
       //make sure token ids match
       if(current_sale.token_id != request.escrow_receipt.token_id) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #token_id_mismatch, "bid_nft_origyn - token id of sale does not match escrow receipt " # request.escrow_receipt.token_id, ?caller)));
 
@@ -4096,14 +4205,36 @@ module {
       //make sure buyers match
       if(Types.account_eq(#principal(caller), request.escrow_receipt.buyer) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show(request.escrow_receipt.token) # debug_show(_get_token_from_sales_status(current_sale)), ?caller)));
 
+      debug if(debug_channel.bid) D.print(" about to verify escrow " # debug_show(request.escrow_receipt));
+
       //make sure the receipt is valid
       debug if(debug_channel.bid) D.print("verifying Escrow");
       var verified = switch(verify_escrow_receipt(state, request.escrow_receipt, null, ?request.sale_id)){
           case(#err(err)){
             //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
             //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
-
             if(canister_call == false){
+
+              //not a canister call... trying to recognize escrow
+              
+              debug if(debug_channel.bid) D.print("Not a canister call, trying escrow");
+              switch(Star.toResult(await* recognize_escrow_nft_origyn(state, { 
+              deposit = {request.escrow_receipt with
+                sale_id = ?request.sale_id;
+                trx_id = null;
+              };
+              lock_to_date = null;
+              token_id = request.escrow_receipt.token_id;
+              }, 
+              caller))){
+                case(#ok(val)){
+                  return await* bid_nft_origyn(state, request, caller, true);
+                };
+                case(#err(err)){
+                  if(debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
+                };
+              };
+
               switch(await* escrow_nft_origyn(state,
                   {deposit =
                     {
@@ -4145,8 +4276,21 @@ module {
         case(_){};
       };
 
+      let required_bid = if(dutch){
+        switch(buy_now_price){
+          case(null){
+            current_sale_state.min_next_bid;
+          };
+          case(?val){
+            val;
+          };
+        };
+      } else {
+        current_sale_state.min_next_bid;
+      };
+
       //make sure amount is high enough
-      if(request.escrow_receipt.amount < current_sale_state.min_next_bid){
+      if(request.escrow_receipt.amount < required_bid){
         //if the bid is too low we should refund their escrow
         debug if(debug_channel.bid) D.print("refunding not high enough bid "  # debug_show(verified.found_asset.escrow.amount));
         let service : Types.Service = actor((Principal.toText(state.canister())));
@@ -4222,23 +4366,7 @@ module {
               //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
               //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
 
-              if(canister_call == false){
-                switch(await* escrow_nft_origyn(state,
-                    {deposit =
-                      {
-                        request.escrow_receipt with 
-                        sale_id = ?request.sale_id;
-                        trx_id = null;
-                      }; 
-                    lock_to_date = null; token_id = request.escrow_receipt.token_id}
-                  , caller)){
-                    //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
-                    case(#awaited(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
-                    case(#trappable(newEscrow))return await* bid_nft_origyn(state, request, caller, true);
-                    case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
-                    case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
-                  };
-              } else return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller)))
+              return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn revalidate failed " # err.flag_point, ?caller)))
             };
             case(#ok(res)) res;
         };
@@ -4284,7 +4412,9 @@ module {
               //update state
               debug if(debug_channel.bid) D.print("updating the state" # debug_show(request));
               current_sale_state.current_bid_amount := request.escrow_receipt.amount;
-              current_sale_state.min_next_bid := newMinBid;
+              if(dutch == false){
+                current_sale_state.min_next_bid := newMinBid;
+              };
               current_sale_state.current_escrow := ?request.escrow_receipt;
               current_sale_state.current_broker_id := request.broker_id;
               ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
@@ -4294,7 +4424,9 @@ module {
               //update state
               debug if(debug_channel.bid) D.print("Before" # debug_show(val.amount) # debug_show(val));
               current_sale_state.current_bid_amount := request.escrow_receipt.amount;
-              current_sale_state.min_next_bid := newMinBid;
+              if(dutch == false){
+                current_sale_state.min_next_bid := newMinBid;
+              };
               current_sale_state.current_escrow := ?request.escrow_receipt;
               current_sale_state.current_broker_id := request.broker_id;
               ignore Map.put<Principal, Int>(current_sale_state.participants, phash, caller, state.get_time());
@@ -4318,7 +4450,7 @@ module {
             };
           };
 
-          if(buy_now){
+          if(buy_now or dutch){
 
             debug if(debug_channel.bid) D.print("handling buy now");
 
@@ -4359,7 +4491,7 @@ module {
           return switch(auction_status.config){
             case(#auction(auction_config)) return auction_config.token;
             case(#ask(?auction_config)) {
-              let ?(#token(spec)) = Map_8_1_0.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(auction_config, MigrationTypes.Current.ask_feature_set_tool, #token) else {
+              let ?(#token(spec)) = Map.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(auction_config, MigrationTypes.Current.ask_feature_set_tool, #token) else {
                 debug if(debug_channel.bid) D.print("strange askconfig");
                 D.trap("unreachable");
               };

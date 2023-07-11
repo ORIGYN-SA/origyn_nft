@@ -18,7 +18,7 @@ import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
 import StableBuffer "mo:stablebuffer/StableBuffer";
-import Map_8_1_0 "mo:map_8_1_0/Map";
+
 
 module {
 
@@ -657,12 +657,12 @@ module {
 
     let candy_buffer = Buffer.Buffer<CandyTypes.PropertyShared>(1);
 
-    let items : Map_8_1_0.Map<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature> = switch(val){
+    let items : Map.Map<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature> = switch(val){
       case(?val) val;
-      case(null) Map_8_1_0.new<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(MigrationTypes.Current.ask_feature_set_tool);
+      case(null) Map.new<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>();
     };
 
-    for(thisItem in Map_8_1_0.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(items)){
+    for(thisItem in Map.vals<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(items)){
       switch(thisItem){
         case(#atomic){
           candy_buffer.add(

@@ -89,14 +89,14 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             "test nft",
             [
 
-              
+              S.test("testDutch", switch (await testDutch()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
               S.test("testRecognizeEscrow", switch (await testRecognizeEscrow()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
               
               S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
 
               S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), 
               S.test("testAuction_v2", switch(await testAuction_v2()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-               S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -2149,6 +2149,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print("end proper");
             D.print(debug_show(end_proper));
 
+            //create wallets to force rounds
+            let fake_wallet = await TestWalletDef.test_wallet();
+            let fake_wallet2 = await TestWalletDef.test_wallet();
+            let fake_wallet3 = await TestWalletDef.test_wallet();
+
             let a_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
             let b_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
             let n_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
@@ -2163,6 +2168,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print("canister wallet " # debug_show((Principal.fromActor(canister),canister_balance, canister_balance2, canister_balance3, canister_balance5)));
             D.print("net wallet " # debug_show((Principal.fromActor(net_wallet),net_balance, net_balance2, net_balance3, net_balance5)));
         //test balances
+
+        
 
         let suite = S.suite("test royalties", [
 
@@ -2687,6 +2694,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("end again");
         D.print(debug_show (end_again));
 
+         //create fake wallet for time duration
+        let fake_wallet = await TestWalletDef.test_wallet();
+
         //try to withdraw winning bid NFT-110
         let a_withdraw_during_win = await a_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", 101 * 10 ** 8, null);
 
@@ -2698,6 +2708,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let a_sale_status_over_new_owner = await canister.nft_origyn("1");
 
         // //check transaction log
+
+        //create fake wallet for time duration
+
+       
 
         //check transaction log for sale
         let a_history_3 = await canister.history_nft_origyn("1", null, null); //gets all history
@@ -3259,8 +3273,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         case (#ok(res)) {
 
                             if (res.size() > 1) {
-                                switch (res[res.size() -1].txn_type) {
+                                switch (res[res.size() - 2].txn_type) {
+
                                     case (#sale_ended(details)) {
+                                      D.print("sale_ended");
+                                      D.print(debug_show (details));
                                         if (
                                             Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
                                         ) {
@@ -3332,7 +3349,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     switch (end_again) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
-                            if (err.number == 2000) {
+                            if (err.number == 4006) {
                                 //new owner so unauthorized
                                 "correct number";
                             } else {
@@ -3566,7 +3583,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
            S.test("sale withdraw in history", switch(owner_history_withdraw){case(#ok(res)){
                D.print("sales withdraw history");
                D.print(debug_show(res));
-                switch(res[res.size()-2].txn_type){
+                switch(res[res.size()-1].txn_type){
                     case(#sale_withdraw(details)){
                         D.print(debug_show(details));
                         if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
@@ -3812,6 +3829,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let aRandom = await TestWalletDef.test_wallet();
 
         let aRandom2 = await TestWalletDef.test_wallet();
+        let aRandom3 = await TestWalletDef.test_wallet();
+        let aRandom4 = await TestWalletDef.test_wallet();
 
         //lets make sure that we were notified
         let notifications = await a_wallet.get_notifications();
@@ -4093,6 +4112,14 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("valid 3");
         D.print(debug_show (a_wallet_try_bid_valid_3));
 
+        //force a round?
+
+        let aRandom5 = await TestWalletDef.test_wallet();
+
+        let aRandom6 = await TestWalletDef.test_wallet();
+        let aRandom7 = await TestWalletDef.test_wallet();
+        let aRandom8 = await TestWalletDef.test_wallet();
+
         //try to end auction before it is time should fail
         D.print("end before");
         
@@ -4110,6 +4137,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let time_result = await canister.__advance_time(end_date + 1);
         D.print("new time");
         D.print(debug_show (time_result));
+
+        let aRandom9 = await TestWalletDef.test_wallet();
+
+        let aRandom10 = await TestWalletDef.test_wallet();
+        let aRandom11 = await TestWalletDef.test_wallet();
+        let aRandom12 = await TestWalletDef.test_wallet();
 
         //end auction
         let end_proper = await canister.sale_nft_origyn(#end_sale("1"));
@@ -4689,12 +4722,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 ), // MKT0036
 
                 S.test(
-                    "transaction history have the transfer - auction",
+                    "transaction history have the transfer - auction 4699",
                     switch (a_history_3) {
                         case (#ok(res)) {
 
                             if (res.size() > 1) {
-                                switch (res[res.size() -1].txn_type) {
+                                switch (res[res.size() - 2].txn_type) {
                                     case (#sale_ended(details)) {
                                         if (
                                             Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
@@ -4767,7 +4800,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                     switch (end_again) {
                         case (#ok(res)) { "unexpected success" };
                         case (#err(err)) {
-                            if (err.number == 2000) {
+                            if (err.number == 4006) {
                                 //new owner so unauthorized
                                 "correct number";
                             } else {
@@ -5001,7 +5034,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
            S.test("sale withdraw in history", switch(owner_history_withdraw){case(#ok(res)){
                D.print("sales withdraw history");
                D.print(debug_show(res));
-                switch(res[res.size()-2].txn_type){
+                switch(res[res.size()-1].txn_type){
                     case(#sale_withdraw(details)){
                         D.print(debug_show(details));
                         if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
@@ -5118,6 +5151,899 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             }, M.equals<Text>(T.text("correct response"))),
 
             S.test("a was notified of sale", notifications.size(), M.equals<Nat>(T.nat(1))),
+         ]);
+
+         D.print("suite running");
+
+         S.run(suite);
+
+          D.print("suite over");
+
+        return #success;
+
+    };
+
+    public shared func testDutch() : async { #success; #fail : Text } {
+        D.print("running Dutch");
+
+        let dfx : DFXTypes.Service = actor (Principal.toText(dfx_ledger));
+
+        let dfx2 : DFXTypes.Service = actor (Principal.toText(dfx_ledger2));
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        D.print("A wallet canister is " # debug_show(Principal.fromActor(a_wallet)));
+        let b_wallet = await TestWalletDef.test_wallet();
+        
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+            
+            
+        let funding_result_b =  await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        D.print("funding result b2 " # debug_show (funding_result_b2));
+
+        let newPrincipal = await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+
+        
+
+        let initialOwnerBalance = await dfx.icrc1_balance_of( {owner = Principal.fromActor(this); subaccount = null});
+
+        D.print("initialOwnerBalance = " # debug_show(initialOwnerBalance));
+
+        let canister : Types.Service = actor (Principal.toText(newPrincipal));
+
+        D.print("NFT Canister is " # debug_show(Principal.fromActor(canister)));
+
+        let mode = canister.__set_time_mode(#test);
+        let atime = canister.__advance_time(Time.now());
+        let start_time = Time.now();
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
+        let standardStage3 = await utils.buildStandardNFT("3", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
+
+        let standardStage4 = await utils.buildStandardNFT("4", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
+
+        D.print("Minting");
+        let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account
+        let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this))); //mint to the test account
+        let mint_attempt3 = await canister.mint_nft_origyn("3", #principal(Principal.fromActor(this))); //mint to the test account
+
+        let mint_attempt4 = await canister.mint_nft_origyn("4", #principal(Principal.fromActor(this))); //mint to the test account
+
+        D.print("start auction fail " # debug_show ((mint_attempt, mint_attempt2)));
+        //non owner start auction should fail MKT0019
+        let start_auction_attempt_fail = await a_wallet.try_start_ask(Principal.fromActor(canister), Principal.fromActor(dfx), "1", null);
+
+        D.print("start auction owner");
+        let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
+                    #reserve(20 * 10 ** 8),
+                    #token(#ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    })),
+                    #start_price(100 * 10 ** 8),
+                    #ending(#date(start_time + DAY_LENGTH)),
+                    #dutch({
+                      time_unit=#minute(1);
+                      decay_type=#flat(100000000);
+                    })
+                ]);
+
+        let option_buffer_2 = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
+            #reserve(20 * 10 ** 8),
+            #token(#ic({
+              canister = Principal.fromActor(dfx);
+              standard =  #Ledger;
+              decimals = 8;
+              symbol = "LDG";
+              fee = ?200000;
+              id = null;
+            })),
+            #start_price(100 * 10 ** 8),
+            #ending(#date(start_time + DAY_LENGTH)),
+            #dutch({
+              time_unit=#minute(1);
+              decay_type=#percent(0.1);
+            })
+        ]);
+
+        let end_date = start_time + DAY_LENGTH;
+
+        D.print("end_date " # debug_show(end_date));
+        //start an auction by owner
+        let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask (?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            };
+        });
+
+         let start_auction_attempt_owner_2 = await canister.market_transfer_nft_origyn({
+            token_id = "2";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask (?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            };
+        });
+
+        let start_auction_attempt_owner_3 = await canister.market_transfer_nft_origyn({
+            token_id = "3";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask (?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            };
+        });
+
+        let start_auction_attempt_owner_4 = await canister.market_transfer_nft_origyn({
+            token_id = "4";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask (?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer_2));
+            };
+        });
+
+        D.print("get sale id " # debug_show(start_auction_attempt_owner));
+        D.print("get sale id 2 " # debug_show(start_auction_attempt_owner_2));
+        D.print("get sale id 3 " # debug_show(start_auction_attempt_owner_3));
+        D.print("get sale id 4 " # debug_show(start_auction_attempt_owner_4));
+
+        let current_sales_id = switch (start_auction_attempt_owner) {
+            case (#ok(val)) {
+                switch (val.txn_type) {
+                    case (#sale_opened(sale_data)) {
+                        sale_data.sale_id;
+                    };
+                    case (_) {
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    };
+                };
+
+            };
+            case (#err(item)) {
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+        let current_sales_id_2 = switch (start_auction_attempt_owner_2) {
+            case (#ok(val)) {
+                switch (val.txn_type) {
+                    case (#sale_opened(sale_data)) {
+                        sale_data.sale_id;
+                    };
+                    case (_) {
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    };
+                };
+
+            };
+            case (#err(item)) {
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+        let current_sales_id_3 = switch (start_auction_attempt_owner_3) {
+            case (#ok(val)) {
+                switch (val.txn_type) {
+                    case (#sale_opened(sale_data)) {
+                        sale_data.sale_id;
+                    };
+                    case (_) {
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    };
+                };
+
+            };
+            case (#err(item)) {
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+        let current_sales_id_4 = switch (start_auction_attempt_owner_4) {
+            case (#ok(val)) {
+                switch (val.txn_type) {
+                    case (#sale_opened(sale_data)) {
+                        sale_data.sale_id;
+                    };
+                    case (_) {
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    };
+                };
+
+            };
+            case (#err(item)) {
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+        let active_sale_info_1 = await canister.sale_info_nft_origyn(#active(null));
+
+        D.print("active_sale_info_1" # debug_show(active_sale_info_1));
+
+        let active_sale_info_by_id = await canister.sale_info_nft_origyn(#status(current_sales_id));
+
+        D.print("starting again");
+        //try starting again//should fail MKT0018
+        let start_auction_attempt_owner_already_started = await canister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask(?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            };
+        });
+
+        D.print(" already started result ");
+        D.print(debug_show(start_auction_attempt_owner_already_started));
+
+        //MKT0020 - try to transfer with an open auction
+        let transfer_owner_after_auction = await canister.share_wallet_nft_origyn({
+            token_id = "1";
+            from = #principal(Principal.fromActor(this));
+            to = #principal(Principal.fromActor(b_wallet));
+        });
+
+        D.print(" transfer_owner_after_auction ");
+        D.print(debug_show(start_auction_attempt_owner_already_started));
+
+        
+
+        //place escrow
+        D.print("sending tokens to canisters");
+        let a_wallet_send_tokens_to_canister = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    });
+          seller = #principal(Principal.fromActor(this));
+          buyer = #principal(Principal.fromActor(a_wallet));
+          token_id = "1";
+          amount = (100 * 10 ** 8)
+        }
+        , Principal.fromActor(canister));
+
+        D.print(" a_wallet_send_tokens_to_canister ");
+        D.print(debug_show(a_wallet_send_tokens_to_canister));
+
+        let a_balance_before_bad_bid = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+        D.print(" a_balance_before_bad_bid ");
+        D.print(debug_show(a_balance_before_bad_bid));
+
+        //balance should be 100 ICP + 800000
+
+        let block = switch (a_wallet_send_tokens_to_canister) {
+            case (#ok(ablock)) {
+                ablock;
+            };
+            case (#err(other)) {
+                D.print("ledger didnt work" # debug_show (other));
+                return #fail("ledger didnt work");
+            };
+        };
+
+        D.print(" block ");
+        D.print(debug_show(block));
+
+        //place a bid below start price
+
+        let a_wallet_try_bid_below_start = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 50 * 10 ** 7 + 200000, "1", current_sales_id, null);
+        //aboves should refund the bid
+        //todo: bid should be refunded
+
+        D.print("the after low bid ");
+        D.print(debug_show (a_wallet_try_bid_below_start));
+
+        let a_balance_after_bad_bid = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+        D.print("a balance " # debug_show (a_balance_after_bad_bid));
+
+        D.print("Sending real escrow now 2");
+        let a_wallet_try_escrow_general_staged2b = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    });
+          seller = #principal(Principal.fromActor(this));
+          buyer = #principal(Principal.fromActor(a_wallet));
+          token_id = "1";
+          amount = (101 * 10 ** 8)
+        }
+        , Principal.fromActor(canister));
+        //this should clear out the deposit account
+
+        D.print("Sending real escrow now result 2" # debug_show (a_wallet_try_escrow_general_staged2b));
+
+
+      
+        let a_balance_after_bad_bid3 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+        D.print("a balance 3 " # debug_show (a_balance_after_bad_bid3));
+
+        //place a valid bid MKT0027
+        let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 100 * 10 ** 8, "1", current_sales_id, null);
+        D.print("a_wallet_try_bid_valid " # debug_show (a_wallet_try_bid_valid));
+
+        let a_balance_after_bad_bid4 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+        D.print("a balance 4 " # debug_show (a_balance_after_bad_bid4));
+
+        //check transaction log for bid MKT0033, TRX0005
+        let a_history_1 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        D.print("history1" # debug_show (a_history_1));
+
+        let active_sale_info_2 = await canister.sale_info_nft_origyn(#active(null));
+
+        D.print("active_sale_info_2" # debug_show(active_sale_info_2));
+
+
+        //deposit escrow for two upcoming bids
+        D.print("sending tokens to canisters for b");
+        
+        let b_wallet_send_tokens_to_canister = await b_wallet.send_ledger_escrow(Principal.fromActor(dfx), {
+          token = #ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    });
+          seller = #principal(Principal.fromActor(this));
+          buyer = #principal(Principal.fromActor(b_wallet));
+          token_id = "2";
+          amount = (90 * 10 ** 8)
+        }, Principal.fromActor(canister));
+
+        //advance the clock one minute and check the price
+        let time_result = await canister.__advance_time(start_time + (60 * 10 ** 9));
+
+        let active_sale_info_3 = await canister.sale_info_nft_origyn(#status(current_sales_id_2));
+        let percent_sale_info_3 = await canister.sale_info_nft_origyn(#status(current_sales_id_4));
+
+        D.print("active_sale_info_3 ");
+        D.print(debug_show (active_sale_info_3));
+        D.print(debug_show (percent_sale_info_3));
+
+        let time_result_2_half = await canister.__advance_time(start_time + ((60 * 10 ** 9)) + (30 * 10 ** 9));
+
+        let active_sale_info_half = await canister.sale_info_nft_origyn(#status(current_sales_id_2));
+        let percent_sale_info_half = await canister.sale_info_nft_origyn(#status(current_sales_id_4));
+
+         D.print("percent_sale_info_half ");
+        D.print(debug_show (percent_sale_info_half));
+
+
+        //advance the clock 9 more minutes and check the clock
+        let time_result_2 = await canister.__advance_time(start_time + ((60 * 10 ** 9) * 10));
+
+        let active_sale_info_4 = await canister.sale_info_nft_origyn(#status(current_sales_id_2));
+        let percent_sale_info_4 = await canister.sale_info_nft_origyn(#status(current_sales_id_4));
+
+         D.print("active_sale_info_4 ");
+        D.print(debug_show (active_sale_info_4));
+        D.print(debug_show (percent_sale_info_4));
+
+        
+
+        //place a low bid bid
+        let b_wallet_try_bid_lower = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 9000000000, "2", current_sales_id_2, null);
+
+        
+        D.print("b_wallet_try_bid_lower ");
+        D.print(debug_show (b_wallet_try_bid_lower));
+
+        let b_balance_after_bid = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(b_wallet))); //gets all history
+
+        D.print("found balance after bid ");
+        D.print(debug_show (b_balance_after_bid));
+
+        //check transaction log for bid MKT0033, TRX0005
+        let b_history_1 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        D.print("found balance after bid ");
+        D.print(debug_show (b_history_1));
+
+        
+
+        //advance time 90 minutes
+        let time_result4 = await canister.__advance_time(start_time + ((60 * 10 ** 9) * 100));
+        D.print("new time");
+        D.print(debug_show (time_result4));
+
+        //make sure only goes to reserve
+        let active_sale_info_5 = await canister.sale_info_nft_origyn(#status(current_sales_id_3));
+        let percent_sale_info_5 = await canister.sale_info_nft_origyn(#status(current_sales_id_4));
+
+
+         D.print("active_sale_info_5 ");
+        D.print(debug_show (active_sale_info_5));
+        D.print(debug_show (percent_sale_info_5));
+
+
+        //end auction
+
+        let time_result5 = await canister.__advance_time(start_time + ((60 * 10 ** 9) * 300));
+        D.print("new time");
+        D.print(debug_show (time_result5));
+
+        let end_proper = await canister.sale_nft_origyn(#end_sale("3"));
+        D.print("end proper");
+        D.print(debug_show (end_proper));
+
+        //end again, should fail
+        let end_again = await canister.sale_nft_origyn(#end_sale("3"));
+        D.print("end again");
+        D.print(debug_show (end_again));
+
+        let active_sale_info_6 = await canister.sale_info_nft_origyn(#active(null));
+
+        //NFT-94 check ownership
+        //check owner of 3 is still canister
+        let owner_after_close = await canister.bearer_nft_origyn("3");
+
+        let suite = S.suite(
+            "test staged Nft ask",
+            [
+
+                S.test(
+                    "test mint attempt ask",
+                    switch (mint_attempt) {
+                        case (#ok(res)) {
+
+                            "correct response";
+
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ),
+                S.test(
+                    "fail if non owner tries to start auction ask",
+                    switch (start_auction_attempt_fail) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 2000) {
+                                //unauthorized
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0019
+                S.test(
+                    "fail if auction already running ask",
+                    switch (start_auction_attempt_owner_already_started) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 13) {
+                                //existing sale
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0018
+                S.test(
+                    "auction is started ask ",
+                    switch (start_auction_attempt_owner) {
+                        case (#ok(res)) {
+                            switch (res.txn_type) {
+                                case (#sale_opened(details)) {
+                                    "correct response";
+                                };
+                                case (_) {
+                                    "bad transaction type";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //MKT0021
+
+                S.test(
+                    "transfer ownerfail if auction already running ask",
+                    switch (transfer_owner_after_auction) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 13) {
+                                //existing sale
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0022
+                S.test(
+                    "fail if bid too low ask",
+                    switch (a_wallet_try_bid_below_start) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 4004) {
+                                //below bid price
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0023
+              
+                S.test(
+                    "bid is succesful ask ",
+                    switch (a_wallet_try_bid_valid) {
+                        case (#ok(res)) {
+                            D.print("as bid");
+                            D.print(debug_show (a_wallet_try_bid_valid));
+                            switch (res.txn_type) {
+                                case (#sale_ended(details)) {
+                                    if (
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 100 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                    ) {
+                                        "correct response";
+                                    } else {
+                                        "details didnt match" # debug_show (details);
+                                    };
+                                };
+                                case (_) {
+                                    "bad transaction bid";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), 
+                S.test(
+                    "transaction history has the bid ask",
+                    switch (a_history_1) {
+                        case (#ok(res)) {
+
+                            D.print("where ismy history");
+                            D.print(debug_show (a_history_1));
+                            if (res.size() > 0) {
+                                switch (res[res.size() - 3].txn_type) {
+                                    case (#auction_bid(details)) {
+                                        if (
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 100 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                        ) {
+                                            "correct response";
+                                        } else {
+                                            "details didnt match" # debug_show (details);
+                                        };
+                                    };
+                                    case (_) {
+                                        "bad history bid";
+                                    };
+                                };
+                            } else {
+                                "size was 0";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), 
+                S.test(
+                    "transaction history have the empty cancel - ask 3",
+                    switch (end_proper) {
+                        case (#ok(#end_sale(res))) {
+                            D.print("transaction history have the transfer 2");
+                            D.print(debug_show (res));
+                            switch (res.txn_type) {
+                                case (#sale_ended(details)) {
+                                    if (
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(this))) and details.amount == 0 and Option.get(details.sale_id, "") == current_sales_id_3 and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                    ) {
+                                        "correct response";
+                                    } else {
+                                        "details didnt match" # debug_show (details);
+                                    };
+                                };
+                                case (_) {
+                                    "bad history sale";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                        case (_) { "unexpected error: " };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //todo: make a user story for adding a #sale_ended to the end of transaction log
+                S.test(
+                    "fail if auction already over ",
+                    switch (end_again) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 4006) {
+                                //already closed
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ),
+                S.test(
+                    "flat decreases after one cycle ",
+                    switch (end_again) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 4006) {
+                                //already closed
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), 
+            
+            
+           
+            S.test("sale info has active and only active sale in it", switch(active_sale_info_1){
+              case(#ok(#active(val))){
+                if(val.records.size() == 4 and val.records[0].0 == "1" and val.records[3].0 == "4"){
+                  "correct response";
+                }else {
+                  "bad response" # debug_show(active_sale_info_1)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_1);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("sale info has three active sale after close of first", switch(active_sale_info_2){
+              case(#ok(#active(val))){
+                if(val.records.size() == 3 and val.records[0].0 == "2"){
+                  "correct response";
+                } else {
+                  "bad response" # debug_show(active_sale_info_2)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_2);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            
+            S.test("flat sale degrades after one minute", switch(active_sale_info_3){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 9_900_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 9_900_000_000))
+                    };
+                  };
+                };
+                
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_3);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("percentage degrades after one minute", switch(percent_sale_info_3){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 9_000_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 9_000_000_000))
+                    };
+                  };
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(percent_sale_info_3);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("flat sale degrades after one and a half minute", switch(active_sale_info_half){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 9_900_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 9_900_000_000))
+                    };
+                  };
+                };
+                
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_half);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("percentage degrades after one and a half minute", switch(percent_sale_info_half){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 9_000_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 9_000_000_000))
+                    };
+                  };
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(percent_sale_info_half);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("flat sale degrades after ten minutes", switch(active_sale_info_4){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 9_000_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 9_000_000_000))
+                    };
+                  };
+                };
+                
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_4);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("percentage degrades after ten minute", switch(percent_sale_info_4){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 3_486_784_401){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 3_486_784_401))
+                    };
+                  };
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(percent_sale_info_4);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("flat sale degrades to reserve eventually", switch(active_sale_info_5){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 2_000_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 2_000_000_000))
+                    };
+                  };
+                };
+                
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_5);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("percentage degrades to reserve eventually", switch(percent_sale_info_5){
+              case(#ok(#status(?val))){
+                switch(val.sale_type){
+                  case(#auction(val)){
+                    if(val.min_next_bid == 2_000_000_000){
+                      "correct response";
+                    } else {
+                      "bad value" # debug_show((val.min_next_bid, 2_000_000_000))
+                    };
+                  };
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(percent_sale_info_5);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+
          ]);
 
          D.print("suite running");
