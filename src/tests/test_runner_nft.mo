@@ -5237,7 +5237,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         //non owner start auction should fail MKT0019
         let start_auction_attempt_fail = await a_wallet.try_start_ask(Principal.fromActor(canister), Principal.fromActor(dfx), "1", null);
 
-        D.print("start auction owner");
+        D.print("start auction dutch");
         let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
                     #reserve(20 * 10 ** 8),
                     #token(#ic({

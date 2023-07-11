@@ -45,6 +45,62 @@ v0.1.5
 * Default start date for ask is the current time.
 * Default token is OGY.
 * Min increase by percentage activated.
+* Notify canisters of new sales using the notify interface.  Implement this interface in your canister and submit your principal with the sale and you will be notified of the new sale if created.
+
+```
+public type Subscriber = actor {
+    notify_sale_nft_origyn : shared (SubscriberNotification) -> ();
+};
+```
+
+* New #ask sale type with a simpler interface. A sale can now be started with all defaults by providing a much simpler interface:
+
+```
+let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({
+    token_id = "1";
+    sales_config = {
+        escrow_receipt = null;
+        broker_id = null;
+        pricing = #ask(null);
+    };
+});
+```
+
+* pricing annotations can be added by adding an opt vec of a combination of the following:
+```
+public type AskFeature = {
+      #buy_now: Nat; //set a buy it now price
+      #allow_list : [Principal]; //restrict access to an auction
+      #notify: [Principal]; //notify canisters using the new notify interface
+      #reserve: Nat; //set a reserve price
+      #start_date: Int; //set a date in the future for the sale to start. Defaults to now
+      #start_price: Nat; //set a start price.  Defaults to 1.
+      #min_increase: {  //set a min increase.  Defaults to 5%.
+        #percentage: Float;
+        #amount: Nat;
+      };
+      #ending: { //set an end time for the sale. Defaults to 1 minute.
+        #date: Int; //a specific date
+        #timeout: Nat; //nanoseconds in the future
+      };
+      #token: TokenSpec; //the token spec for the currency to use for the Sale.  Defaults to OGY
+      #dutch: {
+        time_unit: { //increment period and multiple
+          #hour : Nat;
+          #minute : Nat;
+          #day : Nat;
+        };
+        decay_type:{ //amount to decrease the price at each interval
+          #flat: Nat;
+          #percent: Float;
+        };
+    };  
+      
+};
+
+```
+
+* Dutch auctions are now available using the new #ask type. You can set a high price and then decay by the minute, day, hour by a flat amount or a percentage.  Reserve prices can also be provided.
 
 v0.1.4
 
