@@ -96,7 +96,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
               S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), 
               S.test("testAuction_v2", switch(await testAuction_v2()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-               S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
@@ -3829,6 +3829,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let aRandom = await TestWalletDef.test_wallet();
 
         let aRandom2 = await TestWalletDef.test_wallet();
+        let aRandom3 = await TestWalletDef.test_wallet();
+        let aRandom4 = await TestWalletDef.test_wallet();
 
         //lets make sure that we were notified
         let notifications = await a_wallet.get_notifications();
@@ -4110,6 +4112,14 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("valid 3");
         D.print(debug_show (a_wallet_try_bid_valid_3));
 
+        //force a round?
+
+        let aRandom5 = await TestWalletDef.test_wallet();
+
+        let aRandom6 = await TestWalletDef.test_wallet();
+        let aRandom7 = await TestWalletDef.test_wallet();
+        let aRandom8 = await TestWalletDef.test_wallet();
+
         //try to end auction before it is time should fail
         D.print("end before");
         
@@ -4127,6 +4137,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let time_result = await canister.__advance_time(end_date + 1);
         D.print("new time");
         D.print(debug_show (time_result));
+
+        let aRandom9 = await TestWalletDef.test_wallet();
+
+        let aRandom10 = await TestWalletDef.test_wallet();
+        let aRandom11 = await TestWalletDef.test_wallet();
+        let aRandom12 = await TestWalletDef.test_wallet();
 
         //end auction
         let end_proper = await canister.sale_nft_origyn(#end_sale("1"));

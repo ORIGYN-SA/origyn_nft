@@ -6,6 +6,7 @@ import CandyWorkspace "mo:candy_0_2_0/workspace";
 import v0_1_4 "../v000_001_004/types";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Blob "mo:base/Blob";
+import Deque "mo:base/Deque";
 import Prim "mo:prim";
 
 
@@ -25,9 +26,9 @@ import Droute "mo:droute_client/Droute";
 
 import KYCTypes "mo:icrc17_kyc/types";
 import KYCClass "mo:icrc17_kyc";
-import Map_8_1_0 "mo:map_8_1_0/Map";
-import Set_8_1_0 "mo:map_8_1_0/Set";
-import MapUtils_8_1_0 "mo:map_8_1_0/utils";
+import Map "mo:map_7_0_0/Map";
+import Set "mo:map_7_0_0/Set";
+
 
 // please do not import any types from your project outside migrations folder here
 // it can lead to bugs when you change those types later, because migration types should not be changed
@@ -300,7 +301,7 @@ module {
       };
     };
 
-  public type AskFeatureMap = Map_8_1_0.Map<AskFeatureKey, AskFeature>;
+  public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
 
   public type AskConfig = ?AskFeatureMap;
 
@@ -357,7 +358,7 @@ module {
     };
   };
 
-  public func ask_feature_set_hash (a: AskFeatureKey) : Nat32 {
+  public func ask_feature_set_hash (a: AskFeatureKey) : Nat {
 
     switch(a){
       case(#atomic){
@@ -405,11 +406,11 @@ module {
     };
   };
 
-  public func features_to_map(items: [AskFeature]) : Map_8_1_0.Map<AskFeatureKey, AskFeature>{
-    let feature_set = Map_8_1_0.new<AskFeatureKey, AskFeature>(ask_feature_set_tool);
+  public func features_to_map(items: [AskFeature]) : Map.Map<AskFeatureKey, AskFeature>{
+    let feature_set = Map.new<AskFeatureKey, AskFeature>();
 
     for(thisItem in items.vals()){
-      ignore Map_8_1_0.put<AskFeatureKey,AskFeature>(feature_set, ask_feature_set_tool, 
+      ignore Map.put<AskFeatureKey,AskFeature>(feature_set, ask_feature_set_tool, 
       feature_to_key(thisItem), thisItem);
     };
 
@@ -464,7 +465,8 @@ module {
       };
   };
 
-  public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq, func() = #atomic) : MapUtils_8_1_0.HashUtils<AskFeatureKey>;
+  //public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq, func() = #atomic) : MapUtils.HashUtils<AskFeatureKey>;
+  public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq) : MapUtils.HashUtils<AskFeatureKey>;
 
   public type PricingConfig = {
       #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
@@ -514,7 +516,7 @@ module {
         #closed;
         #not_started;
     };
-    notify_queue: ?Map_8_1_0.Map<Principal, ?SubscriptionID>;
+    var notify_queue: ?Deque.Deque<(Principal, ?SubscriptionID)>;
     var winner: ?Account;
   };
 
@@ -857,7 +859,7 @@ module {
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
-    var pending_sale_notifications : Set_8_1_0.Set<Text>;
+    var pending_sale_notifications : Set.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;

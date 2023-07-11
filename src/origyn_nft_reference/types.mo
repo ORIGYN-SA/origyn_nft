@@ -17,8 +17,6 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
 import MapUtils "mo:map/utils";
-import Map_8_1_0 "mo:map_8_1_0/Map";
-import MapUtils_8_1_0 "mo:map_8_1_0/utils";
 import SB "mo:stablebuffer/StableBuffer";
 import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
@@ -414,7 +412,7 @@ module {
             switch(e){
               case(null) #ask(null);
               case(?items){
-                #ask(?(Iter.toArray<AskFeature>(Map_8_1_0.vals(items))));
+                #ask(?(Iter.toArray<AskFeature>(Map.vals(items))));
               };
             }
           };

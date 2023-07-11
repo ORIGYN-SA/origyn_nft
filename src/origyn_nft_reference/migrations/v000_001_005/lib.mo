@@ -1,11 +1,12 @@
 import D "mo:base/Debug"; 
+import Deque "mo:base/Deque";
 
 import CandyTypes = "mo:candy/types";
-import MapUtils_8_1_0 "mo:map_8_1_0/utils";
-import Map_8_1_0 "mo:map_8_1_0/Map";
+
 import Map_lib "mo:map_7_0_0/Map";
+import Set_lib "mo:map_7_0_0/Set";
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
-import Set_8_1_0 "mo:map_8_1_0/Set";
+
 
 import MigrationTypes "../types";
 import v0_1_4 "../v000_001_004/types";
@@ -197,7 +198,7 @@ module {
             var participants = val.participants;
             var status = val.status;
             var winner = val.winner;
-            notify_queue = ?(Map_8_1_0.new<Principal, ?MigrationTypes.Current.SubscriptionID>(MapUtils_8_1_0.phash))
+            var notify_queue = ?(Deque.empty<(Principal, ?MigrationTypes.Current.SubscriptionID)>())
           };
         };
         case(_){
@@ -319,8 +320,7 @@ module {
       var kyc_cache = state.kyc_cache;
       var droute = state.droute;
       var use_stableBTree = state.use_stableBTree;
-      var pending_sale_notifications = Set_8_1_0.new<Text>(MapUtils_8_1_0.thash);
-      var pending_sale_dutch = Set_8_1_0.new<Text>(MapUtils_8_1_0.thash);
+      var pending_sale_notifications = Set_lib.new<Text>();
     }));
 };
   
