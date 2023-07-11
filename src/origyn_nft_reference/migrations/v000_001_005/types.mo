@@ -505,7 +505,6 @@ module {
     var start_date: Int;
     token : TokenSpec;
     var min_next_bid: Nat;
-    var next_dutch_timer: ?(Nat, Int); //next price, date
     var current_escrow: ?EscrowReceipt;
     var wait_for_quiet_count: ?Nat;
     allow_list: ?Map.Map<Principal,Bool>; //empty set means everyone
@@ -859,7 +858,6 @@ module {
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var pending_sale_notifications : Set_8_1_0.Set<Text>;
-    var pending_sale_dutch : Set_8_1_0.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute: Droute.Droute;
     var kyc_cache : Map.Map<KYCTypes.KYCRequest,KYCTypes.KYCResultFuture>;

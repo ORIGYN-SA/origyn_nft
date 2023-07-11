@@ -197,7 +197,6 @@ shared (deployer) actor class Nft_Canister() = this {
   });
 
     var notify_timer : ?Nat = null;
-    var dutch_timer : ?(Nat, Int) = null;
 
 
     // Let us access state and pass it to other modules
@@ -213,14 +212,9 @@ shared (deployer) actor class Nft_Canister() = this {
             canistergeekLogger = canistergeekLogger;
             kyc_client = kyc_client;
             handle_notify = handle_notify;
-            handle_dutch = handle_dutch;
             notify_timer = {
               get = get_notify_timer;
               set = set_notify_timer;
-            };
-            dutch_timer = {
-              get = get_dutch_timer;
-              set = set_dutch_timer;
             };
         };
     };
@@ -244,24 +238,10 @@ shared (deployer) actor class Nft_Canister() = this {
         notify_timer := val;
     };
 
-    private func get_dutch_timer() : ?(Nat,Int) {
-        dutch_timer;
-    };
-
-     private func set_dutch_timer(val : ?(Nat,Int)) : () {
-        dutch_timer := val;
-    };
-
     func handle_notify(): async () {
       let state = get_state();
       
       await Market.handle_notify(get_state());
-    };
-
-    func handle_dutch(): async () {
-      let state = get_state();
-      
-      await Market.handle_dutch(get_state());
     };
 
     // set the `data_havester`
@@ -2115,7 +2095,9 @@ shared (deployer) actor class Nft_Canister() = this {
     private func _nft_origyn(token_id : Text, caller : Principal) : Types.NFTInfoResult {
         //D.print("Calling NFT_Origyn");
 
-        var metadata = switch (Metadata.get_metadata_for_token(get_state(), token_id, caller, null, state_current.collection_data.owner)) {
+        let this_state = get_state();
+
+        var metadata = switch (Metadata.get_metadata_for_token(this_state, token_id, caller, null, state_current.collection_data.owner)) {
             case (#err(err)) {
                 return #err(err);
             };
@@ -2131,7 +2113,15 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#Option(null)) { null };
             case (#Text(val)) {
                 do ? {
-                    Types.SalesStatus_stabalize_for_xfer(Map.get(state_current.nft_sales, Map.thash, val)!);
+                  let sale = Map.get(state_current.nft_sales, Map.thash, val)!;
+                  Types.SalesStatus_stabalize_for_xfer({
+                    sale with
+                    sale_type = switch(sale.sale_type){
+                      case(#auction(val)){
+                        #auction(Market.calc_dutch_price(this_state, val));
+                      };
+                    };
+                  });
                 };
             };
             case (_) {
@@ -3167,7 +3157,7 @@ shared (deployer) actor class Nft_Canister() = this {
         upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
 
         notify_timer := ?Timer.setTimer(#nanoseconds(1), handle_notify);
-        dutch_timer := ?(Timer.setTimer(#nanoseconds(1), handle_dutch), get_time() + 1);
+        
 
         // End Canistergeek
     };

@@ -332,20 +332,9 @@ module {
       #extensible: CandyTypes.CandyShared;
     };
 
-    public type DutchConfig = {
-        start_price: Nat;
-        decay_per_hour: {
-          #flat: Nat;
-          #percent: Float;
-        };
-        reserve: ?Nat;
-        start_date: Int;
-        allow_list : ?[Principal];
-        token: TokenSpec;
-    };
-
     public type AskConfig =  ?[AskFeature];
     public type AskConfigShared =  MigrationTypes.Current.AskConfigShared;
+    public type DutchParams =  MigrationTypes.Current.DutchParams;
   
     public type AskFeature = MigrationTypes.Current.AskFeature;
 
@@ -403,7 +392,6 @@ module {
         end_date : Int;
         start_date : Int;
         min_next_bid : Nat;
-        next_dutch_timer : ?(Nat, Int);
         token : TokenSpec;
         current_escrow : ?EscrowReceipt;
         wait_for_quiet_count : ?Nat;
@@ -416,35 +404,6 @@ module {
         };
         winner : ?Account;
     };
-
-    public type DutchStateStable = {
-    config: PricingConfig;
-     current_broker_id: ?Principal;
-     end_date: ?Int;
-     allow_list: ?[(Principal, Bool)]; //empty set means everyone
-     status: {
-        #open;
-        #closed;
-        #not_started;
-    };
-     winner: ?Account;
-  };
-
-  public type NiftyStateStable = {
-    config: PricingConfig;
-     current_broker_id: ?Principal;
-     end_date: Int;
-     min_bid: Nat;
-     allow_list: ?[(Principal, Bool)]; //empty set means everyone
-     status: {
-        #open;
-        #closed;
-        #not_started;
-    };
-     winner: ?Account;
-  };
-
-
 
     public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateShared {
       {
@@ -467,7 +426,6 @@ module {
         start_date = val.start_date;
         token = val.token;
         min_next_bid = val.min_next_bid;
-        next_dutch_timer = val.next_dutch_timer;
         current_escrow = val.current_escrow;
         wait_for_quiet_count = val.wait_for_quiet_count;
         allow_list = do ? {
@@ -536,14 +494,9 @@ module {
         kyc_client: KYC.kyc;
         canistergeekLogger : Canistergeek.Logger;
         handle_notify : () -> async();
-        handle_dutch : () -> async();
         notify_timer : {
           get: () ->?Nat;
           set: (?Nat) -> ();
-        };
-        dutch_timer : {
-          get: () ->?(Nat,Int);
-          set: (?(Nat,Int)) -> ();
         };
         //btreemap : Stable_Memory;
     };

@@ -1028,11 +1028,11 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                    };
                }; 
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //MKT0027
-            S.test("transaction history has the bid", switch(a_history_1){case(#ok(res)){
+            S.test("transaction history has the bid 1", switch(a_history_1){case(#ok(res)){
                
                D.print("where ismy history");
                D.print(debug_show(a_history_1));
-               switch(res[res.size()-1].txn_type){ 
+               switch(res[res.size()-2].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                             details.amount == ((10*10**8) + 1) and
@@ -1129,7 +1129,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(#ok(res)){
                 
                 
-                        switch(res[res.size()-1].txn_type){
+                        switch(res[res.size()-2].txn_type){
                             case(#sale_ended(details)){
                                 if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                                         details.amount == ((10*10**8) + 1) and
@@ -1155,7 +1155,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(#err(err)){"unexpected error: " # err.flag_point};
                 }, M.equals<Text>(T.text("correct response"))), //todo: make a user story for adding a #sale_ended to the end of transaction log
             S.test("fail if auction already over ", switch(end_again){case(#ok(res)){"unexpected success"};case(#err(err)){
-                if(err.number == 2000){ //new owner so unauthorized
+                if(err.number == 4_006){ //new owner so unauthorized
                     "correct number"
                 } else{
                     "wrong error " # debug_show(err);
@@ -1579,11 +1579,11 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                    };
                }; 
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //MKT0027
-            S.test("transaction history has the bid", switch(a_history_1){case(#ok(res)){
+            S.test("transaction history has the bid 2", switch(a_history_1){case(#ok(res)){
                
                D.print("where ismy history");
                D.print(debug_show(a_history_1));
-               switch(res[res.size()-1].txn_type){ 
+               switch(res[res.size()-2].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                             details.amount == ((10*10**8) + 1) and
@@ -1680,7 +1680,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(#ok(res)){
                 
                 
-                        switch(res[res.size()-1].txn_type){
+                        switch(res[res.size()-2].txn_type){
                             case(#sale_ended(details)){
                                 if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                                         details.amount == ((10*10**8) + 1) and
@@ -1706,7 +1706,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     case(#err(err)){"unexpected error: " # err.flag_point};
                 }, M.equals<Text>(T.text("correct response"))), //todo: make a user story for adding a #sale_ended to the end of transaction log
             S.test("fail if auction already over ", switch(end_again){case(#ok(res)){"unexpected success"};case(#err(err)){
-                if(err.number == 2000){ //new owner so unauthorized
+                if(err.number == 4_006){ //new owner so unauthorized
                     "correct number"
                 } else{
                     "wrong error " # debug_show(err);
@@ -2010,13 +2010,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //b should bit and should pass kyc
         let b_wallet_try_bid_valid = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), (10*10**8) + 1, "1", current_sales_id, null);
 
-
+        D.print("b_wallet_try_bid_valid "  # debug_show(b_wallet_try_bid_valid));
         D.print("waiting");
-        ignore await take_a_hot_minute();
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
+        let fake_wallet = await TestWalletDef.test_wallet();
+        let fake_wallet2 = await TestWalletDef.test_wallet();
         
         //forces a roundtrip;
         let y =  await canister.sale_info_secure_nft_origyn(#status(current_sales_id));
@@ -2084,11 +2081,11 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                    };
                }; 
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
-            S.test("transaction history has the bid", switch(a_history_3){case(#ok(res)){
+            S.test("transaction history has the bid 3", switch(a_history_3){case(#ok(res)){
                
-               D.print("where ismy history");
-               D.print(debug_show(a_history_1));
-               switch(res[res.size()-1].txn_type){ 
+               D.print("where is my history 3");
+               D.print(debug_show(a_history_3));
+               switch(res[res.size()-5].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
                             details.amount == ((10*10**8) + 1) and

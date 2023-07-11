@@ -50,11 +50,10 @@ module {
 
     
     public let NANOS = 1_000_000_000;
-    public let SECOND_LENGTH = 60_000_000_000;
-    public let MINUTE_LENGTH = 3_600_000_000_000;
-    public let HOUR_LENGTH = 216_000_000_000_000;
-    public let DAY_LENGTH = 5_184_000_000_000_000;
-    public let YEAR_LENGTH = 1_892_160_000_000_000_000;
+    public let MINUTE_LENGTH = 60_000_000_000;
+    public let HOUR_LENGTH = 3_600_000_000_000;
+    public let DAY_LENGTH = 86_400_000_000_000;
+    public let YEAR_LENGTH = 31_536_000_000_000_000; //365 days...no leap year
 
     public func OGY() : MigrationTypes.Current.TokenSpec {#ic({
         canister = Principal.fromText("jwcfb-hyaaa-aaaaj-aac4q-cai");
