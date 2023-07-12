@@ -44,7 +44,7 @@ v0.1.5
 * Default end date for ask is one minute after start.
 * Default start date for ask is the current time.
 * Default token is OGY.
-* Min increase by percentage activated.
+* Min increase by percentage activated. Default is 5%.
 * Notify canisters of new sales using the notify interface.  Implement this interface in your canister and submit your principal with the sale and you will be notified of the new sale if created.
 
 ```
