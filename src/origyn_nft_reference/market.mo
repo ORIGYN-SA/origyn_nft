@@ -1016,8 +1016,8 @@ module {
                     withdraw_to = thisRoyalty.seller;})));
                 };
                 debug if(debug_channel.royalties) D.print("attempt to distribute royalties request auction" # debug_show(Buffer.toArray(request_buffer)));
-                let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-                debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
+                let future = service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
+                //debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
               switch(Metadata.add_transaction_record(state,{
@@ -1791,8 +1791,8 @@ module {
             };
             debug if(debug_channel.royalties) D.print("attempt to distribute royalties request instant" # debug_show(Buffer.toArray(request_buffer)));
 
-            let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-            debug if(debug_channel.royalties) D.print("attempt to distribute royalties instant" # debug_show(future));
+            let future = service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
+            //debug if(debug_channel.royalties) D.print("attempt to distribute royalties instant" # debug_show(future));
           };
 
           return #ok(txn_record);

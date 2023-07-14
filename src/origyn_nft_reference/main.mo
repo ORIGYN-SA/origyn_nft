@@ -593,6 +593,7 @@ shared (deployer) actor class Nft_Canister() = this {
         if (halt == true) {
             throw Error.reject("canister is in maintenance mode");
         };
+        D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
         canistergeekLogger.logMessage("transferFromDip721", #Text(log_data), ?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -663,6 +664,7 @@ shared (deployer) actor class Nft_Canister() = this {
     * @returns {async DIP721.Result} - Result indicating if the transfer was successful or not.
     */
     private func _dip_721_transferFrom(caller : Principal, from : Principal, to : Principal, tokenAsNat : Nat) : async* DIP721.DIP721NatResult {
+        D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
         canistergeekLogger.logMessage("transferFrom", #Text("transferFrom"), ?caller);
         canistergeekMonitor.collectMetrics();
@@ -686,6 +688,7 @@ shared (deployer) actor class Nft_Canister() = this {
         if (halt == true) {
             throw Error.reject("canister is in maintenance mode");
         };
+        D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
         await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat);
     };
 
@@ -2945,6 +2948,10 @@ shared (deployer) actor class Nft_Canister() = this {
             ("owner_nft_origyn", "v0.1.0"),
             ("market_nft_origyn", "v0.1.0"),
         ];
+    };
+
+     public query func __version() : async Text {
+       "0.1.4";
     };
 
     /**
