@@ -459,6 +459,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Dip721 transferFrom legacy - must have a valid escrow
     public shared (msg) func transferFrom(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
       if(halt == true){throw Error.reject("canister is in maintenance mode");};
+      D.trap("transferFrom is not supported by origyn_nft. create a sale using market_transfer_nft_origyn(#auction(X))");
       await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat);
     };
 
