@@ -412,6 +412,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
     // Dip721 transferFrom - must have a valid escrow
     public shared (msg) func transferFromDip721(from: Principal, to: Principal, tokenAsNat: Nat) : async DIP721.Result{
         if(halt == true){throw Error.reject("canister is in maintenance mode");};
+        D.trap("transferFrom is not supported by origyn_nft. create a sale using market_transfer_nft_origyn(#auction(X))");
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat); 
         canistergeekLogger.logMessage("transferFromDip721",#Text(log_data),?msg.caller);
         canistergeekMonitor.collectMetrics();
@@ -2243,6 +2244,15 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
             ("owner_nft_origyn","v0.1.0"),
             ("market_nft_origyn","v0.1.0")
         ]
+    };
+
+    // *************************
+    // ****** END BACKUP *******
+    // *************************
+
+    // version endpoint
+    public query func __version() : async Text{
+        "v0.1.3-2";
     };
 
     // Lets the NFT accept cycles
