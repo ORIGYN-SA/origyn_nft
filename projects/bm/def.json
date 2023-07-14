@@ -155,8 +155,7 @@
                 {
                     "name": "default_royalty_primary",
                     "value": {
-                        "Array": {
-                            "thawed": [
+                        "Array": [
                                 {
                                     "Class": [
                                         {
@@ -204,15 +203,14 @@
                                     ]
                                 }
                             ]
-                        }
+                        
                     },
                     "immutable": false
                 },
                 {
                     "name": "default_royalty_secondary",
                     "value": {
-                        "Array": {
-                            "thawed": [
+                        "Array":  [
                                 {
                                     "Class": [
                                         {
@@ -306,7 +304,6 @@
                                     ]
                                 }
                             ]
-                        }
                     },
                     "immutable": false
                 }

@@ -1498,7 +1498,7 @@ module {
     * 
     * @returns {Array} - An array of Candy NFT properties.
     */
-    private func royalty_to_array(properties: CandyTypes.CandyShared, collection: Text) : [CandyTypes.CandyShared]{
+    public func royalty_to_array(properties: CandyTypes.CandyShared, collection: Text) : [CandyTypes.CandyShared]{
       debug if(debug_channel.royalties) D.print("In royalty to array" # debug_show((properties, collection)));
       switch(Properties.getClassPropertyShared(properties, collection)){
         case(null) [];

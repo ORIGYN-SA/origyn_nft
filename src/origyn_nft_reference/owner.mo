@@ -13,6 +13,7 @@ import EXT "mo:ext/Core";
 
 
 import DIP721 "DIP721";
+import ICRC7 "ICRC7";
 import Market "market";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
@@ -211,7 +212,7 @@ module {
                   pricing = #instant;
                   broker_id = null;
               };            
-        }, from, false);
+        }, caller, false);
 
 
 
@@ -222,6 +223,65 @@ module {
             case(#err(err)){
                 
                 return #Err(#Other("failure of DIP721 transferFrom " # err.flag_point));
+                 
+            };
+        };
+    };
+
+    /**
+    * Transfer a ICRC7 token from one account to another by finding the appropriate escrow record and using it for the transfer.
+    * If the escrow does not exist, the function fails.
+    *
+    * @param {StateAccess} state - StateAccess to the canister's state
+    * @param {Account} from - The account that currently owns the token
+    * @param {Account} to - The account that will own the token after the transfer
+    * @param {Nat} tokenAsNat - The token ID encoded as a Nat value
+    * @param {Principal} caller - The principal that called the function
+    * 
+    * @returns {ICRC7.TransferResult} - A ICRC7 result object indicating the success or failure of the transfer operation.
+    */
+    public func transferICRC7(state: StateAccess, from: ICRC7.Account, to: ICRC7.Account, tokenAsNat: Nat, caller: Principal) : async* ICRC7.TransferResult{
+        //uses market_transfer_nft_origyn where we look for an escrow from one user to the other and use the full escrow for the transfer
+        //if the escrow doesn't exist then we should fail
+        //nyi: determine if this is a marketable NFT and take proper action
+        //marketable NFT may not be transfered between owner wallets execpt through share_nft_origyn
+        let token_id = NFTUtils.get_nat_as_token_id(tokenAsNat);
+        
+        let escrows = switch(Market.find_escrow_reciept(state, #account({owner = to.owner; sub_account = to.subaccount}), #account({owner = from.owner; sub_account = from.subaccount}), token_id)){
+            case(#ok(val)){val};
+            case(#err(err)){
+                return #Err(#GenericError({message = "escrow required for ICRC7 transfer - failure of ICRC7 transfer " # err.flag_point; error_code=2;}));
+            };
+        };
+
+        if(Map.size(escrows) == 0 ){
+            return #Err(#GenericError({message = "escrow required for ICRC7 transfer - failure of ICRC7 transfer escrow not found"; error_code=2;}));
+        };
+
+        //dip721 is not discerning. If it finds a first asset it will use that for the transfer
+        let first_asset = Iter.toArray(Map.entries(escrows))[0];
+
+        if(first_asset.1.sale_id != null){
+            return #Err(#GenericError({message = "escrow required for ICRC7 transfer - failure of ICRC7 transfer due to sale_id in escrow reciept" # debug_show(first_asset); error_code=3;}));
+        };
+
+        let result = await* Market.market_transfer_nft_origyn_async(state, {
+            token_id = token_id;
+            sales_config = 
+              {
+                  escrow_receipt = ?first_asset.1;
+                  pricing = #instant;
+                  broker_id = null;
+              };            
+        }, caller, false);
+
+        switch(result){
+            case(#ok(data)){
+                return #Ok(data.index);
+            };
+            case(#err(err)){
+                
+                return #Err(#GenericError({message = "failure of ICRC7 transferFrom " # err.flag_point; error_code=4;}));
                  
             };
         };

@@ -7,7 +7,7 @@ import ICAgent from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
 import { Crypto } from '@peculiar/webcrypto';
 import { Secp256k1KeyIdentity } from '@dfinity/identity';
-import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.did.js';
+import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service.did.js';
 
 (async () => {
     var argv = minimist(process.argv.slice(2));

@@ -3,13 +3,13 @@
  
         "origyn_nft_reference": {
             "main": "src/origyn_nft_reference/main.mo",
-            "type": "motoko"
+            "type": "motoko",
+            "gzip": true
         },
         "opie_test": {
           "main": "src/origyn_nft_reference/main.mo",
           "type": "motoko"
       },
-
         "yumi-gold-test": {
           "main": "src/origyn_nft_reference/main.mo",
           "type": "motoko"
@@ -143,6 +143,6 @@
             "subnet_type": "system"
         }
     },
-    "dfx": "0.14.1-beta.1",
+    "dfx": "0.14.2",
     "version": 1
 }

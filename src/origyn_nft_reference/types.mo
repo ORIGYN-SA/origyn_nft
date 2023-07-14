@@ -1456,6 +1456,7 @@ module {
         royalty_network : Text;
         royalty_custom : Text;
         secondary_royalties_default : Text;
+        icrc7_description : Text;
 
         __apps_app_id : Text;
         __system_current_sale_id : Text;
@@ -1497,6 +1498,7 @@ module {
         royalty_network = "com.origyn.royalty.network";
         royalty_custom = "com.origyn.royalty.custom";
         experience_asset = "experience_asset";
+        icrc7_description = "com.origyn.icrc7.description";
         __apps_app_id = "app_id";
         __system_current_sale_id = "current_sale_id";
     };

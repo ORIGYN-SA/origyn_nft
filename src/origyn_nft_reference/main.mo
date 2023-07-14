@@ -6,6 +6,7 @@ import Char "mo:base/Char";
 import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
+import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
@@ -13,6 +14,7 @@ import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
 import Nat8 "mo:base/Nat8";
+import Nat16 "mo:base/Nat16";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
@@ -30,6 +32,8 @@ import CandyUpgrade "mo:candy_0_2_0/upgrade";
 import Droute "mo:droute_client/Droute";
 import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
+import ICRC7 "ICRC7";
+
 import Map "mo:map/Map";
 import Set "mo:map/Set";
 
@@ -67,6 +71,7 @@ shared (deployer) actor class Nft_Canister() = this {
         storage = false;
         streaming = false;
         manage_storage = false;
+        calcs = true;
     };
 
     let CandyTypes = MigrationTypes.Current.CandyTypes;
@@ -1386,20 +1391,12 @@ shared (deployer) actor class Nft_Canister() = this {
 
     };
 
-    /**
-    * Returns information about the collection.
-    * @param {Array} fields - An optional array of tuples representing the fields to be returned and the range of items to be returned.
-    * @param {Text} fields[0] - The name of the field to be returned.
-    * @param {Nat} fields[1] - Optional. The index of the first item to be returned.
-    * @param {Nat} fields[2] - Optional. The number of items to be returned.
-    * @returns {Promise<Types.CollectionResult>} - A promise that resolves to a Result object containing the CollectionInfo or an error message.
-    */
-    public query (msg) func collection_nft_origyn(fields : ?[(Text, ?Nat, ?Nat)]) : async Types.CollectionResult {
-        // Warning: this function does not use msg.caller, if you add it you need to fix the secure query
+    private func _collection_nft_origyn(fields : ?[(Text, ?Nat, ?Nat)], caller : Principal) : Types.CollectionResult{
+      // Warning: this function does not use msg.caller, if you add it you need to fix the secure query
         debug if (debug_channel.function_announce) D.print("in collection_nft_origyn");
 
         let state = get_state();
-        let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
+        let keys = if (NFTUtils.is_owner_manager_network(state, caller) == true) {
             Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
         } else {
             Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
@@ -1451,7 +1448,18 @@ shared (deployer) actor class Nft_Canister() = this {
             transaction_count = ?transaction_count;
           }
         );
+    };
 
+    /**
+    * Returns information about the collection.
+    * @param {Array} fields - An optional array of tuples representing the fields to be returned and the range of items to be returned.
+    * @param {Text} fields[0] - The name of the field to be returned.
+    * @param {Nat} fields[1] - Optional. The index of the first item to be returned.
+    * @param {Nat} fields[2] - Optional. The number of items to be returned.
+    * @returns {Promise<Types.CollectionResult>} - A promise that resolves to a Result object containing the CollectionInfo or an error message.
+    */
+    public query (msg) func collection_nft_origyn(fields : ?[(Text, ?Nat, ?Nat)]) : async Types.CollectionResult {
+        return _collection_nft_origyn(fields, msg.caller);
     };
 
     /**
@@ -2768,6 +2776,298 @@ shared (deployer) actor class Nft_Canister() = this {
     public query (msg) func dip721_supported_interfaces() : async [DIP721.DIP721SupportedInterface] {
         return [#TransactionHistory];
     };
+
+    // *************************
+    // ***** ICRC7 *****
+    // *************************
+
+
+    public query(msg) func icrc7_collection_metadata() : async ICRC7.CollectionMetadata{
+
+
+      let state = get_state();
+
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
+
+      let description : Text = switch(Properties.getClassPropertyShared(metadata, Types.metadata.icrc7_description)){
+        case(null){"N/A";};
+        case(?val){
+          switch(val.value){
+            case(#Text(val)) val;
+            case(_) "Misconfigured";
+          };
+        };
+      };
+
+
+      let royalty : Nat16 = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
+        case(null){0;};
+        case(?val){
+          let thearray = Market.royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+
+          var sum_rate : Float = 0;
+          label royaltyLoop for(thisItem in thearray.vals()){
+            let #Class(items) = thisItem else continue royaltyLoop;
+
+            let rate = switch(Properties.getClassPropertyShared(thisItem, "rate")){
+              case(null){0:Float};
+              case(?val){
+                switch(val.value){
+                  case(#Float(val)) val;
+                  case(_) 0:Float;
+                };
+              };
+            };
+            debug if (debug_channel.calcs) D.print(debug_show((rate,sum_rate)));
+
+            sum_rate += rate;
+            debug if (debug_channel.calcs) D.print(debug_show((rate,sum_rate)));
+          };
+
+          debug if (debug_channel.calcs) D.print(debug_show((sum_rate)));
+
+          Nat16.fromNat(Int.abs(Float.toInt(sum_rate * 10000)));
+        };
+      };
+
+      //construct a recieving account for royalties...this should not be used, but should be reserved for identifying interface non-compliance
+      let royalty_account = NFTUtils.get_icrc7_royalty_account(state.canister()).account;
+
+      let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
+          Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      } else {
+          Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      };
+
+      {
+        icrc7_name = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
+        icrc7_symbol = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
+        icrc7_royalties = ?royalty;
+        icrc7_royalty_recipient = ?{
+          owner = royalty_account.principal;
+          subaccount = ?royalty_account.sub_account;
+        };
+        icrc7_description = ?description;
+        icrc7_image = state.state.collection_data.logo;
+        icrc7_total_supply = Iter.size(keys);
+        icrc7_supply_cap = null; //not implemented
+      };
+    };
+
+    public query(msg) func icrc7_name() : async Text{
+
+      let state = get_state();
+      Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
+    };
+
+    public query(msg) func icrc7_symbol() : async Text{
+
+      let state = get_state();
+      Option.get<Text>(state.state.collection_data.symbol, Principal.toText(state.canister()));
+    };
+
+    public query(msg) func icrc7_royalty() : async ?Nat16{
+
+      let state = get_state();
+
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
+
+      let royalty : Nat16 = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
+        case(null){0;};
+        case(?val){
+          let thearray = Market.royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+
+          var sum_rate : Float = 0;
+          label royaltyLoop for(thisItem in thearray.vals()){
+            let #Class(items) = thisItem else continue royaltyLoop;
+
+            let rate = switch(Properties.getClassPropertyShared(thisItem, "rate")){
+              case(null){0:Float};
+              case(?val){
+                switch(val.value){
+                  case(#Float(val)) val;
+                  case(_) 0:Float;
+                };
+              };
+            };
+            
+
+            sum_rate += rate;
+            debug if (debug_channel.calcs) D.print(debug_show((rate,sum_rate)));
+          };
+
+
+          debug if (debug_channel.calcs) D.print(debug_show((sum_rate)));
+
+          Nat16.fromNat(Int.abs(Float.toInt(sum_rate * 10000)));
+        };
+      };
+
+      ?royalty;
+    };
+
+    public query(msg) func icrc7_royalty_recipient() : async ?ICRC7.Account{
+      //construct a recieving account for royalties...this should not be used, but should be reserved for identifying interface non-compliance
+      let state = get_state();
+
+      let royalty_account = NFTUtils.get_icrc7_royalty_account(state.canister()).account;
+
+      ?{
+        owner = royalty_account.principal;
+        subaccount = ?royalty_account.sub_account;
+      };
+    };
+
+    public query(msg) func icrc7_description() : async ?Text{
+      let state = get_state();
+
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
+
+      let description : Text = switch(Properties.getClassPropertyShared(metadata, Types.metadata.icrc7_description)){
+        case(null){"N/A";};
+        case(?val){
+          switch(val.value){
+            case(#Text(val)) val;
+            case(_) "Misconfigured";
+          };
+        };
+      };
+
+      ?description;
+    };
+
+    public query(msg) func icrc7_image() : async ?Text{
+      let state = get_state();
+      state.state.collection_data.logo;
+    };
+
+    public query(msg) func icrc7_total_supply() : async Nat{
+
+
+      let state = get_state();
+
+      let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
+          Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      } else {
+          Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      };
+
+      Iter.size(keys);
+    };
+
+    public query(msg) func icrc7_supply_cap() : async ?Nat{
+      
+      null;
+    };
+
+    public query(msg) func icrc7_metadata(token_id: Nat) : async [(Text,ICRC7.Metadata)]{
+
+      let state = get_state();
+
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for token");
+
+      let json = JSON.value_to_json(Metadata.get_clean_metadata(metadata, msg.caller));
+
+      let buf = Buffer.Buffer<(Text, ICRC7.Metadata)>(1);
+
+      var tracker = 0;
+
+      buf.add("com.origyn.nft.metadata.json", #Text(json));
+
+      return Buffer.toArray<(Text, ICRC7.Metadata)>(buf);
+    };
+
+    public query(msg) func icrc7_owner_of(token_id: Nat) : async ICRC7.Account{
+
+      let state = get_state();
+
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), msg.caller, ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for token");
+
+
+      switch (
+            Metadata.get_nft_owner(metadata),
+        ) {
+            case (#err(err)) {
+                return D.trap("error getting owner");
+            };
+            case (#ok(val)) {
+                switch (val) {
+                    case (#principal(data)) {
+                        return {
+                          owner = data;
+                          subaccount = null;
+                        };
+                    };
+                    case (#account(data)) {
+                        return {
+                          owner = data.owner;
+                          subaccount = data.sub_account;
+                        };
+                    };
+                    case (_) {
+                        return D.trap("icrc7_owner_of unsupported owner type by ICRC7" # debug_show(val));
+                    };
+                };
+            };
+        };
+    };
+
+    public query(msg) func icrc7_balance_of(account: ICRC7.Account) : async Nat{
+
+      let state = get_state();
+
+      Metadata.get_NFTs_for_user(get_state(), #account({
+        owner = account.owner;
+        sub_account = account.subaccount;
+      })).size()
+    };
+
+    public query(msg) func icrc7_tokens_of(account: ICRC7.Account) : async [Nat]{
+
+      let state = get_state();
+
+      let list = Metadata.get_NFTs_for_user(get_state(), #account({
+        owner = account.owner;
+        sub_account = account.subaccount;
+      }));
+
+      let result = Array.map<Text, Nat>(list, NFTUtils.get_token_id_as_nat);
+
+      return result;
+    };
+
+    public shared (msg) func icrc7_transfer(request: ICRC7.TransferArgs) : async ICRC7.TransferResult{
+
+       if(request.is_atomic !=null){
+        return #Err(#GenericError({error_code=1; message ="origyn_nft does not support atomic tranfers. set to null"}));
+       };
+
+       if(request.token_ids.size() != 1){
+        return #Err(#GenericError({error_code=5; message ="origyn_nft does not support batch transactions through ICRC7. use market_transfer_batch_nft_origyn"}));
+       };
+
+       let log_data : Text = "To :" # debug_show(request.to) # " - Token : " # Nat.toText(request.token_ids[0]);
+        canistergeekLogger.logMessage("transferICRC7", #Text("transferICRC7"), ?msg.caller);
+        canistergeekMonitor.collectMetrics();
+        debug if (debug_channel.function_announce) D.print("in transferICRC7");
+        // Existing escrow acts as approval
+        return await* Owner.transferICRC7(get_state(), Option.get<ICRC7.Account>(request.from, {owner = msg.caller; subaccount=null}), request.to, request.token_ids[0], msg.caller);
+    };
+
+    public shared (msg) func icrc7_approve(request: ICRC7.ApprovalArgs) : async ICRC7.ApprovalResult{
+
+        return #Err(#GenericError({error_code=6; message ="origyn_nft does not support approvals through ICRC7. Approval is provided by precense of an escrow deposit. Use sale_info_nft_origyn(#escrow) to retrieve deposit info"}));
+       
+    };
+
+    public query (msg) func icrc7_supported_standards() : async [ICRC7.SupportedStandard]{
+
+      [
+        {name = "ICRC-7"; url="https://github.com/dfinity/ICRC/ICRCs/ICRC-7"},
+        {name = "origyn_nft"; url="https://github.com/origyn_sa/origyn_nft"},
+      ]
+    };
+
 
     // *************************
     // ******** BACKUP *********

@@ -268,6 +268,30 @@ module {
     };
 
     /**
+    * Retrieves information about a phantom account to return for icrc7 royalties.
+    * @returns {Types.SubAccountInfo} An object containing information about the sub-account.
+    */
+    public func get_icrc7_royalty_account(host: Principal) : Types.SubAccountInfo{
+        
+        debug if (debug_channel.announce) D.print("Getting icrc7 account");
+        let h = SHA256.New();
+        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.icrc7royalty")));
+        let sub_hash =h.sum([]);
+
+        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
+                   
+        return {
+            principal = host;
+            account_id_text = Hex.encode(to);
+            account_id = Blob.fromArray(to);
+            account = {
+                principal = host;
+                sub_account = (Blob.fromArray(sub_hash));
+            }
+        };
+    };
+
+    /**
     * Hashes a blob using SHA256 and returns the result as a Nat.
     * @param {Blob} item - The blob to be hashed.
     * @returns {Nat} The resulting hash value.
