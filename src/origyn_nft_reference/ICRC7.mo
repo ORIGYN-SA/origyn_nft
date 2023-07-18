@@ -37,7 +37,7 @@ module {
 
   public type ApprovalArgs = {
     from_subaccount : Blob;
-    to : Principal;
+    to : Account;
     tokenIds : ?[Nat];
     expires_at : ?Nat64;
     memo :?Blob;
@@ -79,7 +79,7 @@ module {
     icrc7_balance_of: shared query (Nat)-> async Nat;
     icrc7_tokens_of: shared query (Account)-> async [Nat];
     icrc7_transfer: shared (TransferArgs)-> async TransferResult;
-    icrc7_approve: shared (TransferArgs)-> async ApprovalResult;
+    icrc7_approve: shared (ApprovalArgs)-> async ApprovalResult;
     icrc7_supported_standards: shared query ()-> async [SupportedStandard];
   };
 }
