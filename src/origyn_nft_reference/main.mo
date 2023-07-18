@@ -3307,6 +3307,10 @@ shared (deployer) actor class Nft_Canister() = this {
         ];
     };
 
+     public query func __version() : async Text {
+       "0.1.5";
+    };
+
     /**
     * Lets the NFT accept cycles.
     * @returns {Nat} - The amount of cycles accepted.
