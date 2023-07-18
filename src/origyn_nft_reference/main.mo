@@ -590,7 +590,8 @@ shared (deployer) actor class Nft_Canister() = this {
     * @throws {Error} Throws an error if the canister is in maintenance mode
     */
     public shared (msg) func transferFromDip721(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-        if (halt == true) {
+      return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
+       /*  if (halt == true) {
             throw Error.reject("canister is in maintenance mode");
         };
         D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
@@ -602,7 +603,7 @@ shared (deployer) actor class Nft_Canister() = this {
         if (msg.caller != to) {
             return #Err(#UnauthorizedOperator);
         };
-        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, msg.caller);
+        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, msg.caller); */
     };
 
 
@@ -664,7 +665,8 @@ shared (deployer) actor class Nft_Canister() = this {
     * @returns {async DIP721.Result} - Result indicating if the transfer was successful or not.
     */
     private func _dip_721_transferFrom(caller : Principal, from : Principal, to : Principal, tokenAsNat : Nat) : async* DIP721.DIP721NatResult {
-        D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
+      return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
+        /* D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
         let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
         canistergeekLogger.logMessage("transferFrom", #Text("transferFrom"), ?caller);
         canistergeekMonitor.collectMetrics();
@@ -673,7 +675,7 @@ shared (deployer) actor class Nft_Canister() = this {
             return #Err(#UnauthorizedOperator);
         };
         // Existing escrow acts as approval
-        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, caller);
+        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, caller); */
     };
 
     /**
@@ -685,11 +687,12 @@ shared (deployer) actor class Nft_Canister() = this {
     * @throws {Error} - Throws an error if the canister is in maintenance mode.
     */
     public shared (msg) func transferFrom(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-        if (halt == true) {
+      return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
+       /*  if (halt == true) {
             throw Error.reject("canister is in maintenance mode");
         };
         D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
-        await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat);
+        await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat); */
     };
 
 
@@ -705,10 +708,12 @@ shared (deployer) actor class Nft_Canister() = this {
     * @throws {Error} - If the canister is currently in maintenance mode.
     */
     public shared (msg) func dip721_transfer_from(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
+      return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
+       /*  return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
         if (halt == true) {
             throw Error.reject("canister is in maintenance mode");
         };
-        return await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat);
+        return await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat); */
     };
 
     /**
