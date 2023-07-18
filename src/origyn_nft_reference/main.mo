@@ -648,13 +648,12 @@ shared (deployer) actor class Nft_Canister() = this {
     */
     private func _dip_721_transfer(caller : Principal, to : Principal, tokenAsNat : Nat) : async* DIP721.DIP721NatResult {
 
-      return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));/* 
         let log_data : Text = "To :" # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
         canistergeekLogger.logMessage("transferDip721", #Text("transferDip721"), ?caller);
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in transferFromDip721");
         // Existing escrow acts as approval
-        return await* Owner.transferDip721(get_state(), caller, to, tokenAsNat, caller); */
+        return await* Owner.transferDip721(get_state(), caller, to, tokenAsNat, caller); 
     };
 
     /**
