@@ -7,7 +7,7 @@ import ICAgent from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
 import { Crypto } from '@peculiar/webcrypto';
 import { Secp256k1KeyIdentity } from '@dfinity/identity';
-import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.did.js';
+import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service.did.js';
 
 (async () => {
     var argv = minimist(process.argv.slice(2));
@@ -49,7 +49,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8080';
+    var ICP_ENDPOINT = 'http://127.0.0.1:4943/';
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
@@ -89,19 +89,29 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
             if (typeof dupeObj.length == 'number') var retObj = new Array();
 
             for (var objInd in dupeObj) {
-                if (dupeObj[objInd] == null) dupeObj[objInd] = {Option: []};
+                if (dupeObj[objInd] == null) dupeObj[objInd] = { Option: [] };
                 if (typeof dupeObj[objInd] == 'object') {
                     retObj[objInd] = iterateObj(dupeObj[objInd]);
                 } else if (typeof dupeObj[objInd] == 'string') {
                     if (objInd == 'Principal') {
                         retObj[objInd] = Principal.fromText(dupeObj[objInd]);
-                    } else if (['Nat', 'Nat64', 'Int', 'Int64'].includes(objInd)) {
+                    } else if (
+                        ['Nat', 'Nat64', 'Int', 'Int64'].includes(objInd)
+                    ) {
                         retObj[objInd] = BigInt(dupeObj[objInd]);
-                      } else if (['Nat8', 'Nat16', 'Nat32', 'Int8', 'Int16', 'Int32', 'Float'].includes(objInd)) {
+                    } else if (
+                        [
+                            'Nat8',
+                            'Nat16',
+                            'Nat32',
+                            'Int8',
+                            'Int16',
+                            'Int32',
+                            'Float',
+                        ].includes(objInd)
+                    ) {
                         retObj[objInd] = Number(dupeObj[objInd]);
                     } else {
-                  
-                    
                         retObj[objInd] = dupeObj[objInd];
                     }
                 } else if (typeof dupeObj[objInd] == 'number') {

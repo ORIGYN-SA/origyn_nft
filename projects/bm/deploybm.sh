@@ -1,6 +1,6 @@
 set -ex
 
-source ../local-network-setup/settings/post-setup.sh
+# source ../local-network-setup/settings/post-setup.sh
 
 npm install
 
@@ -20,27 +20,27 @@ echo $ADMIN_ACCOUNTID
 dfx identity --network $env_network set-wallet $(dfx identity get-principal) || true
 
 
-dfx canister --network local create origyn_nft_reference || true
-dfx canister --network local create origyn_sale_reference || true
+# dfx canister --network local create origyn_nft_reference || true
+# dfx canister --network local create origyn_sale_reference || true
 dfx canister --network $env_network create $env_name || true
-dfx canister --network $env_network create $env_name_sale || true
+# dfx canister --network $env_network create $env_name_sale || true
 
 NFT_CANISTER_ID=$(dfx canister --network $env_network id $env_name)
 NFT_CANISTER_Account=$(python3 principal_to_accountid.py $NFT_CANISTER_ID)
 
-NFT_Sale_ID=$(dfx canister --network $env_network id $env_name_sale)
-NFT_Sale_Account=$(python3 principal_to_accountid.py $NFT_Sale_ID)
+# NFT_Sale_ID=$(dfx canister --network $env_network id $env_name_sale)
+# NFT_Sale_Account=$(python3 principal_to_accountid.py $NFT_Sale_ID)
 
 echo $NFT_CANISTER_ID
 echo $NFT_CANISTER_Account
 
-awk "{gsub(\"CANISTER-ID\",\"$NFT_CANISTER_ID\"); print}" ./projects/bm/def.json  > ./projects/bm/def_loaded_1.json
+awk "{gsub(\"CANISTER-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def.json  > ./projects/bm/def_loaded_1.json
 awk "{gsub(\"APP-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_loaded_1.json  > ./projects/bm/def_loaded_2.json
 awk "{gsub(\"CREATOR-PRINCIPAL-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_loaded_2.json  > ./projects/bm/def_loaded.json
 
 bash ./projects/bm/build-dapps.sh
 
-awk "{gsub(\"CANISTER-ID\",\"$NFT_CANISTER_ID\"); print}" ./projects/bm/def_collection_build.json  > ./projects/bm/def_collection_1.json
+awk "{gsub(\"CANISTER-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_build.json  > ./projects/bm/def_collection_1.json
 awk "{gsub(\"APP-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_1.json  > ./projects/bm/def_collection_2.json
 awk "{gsub(\"CREATOR-PRINCIPAL-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_2.json  > ./projects/bm/def_collection_loaded.json
 
@@ -110,27 +110,28 @@ awk "{gsub(\"XXXXXX\",\"19\"); print}" ./projects/bm/def.html  > ./projects/bm/1
 
 
 dfx build --network local origyn_nft_reference
-dfx build --network local origyn_sale_reference
+# dfx build --network local origyn_sale_reference
 
 gzip .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm -f
-gzip .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm -f
+# gzip .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm -f
 
 #Replace below with your test principal
 
-TEST_WALLET=$(echo "coapo-5z5t4-5azo7-idouv-jsvee-vzf6k-33ror-oncap-be2yg-6cavw-pqe")
+# TEST_WALLET=$(echo "coapo-5z5t4-5azo7-idouv-jsvee-vzf6k-33ror-oncap-be2yg-6cavw-pqe")
+TEST_WALLET=$(echo "a2ljp-cgrtn-wtlk5-wfcw3-4vdso-5tlgs-tixdh-r77qp-zepvv-ri32t-6qe")
 
 
 dfx canister --network $env_network install $env_name  --wasm .dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.wasm.gz --mode=reinstall
 
-dfx canister --network $env_network call $env_name manage_storage_nft_origyn '(variant {configure_storage = variant {heap = opt (500000000:nat)}})'
-
+dfx canister --network $env_network call $env_name manage_storage_nft_origyn '(variant {configure_storage = variant {heap = opt (1_000_000_000:nat)}})'
 
 dfx canister --network $env_network call $env_name collection_update_nft_origyn "(variant {UpdateOwner = principal \"$ADMIN_PRINCIPAL\"})"
 
 
 
 
-dfx canister --network $env_network install $env_name_sale --wasm .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm.gz --mode=reinstall --argument "(record {owner=principal  \"$ADMIN_PRINCIPAL\"; allocation_expiration = 450000000000; nft_gateway= opt principal \"$NFT_CANISTER_ID\"; sale_open_date=null; registration_date = null; end_date = null; required_lock_date=null})"
+
+# dfx canister --network $env_network install $env_name_sale --wasm .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm.gz --mode=reinstall --argument "(record {owner=principal  \"$ADMIN_PRINCIPAL\"; allocation_expiration = 450000000000; nft_gateway= opt principal \"$NFT_CANISTER_ID\"; sale_open_date=null; registration_date = null; end_date = null; required_lock_date=null})"
 
 node ./projects/deploy.js --meta=./projects/bm/def_collection_loaded.json --token_id=""  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod
 node ./projects/deploy.js --meta=./projects/bm/def_0.json --token_id="bm-0"  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod

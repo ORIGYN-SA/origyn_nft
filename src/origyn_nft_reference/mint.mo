@@ -18,6 +18,7 @@ import NFTUtils "utils";
 import Types "types";
 import MigrationTypes "./migrations/types";
 
+
 module {
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;
@@ -371,7 +372,7 @@ module {
         debug if (debug_channel.stage) D.print("in stage");
         //only an owner can stage
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - not an owner", ?caller))};
-
+       
         //ensure id is in the class
         debug if (debug_channel.stage) D.print("looking for id");
         let id_val = Conversions.candySharedToText(
@@ -384,9 +385,24 @@ module {
                 };
             },
         );
-
-        debug if (debug_channel.stage) D.print("id is " # id_val);
-
+        // Grab owner id from metadata
+        let owner_id = Conversions.candySharedToText(
+            switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
+                case(null){
+                    return #err(Types.errors(?state.canistergeekLogger,  #id_not_found_in_metadata, "stage_nft_origyn - find id", ?caller));
+                };
+                case (?found) {
+                    found.value;
+                };
+            },
+        );        
+        // check if owner matches metadata owner
+        if(id_val == ""){
+            if(NFTUtils.is_owner_manager_network(state, Principal.fromText(owner_id)) == false){
+               return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - owner id in metadata not an owner", ?caller))
+            };
+        };
+    
         debug if (debug_channel.stage) D.print("looking for system");
         //if this exists we should throw
         let found_system = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
@@ -808,7 +824,8 @@ module {
         if(NFTUtils.is_owner_manager_network(state,caller) == false){return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_library_nft_origyn - not an owner", ?caller))};
         
         debug if(debug_channel.stage) D.print("in stage_library_nft_origyn" # debug_show(chunk));
-
+        D.print("#stage_library_nft_origyn \n");
+        D.print(debug_show(chunk.token_id));
         var b_updated_meta = false;
         let content_size = chunk.content.size();
         var metadata = switch(Metadata.get_metadata_for_token(state, chunk.token_id, caller, ?state.canister(), state.state.collection_data.owner)){
