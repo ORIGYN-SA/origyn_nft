@@ -30,6 +30,7 @@ import CanistergeekTypes "mo:canistergeek/canistergeek";
 import http "mo:http/Http";
 
 import Star "mo:star/star";
+import CertifiedHttp "mo:certified-http/lib";
 
 
 module {
@@ -178,6 +179,7 @@ module {
         filedata : CandyTypes.CandyShared; //may need to be nullable
         chunk : Nat; //2MB Chunks
         content : Blob;
+        totalChunks: Nat;
     };
 
     public type ChunkRequest = {
@@ -496,6 +498,7 @@ module {
           get: () ->?Nat;
           set: (?Nat) -> ();
         };
+        cert : CertifiedHttp.CertifiedHttp;
         //btreemap : Stable_Memory;
     };
 

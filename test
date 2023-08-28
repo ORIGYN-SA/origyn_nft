@@ -1,0 +1,37 @@
+{
+    body = (
+        [var 1_073_741_823, 1_073_741_823, 1_073_741_823, 0, 1_073_741_823, 6, 7, 8, 9, 10, 11, 12, 13, 4, 1_073_741_823, 1_073_741_823], 
+        [
+            var 
+            (?("", "com.bm.brain.hidden"), ?{allocated_space = 9_990_000; available_space = 88_614; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 5; elems = [var 2_048_000, 2_048_000, 2_048_000, 2_048_000, 1_709_386, 1_709_386, 1_709_386, 1_709_386]; initCapacity = 1}; library_id = "com.bm.brain.hidden"; token_id = ""}, 3_225_043_267, 1_073_741_823),
+
+            (?("", "ledger"), ?{allocated_space = 2_597_551; available_space = 0; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 2; elems = [var 2_048_000, 549_551]; initCapacity = 1}; library_id = "ledger"; token_id = ""}, 1_725_690_982, 1_073_741_823), 
+            (?("", "wallet"), ?{allocated_space = 3_035_682; available_space = 3_035_682; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 0; elems = [var]; initCapacity = 1}; library_id = "wallet"; token_id = ""}, 2_151_729_564, 1_073_741_823),
+
+            (?("", "dapp_library"), ?{allocated_space = 3_005_720; available_space = 0; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 2; elems = [var 2_048_000, 957_720]; initCapacity = 1}; library_id = "dapp_library"; token_id = ""}, 1_564_147_724, 2),
+
+            (?("", "data"), ?{allocated_space = 2_530_285; available_space = 0; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 2; elems = [var 2_048_000, 482_285]; initCapacity = 1}; library_id = "data"; token_id = ""}, 1_736_633_645, 1_073_741_823),
+
+            (?("", "marketplace"), ?{allocated_space = 2_859_609; available_space = 0; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 2; elems = [var 2_048_000, 811_609]; initCapacity = 1}; library_id = "marketplace"; token_id = ""}, 2_453_439_196, 3),
+
+            (?("bm-0", "com.bm.brain.0.primary"), ?{allocated_space = 500_000; available_space = 118_078; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 381_922]; initCapacity = 1}; library_id = "com.bm.brain.0.primary"; token_id = "bm-0"}, 736_191_845, 1_073_741_823),
+
+            (?("bm-0", "com.bm.brain.0.html"), ?{allocated_space = 500_000; available_space = 490_043; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 9_957]; initCapacity = 1}; library_id = "com.bm.brain.0.html"; token_id = "bm-0"}, 4_140_768_822, 1), 
+            
+            (?("bm-1", "com.bm.brain.1.primary"), ?{allocated_space = 500_000; available_space = 122_321; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 377_679]; initCapacity = 1}; library_id = "com.bm.brain.1.primary"; token_id = "bm-1"}, 2_979_371_623, 1_073_741_823), 
+
+            (?("bm-1", "com.bm.brain.1.html"), ?{allocated_space = 500_000; available_space = 490_043; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 9_957]; initCapacity = 1}; library_id = "com.bm.brain.1.html"; token_id = "bm-1"}, 2_461_901_432, 1_073_741_823), 
+
+            (?("bm-2", "com.bm.brain.2.primary"), ?{allocated_space = 500_000; available_space = 122_829; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 377_171]; initCapacity = 1}; library_id = "com.bm.brain.2.primary"; token_id = "bm-2"}, 927_584_105, 1_073_741_823),
+
+            (?("bm-2", "com.bm.brain.2.html"), ?{allocated_space = 500_000; available_space = 490_043; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 9_957]; initCapacity = 1}; library_id = "com.bm.brain.2.html"; token_id = "bm-2"}, 783_034_042, 1_073_741_823), 
+
+            (?("bm-3", "com.bm.brain.3.primary"), ?{allocated_space = 500_000; available_space = 122_333; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 377_667]; initCapacity = 1}; library_id = "com.bm.brain.3.primary"; token_id = "bm-3"}, 3_170_763_883, 1_073_741_823), 
+            
+            (?("bm-3", "com.bm.brain.3.html"), ?{allocated_space = 500_000; available_space = 490_043; canister = bkyz2-fmaaa-aaaaa-qaaaq-cai; chunks = {count = 1; elems = [var 9_957]; initCapacity = 1}; library_id = "com.bm.brain.3.html"; token_id = "bm-3"}, 3_399_133_948, 5), (null, null, 0, 1_073_741_823), (null, null, 0, 1_073_741_823)
+        ], 
+        16, 
+        14, 
+        14
+        )
+}

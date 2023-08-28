@@ -43,17 +43,6 @@
                             {"name":"read","value":{"Text":"public"}, "immutable":false}
                         ]},
                         {"Class":[
-                            {"name":"library_id", "value":{"Text":"wallet"}, "immutable":true},
-                            {"name":"title", "value":{"Text":"Wallet dApp"}, "immutable":true},
-                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
-                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.ic0.app/-/bm-XXXXXX/-/wallet"}, "immutable":true},
-                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
-                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
-                            {"name":"size", "value":{"Nat":1503756}, "immutable":true},
-                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
-                            {"name":"read","value":{"Text":"public"}, "immutable":false}
-                        ]},
-                        {"Class":[
                             {"name":"library_id", "value":{"Text":"ledger"}, "immutable":true},
                             {"name":"title", "value":{"Text":"Ledger dApp"}, "immutable":true},
                             {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
@@ -91,6 +80,17 @@
                             {"name":"title", "value":{"Text":"Library dApp"}, "immutable":true},
                             {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
                             {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.ic0.app/-/bm-XXXXXX/-/dapp_library"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":936231}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"vault"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Vault dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.ic0.app/-/bm-XXXXXX/-/vault"}, "immutable":true},
                             {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
                             {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
                             {"name":"size", "value":{"Nat":936231}, "immutable":true},

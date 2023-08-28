@@ -18,12 +18,15 @@ import NFTUtils "utils";
 import Types "types";
 import MigrationTypes "./migrations/types";
 
+
 module {
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
+
+    
 
 
     //lets user turn debug messages on and off for local replica
@@ -663,9 +666,12 @@ module {
                   lib #= chunk.library_id;
               };
               /////////////////////////////////////////////
-
+              D.print("\n");
+              D.print("starting on top");
               debug if(debug_channel) D.print("putting the chunk");
               if (chunk.chunk + 1 <= SB.size(file_chunks)) {
+                D.print("\n");
+                D.print("chunk.chunk + 1"); 
                   if (state.state.use_stableBTree) {
                     /*
                         D.print("token:" # tokenId # "/library:" # lib # "/index:none"  # "/chunk:" # Nat.toText(chunk.chunk));
@@ -676,6 +682,9 @@ module {
                       size_chunks.add(#Nat(chunk.content.size()))
                       */
                   } else {
+                      D.print("\n");
+                      D.print("chunk.chunk +1 \n");
+                      D.print(debug_show(chunk.content));
                       SB.put(file_chunks, chunk.chunk, #Blob(chunk.content));
                       SB.add(size_chunks, #Nat(chunk.content.size()))
                   };
@@ -686,6 +695,8 @@ module {
                   //D.print(debug_show(file_chunks.size()));
 
                   for (this_index in Iter.range(SB.size(file_chunks), chunk.chunk)) {
+                    //   D.print("file chunks size \n");
+                    //   D.print(debug_show(SB.size(file_chunks)));
                       debug if(debug_channel) D.print(debug_show(this_index));
                       let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:" # Nat.toText(this_index) # "/chunk:" # Nat.toText(chunk.chunk));
 
@@ -703,10 +714,97 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
-                              SB.add(file_chunks,#Blob(chunk.content));
-                              SB.add(size_chunks, #Nat(chunk.content.size()))
+                                // Create cert key
+                                var certKey = "";
+                                if(chunk.token_id == ""){
+                                    certKey := "/collection/-/" # chunk.library_id;
+                                } else {
+                                    if( Text.endsWith(chunk.library_id, #text("html"))){
+                                        certKey := "/-/" # chunk.token_id # "/ex";
+                                    } else {
+                                         certKey := "/-/" # chunk.token_id # "/preview";
+                                    };
+                                };
+                                
+                                D.print("\n");
+                                D.print("#fm id : " # certKey);                               
+                                D.print("totalChunks : " # Nat.toText(chunk.totalChunks));
+                                // 
+                                if(chunk.chunk == 0){
+                                    state.cert.chunkedStart(certKey, chunk.totalChunks, chunk.content, func(content: [Blob]){});
+                                } else {
+                                    state.cert.chunkedSend(certKey, chunk.chunk, chunk.content);
+                                };
+                                SB.add(file_chunks,#Blob(chunk.content));
+                                SB.add(size_chunks, #Nat(chunk.content.size()));
+
+                            //    if(lib == "ledger"){
+                               
+                            // //    SB.add(file_chunks,#Blob(chunk.content));
+                            // //    SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     if(chunk.chunk == 0){
+                            //         D.print("0");
+                            //         D.print("chunk number: " # Nat.toText(chunk.chunk));
+                            //         // insert first chunk in the cert tree
+                            //         state.cert.chunkedStart("/collection/-/ledger", 2, chunk.content, func(content: [Blob]){
+                                         
+                            //         });
+                            //         SB.add(file_chunks,#Blob(chunk.content));
+                            //         SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     } else {
+                            //         D.print("Other");
+                            //         D.print("chunk number: " # Nat.toText(chunk.chunk));
+                            //         // insert the rest of the chunks in the cert tree
+                            //         state.cert.chunkedSend("/collection/-/ledger", chunk.chunk, chunk.content);
+                            //         SB.add(file_chunks,#Blob(chunk.content));
+                            //         SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     }
+                            //   } else {
+                            //     SB.add(file_chunks,#Blob(chunk.content));
+                            //     SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //   };
+                              
+                            //   if(lib == "com.bm.brain.3.primary"){
+                            //    D.print("the library: " # lib);
+                               
+                            // //    SB.add(file_chunks,#Blob(chunk.content));
+                            // //    SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     if(chunk.chunk == 0){
+                            //         D.print("0");
+                            //         D.print("chunk number: " # Nat.toText(chunk.chunk));
+                            //         // insert first chunk in the cert tree
+                            //         state.cert.chunkedStart("/-/bm-3/preview", 1, chunk.content, func(content: [Blob]){
+                                         
+                            //         });
+                            //         SB.add(file_chunks,#Blob(chunk.content));
+                            //         SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     } else {
+                            //         D.print("Other");
+                            //         D.print("chunk number: " # Nat.toText(chunk.chunk));
+                            //         // insert the rest of the chunks in the cert tree
+                            //         state.cert.chunkedSend("/-/bm-0/preview", chunk.chunk, chunk.content);
+                            //         SB.add(file_chunks,#Blob(chunk.content));
+                            //         SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //     }
+                            //   } else {
+                            //     SB.add(file_chunks,#Blob(chunk.content));
+                            //     SB.add(size_chunks, #Nat(chunk.content.size()));
+                            //   };
+                            //   D.print("== chunk.chunk \n");
+                            //   D.print("tokeId: " # tokenId # "\n");
+                            //   D.print("size chunks \n");
+                            //   D.print(debug_show(size_chunks));
+                            //   D.print(debug_show(file_chunks));
+                                //   D.print("chunk content \n");
+                                //   D.print(debug_show(chunk.content));
+                                //   file_chunks.add(#Text("hello"));
+                                //   SB.add("chunk-id", someKey);
+                              
+                              
                           };
                       } else {
+                           D.print("\n");
+                           D.print("index wasnt chunk");
                           debug if(debug_channel) D.print("index wasnt chunk" # debug_show(this_index));
                           if (state.state.use_stableBTree) {
                             /*
@@ -718,6 +816,9 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
+                              D.print("\n");
+                              D.print("else chunk \n");
+                              D.print(debug_show(Blob.fromArray([])));
                               SB.add(file_chunks,#Blob(Blob.fromArray([])));
                               SB.add(size_chunks, #Nat(0))
                           };
@@ -1382,5 +1483,7 @@ module {
 
         return #ok((token_id, metadata, txn_record));
     };
+
+
 
 };

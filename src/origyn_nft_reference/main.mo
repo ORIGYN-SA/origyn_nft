@@ -61,6 +61,9 @@ import MemoryManager "mo:stableBTree/memoryManager";
 import Memory "mo:stableBTree/memory";
 import TypesModule "mo:canistergeekold/typesModule";
 
+import CertifiedHttp "mo:certified-http/lib";
+
+
 shared (deployer) actor class Nft_Canister() = this {
 
     // Lets user turn debug messages on and off for local replica
@@ -90,7 +93,19 @@ shared (deployer) actor class Nft_Canister() = this {
     stable var upgraded_at = Nat64.fromNat(Int.abs(Time.now()));
 
     let OneDay = 60 * 60 * 24 * 1000000000;
-    
+
+    // *************************
+    // ***** CERT STORE *****
+    // *************************
+
+    stable var cert_store = CertifiedHttp.init();
+    var cert_ = CertifiedHttp.CertifiedHttp(cert_store);
+
+    // *************************
+    // ***** CERT STORE END*****
+    // *************************
+
+
     // *************************
     // ***** CANISTER GEEK *****
     // *************************
@@ -203,7 +218,6 @@ shared (deployer) actor class Nft_Canister() = this {
 
     var notify_timer : ?Nat = null;
 
-
     // Let us access state and pass it to other modules
     let get_state : () -> Types.State = func() {
         {
@@ -221,6 +235,7 @@ shared (deployer) actor class Nft_Canister() = this {
               get = get_notify_timer;
               set = set_notify_timer;
             };
+            cert = cert_;
         };
     };
 
@@ -3098,7 +3113,30 @@ shared (deployer) actor class Nft_Canister() = this {
             nft_sales = Map.size(state.state.nft_sales);
         };
     };
+     // TEMP TEST
+    public query func getCert(item: Text) : async () {
+        
+        D.print(debug_show(cert_.certificationHeader(item)));
+        ()
+    };
 
+    public func ends(item : Text) : async Bool {
+        Text.endsWith(item, #text("html"))
+    };
+
+    public func match(item: Text) : async Bool {
+        Text.contains(item, #text("/|"))
+    };
+
+    public func split(item: Text) : async [Text] {
+        let a = Text.split(item, #text("|"));
+        Iter.toArray(a)
+    };
+
+    public func strip(item: Text) : async Text {
+        let a = Iter.toArray(Text.split(item, #text("|")));
+        Text.trimStart(a[1], #text("/nft"))
+    };
     /**
     * Get a backup chunk of the NFT data for a specified page.
     *
@@ -3366,7 +3404,6 @@ shared (deployer) actor class Nft_Canister() = this {
     // *************************
     // *** END CANISTER GEEK ***
     // *************************
-
     
     /**
     * Returns an array of tuples representing the nft library.

@@ -202,6 +202,9 @@ module {
             let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
 
                                 debug if(debug_channel.streaming)D.print("The cbt: " # debug_show(cbt.callback));
+            D.print("\n");
+            D.print("206 one chunks");
+            D.print(token_id # library_id);
             {
                 //need to use streaming strategy
                 status_code        = 206;
@@ -232,6 +235,9 @@ module {
             let cbt = _stream_media(token_id, library_id, rStart, data, rStart, rEnd, size);
 
                                debug if(debug_channel.streaming) D.print("the size " # Nat.toText(cbt.payload.size()));
+            D.print("\n");
+            D.print("206 one chunks");
+            D.print(token_id # library_id);
             return {
                 status_code        = 206;
                 headers            = [
@@ -281,24 +287,84 @@ module {
         var end_range : Nat = 0;
 
         //nyi: should the data zone cache this?
-        {
-            status_code        = 200;
-            headers            = [
-                ("Content-Type", contentType),
-                ("accept-ranges", "bytes"),
-                ("Cache-Control","private"),
-            ];
-            body               = result.payload;
-            streaming_strategy = switch (result.callback) {
-                case (null) { null; };
-                case (? tk) {
-                    ?#Callback({
-                        token    = tk;
-                        callback = canister.nftStreamingCallback;
-                    });
-                };
+        // Create cert key to retrive cert
+        var certKey = "";
+        var keyArray =  Iter.toArray(Text.split(key, #text("|")));
+
+        if(Text.contains(key, #text("/|"))){
+            certKey := "/collection/-/" # keyArray[1];
+        } else {
+            if( Text.endsWith(keyArray[1], #text("html"))){
+                certKey := "/-/" # Text.trimStart(keyArray[1], #text("/nft")) # "/ex";
+            } else {
+                    certKey := "/-/" # Text.trimStart(keyArray[1], #text("/nft")) # "/preview";
             };
         };
+        D.print("\n");
+        D.print("handleLargeContent");
+        D.print("#fm id : " # certKey);
+        // Create url cert key
+
+        return {
+                    status_code        = 200;
+                    headers            = [
+                        ("Content-Type", contentType),
+                        ("accept-ranges", "bytes"),
+                        ("Cache-Control","private"),
+                        state.cert.certificationHeader(certKey),
+                    ];
+                    body               = result.payload;
+                    streaming_strategy = switch (result.callback) {
+                        case (null) { null; };
+                        case (? tk) {
+                            ?#Callback({
+                                token    = tk;
+                                callback = canister.nftStreamingCallback;
+                            });
+                        };
+                    };
+                };
+        // if(key == "nft/|ledger"){
+        //     return {
+        //         status_code        = 200;
+        //         headers            = [
+        //             ("Content-Type", contentType),
+        //             ("accept-ranges", "bytes"),
+        //             ("Cache-Control","private"),
+        //             state.cert.certificationHeader("/collection/-/ledger"),
+        //         ];
+        //         body               = result.payload;
+        //         streaming_strategy = switch (result.callback) {
+        //             case (null) { null; };
+        //             case (? tk) {
+        //                 ?#Callback({
+        //                     token    = tk;
+        //                     callback = canister.nftStreamingCallback;
+        //                 });
+        //             };
+        //         };
+        //     };
+        // } else {    
+        //     return {
+        //         status_code        = 200;
+        //         headers            = [
+        //             ("Content-Type", contentType),
+        //             ("accept-ranges", "bytes"),
+        //             ("Cache-Control","private"),
+        //         ];
+        //         body               = result.payload;
+        //         streaming_strategy = switch (result.callback) {
+        //             case (null) { null; };
+        //             case (? tk) {
+        //                 ?#Callback({
+        //                     token    = tk;
+        //                     callback = canister.nftStreamingCallback;
+        //                 });
+        //             };
+        //         };
+        //     };
+        // }
+        
 
     };
 
@@ -665,7 +731,7 @@ module {
         token_id: Text,
         library_id: Text) : HTTPResponse {
 
-        debug if(debug_channel.library) D.print("in render library)");
+        debug if(debug_channel.library) D.print("in render library");
 
         let #ok(library_meta) = Metadata.get_library_meta(metadata, library_id) else return _not_found("meta not found - " # token_id # " " # library_id);
 
@@ -762,7 +828,7 @@ module {
                             return result;
 
                     } else {
-                        debug if(debug_channel.library)D.print("Not a range requst");
+                        debug if(debug_channel.library)D.print("Not a range request");
 
                         /*
                         remove this comment to get a dump of the actual headers that made it through.
@@ -823,15 +889,56 @@ module {
                                 httpbody := Conversion.candyToBlob(SB.get(zone,0));
                             };
                             //////////////////////////////////
-
-
-                            //only one chunck
-                            return {
-                                status_code        = 200;
-                                headers            = [("Content-Type", content_type)];
-                                body               = httpbody;
-                                streaming_strategy = null;
+                            // Create key to match certs
+                            // This is for certified assets
+                            // #fm
+                            // Create cert key to retrive cert
+                            var certKey = "";
+                            if(token_id == ""){
+                                certKey := "/collection/-/" # library_id;
+                            } else {
+                                if( Text.endsWith(library_id, #text("html"))){
+                                    certKey := "/-/" # token_id # "/ex";
+                                } else {
+                                        certKey := "/-/" # token_id # "/preview";
+                                };
                             };
+                            let ky = "nft/" # token_id # "|" # library_id;
+                            D.print("\n");
+                            D.print("#fm");
+                            D.print("id : " # certKey);
+                            // D.print("tokenid");
+                            // D.print(use_token_id);  
+                            // D.print("\n");
+                            // D.print("libraryid");
+                            // D.print(library_id);  
+                             
+                            //only one chunk
+                            return {
+                                        status_code        = 200;
+                                        headers            = [("Content-Type", content_type), state.cert.certificationHeader(certKey)];
+                                        body               = httpbody;
+                                        streaming_strategy = null;
+                                    };
+                            // if(use_token_id == "bm-3"){
+                            //     return {
+                            //     status_code        = 200;
+                            //     headers            = [("Content-Type", content_type), state.cert.certificationHeader("/-/bm-3/preview")];
+                            //     body               = httpbody;
+                            //     streaming_strategy = null;
+                            // };
+                            // } else {
+                            //     D.print("\n");
+                            //     D.print("renderLibrary");
+                            //     D.print("several chunks??");
+                            //     return {
+                            //         status_code        = 200;
+                            //         headers            = [("Content-Type", content_type)];
+                            //         body               = httpbody;
+                            //         streaming_strategy = null;
+                            //     };
+                            // }
+                           
                         };
                     };
 
@@ -937,6 +1044,9 @@ module {
                             };
                             //////////////////////////////////
                             //only one chunck
+                             D.print("\n");
+                             D.print("collection");
+                             D.print("only one chunk??");
                             return {
                                 status_code        = 200;
                                 headers            = [("Content-Type", content_type)];
@@ -1149,7 +1259,7 @@ module {
         tk : StreamingCallbackToken,
         state : Types.State) : StreamingCallbackResponse {
 
-                            debug if(debug_channel.large_content) D.print("in the request_streamint callbak");
+                            debug if(debug_channel.large_content) D.print("in the request_streaming callbak");
                             debug if(debug_channel.large_content) D.print(debug_show(tk));
         if (Text.startsWith(tk.key, #text("nft/"))) {
             let path = Iter.toArray(Text.tokens(tk.key, #text("/")));
@@ -1272,7 +1382,8 @@ module {
                 };
             };
         };
-
+        D.print("\n");
+        D.print("func json");
         return {
             body = Text.encodeUtf8(JSON.value_to_json(message_response));
             headers = [(("Content-Type", "application/json")),(("Access-Control-Allow-Origin", "*"))];
@@ -1610,6 +1721,9 @@ module {
               }
             };
           };
+            
+            D.print("\n");            
+            D.print("http_nft_owner_check");
             return {
                 body = Text.encodeUtf8 ("<html><head><title> An Origyn NFT Canister </title></head><body></body></html>\n");
                 headers = [];

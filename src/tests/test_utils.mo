@@ -423,6 +423,7 @@ module {
             filedata  = fileData;
             chunk = 0;
             content = Conversion.candySharedToBlob(#Text(text));// content = #Bytes(nat8array);
+            totalChunks = 0;
         }
     };
 

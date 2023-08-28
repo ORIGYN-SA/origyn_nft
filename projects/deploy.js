@@ -49,7 +49,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8080';
+    var ICP_ENDPOINT = 'http://localhost:4943';
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
@@ -140,10 +140,10 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
     for (const this_item of data.library) {
         let library_id = this_item.library_id;
         const imageSource = this_item.library_file;
-        //console.log(this_item);
+        console.log("the item",this_item);
         //if(imageSource.indexOf("social")>-1){
         const filedata = fs.readFileSync(imageSource);
-
+        console.log("filedata", filedata);
         const SIZE_CHUNK = 2048000; // two megabytes
         //const SIZE_CHUNK = 128; // two megabytes
 
@@ -155,7 +155,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
         }
         let results = [];
 
-        const stageLibraryNft = async (content, token_id, i, library_id) => {
+        const stageLibraryNft = async (content, token_id, i, library_id, totalChunks) => {
             try {
                 const res = await actor.stage_library_nft_origyn({
                     content: content,
@@ -163,6 +163,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                     chunk: i,
                     filedata: { Option: [] },
                     library_id: library_id,
+                    totalChunks,
                 });
                 return res;
             } catch (e) {
@@ -174,6 +175,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                 return await stageLibraryNft(content, token_id, i, library_id);
             }
         };
+        console.log("chunks length", chunks.length);
         for (let i = 0; i < chunks.length; i++) {
             const chnk = chunks[i];
             console.log('appending item ', i, chnk, i, library_id);
@@ -181,7 +183,8 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                 Array.from(chnk),
                 argv.token_id.toString(),
                 i,
-                library_id
+                library_id,
+                chunks.length,
             );
             console.log(result);
         }
