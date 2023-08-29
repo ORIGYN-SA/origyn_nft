@@ -280,6 +280,23 @@ module {
         var start_range : Nat = 0;
         var end_range : Nat = 0;
 
+        // Create cert key to retrive cert
+        var certKey = "";
+        var keyArray =  Iter.toArray(Text.split(key, #text("|")));
+
+        if(Text.contains(key, #text("/|"))){
+            certKey := "/collection/-/" # keyArray[1];
+        } else {
+            if( Text.endsWith(keyArray[1], #text("html"))){
+                certKey := "/-/" # Text.trimStart(keyArray[1], #text("/nft")) # "/ex";
+            } else {
+                    certKey := "/-/" # Text.trimStart(keyArray[1], #text("/nft")) # "/preview";
+            };
+        };
+        // D.print("\n");
+        // D.print("handleLargeContent");
+        // D.print("#CertKey : " # certKey);
+
         //nyi: should the data zone cache this?
         {
             status_code        = 200;
@@ -287,6 +304,7 @@ module {
                 ("Content-Type", contentType),
                 ("accept-ranges", "bytes"),
                 ("Cache-Control","private"),
+                state.cert.certificationHeader(certKey),
             ];
             body               = result.payload;
             streaming_strategy = switch (result.callback) {
@@ -823,12 +841,30 @@ module {
                                 httpbody := Conversion.candyToBlob(SB.get(zone,0));
                             };
                             //////////////////////////////////
-
+                        
+                            // #fm
+                            // Create cert key to retrive cert
+                            var certKey = "";
+                            if(token_id == ""){
+                                // for collections
+                                certKey := "/collection/-/" # library_id;
+                            } else {
+                                if( Text.endsWith(library_id, #text("html"))){
+                                    // For experiences
+                                    certKey := "/-/" # token_id # "/ex";
+                                } else {
+                                    // For image previews
+                                    certKey := "/-/" # token_id # "/preview";
+                                };
+                            };
+                            // D.print("\n");
+                            // D.print("renderLibrary");
+                            // D.print("#CertKey: " # certKey);
 
                             //only one chunck
                             return {
                                 status_code        = 200;
-                                headers            = [("Content-Type", content_type)];
+                                headers            = [("Content-Type", content_type), state.cert.certificationHeader(certKey)];
                                 body               = httpbody;
                                 streaming_strategy = null;
                             };

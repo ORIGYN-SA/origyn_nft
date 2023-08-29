@@ -191,6 +191,7 @@ shared (deployer) actor class test_wallet() = this {
             filedata  = #Option(null);
             chunk = 0;
             content = Blob.fromArray([104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]);
+            total_chunks = 1;
         });
 
        switch(fileStage){

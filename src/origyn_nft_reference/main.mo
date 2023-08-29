@@ -235,6 +235,7 @@ shared (deployer) actor class Nft_Canister() = this {
               get = get_notify_timer;
               set = set_notify_timer;
             };
+            cert = cert_;
         };
     };
 

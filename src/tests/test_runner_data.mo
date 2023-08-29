@@ -391,6 +391,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             ]);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
         
@@ -421,6 +422,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             ]);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
 
@@ -536,6 +538,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Bool(false);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
         
@@ -555,6 +558,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Bool(false);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
         D.print("deletePreview:" # debug_show(deletePreview));
@@ -569,6 +573,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Bool(false);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
 
@@ -686,6 +691,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Bool(false);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
         
@@ -711,6 +717,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Bool(false);
             chunk = 0;
             content = Blob.fromArray([]);// content = #Bytes(nat8array);
+            total_chunks = 1;
           }
         );
 

@@ -171,6 +171,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Option(null);
             chunk = 1;
             content = Conversions.candySharedToBlob(#Text("nice to meet you"));
+            total_chunks = 1;
         });
 
         //MINT0019 - you can now upload here but must provide proper metadata and have storagebthis will fail with id not found
@@ -180,6 +181,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Option(null);
             chunk = 1;
             content = Conversions.candySharedToBlob(#Text("nice to meet you"));
+            total_chunks = 1;
         });
 
         D.print("trying to upload before meta" # debug_show(fileStage3));
@@ -461,6 +463,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             filedata  = #Option(null);
             chunk = 1;
             content = Conversions.candySharedToBlob(#Text("nice to meet you"));
+            total_chunks = 1;
         });
 
         D.print("after file stage");

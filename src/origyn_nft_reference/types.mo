@@ -31,6 +31,8 @@ import http "mo:http/Http";
 
 import Star "mo:star/star";
 
+import CertifiedHttp "mo:motoko-certified-assets/Cert";
+
 
 module {
 
@@ -497,6 +499,7 @@ module {
           get: () ->?Nat;
           set: (?Nat) -> ();
         };
+        cert : CertifiedHttp.CertifiedHttp;
         //btreemap : Stable_Memory;
     };
 

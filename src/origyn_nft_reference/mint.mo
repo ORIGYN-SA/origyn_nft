@@ -703,11 +703,39 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
-                              D.print("\n");
-                              D.print("TokenId : " # chunk.token_id # "| LibraryId : " # chunk.library_id);
-                              D.print("Toal chunks : " # Nat.toText(chunk.total_chunks) );
-                              SB.add(file_chunks,#Blob(chunk.content));
-                              SB.add(size_chunks, #Nat(chunk.content.size()))
+                            //   D.print("\n");
+                            //   D.print("TokenId : " # chunk.token_id # "| LibraryId : " # chunk.library_id);
+                            //   D.print("Toal chunks : " # Nat.toText(chunk.total_chunks) );
+                            
+                            // Create cert key
+                            var certKey = "";
+                            if(chunk.token_id == ""){
+                                // For collections
+                                certKey := "/collection/-/" # chunk.library_id;
+                            } else {
+                                if( Text.endsWith(chunk.library_id, #text("html"))){
+                                    // For experience page
+                                    certKey := "/-/" # chunk.token_id # "/ex";
+                                } else {
+                                    // For preview images
+                                    certKey := "/-/" # chunk.token_id # "/preview";
+                                };
+                            };
+                            // D.print("\n");
+                            // D.print("#CertKey : " # certKey);                               
+                            // D.print("totalChunks : " # Nat.toText(chunk.total_chunks));
+
+                            // Certify chunks
+                            if(chunk.chunk == 0){
+                                // Only first chunk | also for assets with one chunk
+                                state.cert.chunkedStart(certKey, chunk.total_chunks, chunk.content, func(content: [Blob]){});
+                            } else {
+                                // Remaining chunks
+                                state.cert.chunkedSend(certKey, chunk.chunk, chunk.content);
+                            };
+  
+                            SB.add(file_chunks,#Blob(chunk.content));
+                            SB.add(size_chunks, #Nat(chunk.content.size()))
                           };
                       } else {
                           debug if(debug_channel) D.print("index wasnt chunk" # debug_show(this_index));
