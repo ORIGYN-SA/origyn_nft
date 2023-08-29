@@ -703,6 +703,9 @@ module {
                               size_chunks.add(#Nat(chunk.content.size()))
                               */
                           } else {
+                              D.print("\n");
+                              D.print("TokenId : " # chunk.token_id # "| LibraryId : " # chunk.library_id);
+                              D.print("Toal chunks : " # Nat.toText(chunk.total_chunks) );
                               SB.add(file_chunks,#Blob(chunk.content));
                               SB.add(size_chunks, #Nat(chunk.content.size()))
                           };

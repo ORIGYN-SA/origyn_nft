@@ -178,6 +178,7 @@ module {
         filedata : CandyTypes.CandyShared; //may need to be nullable
         chunk : Nat; //2MB Chunks
         content : Blob;
+        total_chunks: Nat;
     };
 
     public type ChunkRequest = {

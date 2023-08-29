@@ -61,6 +61,8 @@ import MemoryManager "mo:stableBTree/memoryManager";
 import Memory "mo:stableBTree/memory";
 import TypesModule "mo:canistergeekold/typesModule";
 
+import CertifiedHttp "mo:motoko-certified-assets/Cert";
+
 shared (deployer) actor class Nft_Canister() = this {
 
     // Lets user turn debug messages on and off for local replica
@@ -90,6 +92,18 @@ shared (deployer) actor class Nft_Canister() = this {
     stable var upgraded_at = Nat64.fromNat(Int.abs(Time.now()));
 
     let OneDay = 60 * 60 * 24 * 1000000000;
+
+    // *************************
+    // ***** CERT STORE ********
+    // *************************
+
+    stable var cert_store = CertifiedHttp.init();
+    var cert_ = CertifiedHttp.CertifiedHttp(cert_store);
+
+    // *************************
+    // ***** CERT STORE END*****
+    // *************************
+
     
     // *************************
     // ***** CANISTER GEEK *****

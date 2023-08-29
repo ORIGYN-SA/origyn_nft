@@ -198,6 +198,7 @@ stage_library_nft_origyn(StageChunkArg = {
     filedata: CandyTypes.CandyShared;
     chunk: Nat;
     content: Bool; //up to 2MB
+    total_chunks: Nat;
 }) : Result<#ok(bool),#err(OrigynError)>; - Stages the content
 ```
 
@@ -1398,6 +1399,7 @@ Features:
         filedata: CandyTypes.CandyShared;
         chunk: Nat;
         content: Blob;
+        total_chunks: Nat;
     };
 
 

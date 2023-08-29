@@ -49,7 +49,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8080';
+    var ICP_ENDPOINT = 'http://localhost:4943';
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
@@ -155,7 +155,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
         }
         let results = [];
 
-        const stageLibraryNft = async (content, token_id, i, library_id) => {
+        const stageLibraryNft = async (content, token_id, i, library_id, total_chunks) => {
             try {
                 const res = await actor.stage_library_nft_origyn({
                     content: content,
@@ -163,6 +163,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                     chunk: i,
                     filedata: { Option: [] },
                     library_id: library_id,
+                    total_chunks,
                 });
                 return res;
             } catch (e) {
@@ -171,7 +172,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                 );
                 console.log(e);
                 await new Promise((resolve) => setTimeout(resolve, 3000));
-                return await stageLibraryNft(content, token_id, i, library_id);
+                return await stageLibraryNft(content, token_id, i, library_id, total_chunks);
             }
         };
         for (let i = 0; i < chunks.length; i++) {
@@ -181,7 +182,8 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
                 Array.from(chnk),
                 argv.token_id.toString(),
                 i,
-                library_id
+                library_id,
+                chunks.length,
             );
             console.log(result);
         }

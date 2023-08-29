@@ -110,3 +110,66 @@ Here are the instructions about how to do it:
 - Make sure you give the right persmissions to those files
 - Run `$(dfx cache show)/moc --version` to verify you have the downloaded version
 
+### Example URLs
+
+Combine a `canister URL` and a `canister-relative URL` to get a full example of an absolute URL.
+
+**Canister URLs**
+
+-   Canister ID
+
+    -   Localhost
+        -   http://rrkah-fqaaa-aaaaa-aaaaq-cai.localhost:8080
+    -   Mainnet
+        -   https://ap5ok-kqaaa-aaaak-acvha-cai.raw.icp0.io
+
+-   Proxy
+
+    -   Localhost (must have the proxy running locally first)
+        -   http://localhost:3000/-/rrkah-fqaaa-aaaaa-aaaaq-cai
+    -   Mainnet
+        -   https://prptl.io/-/ap5ok-kqaaa-aaaak-acvha-cai
+
+-   Proxy + Phonebook
+    -   Localhost (must have the proxy running locally first)
+        -   http://localhost:3000/-/bm
+    -   Mainnet
+        -   https://prptl.io/-/bm
+
+**Canister-Relative URLs**
+
+-   Collection Level
+
+    -   Standard Info URLs
+
+        -   /collection/info
+        -   /collection/ledger_info
+        -   /collection/library
+
+    -   Origyn DApp URLs
+        -   /collection/-/vault
+        -   /collection/-/marketplace
+        -   /collection/-/library
+        -   /collection/-/ledger
+        -   /collection/-/data
+
+-   NFT Level
+
+    -   Standard Info URL
+
+        -   /-/token-id/info
+        -   /-/token-id/ledger_info
+        -   /-/token-id/library
+
+    -   Standard Asset Type URLs ("token-id" is the token ID of an NFT)
+
+        -   /-/token-id/primary
+        -   /-/token-id/preview
+        -   /-/token-id/hidden
+        -   /-/token-id/ex
+
+    -   Direct Asset URLs ("token-id" is the token ID of an NFT)
+        -   /-/token-id/-/primary1.png
+        -   /-/token-id/-/preview1.png
+        -   /-/token-id/-/mystery-bm.gif
+        -   /-/token-id/-/experience1.html
