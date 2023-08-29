@@ -7,5 +7,4 @@ export env_network
 export env_prod
 export env_name
 export env_name_sale
-# bash ./projects/bm/deploybm.sh
-bash ./projects/bm/deploybm-fm.sh
+bash ./projects/bm/deploybm.sh
