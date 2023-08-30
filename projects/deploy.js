@@ -49,7 +49,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8080';
+    var ICP_ENDPOINT = 'http://localhost:4943';
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');

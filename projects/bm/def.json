@@ -43,10 +43,10 @@
                             {"name":"read","value":{"Text":"public"}, "immutable":false}
                         ]},
                         {"Class":[
-                            {"name":"library_id", "value":{"Text":"wallet"}, "immutable":true},
-                            {"name":"title", "value":{"Text":"Wallet dApp"}, "immutable":true},
+                            {"name":"library_id", "value":{"Text":"vault"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Vault dApp"}, "immutable":true},
                             {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
-                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.ic0.app/-/bm-XXXXXX/-/wallet"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.ic0.app/-/bm-XXXXXX/-/vault"}, "immutable":true},
                             {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
                             {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
                             {"name":"size", "value":{"Nat":1503756}, "immutable":true},

@@ -385,6 +385,30 @@ module {
             },
         );
 
+        // #insert
+        // Grab owner id from metadata
+        let owner_id = Conversions.candySharedToText(
+            switch(Properties.getClassPropertyShared(metadata, Types.metadata.owner)){
+                case(null){
+                    return #err(Types.errors(?state.canistergeekLogger,  #id_not_found_in_metadata, "stage_nft_origyn - find owner id", ?caller));
+                };
+                case (?found) {
+                    found.value;
+                };
+            },
+        );        
+        // check if owner matches metadata owner
+        if(id_val == ""){
+            if(NFTUtils.is_owner_manager_network(state, Principal.fromText(owner_id)) == false){
+
+               D.print("#id_val empty and owner_id not in the collection \n");
+               D.print(debug_show(owner_id));
+               return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "stage_nft_origyn - owner id in metadata not an owner", ?caller))
+            };
+        };
+
+        // #insertends
+
         debug if (debug_channel.stage) D.print("id is " # id_val);
 
         debug if (debug_channel.stage) D.print("looking for system");

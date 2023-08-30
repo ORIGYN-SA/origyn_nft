@@ -140,12 +140,12 @@
                                     "Class": [
                                         {
                                             "name": "library_id",
-                                            "value": { "Text": "wallet" },
+                                            "value": { "Text": "vault" },
                                             "immutable": true
                                         },
                                         {
                                             "name": "title",
-                                            "value": { "Text": "Wallet" },
+                                            "value": { "Text": "Vault" },
                                             "immutable": true
                                         },
                                         {
@@ -156,7 +156,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/wallet"
+                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/vault"
                                             },
                                             "immutable": true
                                         },
@@ -168,14 +168,14 @@
                                         {
                                             "name": "content_hash",
                                             "value": {
-                                                "Text": "dapp_wallet_hash"
+                                                "Text": "dapp_vault_hash"
                                             },
                                             "immutable": true
                                         },
                                         {
                                             "name": "size",
                                             "value": {
-                                                "Nat": dapp_wallet_size
+                                                "Nat": dapp_vault_size
                                             },
                                             "immutable": true
                                         },

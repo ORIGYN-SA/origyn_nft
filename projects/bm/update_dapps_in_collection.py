@@ -6,8 +6,8 @@ dapps_folder="./dapps-latest-build/dist/"
 dapps = [
     {
         "file_name": "vault.html",
-        "key_size": "dapp_wallet_size",
-        "key_hash": "dapp_wallet_hash",
+        "key_size": "dapp_vault_size",
+        "key_hash": "dapp_vault_hash",
     },
     {
         "file_name": "marketplace.html",

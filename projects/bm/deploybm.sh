@@ -40,7 +40,8 @@ awk "{gsub(\"CREATOR-PRINCIPAL-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm
 
 bash ./projects/bm/build-dapps.sh
 
-awk "{gsub(\"CANISTER-ID\",\"$NFT_CANISTER_ID\"); print}" ./projects/bm/def_collection_build.json  > ./projects/bm/def_collection_1.json
+# changed canister id to admin_principal to match collection_data.owner => ENG-776-Collection-owner-updated 
+awk "{gsub(\"CANISTER-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_build.json  > ./projects/bm/def_collection_1.json
 awk "{gsub(\"APP-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_1.json  > ./projects/bm/def_collection_2.json
 awk "{gsub(\"CREATOR-PRINCIPAL-ID\",\"$ADMIN_PRINCIPAL\"); print}" ./projects/bm/def_collection_2.json  > ./projects/bm/def_collection_loaded.json
 
