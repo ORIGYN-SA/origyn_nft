@@ -61,7 +61,7 @@ module {
     * @returns {?Principal} The KYC canister's principal for the seller of the collection or null if not found.
     */
     private func get_collection_kyc_canister_seller(state : Types.State) : ?Principal {
-      let #ok(metadata) = Metadata.get_metadata_for_token(state, "",state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else {
+      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(),  state.state.collection_data.owner) else {
         state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller was null", #Option(null), null);
         return null
       };

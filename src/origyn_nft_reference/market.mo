@@ -1689,7 +1689,7 @@ module {
             await* KYC.pass_kyc_buyer(state, verified.found_asset.escrow, caller);
           } catch(e){
             debug if(debug_channel.kyc) D.print("KYC error on await* " # Error.message(e));
-            return #err(Types.errors(?state.canistergeekLogger,  #kyc_error, "market_transfer_nft_origyn auto try escrow failed " # Error.message(e), ?caller))
+            return #err(Types.errors(?state.canistergeekLogger,  #kyc_error, "market_transfer_nft_origyn auto try kyc failed " # Error.message(e), ?caller))
           };
 
           switch(kyc_result){
@@ -1724,7 +1724,7 @@ module {
             verified := switch(verify_escrow_receipt(state, escrow, ?owner, null)){
               case(#err(err)){
                 //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
-                return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try escrow failed " # err.flag_point, ?caller))
+                return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try escrow failed revalidate  " # err.flag_point, ?caller))
               };
               case(#ok(res)) res;
             };
@@ -4218,6 +4218,7 @@ module {
               //not a canister call... trying to recognize escrow
               
               debug if(debug_channel.bid) D.print("Not a canister call, trying escrow");
+              state.canistergeekLogger.logMessage("bid_nft_origyn Not a canister call, trying recognize escrow " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
               switch(Star.toResult(await* recognize_escrow_nft_origyn(state, { 
               deposit = {request.escrow_receipt with
                 sale_id = ?request.sale_id;
@@ -4228,12 +4229,16 @@ module {
               }, 
               caller))){
                 case(#ok(val)){
+                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow succeeded " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
                   return await* bid_nft_origyn(state, request, caller, true);
                 };
                 case(#err(err)){
+                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show((request.escrow_receipt, request.sale_id, err.flagpoint)) , #Option(null), null);
                   if(debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
                 };
               };
+
+              state.canistergeekLogger.logMessage("bid_nft_origyn attempting escrow from deposit " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
 
               switch(await* escrow_nft_origyn(state,
                   {deposit =
