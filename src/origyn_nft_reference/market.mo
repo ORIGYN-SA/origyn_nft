@@ -39,7 +39,7 @@ import Types "types";
 module {
 
   let debug_channel = {
-      verify_escrow = false;
+      verify_escrow = true;
       verify_sale = false;
       ensure = false;
       invoice = false;
@@ -47,14 +47,14 @@ module {
       market = false;
       royalties = false;
       offers = false;
-      escrow = false;
-      withdraw_escrow = false;
+      escrow = true;
+      withdraw_escrow = true;
       withdraw_sale = false;
       withdraw_reject = false;
       withdraw_deposit = false;
-      notifications = false;
+      notifications = true;
       dutch = false;
-      bid = false;
+      bid = true;
       kyc = false;
   };
 
@@ -219,7 +219,7 @@ module {
     debug if(debug_channel.verify_escrow) D.print("looking for to list");
     let ?asset_list = search.asset_list else return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token_id not found  " # debug_show(escrow.token_id), null));
             
-    let ?balance = search.balance else  return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
+    let ?balance = search.balance else return #err(Types.errors(?state.canistergeekLogger,  #no_escrow_found, "verify_escrow_receipt - escrow token spec not found ", null));
 
     let found_asset = ?{token_spec = escrow.token; escrow = balance};
 
@@ -3305,7 +3305,7 @@ module {
 
           debug if(debug_channel.escrow) D.print(debug_show(escrow_result));
           
-          debug if(debug_channel.escrow) D.print("adding loaded from balance transaction");
+          debug if(debug_channel.escrow) D.print("adding loaded from balance transaction" # debug_show(balance));
           //add deposit transaction
           switch(Metadata.add_transaction_record(state,{
             token_id = request.token_id;
@@ -4230,6 +4230,8 @@ module {
               caller))){
                 case(#ok(val)){
                   state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow succeeded " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
+
+                  debug if(debug_channel.bid) D.print("recognizing escrow was successful, recaling bid");
                   return await* bid_nft_origyn(state, request, caller, true);
                 };
                 case(#err(err)){
@@ -4261,6 +4263,7 @@ module {
       };
 
       //we can continue with trappable because the awaits above are returned.
+      debug if(debug_channel.bid) D.print("verified the escorw "  # debug_show(verified.found_asset));
 
       if(verified.found_asset.escrow.amount < request.escrow_receipt.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "bid_nft_origyn - escrow - amount more than in escrow verified: " # Nat.toText(verified.found_asset.escrow.amount) # " request: " # Nat.toText(request.escrow_receipt.amount) , ?caller)));
 
@@ -4478,7 +4481,6 @@ module {
           return #awaited(#bid(val));
         };
         case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn - create transaction record " # err.flag_point, ?caller)));
-
       };
     };
 

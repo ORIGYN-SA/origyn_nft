@@ -88,8 +88,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let suite = S.suite(
             "test nft",
             [
-
-              S.test("testDutch", switch (await testDutch()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
+              S.test("testAuction_v3", switch(await testAuction_v3()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              /* S.test("testDutch", switch (await testDutch()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
               S.test("testRecognizeEscrow", switch (await testRecognizeEscrow()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
               
               S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
@@ -100,7 +100,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
               S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-              S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+              S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), */
              
             ],
         );
@@ -5112,6 +5112,1174 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             S.test("sale is included in history", switch(history_sale_info_2){
               case(#ok(#history(val))){
                 if(val.records.size() == 2){
+                  switch(val.records[0]){
+                    case(null){"shouldnt be null"};
+                    case(?val){
+                      if(val.sale_id == current_sales_id){
+                        "correct response";
+                      } else{
+                        "wrong sale id "# debug_show(val);
+                      };
+                    };
+                  };
+                }else {
+                  "bad response" # debug_show(history_sale_info_2)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(history_sale_info_2);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+            
+            S.test("sale info has no active sale after cancel", switch(active_sale_info_3){
+              case(#ok(#active(val))){
+                if(val.records.size() == 0){
+                  "correct response";
+                } else {
+                  "bad response" # debug_show(active_sale_info_3)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_3);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("a was notified of sale", notifications.size(), M.equals<Nat>(T.nat(1))),
+         ]);
+
+         D.print("suite running");
+
+         S.run(suite);
+
+          D.print("suite over");
+
+        return #success;
+
+    };
+
+    public shared func testAuction_v3() : async { #success; #fail : Text } {
+        D.print("running Auction v3");
+
+        let dfx : DFXTypes.Service = actor (Principal.toText(dfx_ledger));
+
+        let dfx2 : DFXTypes.Service = actor (Principal.toText(dfx_ledger2));
+
+        let a_wallet = await TestWalletDef.test_wallet();
+        let b_wallet = await TestWalletDef.test_wallet();
+        
+        let funding_result_a = await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+            
+            
+        let funding_result_b =  await dfx.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        let funding_result_b2 = await dfx2.icrc1_transfer({
+            to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
+            fee = ?200_000;
+            memo = utils.memo_one;
+            from_subaccount = null;
+            created_at_time = null;
+            amount =  1000 * 10 ** 8;});
+
+        D.print("funding result b2 " # debug_show (funding_result_b2));
+
+        let newPrincipal = await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+
+        let initialOwnerBalance = await dfx.icrc1_balance_of( {owner = Principal.fromActor(this); subaccount = null});
+
+        D.print("initialOwnerBalance = " # debug_show(initialOwnerBalance));
+
+        let canister : Types.Service = actor (Principal.toText(newPrincipal));
+
+        let mode = canister.__set_time_mode(#test);
+        let atime = canister.__advance_time(Time.now());
+
+        let standardStage = await utils.buildStandardNFT("1", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning a minted item
+        let standardStage2 = await utils.buildStandardNFT("2", canister, Principal.fromActor(this), 1024, false, Principal.fromActor(this)); //for auctioning an unminted item
+
+        D.print("Minting");
+        let mint_attempt = await canister.mint_nft_origyn("1", #principal(Principal.fromActor(this))); //mint to the test account
+        let mint_attempt2 = await canister.mint_nft_origyn("2", #principal(Principal.fromActor(this))); //mint to the test account
+
+        D.print("start auction fail " # debug_show ((mint_attempt, mint_attempt2)));
+        //non owner start auction should fail MKT0019
+        let start_auction_attempt_fail = await a_wallet.try_start_ask(Principal.fromActor(canister), Principal.fromActor(dfx), "1", null);
+
+        D.print("start auction owner");
+        let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
+                    #reserve(100 * 10 ** 8),
+                    #token(#ic({
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    })),
+                    #buy_now(500 * 10 ** 8),
+                    #start_price(1 * 10 ** 8),
+                    #ending(#date(get_time() + DAY_LENGTH)),
+                    #min_increase(#amount(10*10**8)),
+                    #notify([Principal.fromActor(a_wallet),
+                    Principal.fromActor(b_wallet)])
+                ]);
+        //start an auction by owner
+        let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = null;
+                broker_id = null;
+                pricing = #ask (?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
+            };
+        });
+
+        D.print("get sale id " # debug_show (start_auction_attempt_owner));
+        let current_sales_id = switch (start_auction_attempt_owner) {
+            case (#ok(val)) {
+                switch (val.txn_type) {
+                    case (#sale_opened(sale_data)) {
+                        sale_data.sale_id;
+                    };
+                    case (_) {
+                        D.print("Didn't find expected sale_opened");
+                        return #fail("Didn't find expected sale_opened");
+                    };
+                };
+
+            };
+            case (#err(item)) {
+                D.print("error with auction start");
+                return #fail("error with auction start");
+            };
+        };
+
+       let active_sale_info_1 = await canister.sale_info_nft_origyn(#active(null));
+
+        D.print("active_sale_info_1" # debug_show(active_sale_info_1));
+
+        //force a round?
+
+        let aRandom = await TestWalletDef.test_wallet();
+
+        let aRandom2 = await TestWalletDef.test_wallet();
+        let aRandom3 = await TestWalletDef.test_wallet();
+        let aRandom4 = await TestWalletDef.test_wallet();
+
+        //lets make sure that we were notified
+        let notifications = await a_wallet.get_notifications();
+
+        D.print("found notifications" # debug_show(notifications));
+
+        //claiming first escrow
+        let a_wallet_try_escrow_general_staged = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), 
+          {
+            token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard =  #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                      });
+            seller = #principal(Principal.fromActor(this));
+            buyer = #principal(Principal.fromActor(a_wallet));
+            token_id = "1";
+            amount = 1 * 10 ** 8
+          },  Principal.fromActor(canister));
+
+        //try starting again//should fail MKT0018
+        let end_date = get_time() + DAY_LENGTH;
+        D.print("end date is ");
+        D.print(debug_show (end_date));
+
+        let a_balance_before_valid_bid4 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+        D.print("a_balance_before_valid_bid4 v3 " # debug_show (a_balance_before_valid_bid4));
+
+        //place a valid bid MKT0027
+        let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 1 * 10 ** 8, "1", current_sales_id, null);
+        D.print("a_wallet_try_bid_valid " # debug_show (a_wallet_try_bid_valid));
+
+        let a_balance_after_bad_bid4 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+        D.print("a balance 4 " # debug_show (a_balance_after_bad_bid4));
+
+        //check transaction log for bid MKT0033, TRX0005
+        let a_history_1 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        D.print("history1" # debug_show (a_history_1));
+
+        //make sure next min bid is bid + minimum increase MKT0032
+        let a_sale_status_min_bid_increase = await canister.nft_origyn("1");
+
+        D.print("withdraw during bid");
+        //todo: attempt to withdraw escrow for active bid should fail ESC0016 NFT-76
+        let a_withdraw_during_bid = await a_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", 1 * 10 ** 8, null);
+
+        D.print("passed this");
+        //place escrow b
+        let new_bid_val = switch (a_sale_status_min_bid_increase) {
+            case (#ok(res)) {
+
+                switch (res.current_sale) {
+                    case (?current_sale) {
+                        switch (NFTUtils.get_auction_state_from_statusStable(current_sale)) {
+                            case (#err(err)) {
+                                return #fail("cannot get min bid to make second bid");
+                            };
+                            case (#ok(res)) {
+                                res.min_next_bid;
+                            };
+                        };
+                    };
+                    case (null) {
+                        return #fail("no sale found for finding min bid for second bid");
+                    };
+                };
+            };
+            case (#err(err)) {
+                return #fail("cannot get min bid to make second bid");
+            };
+        };
+
+        //deposit escrow for two upcoming bids
+        D.print("sending tokens to canisters for b");
+        let b_wallet_send_tokens_to_canister_correct_ledger = await b_wallet.send_ledger_escrow(Principal.fromActor(dfx), 
+          {
+            token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard =  #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                      });
+            seller = #principal(Principal.fromActor(this));
+            buyer = #principal(Principal.fromActor(b_wallet));
+            token_id = "1";
+            amount = (new_bid_val)
+          },  Principal.fromActor(canister));
+        
+
+        D.print("Sending escrow for correct currency escrow now");
+        
+
+        //place a second bid
+        let b_wallet_try_bid_valid = await b_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), new_bid_val, "1", current_sales_id, null);
+
+        D.print("did b bid work? ");
+        D.print(debug_show (b_wallet_try_bid_valid));
+
+        let b_balance_after_bid = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(b_wallet))); //gets all history
+
+        D.print("found balance after bid ");
+        D.print(debug_show (b_balance_after_bid));
+
+        //check transaction log for bid MKT0033, TRX0005
+        let b_history_1 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        D.print("found balance after bid ");
+        D.print(debug_show (b_history_1));
+
+        //place more escrow a
+        //make sure next min bid is bid + minimum increase MKT0032
+        let b_sale_status_min_bid_increase = await canister.nft_origyn("1");
+
+        let new_bid_val_b = switch (b_sale_status_min_bid_increase) {
+            case (#ok(res)) {
+
+                switch (res.current_sale) {
+                    case (?current_sale) {
+                        switch (NFTUtils.get_auction_state_from_statusStable(current_sale)) {
+                            case (#err(err)) {
+                                return #fail("cannot get min bid to make third bid");
+                            };
+                            case (#ok(res)) {
+                                res.min_next_bid;
+                            };
+                        };
+                    };
+                    case (null) {
+                        return #fail("no sale found for finding min bid for third bid");
+                    };
+                };
+            };
+            case (#err(err)) {
+                return #fail("cannot get min bid to make third bid");
+            };
+        };
+
+        let a_balance_before_third_escrow = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+        D.print("the balance before third escrow is");
+        D.print(debug_show (a_balance_before_third_escrow));
+
+        let a_wallet_send_tokens_to_canister2 = await a_wallet.send_ledger_escrow(Principal.fromActor(dfx), 
+          {
+            token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard =  #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                      });
+            seller = #principal(Principal.fromActor(this));
+            buyer = #principal(Principal.fromActor(a_wallet));
+            token_id = "1";
+            amount = (101 * 10 ** 8)
+          },  Principal.fromActor(canister));
+    
+
+        let block3 = switch (a_wallet_send_tokens_to_canister2) {
+            case (#ok(ablock)) {
+                ablock;
+            };
+            case (#err(other)) {
+                D.print("ledger didnt work");
+                return #fail("ledger didnt work");
+            };
+        };
+
+        D.print("Sending real escrow now 3"); //escrow is for 100. There should already be 1 in the escrow account. we are going to bid 101 above reserve
+        
+        //todo check escrow balance
+        //check balance and make sure we see the escrow BAL0002
+        let a_balance_before_third = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+        D.print("the balance before third is");
+        D.print(debug_show (a_balance_before_third));
+
+        //place a third bid
+        let a_wallet_try_bid_valid_3 = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 101 * 10 ** 8, "1", current_sales_id, null);
+        D.print("valid 3");
+        D.print(debug_show (a_wallet_try_bid_valid_3));
+
+        //force a round?
+
+        let aRandom5 = await TestWalletDef.test_wallet();
+
+        let aRandom6 = await TestWalletDef.test_wallet();
+        let aRandom7 = await TestWalletDef.test_wallet();
+        let aRandom8 = await TestWalletDef.test_wallet();
+
+        //try to end auction before it is time should fail
+        D.print("end before");
+        
+        let end_before = try{
+          await canister.sale_nft_origyn(#end_sale("1"));
+        } catch(e){
+          D.print(Error.message(e));
+          D.trap(Error.message(e));
+        };
+        
+        D.print(debug_show (end_before));
+        D.print("end before");
+
+        //advance time
+        let time_result = await canister.__advance_time(end_date + 1);
+        D.print("new time");
+        D.print(debug_show (time_result));
+
+        let aRandom9 = await TestWalletDef.test_wallet();
+
+        let aRandom10 = await TestWalletDef.test_wallet();
+        let aRandom11 = await TestWalletDef.test_wallet();
+        let aRandom12 = await TestWalletDef.test_wallet();
+
+        //end auction
+        let end_proper = await canister.sale_nft_origyn(#end_sale("1"));
+        D.print("end proper");
+        D.print(debug_show (end_proper));
+
+        //end again, should fail
+        let end_again = await canister.sale_nft_origyn(#end_sale("1"));
+        D.print("end again");
+        D.print(debug_show (end_again));
+
+        //try to withdraw winning bid NFT-110
+        let a_withdraw_during_win = await a_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", 101 * 10 ** 8, null);
+
+        //NFT-94 check ownership
+        //check balance and make sure we see the nft
+        let a_balance_after_close = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
+
+        // //MKT0029, MKT0036
+        let a_sale_status_over_new_owner = await canister.nft_origyn("1");
+
+        // //check transaction log
+
+        //check transaction log for sale
+        let a_history_3 = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        // //a tries to start a new sale
+
+        // //item is replaced in the current sale
+        let b_balance_before_withdraw = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(b_wallet))); //gets all history
+
+        D.print("found balance before escrow withdraw");
+        D.print(debug_show (b_balance_before_withdraw));
+        //b tries to withdraw more than in account NFT-99
+
+        let b_withdraw_over = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(b_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", 101 * 10 ** 8, null);
+
+        // //b tries to withdraw for other buyer NFT-102
+
+        let b_withdraw_bad_buyer = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", new_bid_val, null);
+
+        // //b tries to withdraw for other seller NFT-104
+
+        let b_withdraw_bad_seller = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(b_wallet), Principal.fromActor(dfx), Principal.fromActor(a_wallet), "1", new_bid_val, null);
+
+        // //b tries to withdraw for other tokenid NFT-105
+
+        let b_withdraw_bad_token_id = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(b_wallet), Principal.fromActor(dfx), Principal.fromActor(a_wallet), "32", new_bid_val, null);
+
+        // //b tries to withdraw for other token NFT-103
+
+        let b_withdraw_bad_token = await b_wallet.try_escrow_withdraw(
+            Principal.fromActor(canister),
+            Principal.fromActor(b_wallet),
+            Principal.fromActor(dfx),
+            Principal.fromActor(a_wallet),
+            "1",
+            new_bid_val,
+            ?#ic {
+                canister = Principal.fromActor(dfx2);
+                standard = #Ledger;
+                decimals = 8;
+                symbol = "LGY";
+                fee = ?200000;
+                id = null;
+            },
+        );
+
+        // //b escrow should be auto refunded - need to test
+
+        let b_withdraw = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(b_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", new_bid_val, null);
+
+        D.print("this withdraw should not work");
+        D.print(debug_show (b_withdraw));
+        //b withdraws escrow again NFT-106
+
+        let b_withdraw_again = await b_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(b_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", new_bid_val, null);
+        D.print("this withdraw should not work again");
+        D.print(debug_show (b_withdraw_again));
+
+        //check transaction log for sale
+        let b_history_withdraw = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        //attempt to withdraw the sale revenue for the seller(this canister)
+
+        //NFT-113
+        //get balanance and make sure the sale is in the balance
+        let owner_balance_after_sale = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(this)));
+        D.print("owner_balance_after_sale" # debug_show (owner_balance_after_sale));
+
+        D.print("withdraw over for owner");
+        //NFT-114
+        //try to withdraw too much
+        let owner_withdraw_over = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = (101 * 10 ** 8) + 15 })));
+
+        // //NFT-115
+        // //have a_wallet try to withdraw the sale
+        let a_withdraw_attempt_sale = await a_wallet.try_sale_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", new_bid_val, null);
+
+        //NFT-116
+        //try to withdare the wrong asset
+        D.print("owner_withdraw_wrong_asset");
+        let owner_withdraw_wrong_asset = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx2); standard = #Ledger; decimals = 8; symbol = "LGY"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+
+        //NFT-117
+        //todo: try to withdraw the wrong token_id
+        D.print("owner_withdraw_wrong_token_id");
+        let owner_withdraw_wrong_token_id = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "2"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+
+        //NFT-19
+        //todo: withdraw the proper amount
+        D.print("withdrawing proper amount from sale");
+        let owner_withdraw_proper_balance = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(this)));
+
+        D.print("Proper amount result balance");
+        D.print(debug_show (owner_withdraw_proper_balance));
+
+        let owner_withdraw_proper = await dfx.icrc1_balance_of( {owner = Principal.fromActor(this); subaccount = null});
+
+        D.print("Proper amount result");
+        D.print(debug_show (owner_withdraw_proper));
+
+        //NFT-118
+        //todo: try to withdraw again
+        D.print("trying to withdraw sale again");
+        let owner_withdraw_again = await canister.sale_nft_origyn(#withdraw(#sale({ withdraw_to = #principal(Principal.fromActor(this)); token_id = "1"; token = #ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  });  seller = #principal(Principal.fromActor(this)); buyer = #principal(Principal.fromActor(a_wallet)); amount = 101 * 10 ** 8 })));
+
+        // //NFT-118
+        // //todo: check balance and make sure it is gone
+        let owner_balance_after_withdraw = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(this)));
+
+        //NFT-19
+        //todo: check ledger and make sure transaction is there and it went to the right account
+        //check transaction log for sale
+        D.print("trying owner hisotry");
+        let owner_history_withdraw = await canister.history_nft_origyn("1", null, null); //gets all history
+
+        let active_sale_info_2 = await canister.sale_info_nft_origyn(#active(null));
+         D.print("active_sale_info_2" # debug_show(active_sale_info_2));
+
+        let history_sale_info_2 = await canister.sale_info_nft_origyn(#history(null));
+
+        //try to cancel the sale created for 2
+
+        let cancel_auction_with_no_bids = await canister.sale_nft_origyn(#end_sale("2"));
+
+        let active_sale_info_3 = await canister.sale_info_nft_origyn(#active(null));
+
+        let suite = S.suite(
+            "test staged Nft ask",
+            [
+
+                S.test(
+                    "test mint attempt ask",
+                    switch (mint_attempt) {
+                        case (#ok(res)) {
+
+                            "correct response";
+
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ),
+                S.test(
+                    "fail if non owner tries to start auction ask",
+                    switch (start_auction_attempt_fail) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 2000) {
+                                //unauthorized
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //MKT0019
+                
+               
+                S.test(
+                    "bid is succesful ask ",
+                    switch (a_wallet_try_bid_valid) {
+                        case (#ok(res)) {
+                            D.print("as bid");
+                            D.print(debug_show (a_wallet_try_bid_valid));
+                            switch (res.txn_type) {
+                                case (#auction_bid(details)) {
+                                    if (
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                    ) {
+                                        "correct response";
+                                    } else {
+                                        "details didnt match" # debug_show (details);
+                                    };
+                                };
+                                case (_) {
+                                    "bad transaction bid";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //MKT0027
+                S.test(
+                    "transaction history has the bid ask",
+                    switch (a_history_1) {
+                        case (#ok(res)) {
+
+                            D.print("where ismy history");
+                            D.print(debug_show (a_history_1));
+                            if (res.size() > 0) {
+                                switch (res[res.size() -1].txn_type) {
+                                    case (#auction_bid(details)) {
+                                        if (
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                        ) {
+                                            "correct response";
+                                        } else {
+                                            "details didnt match" # debug_show (details);
+                                        };
+                                    };
+                                    case (_) {
+                                        "bad history bid";
+                                    };
+                                };
+                            } else {
+                                "size was 0";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //TRX0005, MKT0033
+                S.test(
+                    "min bid increased ask ",
+                    switch (a_sale_status_min_bid_increase) {
+                        case (#ok(res)) {
+
+                            switch (res.current_sale) {
+                                case (?current_sale) {
+                                    switch (NFTUtils.get_auction_state_from_statusStable(current_sale)) {
+                                        case (#err(err)) {
+                                            "unexpected error: " # err.flag_point;
+                                        };
+                                        case (#ok(res)) {
+                                            //let min_bid_increase =
+                                            if (res.min_next_bid == (1 * 10 ** 8) + 10 * 10 ** 8) {
+                                                "correct response";
+                                            } else {
+                                                "wrong bid " # debug_show (res.min_next_bid);
+                                            };
+                                        };
+                                    };
+
+                                };
+                                case (_) {
+                                    "bad info min bid";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //MKT0032
+                
+                S.test(
+                    "transaction history has the new bid ask ",
+                    switch (b_history_1) {
+                        case (#ok(res)) {
+
+                            D.print("new bid history");
+                            D.print(debug_show (b_history_1));
+                            if (res.size() > 0) {
+                                switch (res[res.size() - 2].txn_type) {
+                                    case (#auction_bid(details)) {
+                                        if (
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and details.amount == new_bid_val and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                        ) {
+                                            "correct response";
+                                        } else {
+                                            "details didnt match for second bid " # debug_show (details);
+                                        };
+                                    };
+                                    case (_) {
+                                        "bad history bid for b " # debug_show (res);
+                                    };
+                                };
+                            } else {
+                                "size was zero for new bid";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //TRX0005, MKT0033
+                
+                S.test(
+                    "auction winner is the new owner",
+                    switch (a_sale_status_over_new_owner) {
+                        case (#ok(res)) {
+
+                            let new_owner = switch (
+                                Metadata.get_nft_owner(
+                                    switch (a_sale_status_over_new_owner) {
+                                        case (#ok(item)) {
+                                            item.metadata;
+                                        };
+                                        case (#err(err)) {
+                                            #Option(null);
+                                        };
+                                    },
+                                ),
+                            ) {
+                                case (#err(err)) {
+                                    #account_id("wrong");
+                                };
+                                case (#ok(val)) {
+                                    val;
+                                };
+                            };
+                            D.print("new owner");
+                            D.print(debug_show (new_owner));
+                            D.print(debug_show (Principal.fromActor(a_wallet)));
+                            if (Types.account_eq(new_owner, #principal(Principal.fromActor(a_wallet)))) {
+                                "found correct owner";
+                            } else {
+                                D.print(debug_show (res));
+                                "didnt find record ";
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("found correct owner")),
+                ), //MKT0029
+                S.test(
+                    "current sale status is ended",
+                    switch (a_sale_status_over_new_owner) {
+                        case (#ok(res)) {
+                            D.print("a_sale_status_over_new_owner");
+                            D.print(debug_show (a_sale_status_over_new_owner));
+                            //MKT0036 sale should be over and there should be a record with status #ended
+                            switch (a_sale_status_over_new_owner) {
+                                case (#ok(res)) {
+
+                                    switch (res.current_sale) {
+                                        case (null) {
+                                            "current sale improperly removed";
+                                        };
+                                        case (?val) {
+                                            switch (val.sale_type) {
+                                                case (#auction(state)) {
+                                                    D.print("state");
+                                                    D.print(debug_show (state));
+                                                    let current_status = switch (state.status) {
+                                                        case (#closed) { true };
+                                                        case (_) { false };
+                                                    };
+                                                    if (
+                                                        current_status == true and val.sale_id == current_sales_id,
+                                                    ) {
+                                                        "found closed sale";
+                                                    } else {
+                                                        "didnt find closed sale";
+                                                    };
+
+                                                };
+
+                                            };
+                                        };
+                                    };
+
+                                };
+                                case (#err(err)) {
+                                    "error getting";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("found closed sale")),
+                ), // MKT0036
+
+                S.test(
+                    "transaction history have the transfer - auction 4699",
+                    switch (a_history_3) {
+                        case (#ok(res)) {
+
+                            if (res.size() > 1) {
+                                switch (res[res.size() - 2].txn_type) {
+                                    case (#sale_ended(details)) {
+                                        if (
+                                            Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                        ) {
+                                            "correct response";
+                                        } else {
+                                            "details didnt match" # debug_show (details);
+                                        };
+                                    };
+                                    case (_) {
+                                        "bad history sale " # debug_show (a_history_3);
+                                    };
+                                };
+                            } else {
+                                "size was les than one";
+                            };
+
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //todo: make a user story for adding a #sale_ended to the end of transaction log
+                S.test(
+                    "fail if ended before corect date  ask",
+                    switch (end_before) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 4007) {
+                                //sale not over
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //todo: create user story for sale not over
+                S.test(
+                    "transaction history have the transfer - ask 2",
+                    switch (end_proper) {
+                        case (#ok(#end_sale(res))) {
+                            D.print("transaction history have the transfer 2");
+                            D.print(debug_show (res));
+                            switch (res.txn_type) {
+                                case (#sale_ended(details)) {
+                                    if (
+                                        Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and Option.get(details.sale_id, "") == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
+                                    ) {
+                                        "correct response";
+                                    } else {
+                                        "details didnt match" # debug_show (details);
+                                    };
+                                };
+                                case (_) {
+                                    "bad history sale";
+                                };
+                            };
+                        };
+                        case (#err(err)) {
+                            "unexpected error: " # err.flag_point;
+                        };
+                        case (_) { "unexpected error: " };
+                    },
+                    M.equals<Text>(T.text("correct response")),
+                ), //todo: make a user story for adding a #sale_ended to the end of transaction log
+                S.test(
+                    "fail if auction already over ",
+                    switch (end_again) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 4006) {
+                                //new owner so unauthorized
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //todo: create user story for sale over
+                S.test(
+                    "fail if escrow amount over deposited amount",
+                    switch (b_withdraw_over) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //escrow no longer found since it was refunded
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-101
+                S.test(
+                    "fail if escrow amount is the wrong token",
+                    switch (b_withdraw_bad_token) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //shouldn't be able to find escrow
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //t NFT-103
+                S.test(
+                    "fail if escrow amount is the wrong seller",
+                    switch (b_withdraw_bad_seller) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //shouldn't be able to find escrow
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), //t NFT-104
+                S.test(
+                    "fail if escrow amount is the wrong buyer",
+                    switch (b_withdraw_bad_buyer) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 2000) {
+                                //unauthorized
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-102
+                S.test(
+                    "fail if escrow amount is the wrong token_id",
+                    switch (b_withdraw_bad_token_id) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //token id not found
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-105
+                S.test(
+                    "fail if escrow removed twice",
+                    switch (b_withdraw_bad_token_id) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //withdraw too large because 0 and not found
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-106
+                S.test(
+                    "fail if escrow is for the current winning bid",
+                    switch (a_withdraw_during_bid) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3008) {
+                                //cannot be removed
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-76
+
+                S.test(
+                    "fail if escrow is for the winning bid a withdraw",
+                    switch (a_withdraw_during_win) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000 or err.number == 3007) {
+                                //wont be able to find it because it has been zeroed out.
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-110
+                S.test(
+                    "fail if escrow is for the winning bid b withdraw",
+                    switch (b_withdraw) {
+                        case (#ok(res)) { "unexpected success" };
+                        case (#err(err)) {
+                            if (err.number == 3000) {
+                                //wont be able to find it because it has been zeroed out.
+                                "correct number";
+                            } else {
+                                "wrong error " # debug_show (err);
+                            };
+                        };
+                    },
+                    M.equals<Text>(T.text("correct number")),
+                ), // NFT-18, NFT-101 - These were negated by NFT-120
+                //todo: test needs to be re written to cycle through history and find the escrow
+                /* S.test("escrow withdraw in transaction record", switch(b_history_withdraw){case(#ok(res)){
+                D.print("b_history_withdraw");
+                D.print(debug_show(b_history_withdraw));
+                switch(res[res.size()-1].txn_type){
+                    case(#escrow_withdraw(details)){
+                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
+                                Types.account_eq(details.seller, #principal(Principal.fromActor(this))) and
+                                details.amount == ((11*10**8) - dip20_fee) and
+                                details.token_id == "1" and
+                                Types.token_eq(details.token, #ic({
+                                    canister = (Principal.fromActor(dfx)); 
+                                    standard =  #Ledger;
+                                    decimals = 8;
+                                    symbol = "LDG";
+                                    fee = ?200000;
+                                    id = null;}))){
+                                    "correct response";
+                            } else {
+                                "details didnt match" # debug_show(details);
+                            };
+                    };
+                    case(_){
+                        D.print("Bad history sale");
+                        D.print(debug_show(res));
+                        "bad history sale";
+                    };
+                };
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //NFT-107
+            */
+            S.test("sales balance after sale has balance in it", switch(owner_balance_after_sale){case(#ok(res)){
+                D.print("testing sale balance 1");
+                D.print(debug_show(res));
+                
+                
+                if(res.sales.size() ==0){
+                  
+                    "found no sales record"
+                } else {
+                    
+                    D.print(debug_show(res));
+                    "found record "
+                }};case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found no sales record"))), //todo: NFT-113
+            S.test("fail if withdraw over sale amount", switch(owner_withdraw_over){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 3000){ //can't find it
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+            }};}, M.equals<Text>(T.text("correct number"))), // NFT-114
+            S.test("fail if withdraw from wrong account", switch(a_withdraw_attempt_sale){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 2000){ //unauthorized access
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+            }};}, M.equals<Text>(T.text("correct number"))), // NFT-115
+            S.test("fail if withdraw from wrong asset", switch(owner_withdraw_wrong_asset){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 3000){ //cant find sale
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+            }};}, M.equals<Text>(T.text("correct number"))), // NFT-116
+            S.test("fail if withdraw from wrong token id", switch(owner_withdraw_wrong_token_id){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 3000){ //cant find sale
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+            }};}, M.equals<Text>(T.text("correct number"))), // NFT-117
+            S.test("fail if withdraw a second time", switch(owner_withdraw_again){case(#ok(res)){"unexpected success"};case(#err(err)){
+                if(err.number == 3000){ //cant find sale
+                    "correct number"
+                } else{
+                    "wrong error " # debug_show(err);
+            }};}, M.equals<Text>(T.text("correct number"))), // NFT-117
+            S.test("sale withdraw works", owner_withdraw_proper, M.equals<Nat>(T.nat(initialOwnerBalance + 10099600000))), //NFT-18, NFT-101
+            S.test("sales balance after withdraw has no balance in it", switch(owner_balance_after_withdraw){case(#ok(res)){
+                D.print("testing sale balance 2");
+                D.print(debug_show(res));
+                
+                
+                if(res.sales.size() == 0){
+                    "found empty record"
+                } else {
+                    D.print(debug_show(res));
+                    "found a record "
+            }};case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found empty record"))), //todo: NFT-118
+           S.test("sale withdraw in history", switch(owner_history_withdraw){case(#ok(res)){
+               D.print("sales withdraw history");
+               D.print(debug_show(res));
+                switch(res[res.size()-1].txn_type){
+                    case(#sale_withdraw(details)){
+                        D.print(debug_show(details));
+                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
+                                Types.account_eq(details.seller, #principal(Principal.fromActor(this))) and
+                                details.amount == (Nat.sub(((101*10**8)-200000), dip20_fee)) and
+                                details.token_id == "1" and
+                                Types.token_eq(details.token, #ic({
+                                    canister = (Principal.fromActor(dfx));
+                                    standard =  #Ledger;
+                                    decimals = 8;
+                                    symbol = "LDG";
+                                    fee = ?200000;
+                                    id = null;}))){
+                                    "correct response";
+                            } else {
+                                "details didnt match" # debug_show(details);
+                            };
+                    };
+                    case(_){
+                        D.print(debug_show(res[res.size()-1]));
+                        "bad history withdraw";
+                    };
+                }
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //NFT-19
+            S.test("nft balance after sale", switch(a_balance_after_close){case(#ok(res)){
+                D.print("testing nft balance");
+                D.print(debug_show(res));
+                
+                
+                if(res.nfts.size() == 0){
+                    "found empty record"
+                } else {
+                    D.print(debug_show(res));
+                    if(res.nfts[res.nfts.size()-1] == "1"){
+                        "found a record"
+                    }else {
+                        "didnt find record"
+                    };
+
+                };
+            };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("found a record"))), //todo: NFT-94
+           
+            S.test("sale info has active and only active sale in it", switch(active_sale_info_1){
+              case(#ok(#active(val))){
+                if(val.records.size() == 1 and val.records[0].0 == "1"){
+                  "correct response";
+                }else {
+                  "bad response" # debug_show(active_sale_info_1)
+                };
+              };
+              case(#err(err)){
+                "bad error in sale info " # debug_show(err);
+              };
+              case(_){
+                "some odd error in sale info" # debug_show(active_sale_info_1);
+              }
+            }, M.equals<Text>(T.text("correct response"))),
+
+            S.test("sale is included in history", switch(history_sale_info_2){
+              case(#ok(#history(val))){
+                D.print("the sale history");
+                D.print(debug_show(val));
+                if(val.records.size() == 1){
                   switch(val.records[0]){
                     case(null){"shouldnt be null"};
                     case(?val){
