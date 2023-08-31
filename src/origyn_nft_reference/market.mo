@@ -4233,7 +4233,7 @@ module {
                   return await* bid_nft_origyn(state, request, caller, true);
                 };
                 case(#err(err)){
-                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show((request.escrow_receipt, request.sale_id, err.flagpoint)) , #Option(null), null);
+                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show((request.escrow_receipt, request.sale_id, err.flag_point)) , #Option(null), null);
                   if(debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
                 };
               };
