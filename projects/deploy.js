@@ -100,8 +100,6 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
                       } else if (['Nat8', 'Nat16', 'Nat32', 'Int8', 'Int16', 'Int32', 'Float'].includes(objInd)) {
                         retObj[objInd] = Number(dupeObj[objInd]);
                     } else {
-                  
-                    
                         retObj[objInd] = dupeObj[objInd];
                     }
                 } else if (typeof dupeObj[objInd] == 'number') {

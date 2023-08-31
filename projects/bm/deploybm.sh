@@ -133,6 +133,9 @@ dfx canister --network $env_network call $env_name collection_update_nft_origyn 
 dfx canister --network $env_network install $env_name_sale --wasm .dfx/local/canisters/origyn_sale_reference/origyn_sale_reference.wasm.gz --mode=reinstall --argument "(record {owner=principal  \"$ADMIN_PRINCIPAL\"; allocation_expiration = 450000000000; nft_gateway= opt principal \"$NFT_CANISTER_ID\"; sale_open_date=null; registration_date = null; end_date = null; required_lock_date=null})"
 
 node ./projects/deploy.js --meta=./projects/bm/def_collection_loaded.json --token_id=""  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod
+
+echo "done with  collection"
+
 node ./projects/deploy.js --meta=./projects/bm/def_0.json --token_id="bm-0"  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod
 node ./projects/deploy.js --meta=./projects/bm/def_1.json --token_id="bm-1"  --mint_target=$ADMIN_PRINCIPAL --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod
 node ./projects/deploy.js --meta=./projects/bm/def_2.json --token_id="bm-2"  --mint_target=$TEST_WALLET --nft_canister=$NFT_CANISTER_ID --mint=true --prod=$env_prod

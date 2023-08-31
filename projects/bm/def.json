@@ -124,7 +124,7 @@
                                 {"name":"com.bm.sample.app.total_in_collection", "value":{"Nat":16}, "immutable":false},
                                 {"name":"com.bm.sample.app.creator_name", "value":{"Text":"bm"}, "immutable":false},
                                 {"name":"com.bm.sample.app.creator_principal", "value":{"Principal":"CREATOR-PRINCIPAL-ID"}, "immutable":false},
-                                {"name":"com..bm.sample.app.private_id", "value":{"Class":[
+                                {"name":"com.bm.sample.app.private_id", "value":{"Class":[
                                     {"name":"data", "value":{"Text":"you shouldn't see this"}, "immutable":false},
                                     {"name":"read", "value":{"Class":[
                                         {"name":"type", "value":{"Text":"allow"}, "immutable":false},
