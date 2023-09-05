@@ -264,7 +264,7 @@ module {
             {name = "preview"; value=#Text("collection_banner"); immutable= true},
             {name = "experience"; value=#Text("collection_banner"); immutable= true},
             {name = "com.origyn.node"; value=#Principal(node); immutable= true},
-            {name = "com.origyn.originator"; value=#Principal(originator); immutable= true},
+            {name = "com.origyn.originator"; value=#Principal(node); immutable= true},
             {name = "com.origyn.royalties.primary.default"; value=#Array([
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},

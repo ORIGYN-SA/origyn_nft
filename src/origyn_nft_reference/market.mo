@@ -45,7 +45,7 @@ module {
       invoice = false;
       end_sale = false;
       market = false;
-      royalties = false;
+      royalties = true;
       offers = false;
       escrow = true;
       withdraw_escrow = true;
@@ -1402,12 +1402,14 @@ module {
 
       switch(Map.get<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, sale_balance.token)){
         case(null){
+          debug if(debug_channel.royalties) D.print("putting sale balance in escrow, existing record was null" # debug_show((sale_balance)));
           Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, sale_balance.token, sale_balance);
           return sale_balance;
         };
         case(?val){
           //note: sale_id will overwrite to save user clicks; alternative is to make them clear it and submit a new escrow
           //nyi: add transaction for overwriting sale id
+          debug if(debug_channel.royalties) D.print("putting sale balance in escrow, existing record found " # debug_show((val, sale_balance)));
 
           let newLedger = if(append == true){
             {
@@ -1416,6 +1418,10 @@ module {
             } //this is a more recent sales id so we use it
           } else {sale_balance};
           Map.set<Types.TokenSpec, Migrations.Current.EscrowRecord>(a_token_id, token_handler, sale_balance.token, newLedger);
+
+          debug if(debug_channel.royalties) D.print("have a new ledger " # debug_show((newLedger)));
+
+
           return newLedger;
         };
       };
@@ -2172,7 +2178,8 @@ module {
             }, caller);
 
             debug if(debug_channel.royalties) D.print("added trx" # debug_show(id));
-            let new_sale_balance = put_sales_balance(state, {
+
+            let newReciept = {
               request.escrow with 
               amount = this_royalty;
               seller = #account(
@@ -2185,10 +2192,13 @@ module {
               sale_id = request.sale_id;
               lock_to_date = null;
               account_hash = request.account_hash;
-            }, true);
+            };
 
-            results.add(new_sale_balance);
-            debug if(debug_channel.royalties) D.print("new_sale_balance" # debug_show(new_sale_balance));
+            //note, if a sale ledger already exists this will add the value, but we need to keep the original amount so we don't double request the same amount.
+            let new_sale_balance = put_sales_balance(state, newReciept, true);
+
+            results.add(newReciept);
+            debug if(debug_channel.royalties) D.print("new_sale_balance" # debug_show(newReciept));
           } else {
               //can't pay out if less than fee
           };
