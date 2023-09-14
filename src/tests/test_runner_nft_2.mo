@@ -2085,7 +2085,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                
                D.print("where is my history 3");
                D.print(debug_show(a_history_3));
-               switch(res[res.size()-5].txn_type){ 
+               switch(res[res.size()-7].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
                             details.amount == ((10*10**8) + 1) and

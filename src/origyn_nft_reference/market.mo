@@ -2056,7 +2056,7 @@ module {
         token: Types.TokenSpec
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
-      let dev_fund = Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae");
+      let dev_fund : {owner: Principal; sub_account: ?[Nat8];} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]};
 
       debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
 
@@ -2097,32 +2097,40 @@ module {
                 continue royaltyLoop;
               }; //we only support ic token specs for royalties
               if(tag == Types.metadata.royalty_network){
-
-                
-
                 debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
                 switch(state.state.collection_data.network){
-                  case(null) [{owner = dev_fund; sub_account = null;}] ; //dev fund
+                  case(null) [dev_fund] ; //dev fund
                   case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister,tokenSpec.id)}] ;
                 };
 
               } else if(tag == Types.metadata.royalty_node){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
                 switch(val){
-                  case(#Option(null)) [{owner = dev_fund; sub_account = null;}] ; //dev fund
+                  case(#Option(null)) [dev_fund] ; //dev fund
                   case(#Principal(val)) [{owner = val; sub_account = null;}];
-                  case(_) [{owner = dev_fund; sub_account = null;}];
+                  case(_) [dev_fund];
                 };
               } else if(tag == Types.metadata.royalty_originator){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
                 switch(val){
-                  case(#Option(null)) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(#Option(null)) [dev_fund]; //dev fund
                   case(#Principal(val)) [{owner = val; sub_account = null;}];
-                  case(_) [{owner = dev_fund; sub_account = null;}] ;
+                  case(_) [dev_fund] ;
                 };
               } else if(tag == Types.metadata.royalty_broker){
                 switch(request.broker_id, request.original_broker_id){
-                  case(null, null) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(null, null){ 
+                    let override = switch(Metadata.get_nft_bool_property(request.metadata, Types.metadata.broker_royalty_dev_fund_override)){
+                      case(#ok(val)) val;
+                      case(_) false;
+                    };
+
+                    if(override){
+                      continue royaltyLoop;
+                    };
+                    
+                    [dev_fund]
+                  }; //dev fund
                   case(?val, null) [{owner = val; sub_account = null;}];
                   case(null, ?val2) [{owner = val2; sub_account = null;}];
                   case(?val, ?val2){
@@ -2131,13 +2139,13 @@ module {
                   };
                 };
               } else { 
-                [{owner = dev_fund; sub_account = null;}]; //dev fund
+                [dev_fund]; //dev fund
               };
             };  //dev fund
             case(?val){
               switch(val.value){
                   case(#Principal(val)) [{owner = val; sub_account = null;}];
-                  case(_) [{owner = dev_fund; sub_account = null;}]; //dev fund
+                  case(_) [dev_fund]; //dev fund
               };
             };
         };

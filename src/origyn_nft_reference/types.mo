@@ -1428,6 +1428,7 @@ module {
         __system_physical : Text;
         __system_escrowed : Text;
         __apps :Text;
+        broker_royalty_dev_fund_override: Text;
         collection_kyc_canister_buyer : Text;
         collection_kyc_canister_seller : Text;
         library : Text;
@@ -1471,6 +1472,7 @@ module {
         __system_physical = "com.origyn.physical";
         __system_escrowed = "com.origyn.escrow_node";
         __apps = "__apps";
+        broker_royalty_dev_fund_override = "com.origyn.royalties.broker_dev_fund_override";
         collection_kyc_canister_buyer = "com.origyn.kyc_canister_buyer";
         collection_kyc_canister_seller = "com.origyn.kyc_canister_seller";
         library = "library";
