@@ -2090,7 +2090,7 @@ module {
           };
         };
 
-        let principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassPropertyShared(this_item, "account")){
+        var principal : [{owner: Principal; sub_account: ?[Nat8];}] = switch(Properties.getClassPropertyShared(this_item, "account")){
             case(null){
               let #ic(tokenSpec) = request.token else {
                 debug if(debug_channel.royalties) D.print("not an IC token spec so continuing " # debug_show(request.token));
@@ -2120,7 +2120,15 @@ module {
               } else if(tag == Types.metadata.royalty_broker){
                 switch(request.broker_id, request.original_broker_id){
                   case(null, null){ 
-                    let override = switch(Metadata.get_nft_bool_property(request.metadata, Types.metadata.broker_royalty_dev_fund_override)){
+                    let collection = switch (Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)) {
+                        case (#err(err)) {
+                            #Class([]);
+                        };
+                        case (#ok(val)) {
+                            val;
+                        };
+                    };
+                    let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
                       case(#ok(val)) val;
                       case(_) false;
                     };
@@ -2152,6 +2160,8 @@ module {
 
         debug if(debug_channel.royalties) D.print("have vals" # debug_show((rate, tag, principal)));
 
+        
+
 
         let total_royalty = (request.total * Int.abs(Float.toInt(rate * 1_000_000)))/1_000_000;
         
@@ -2163,6 +2173,15 @@ module {
           if(this_royalty > request.fee){
             request.remaining -= this_royalty;
             //royaltyList.add(#principal(principal), this_royalty);
+
+            let send_account : {owner: Principal; sub_account: ?[Nat8]} = if(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner){
+              {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]
+              };
+            } else {
+              this_principal
+            };
+
+
             let id = Metadata.add_transaction_record(state, {
               token_id = request.escrow.token_id;
               index = 0;
@@ -2170,8 +2189,8 @@ module {
                 request.escrow with 
                 amount = this_royalty;
                 tag = tag;
-                receiver = #account({ owner = this_principal.owner;
-                sub_account = switch(this_principal.sub_account){
+                receiver = #account({ owner = send_account.owner;
+                sub_account = switch(send_account.sub_account){
                     case(null) null;
                     case(?val) ?Blob.fromArray(val);
                   }
@@ -2191,8 +2210,8 @@ module {
               request.escrow with 
               amount = this_royalty;
               seller = #account(
-                { owner = this_principal.owner;
-                  sub_account = switch(this_principal.sub_account){
+                { owner = send_account.owner;
+                  sub_account = switch(send_account.sub_account){
                     case(null) null;
                     case(?val) ?Blob.fromArray(val);
                   };
