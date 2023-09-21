@@ -128,10 +128,10 @@ shared (deployer) actor class Nft_Canister() = this {
     // Do not forget to change #v0_1_0 when you are adding a new migration
     // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-    migration_state := Migrations.migrate(migration_state, #v0_1_5(#id), { owner = deployer.caller; storage_space = 0;});
+    migration_state := Migrations.migrate(migration_state, #v0_1_6(#id), { owner = deployer.caller; storage_space = 0;});
 
     // Do not forget to change #v0_1_0 when you are adding a new migration
-    let #v0_1_5(#data(state_current)) = migration_state;
+    let #v0_1_6(#data(state_current)) = migration_state;
 
     debug if (debug_channel.instantiation) D.print("finished migration");
 
@@ -2128,6 +2128,7 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#Text(val)) {
                 do ? {
                   let sale = Map.get(state_current.nft_sales, Map.thash, val)!;
+
                   Types.SalesStatus_stabalize_for_xfer({
                     sale with
                     sale_type = switch(sale.sale_type){

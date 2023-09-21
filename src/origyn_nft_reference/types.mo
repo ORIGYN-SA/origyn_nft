@@ -480,10 +480,10 @@ module {
     };
     */
 
-    public type State = State_v0_1_5;
+    public type State = State_v0_1_6;
 
-    public type State_v0_1_5 = {
-        state : GatewayState_v0_1_5;
+    public type State_v0_1_6 = {
+        state : GatewayState;
         canister : () -> Principal;
         get_time : () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
@@ -588,7 +588,7 @@ module {
         nft_sales : Nat;
     };
 
-    public type GatewayState = GatewayState_v0_1_5;
+    public type GatewayState = GatewayState_v0_1_6;
 
     
 
@@ -1958,6 +1958,6 @@ module {
 
     public type AuctionState = MigrationTypes.Current.AuctionState;
     public type SaleStatus = MigrationTypes.Current.SaleStatus;
-    public type GatewayState_v0_1_5 = MigrationTypes.Current.State;
+    public type GatewayState_v0_1_6 = MigrationTypes.Current.State;
 
 };
