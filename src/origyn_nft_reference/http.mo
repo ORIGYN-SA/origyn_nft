@@ -1863,7 +1863,7 @@ module {
                     if(path_array[1] == "ledger_info"){
                         debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                        let ?ledger = Map.get(state.state.nft_ledgers, Map.thash, token_id) else return json(#Option(null), null);
+                        let ledger = state.state.master_ledger;
                         
                         let page = if(path_array.size() > 2){
                           switch(Conversion.textToNat(path_array[2])){

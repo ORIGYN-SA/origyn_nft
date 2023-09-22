@@ -272,6 +272,44 @@ shared (deployer) actor class Nft_Canister() = this {
         halt;
     };
 
+    // maintenance function for updating ledgers
+    private func __implement_master_ledger() : Bool {
+
+        let master_ledger = Buffer.Buffer< MigrationTypes.Current.TransactionRecord>(1);
+
+        for(thisBuffer in Map.entries<Text, SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(state_current.nft_ledgers)){
+          for(thisItem in SB.vals<MigrationTypes.Current.TransactionRecord>(thisBuffer.1)){
+            master_ledger.add(thisItem)
+          };
+        };
+
+        master_ledger.sort(func(pair1, pair2) {
+          if (pair1.timestamp < pair2.timestamp) {
+            #less
+          } else if (pair1.timestamp == pair2.timestamp) {
+            if (pair1.index < pair2.index) {
+              #less
+            } else if (pair1.index == pair2.index) {
+              if (pair1.token_id < pair2.token_id) {
+                #less
+              } else if (pair1.token_id == pair2.token_id) {
+                #equal
+              } else {
+                #greater
+              };
+            } else {
+              #greater
+            };
+          } else {
+            #greater
+          }
+        });
+
+        state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
+
+        return true;
+    };
+
     /**
     * Updates the entire API nodes with the given NFT update request data.
     *
@@ -1426,8 +1464,8 @@ shared (deployer) actor class Nft_Canister() = this {
         };
 
         let vals = Map.vals(state.state.nft_ledgers);
-        var transaction_count = 0;
-        Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x : SB.StableBuffer<MigrationTypes.Current.TransactionRecord>, _index) { transaction_count += SB.size(x) });
+        var transaction_count = SB.size(state.state.master_ledger);
+
         let multi_canister = Iter.toArray<Principal>(Map.keys<Principal, Types.BucketData>(state.state.buckets));
 
         let keysArray = Buffer.toArray(keysBuffer);
@@ -1501,7 +1539,12 @@ shared (deployer) actor class Nft_Canister() = this {
     */
 
     private func _history_nft_origyn(token_id : Text, start: ?Nat, end: ?Nat, caller : Principal) : Types.HistoryResult{
-      let ledger = switch(Map.get(state_current.nft_ledgers, Map.thash, token_id)){
+      let find_ledger = if(token_id == ""){
+        ?state_current.master_ledger;
+        } else {
+          Map.get(state_current.nft_ledgers, Map.thash, token_id)
+        };
+      let ledger = switch(find_ledger){
         case(null){
             return #ok([]);
         };
@@ -2723,9 +2766,7 @@ shared (deployer) actor class Nft_Canister() = this {
     */
     public query (msg) func dip721_total_transactions() : async Nat {
         let state = get_state();
-        let vals = Map.vals(state.state.nft_ledgers);
-        var count = 0;
-        Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x : SB.StableBuffer<MigrationTypes.Current.TransactionRecord>, _index) { count += SB.size(x) });
+        let count = SB.size(state_current.master_ledger);
         return count;
     };
 
@@ -2761,9 +2802,7 @@ shared (deployer) actor class Nft_Canister() = this {
             };
         };
 
-        let vals = Map.vals(state.state.nft_ledgers);
-        var transaction_count = 0;
-        Iter.iterate<SB.StableBuffer<MigrationTypes.Current.TransactionRecord>>(vals, func(x : SB.StableBuffer<MigrationTypes.Current.TransactionRecord>, _index) { transaction_count += SB.size(x) });
+       
 
         let keysArray = Buffer.toArray(keysBuffer);
 
@@ -2771,7 +2810,7 @@ shared (deployer) actor class Nft_Canister() = this {
             cycles = Cycles.balance();
             total_supply = keysArray.size();
             total_unique_holders = Set.size(ownerSet);
-            total_transactions = transaction_count;
+            total_transactions = SB.size(state.state.master_ledger);
         };
     };
 
@@ -3470,5 +3509,9 @@ shared (deployer) actor class Nft_Canister() = this {
         
 
         // End Canistergeek
+
+        if(SB.size(state_current.master_ledger) == 0){
+          ignore __implement_master_ledger();
+        };
     };
 };

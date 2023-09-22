@@ -2521,25 +2521,21 @@ module {
 
         Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
 
-        let this_ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, request.token_id)){
-            case(null){
-                let newBuf = SB.init<MigrationTypes.Current.TransactionRecord>();
-                Map.set(state.state.nft_ledgers, Map.thash, request.token_id, newBuf);
-                newBuf;
-            };
-            case(?val){val;};
-        };
 
-        let txn = {
+        let txn = Metadata.add_transaction_record(state, {
             token_id = request.token_id;
-            index = SB.size<MigrationTypes.Current.TransactionRecord>(this_ledger);
+            index = 0;
             timestamp = state.get_time();
             txn_type = #sale_opened({
                 sale_id = sale_id;
                 pricing = request.sales_config.pricing;
                 extensible = #Option(null);});
-        };
-        SB.add(this_ledger, txn);
+        }, caller
+
+        );
+
+        
+
 
         //set timer for notify
         if(notify.size() > 0){
@@ -2558,7 +2554,7 @@ module {
           case(null){};
         };
 
-        return #ok(txn);
+        return txn;
     };
 
     private func _get_ask_sale_detail(state: StateAccess, val: [Types.AskFeature], caller: Principal) : Result.Result<{

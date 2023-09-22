@@ -301,6 +301,8 @@ module {
     let new_sales : Map_lib.Map<Text, v0_1_5.SaleStatus> = Map_lib.mapFilter<Text, v0_1_4.SaleStatus, v0_1_5.SaleStatus>(state.nft_sales, upgradeSaleStatus
     );
 
+    //assure ordered transactions
+
    
     D.print("did init work?");
 
@@ -315,6 +317,7 @@ module {
       var escrow_balances = state.escrow_balances;
       var sales_balances = state.sales_balances;
       var nft_ledgers = new_ledgers;
+      var master_ledger = SB_lib.init< v0_1_5.TransactionRecord>();
       var nft_sales = new_sales;
       var access_tokens = state.access_tokens;
       var kyc_cache = state.kyc_cache;
@@ -328,5 +331,4 @@ public func downgrade(migration_state: MigrationTypes.State, args: MigrationType
   return #v0_0_0(#data);
 };
 
-  
 };

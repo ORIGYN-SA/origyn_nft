@@ -1806,6 +1806,7 @@ module {
     };
 
     SB.add(ledger, newTrx);
+    SB.add(state.state.master_ledger, newTrx);
 
     //Announce Trx
     let announce = announceTransaction(state, rec, caller, newTrx);
