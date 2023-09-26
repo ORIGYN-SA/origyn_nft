@@ -1778,7 +1778,7 @@ module {
                 debug if(debug_channel.request) D.print(debug_show(path_size));
                 let token_id = "";
 
-                let ?metadata = Map.get(state.state.nft_metadata, Map.thash,token_id) else return _not_found("metadata not found");
+                let ?metadata = Map.get(state.state.nft_metadata, Map.thash, token_id) else return _not_found("metadata not found");
 
                 if(path_size > 1){
                     if(path_array[1] == "-"){

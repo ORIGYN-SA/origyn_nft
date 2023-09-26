@@ -1822,7 +1822,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             Principal.fromActor(canister), 
             Principal.fromActor(canister),
             Principal.fromActor(this),
-            2048000);
+            2048000, false);
 
         let some_metadata = await canister.nft_origyn("");
 

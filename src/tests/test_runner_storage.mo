@@ -794,7 +794,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
-        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000);
+        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000, false);
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
         let mint_attempt = await canister_b.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
