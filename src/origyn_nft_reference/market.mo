@@ -2120,15 +2120,11 @@ module {
               } else if(tag == Types.metadata.royalty_broker){
                 switch(request.broker_id, request.original_broker_id){
                   case(null, null){ 
-                    let collection = switch (Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)) {
-                        case (#err(err)) {
-                          state.canistergeekLogger.logMessage("_process_royalties overriding error" # debug_show(err) # debug_show(request.token_id), #Bool(false), null);
-                            #Class([]);
-                        };
-                        case (#ok(val)) {
-                            val;
-                        };
+                    let ?collection = Map.get(state.state.nft_metadata, Map.thash,"") else {
+                      state.canistergeekLogger.logMessage("process royalties cannot find collection metatdata. this should not happene" # debug_show(request.token_id), #Bool(false), null);
+                      D.trap("process royalties cannot find collection metatdata. this should not happen");
                     };
+
                     let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
                       case(#ok(val)) val;
                       case(_) {
