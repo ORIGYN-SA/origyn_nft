@@ -2122,6 +2122,7 @@ module {
                   case(null, null){ 
                     let collection = switch (Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)) {
                         case (#err(err)) {
+                          state.canistergeekLogger.logMessage("_process_royalties overriding error" # debug_show(err) # debug_show(request.token_id), #Bool(false), null);
                             #Class([]);
                         };
                         case (#ok(val)) {
@@ -2130,12 +2131,19 @@ module {
                     };
                     let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
                       case(#ok(val)) val;
-                      case(_) false;
+                      case(_) {
+                         state.canistergeekLogger.logMessage("_process_royalties overriding error candy type" # debug_show(collection) # debug_show(request.token_id), #Bool(false), null);
+                        false};
                     };
 
+                    
+
                     if(override){
+                      state.canistergeekLogger.logMessage("_process_royalties overriding " # debug_show(request.token_id), #Bool(override), null);
                       continue royaltyLoop;
                     };
+
+                    state.canistergeekLogger.logMessage("_process_royalties override result using dev fund" # debug_show(request.token_id), #Bool(override), null);
                     
                     [dev_fund]
                   }; //dev fund
