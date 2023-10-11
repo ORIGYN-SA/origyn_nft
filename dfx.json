@@ -136,7 +136,7 @@
     },
     "defaults": {
         "build": {
-            "args": "",
+            "args": "--compacting-gc",
             "packtool": "mops sources"
         },
         "replica": {
