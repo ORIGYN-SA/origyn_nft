@@ -553,7 +553,7 @@ module {
             location
           } else {
             //for relative paths
-            "https://" # Principal.toText(allocation_canister) # ".ic0.app/" # location
+            "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # location
           };
           
         };

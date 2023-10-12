@@ -53,7 +53,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
-        ICP_ENDPOINT = 'https://boundary.ic0.app';
+        ICP_ENDPOINT = 'https://boundary.icp0.io';
     }
 
     const agent = getAgent();
