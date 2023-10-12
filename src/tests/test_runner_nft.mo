@@ -28,7 +28,7 @@ import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
 import MigrationTypes "../origyn_nft_reference/migrations/types";
 
-// ttps://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=1526457217 will provide a facility to convert
+// ttps://m7sm4-2iaaa-aaaab-qabra-cai.raw.icp0.io/?tag=1526457217 will provide a facility to convert
 // a account hash to an account id
 // ie dfx canister --network ic call mexqz-aqaaa-aaaab-qabtq-cai say '(principal "r7inp-6aaaa-aaaaa-aaabq-cai", blob "20\8F\6F\7F\9B\0D\B3\29\36\AA\8B\F4\78\38\E8\B8\15\37\30\F7\3D\03\99\EA\BB\68\98\11\08\64\90\61")'
 

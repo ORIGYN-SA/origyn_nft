@@ -2180,8 +2180,8 @@ shared (deployer) actor class Nft_Canister() = this {
             approved_at = null;
             approved_by = null;
             properties = [
-                ("location", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.ic0.app/-/" # token_id_raw)),
-                ("thumbnail", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.ic0.app/-/" # token_id_raw # "/preview")),
+                ("location", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.icp0.io/-/" # token_id_raw)),
+                ("thumbnail", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.icp0.io/-/" # token_id_raw # "/preview")),
                 ("com.origyn.data", #TextContent(JSON.value_to_json(nft.metadata))),
             ];
             is_burned = false;
@@ -2956,7 +2956,7 @@ shared (deployer) actor class Nft_Canister() = this {
     };
 
      public query func __version() : async Text {
-       "0.1.4";
+       "0.1.4-20231012";
     };
 
     /**

@@ -309,7 +309,7 @@ module {
                     {name = "library_id"; value=#Text("collection_banner"); immutable= true},
                     {name = "title"; value=#Text("collection_banner"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-                    {name = "location"; value=#Text("https://" # Principal.toText(canister) # ".raw.ic0.app/collection/-/collection_banner"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(canister) # ".raw.icp0.io/collection/-/collection_banner"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
                     {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(file_size); immutable= true},
