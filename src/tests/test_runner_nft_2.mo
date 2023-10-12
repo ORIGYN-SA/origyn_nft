@@ -570,7 +570,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         let view_after_update_attempt = await canister.nft_origyn("1");
 
 
-        let suite = S.suite("test staged Nft", [
+        let suite = S.suite("test mint Nft", [
 
             S.test("fail if non owner mints", switch(a_wallet_try_mint){case(#ok(res)){"unexpected success"};case(#err(err)){
                 if(err.number == 2000){
@@ -870,6 +870,8 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //place a valid bid MKT0027
         let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), (10*10**8) + 1, "1", current_sales_id, null);
 
+         D.print("a_wallet_try_bid_valid " # debug_show(a_wallet_try_bid_valid));
+
 
         let a_balance_after_bad_bid4 = await canister.balance_of_nft_origyn(#principal(Principal.fromActor(a_wallet)));
         D.print("a balance 4 " # debug_show(a_balance_after_bad_bid2));
@@ -932,6 +934,10 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("end again");
         D.print(debug_show(end_again));
 
+        let x_wallet1 = await TestWalletDef.test_wallet();
+        let x_wallet2 = await TestWalletDef.test_wallet();
+        let x_wallet3 = await TestWalletDef.test_wallet();
+
         //try to withdraw winning bid NFT-110
          let a_withdraw_during_win = await a_wallet.try_escrow_withdraw(Principal.fromActor(canister), Principal.fromActor(a_wallet), Principal.fromActor(dfx), Principal.fromActor(this), "1", 101 * 10 ** 8, null);
 
@@ -945,7 +951,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //check transaction log for sale
         let a_history_3 = await canister.history_nft_origyn("1", null, null); //gets all history
 
-         let suite = S.suite("test staged Nft", [
+         let suite = S.suite("test buy it now Nft", [
 
              S.test("test mint attempt", switch(mint_attempt){case(#ok(res)){
                 
@@ -1030,7 +1036,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                
                D.print("where ismy history");
                D.print(debug_show(a_history_1));
-               switch(res[res.size()-1].txn_type){ 
+               switch(res[res.size()-2].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                             details.amount == ((10*10**8) + 1) and
@@ -1049,7 +1055,9 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         };
                    };
                    case(_){
+                    D.print(" bad history bid" # debug_show(res[res.size()-3]));
                        "bad history bid";
+                       
                    };
                }
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), //TRX0005, MKT0033
@@ -1125,9 +1133,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
              S.test("transaction history have the transfer", 
                 switch(a_history_3){
                     case(#ok(res)){
+
+                      D.print("where ismy history");
+                      D.print(debug_show(a_history_3));
                 
                 
-                        switch(res[res.size()-1].txn_type){
+                        switch(res[res.size()-2].txn_type){
                             case(#sale_ended(details)){
                                 if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
                                         details.amount == ((10*10**8) + 1) and
@@ -1459,11 +1470,12 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
 
         D.print("waiting");
-        ignore await take_a_hot_minute();
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
-        ignore await take_a_hot_minute(); 
+        //force time to pass
+        let x_wallet4 = await TestWalletDef.test_wallet();
+        let x_wallet5 = await TestWalletDef.test_wallet();
+        let x_wallet6 = await TestWalletDef.test_wallet();
+        let x_wallet7 = await TestWalletDef.test_wallet();
+        let x_wallet8 = await TestWalletDef.test_wallet();
         
         //forces a roundtrip;
         let y =  await canister.sale_info_secure_nft_origyn(#status(current_sales_id));
@@ -1488,7 +1500,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         //check transaction log for sale
         let a_history_3 = await canister.history_nft_origyn("1", null, null); //gets all history
 
-         let suite = S.suite("test staged Nft", [
+         let suite = S.suite("test kyc Nft", [
 
           
 
@@ -1531,11 +1543,11 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                    };
                }; 
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 
-            S.test("transaction history has the bid", switch(a_history_3){case(#ok(res)){
+            S.test("transaction history has the bid 2 ", switch(a_history_3){case(#ok(res)){
                
-               D.print("where ismy history");
+               D.print("where ismy history test bid 2");
                D.print(debug_show(a_history_1));
-               switch(res[res.size()-1].txn_type){ 
+               switch(res[res.size()-5].txn_type){ 
                    case(#sale_ended(details)){
                        if(Types.account_eq(details.buyer, #principal(Principal.fromActor(b_wallet))) and
                             details.amount == ((10*10**8) + 1) and
@@ -1554,7 +1566,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                         };
                    };
                    case(_){
-                       "bad history bid";
+                       "bad history bid" # debug_show(res[res.size()-5]);
                    };
                }
             };case(#err(err)){"unexpected error: " # err.flag_point};}, M.equals<Text>(T.text("correct response"))), 

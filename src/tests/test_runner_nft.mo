@@ -89,11 +89,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                 S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
 
                 S.test("testAuction", switch(await testAuction()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-            S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testDeposits", switch(await testDeposit()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+                S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))), 
              
             ],
         );
@@ -315,6 +315,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let atime2 = await canister.__advance_time(startTime + DAY_LENGTH + 1);
 
         let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
+
+          //force time to pass
+            let x_wallet = await TestWalletDef.test_wallet();
+            let x_wallet1 = await TestWalletDef.test_wallet();
+            let x_wallet2 = await TestWalletDef.test_wallet();
+            let x_wallet3 = await TestWalletDef.test_wallet();
 
         //try withdraws again
 
@@ -1303,6 +1309,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //MKT0014 todo: check the transaction record and confirm the gensis reocrd
 
+        //force time to pass
+        let x_wallet15 = await TestWalletDef.test_wallet();
+        let x_wallet16 = await TestWalletDef.test_wallet();
+        let x_wallet17 = await TestWalletDef.test_wallet();
+        let x_wallet18 = await TestWalletDef.test_wallet();
+
         //BAL0005
         let a_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
         let b_balance2 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
@@ -1350,6 +1362,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         D.print("secondary result" # debug_show(specific_market));
 
+        //force time to pass
+        let x_wallet9 = await TestWalletDef.test_wallet();
+        let x_wallet10 = await TestWalletDef.test_wallet();
+        let x_wallet11 = await TestWalletDef.test_wallet();
+        let x_wallet12 = await TestWalletDef.test_wallet();
+
         
         let a_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
         let b_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
@@ -1358,12 +1376,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let canister_balance3 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
         let net_balance3 = await dfx.icrc1_balance_of( net_account);
 
-         D.print("a wallet " # debug_show((a_balance, a_balance2, a_balance3)));
-        D.print("b wallet " # debug_show((b_balance, b_balance2, b_balance3)));
-        D.print("n wallet " # debug_show((n_balance, n_balance2, n_balance3)));
-        D.print("o wallet " # debug_show((o_balance, o_balance2, o_balance3)));
-        D.print("canister wallet " # debug_show((canister_balance, canister_balance2, canister_balance3)));
-        D.print("net wallet " # debug_show((net_balance, net_balance2, net_balance3)));
+         D.print("a wallet 2 " # debug_show((a_balance, a_balance2, a_balance3)));
+        D.print("b wallet 2 " # debug_show((b_balance, b_balance2, b_balance3)));
+        D.print("n wallet 2 " # debug_show((n_balance, n_balance2, n_balance3)));
+        D.print("o wallet 2 " # debug_show((o_balance, o_balance2, o_balance3)));
+        D.print("canister wallet 2 " # debug_show((canister_balance, canister_balance2, canister_balance3)));
+        D.print("net wallet 2 " # debug_show((net_balance, net_balance2, net_balance3)));
 
         //withdraw sale
         //let #ok(b_withdraw) = b_balance2;
@@ -1456,6 +1474,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print("end proper");
             D.print(debug_show(end_proper));
 
+            //force time to pass
+            let x_wallet4 = await TestWalletDef.test_wallet();
+            let x_wallet5 = await TestWalletDef.test_wallet();
+            let x_wallet6 = await TestWalletDef.test_wallet();
+            let x_wallet7 = await TestWalletDef.test_wallet();
+
+
             let a_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
             let b_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
             let n_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
@@ -1463,12 +1488,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             let canister_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
             let net_balance5 = await dfx.icrc1_balance_of(net_account);
 
-            D.print("a wallet " # debug_show((Principal.fromActor(a_wallet), a_balance, a_balance2, a_balance3, a_balance5)));
-            D.print("b wallet " # debug_show((Principal.fromActor(b_wallet), b_balance, b_balance2, b_balance3, b_balance5)));
-            D.print("n wallet " # debug_show((Principal.fromActor(n_wallet), n_balance, n_balance2, n_balance3, n_balance5)));
-            D.print("o wallet " # debug_show((Principal.fromActor(o_wallet), o_balance, o_balance2, o_balance3, o_balance5)));
-            D.print("canister wallet " # debug_show((Principal.fromActor(canister),canister_balance, canister_balance2, canister_balance3, canister_balance5)));
-            D.print("net wallet " # debug_show((Principal.fromActor(net_wallet),net_balance, net_balance2, net_balance3, net_balance5)));
+            D.print("a wallet 3 " # debug_show((Principal.fromActor(a_wallet), a_balance, a_balance2, a_balance3, a_balance5)));
+            D.print("b wallet 3 " # debug_show((Principal.fromActor(b_wallet), b_balance, b_balance2, b_balance3, b_balance5)));
+            D.print("n wallet 3 " # debug_show((Principal.fromActor(n_wallet), n_balance, n_balance2, n_balance3, n_balance5)));
+            D.print("o wallet 3 " # debug_show((Principal.fromActor(o_wallet), o_balance, o_balance2, o_balance3, o_balance5)));
+            D.print("canister wallet 3 " # debug_show((Principal.fromActor(canister),canister_balance, canister_balance2, canister_balance3, canister_balance5)));
+            D.print("net wallet 3 " # debug_show((Principal.fromActor(net_wallet),net_balance, net_balance2, net_balance3, net_balance5)));
         //test balances
 
         let suite = S.suite("test royalties", [
@@ -1986,7 +2011,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         //end auction
         let end_proper = await canister.sale_nft_origyn(#end_sale("1"));
-        D.print("end proper");
+        D.print("end proper1");
         D.print(debug_show (end_proper));
 
         //end again, should fail
@@ -2337,7 +2362,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             D.print("where ismy history");
                             D.print(debug_show (a_history_1));
                             if (res.size() > 0) {
-                                switch (res[res.size() -1].txn_type) {
+                                switch (res[res.size()-1].txn_type) {
                                     case (#auction_bid(details)) {
                                         if (
                                             Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 1 * 10 ** 8 and details.sale_id == current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
@@ -2348,6 +2373,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                         };
                                     };
                                     case (_) {
+                                        D.print("bad history bid auction" # debug_show(res[res.size()-1]));
                                         "bad history bid";
                                     };
                                 };
@@ -2428,6 +2454,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                                         };
                                     };
                                     case (_) {
+                                       D.print("bad history bid for b" # debug_show(res[res.size()-1]));
                                         "bad history bid for b " # debug_show (res);
                                     };
                                 };
@@ -2566,7 +2593,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                         case (#ok(res)) {
 
                             if (res.size() > 1) {
-                                switch (res[res.size() -1].txn_type) {
+                                switch (res[res.size() -2].txn_type) {
                                     case (#sale_ended(details)) {
                                         if (
                                             Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and details.amount == 101 * 10 ** 8 and details.sale_id == ?current_sales_id and Types.token_eq(details.token, #ic({ canister = (Principal.fromActor(dfx)); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id=null  })),
@@ -2873,7 +2900,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
            S.test("sale withdraw in history", switch(owner_history_withdraw){case(#ok(res)){
                D.print("sales withdraw history");
                D.print(debug_show(res));
-                switch(res[res.size()-2].txn_type){
+                switch(res[res.size()-1].txn_type){
                     case(#sale_withdraw(details)){
                         D.print(debug_show(details));
                         if(Types.account_eq(details.buyer, #principal(Principal.fromActor(a_wallet))) and
@@ -2893,7 +2920,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
                             };
                     };
                     case(_){
-                        D.print(debug_show(res[res.size()-1]));
+                        D.print("bad history withdraw" # debug_show(res[res.size()-1]));
                         "bad history withdraw";
                     };
                 }
