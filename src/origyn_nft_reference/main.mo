@@ -2956,7 +2956,7 @@ shared (deployer) actor class Nft_Canister() = this {
     };
 
      public query func __version() : async Text {
-       "0.1.4-20231012";
+       "0.1.4-20231107";
     };
 
     /**
