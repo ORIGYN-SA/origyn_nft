@@ -537,7 +537,7 @@ module {
       * @param path - the path to use for the address
       * @returns the complete URL address
       */
-    private func _build_address(state : Types.State, use_token_id : Text, allocation_canister: Principal, location : Text, path :Text ) : Text {
+    private func _build_storge_address(state : Types.State, use_token_id : Text, allocation_canister: Principal, path :Text ) : Text {
       switch(
       Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")),
       Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")),
@@ -548,14 +548,10 @@ module {
         };
         
         case(_,_,_){
-          if(Text.startsWith(location, #text("http")) == true){
-            //if the location is a full http address
-            location
-          } else {
-            //for relative paths
-            "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # location
-          };
-          
+         
+          //for relative paths
+          "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # location
+
         };
       };
 
@@ -596,7 +592,7 @@ module {
 
             debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id,Principal.fromBlob("\04"))));
 
-            let address = _build_address(state, use_token_id, allocation_canister, location, path);
+            let address = _build_storge_address(state, use_token_id, allocation_canister, path);
 
             debug if(debug_channel.library)  D.print("got a location " # address);
 
