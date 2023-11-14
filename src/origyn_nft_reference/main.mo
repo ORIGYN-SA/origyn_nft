@@ -2827,10 +2827,12 @@ shared (deployer) actor class Nft_Canister() = this {
     // *************************
 
 
-    public query(msg) func icrc7_collection_metadata() : async ICRC7.CollectionMetadata{
+    public query(msg) func icrc7_collection_metadata() : async ICRC7.CollectionMetadata {
 
 
       let state = get_state();
+
+      let aBuf = Buffer.Buffer<(Text, ICRC7.Value)>(1);
 
       let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
 
@@ -2844,39 +2846,8 @@ shared (deployer) actor class Nft_Canister() = this {
         };
       };
 
+      aBuf.add(("icrc7:description", #Text(description)));
 
-      let royalty : Nat16 = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
-        case(null){0;};
-        case(?val){
-          let thearray = Market.royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
-
-          var sum_rate : Float = 0;
-          label royaltyLoop for(thisItem in thearray.vals()){
-            let #Class(items) = thisItem else continue royaltyLoop;
-
-            let rate = switch(Properties.getClassPropertyShared(thisItem, "rate")){
-              case(null){0:Float};
-              case(?val){
-                switch(val.value){
-                  case(#Float(val)) val;
-                  case(_) 0:Float;
-                };
-              };
-            };
-            debug if (debug_channel.calcs) D.print(debug_show((rate,sum_rate)));
-
-            sum_rate += rate;
-            debug if (debug_channel.calcs) D.print(debug_show((rate,sum_rate)));
-          };
-
-          debug if (debug_channel.calcs) D.print(debug_show((sum_rate)));
-
-          Nat16.fromNat(Int.abs(Float.toInt(sum_rate * 10000)));
-        };
-      };
-
-      //construct a recieving account for royalties...this should not be used, but should be reserved for identifying interface non-compliance
-      let royalty_account = NFTUtils.get_icrc7_royalty_account(state.canister()).account;
 
       let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
           Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
@@ -2884,19 +2855,17 @@ shared (deployer) actor class Nft_Canister() = this {
           Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
       };
 
-      {
-        icrc7_name = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
-        icrc7_symbol = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
-        icrc7_royalties = ?royalty;
-        icrc7_royalty_recipient = ?{
-          owner = royalty_account.principal;
-          subaccount = ?royalty_account.sub_account;
-        };
-        icrc7_description = ?description;
-        icrc7_image = state.state.collection_data.logo;
-        icrc7_total_supply = Iter.size(keys);
-        icrc7_supply_cap = null; //not implemented
-      };
+      let name = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
+
+      let symbol = Option.get<Text>(state.state.collection_data.symbol, Principal.toText(state.canister()));
+      let logo = Option.get<Text>(state.state.collection_data.logo, "");
+
+      aBuf.add(("icrc7:name", #Text(name)));
+      aBuf.add(("icrc7:symbol", #Text(symbol)));
+      aBuf.add(("icrc7:total_supply", #Nat(Iter.size(keys))));
+      aBuf.add(("icrc7:logo", #Text(logo)));
+
+      return Buffer.toArray(aBuf);
     };
 
     public query(msg) func icrc7_name() : async Text{
@@ -2911,7 +2880,7 @@ shared (deployer) actor class Nft_Canister() = this {
       Option.get<Text>(state.state.collection_data.symbol, Principal.toText(state.canister()));
     };
 
-    public query(msg) func icrc7_royalty() : async ?Nat16{
+    /* public query(msg) func icrc7_royalty() : async ?Nat16{
 
       let state = get_state();
 
@@ -2961,7 +2930,7 @@ shared (deployer) actor class Nft_Canister() = this {
         owner = royalty_account.principal;
         subaccount = ?royalty_account.sub_account;
       };
-    };
+    }; */
 
     public query(msg) func icrc7_description() : async ?Text{
       let state = get_state();
@@ -2981,7 +2950,7 @@ shared (deployer) actor class Nft_Canister() = this {
       ?description;
     };
 
-    public query(msg) func icrc7_image() : async ?Text{
+    public query(msg) func icrc7_logo() : async ?Text{
       let state = get_state();
       state.state.collection_data.logo;
     };
@@ -3001,60 +2970,98 @@ shared (deployer) actor class Nft_Canister() = this {
     };
 
     public query(msg) func icrc7_supply_cap() : async ?Nat{
-      
+      null;
+    };
+    public query(msg) func icrc7_max_approvals_per_token_or_collection() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_max_query_batch_size() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_max_update_batch_size() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_default_take_value() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_max_take_value() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_max_revoke_approvals() : async ?Nat{
+      null;
+    };
+    public query(msg) func icrc7_max_memo_size() : async ?Nat{
       null;
     };
 
-    public query(msg) func icrc7_metadata(token_id: Nat) : async [(Text,ICRC7.Metadata)]{
+    public query(msg) func icrc7_token_metadata(token_ids: [Nat]) : async [(Nat, ?(Text, ICRC7.Value))]{
 
       let state = get_state();
 
-      let #ok(metadata) = Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for token");
+      let aBuf = Buffer.Buffer<(Nat,?(Text, ICRC7.Value))>(token_ids.size());
 
-      let json = JSON.value_to_json(Metadata.get_clean_metadata(metadata, msg.caller));
+      for(token_id in token_ids.vals()){
 
-      let buf = Buffer.Buffer<(Text, ICRC7.Metadata)>(1);
+        switch(Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), state.canister(), ?state.canister(), state.state.collection_data.owner)){
+          case(#ok(metadata)){
+            let json = JSON.value_to_json(Metadata.get_clean_metadata(metadata, msg.caller));
 
-      var tracker = 0;
+            aBuf.add((token_id), ?("com.origyn.nft.metadata.json", #Text(json)));
+          };
+          case(_){
+            aBuf.add((token_id), null);
+          }
+        };
+      };
 
-      buf.add("com.origyn.nft.metadata.json", #Text(json));
-
-      return Buffer.toArray<(Text, ICRC7.Metadata)>(buf);
+      return Buffer.toArray<(Nat, ?(Text, ICRC7.Value))>(aBuf);
     };
 
-    public query(msg) func icrc7_owner_of(token_id: Nat) : async ICRC7.Account{
+    public query(msg) func icrc7_owner_of(token_ids: [Nat]) : async [{token_id: Nat; account : ?ICRC7.Account}] {
 
       let state = get_state();
 
-      let #ok(metadata) = Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), msg.caller, ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for token");
+      let aBuf = Buffer.Buffer<{token_id: Nat; account : ?ICRC7.Account}>(token_ids.size());
 
+      for(token_id in token_ids.vals()){
 
-      switch (
-            Metadata.get_nft_owner(metadata),
-        ) {
-            case (#err(err)) {
-                return D.trap("error getting owner");
-            };
-            case (#ok(val)) {
-                switch (val) {
-                    case (#principal(data)) {
-                        return {
-                          owner = data;
-                          subaccount = null;
+        switch(Metadata.get_metadata_for_token(state, NFTUtils.get_nat_as_token_id(token_id), msg.caller, ?state.canister(), state.state.collection_data.owner)){
+          case(#ok(metadata)){
+            switch (
+              Metadata.get_nft_owner(metadata),
+            ) {
+                case (#err(err)) {
+                    aBuf.add({token_id = token_id; account = null});
+                };
+                case (#ok(val)) {
+                    switch (val) {
+                        case (#principal(data)) {
+                            aBuf.add({token_id = token_id; account = ?{
+                              owner = data;
+                              subaccount = null;
+                            };});
                         };
-                    };
-                    case (#account(data)) {
-                        return {
-                          owner = data.owner;
-                          subaccount = data.sub_account;
+                        case (#account(data)) {
+                          aBuf.add({token_id = token_id; account = ?{
+                              owner = data.owner;
+                              subaccount = data.sub_account;
+                            };});
                         };
-                    };
-                    case (_) {
-                        return D.trap("icrc7_owner_of unsupported owner type by ICRC7" # debug_show(val));
+                        case (_) {
+                            aBuf.add({token_id = token_id; account = null});
+                        };
                     };
                 };
             };
+          };
+          case(_){
+            aBuf.add({token_id = token_id; account = null});
+          };
         };
+      };
+
+      return Buffer.toArray(aBuf);
+      
     };
 
     public query(msg) func icrc7_balance_of(account: ICRC7.Account) : async Nat{
@@ -3067,8 +3074,24 @@ shared (deployer) actor class Nft_Canister() = this {
       })).size()
     };
 
-    public query(msg) func icrc7_tokens_of(account: ICRC7.Account) : async [Nat]{
+    public query(msg) func icrc7_tokens(prev : ?Nat, take : ?Nat32) : async [Nat]{
+      //prev and take are unimplemented
+      let state = get_state();
 
+      let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
+          Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      } else {
+          Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      };
+
+
+      let result = Iter.map<Text, Nat>(keys, NFTUtils.get_token_id_as_nat);
+
+      return Iter.toArray<Nat>(result);
+    };
+
+    public query(msg) func icrc7_tokens_of(account: ICRC7.Account, prev : ?Nat, take : ?Nat32) : async [Nat]{
+      //prev and take are unimplemented
       let state = get_state();
 
       let list = Metadata.get_NFTs_for_user(get_state(), #account({
@@ -3081,14 +3104,10 @@ shared (deployer) actor class Nft_Canister() = this {
       return result;
     };
 
-    public shared (msg) func icrc7_transfer(request: ICRC7.TransferArgs) : async ICRC7.TransferResult{
-
-       if(request.is_atomic !=null){
-        return #Err(#GenericError({error_code=1; message ="origyn_nft does not support atomic tranfers. set to null"}));
-       };
+    public shared (msg) func icrc7_transfer(request: ICRC7.TransferArgs) : async ICRC7.TransferResult {
 
        if(request.token_ids.size() != 1){
-        return #Err(#GenericError({error_code=5; message ="origyn_nft does not support batch transactions through ICRC7. use market_transfer_batch_nft_origyn"}));
+        return D.trap("origyn_nft does not support batch transactions through ICRC7. use market_transfer_batch_nft_origyn");
        };
 
        let log_data : Text = "To :" # debug_show(request.to) # " - Token : " # Nat.toText(request.token_ids[0]);
@@ -3096,12 +3115,14 @@ shared (deployer) actor class Nft_Canister() = this {
         canistergeekMonitor.collectMetrics();
         debug if (debug_channel.function_announce) D.print("in transferICRC7");
         // Existing escrow acts as approval
-        return await* Owner.transferICRC7(get_state(), Option.get<ICRC7.Account>(request.from, {owner = msg.caller; subaccount=null}), request.to, request.token_ids[0], msg.caller);
+        let result =  await* Owner.transferICRC7(get_state(), request.from, request.to, request.token_ids[0], msg.caller);
+
+        return [result];
     };
 
     public shared (msg) func icrc7_approve(request: ICRC7.ApprovalArgs) : async ICRC7.ApprovalResult{
 
-        return #Err(#GenericError({error_code=6; message ="origyn_nft does not support approvals through ICRC7. Approval is provided by precense of an escrow deposit. Use sale_info_nft_origyn(#escrow) to retrieve deposit info"}));
+        D.trap("origyn_nft does not support approvals through ICRC7. Approval is provided by precense of an escrow deposit. Use sale_info_nft_origyn(#escrow) to retrieve deposit info");
        
     };
 
@@ -3406,7 +3427,6 @@ shared (deployer) actor class Nft_Canister() = this {
     // *** END CANISTER GEEK ***
     // *************************
 
-    
     /**
     * Returns an array of tuples representing the nft library.
     * @returns {Future<Array<[Text, Array<[Text, CandyTypes.AddressedChunkArray]>]>>} - A promise that resolves to an array of tuples representing the nft library.

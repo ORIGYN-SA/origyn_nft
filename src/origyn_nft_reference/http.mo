@@ -550,7 +550,7 @@ module {
         case(_,_,_){
          
           //for relative paths
-          "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # location
+          "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # path
 
         };
       };

@@ -1823,8 +1823,6 @@ module {
   * @returns {void}
   */
   public func announceTransaction(state : Types.State, rec : MigrationTypes.Current.TransactionRecord, caller : Principal, newTrx : MigrationTypes.Current.TransactionRecord) : () {
-
-
         if(state.state.collection_data.announce_canister == null){return;};
         
         let eventNamespace = "com.origyn.nft.event";
