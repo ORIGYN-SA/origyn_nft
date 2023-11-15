@@ -38,7 +38,7 @@ Library-id - Each library item in your token's asset library has a unique text-b
 v0.1.5
 
 * Network and collection owner can now add a data dapp to an NFT.
-* Breaking Change: read permission for nft owner is now nft_origyn
+* Breaking Change: read permission for nft owner is now nft_owner
 * Shared wallets can now read nft_owner data.
 * Default minimum increase for asks set to 5%.
 * Default end date for ask is one minute after start.

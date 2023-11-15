@@ -1,6 +1,6 @@
 # ORIGYN NFT Marketplace Integration
 
-Note: For full details of any of the apis in this document, please see [nft-current-api.md](nft-current-api.md).
+Note: For full details of any of the apis in this document, please see [specification.md](specification.md).
 
 ## Summary
 
@@ -48,21 +48,25 @@ High level:
 
 1. Get Invoice (User UI)
 2. Send Escrow Payment (User UI)
-3. Claim Escrow (User UI)
-4. Execute the sale (Management Canister)
+3. Execute the sale (Management Canister)
 
 Detail:
 
 1. Get Invoice - During this step you must determine the address that user will send their escrow deposit to.
 
-A purchaser will query sale_info_nft_origyn to receive a deposit address.
+A purchaser will query sale_info_nft_origyn to receive an escrow address.
 
 ```
-//if called by the purchase with a connected wallet the parameter can be null
-canister.sale_info_nft_origyn(#deposit_info(null))
 
-//if calling for a know principal to predict their deposit address
-canister.sale_info_nft_origyn(#deposit_info(?#principal(principal)))
+public type EscrowReceipt = {
+    amount: Nat; //Nat to support cycles
+    seller: Account;
+    buyer: Account;
+    token_id: Text;
+    token: TokenSpec;
+  };
+
+canister.sale_info_nft_origyn(#escrow_info({PurchaseDetails : EscrowReceipt }))
 
 //returns
 
@@ -77,8 +81,7 @@ canister.sale_info_nft_origyn(#deposit_info(?#principal(principal)))
     };
 ```
 
-2. Send Payment Escrow - the user will need to send the desired amount of token plus one fee to the indicated address. This fee covers the movement from the deposit address to the escrow address.  You can use the transfer function of your token ledger to send this fee.  Once the transaction is confirmed you must claim the escrow.
-
+2. Send Payment Escrow - the user will need to send the desired amount of token to the indicated address. You can use the transfer function of your token ledger to send this fee. 
 ```
 let funding_result = await dfx.icrc1_transfer({
             to =  deposit_info.account_id;
@@ -89,34 +92,8 @@ let funding_result = await dfx.icrc1_transfer({
             amount =  Nat64.fromNat(amount)};});
 ```
 
-3. Claim Escrow - The user will call the escrow_deposit function to claim the escrow. This call contains various details about the conditions under which the escrow can be used and/or returned.
 
-```
-        acanister.sale_nft_origyn(#escrow_deposit({
-            token_id = token_id;  //the token id you want the escrow to be restricted to. use "" for any nft
-            deposit = {
-              token = 
-                  #ic({
-                    canister = ledger; //your ledger canister
-                    standard = #Ledger; //the standard; currently only ICP style ledgers are supported
-                    decimals = 8; //number of decimals
-                    symbol = "LDG";//symbol
-                    fee = ?200000;
-                    id = null; //fee for the ledger
-                  });
-              };
-              seller = #principal(current_owner); //the current owner of the NFT. If unminted then this would likely be the token canister
-              buyer = #principal(Principal.fromActor(this)); //the buyer account
-              amount = amount; //amount of the escrow...must be one fee less than in the deposit account
-              sale_id = sale_id; //restrict to a sale id; null if a primary sale
-              trx_id = null; //reserved for future integration with non-subaccount ledgers
-            };
-            lock_to_date = lock; //this will lock the escrow past a certain date. used with the sales canister to ensure deposits are not removed before a drop date
-       }));
-
-```
-
-4. Execute the sale - Once the deposit has been confirmed, you may proceeded with executing the primary sale.  This is done with the market_transfer_origyn function using the #instant variant.  This must be called by an owner of the collection or a manager of the NFT. This function will mint the NFT and assign it to the purchaser.
+3. Execute the sale - Once the deposit has been confirmed, you may proceeded with executing the primary sale.  This is done with the market_transfer_origyn function using the #instant variant.  This must be called by an owner of the collection or a manager of the NFT. This function will mint the NFT and assign it to the purchaser.
 
 Your canister can find the escrows by calling the balance_nft_origyn function for the principal of the owner of your NFTs.  You can pull this info for the target purchaser out of this so that you do not have to reassemble it manually.
 
@@ -225,22 +202,24 @@ Details:
             sales_config = {
                 escrow_receipt = null; //not needed
                 broker_id = null; // put your broker principal here
-                pricing = #auction{
-                    reserve = ?(10 * 10 ** 8); //if the reserve is not met, ownership does not change
-                    token = #ic({  // you must pick one token type per auction
+                pricing = #ask{[
+                    #reserve(10 * 10 ** 8), //if the reserve is not met, ownership does not change
+                    #token(#ic({  // you must pick one token type per auction
                       canister = Principal.fromActor(dfx);
                       standard =  #Ledger;
                       decimals = 8;
                       symbol = "LDG";
                       fee = ?200000;
                       id = null;
-                    });
-                    buy_now = ?(10 * 10 ** 8); //a buy it now price. a bid at or above this amount will end the auction
-                    start_price = (10 * 10 ** 8); // start price
-                    start_date = 0; //set to 0 to start instantly, otherwise this is an int of nanoseconds utc
-                    ending = #date(get_time() + DAY_LENGTH); //int nanoseconds utc when you want the auction to end
-                    min_increase = #amount(10*10**8); //minimum increase. Only amount is supported at the moment
-                    allow_list = ?[Principal.fromActor(a_wallet), Principal.fromActor(b_wallet)]; // a white list for auction participants if you would like to limit who can bid.
+                    })),
+                    #buy_now(?(10 * 10 ** 8)), //a buy it now price. a bid at or above this amount will end the auction
+                    #start_price(10 * 10 ** 8), // start price
+                    #start_date(0), //set to 0 to start instantly, otherwise this is an int of nanoseconds utc
+                    #ending(#date(get_time() + DAY_LENGTH)), //int nanoseconds utc when you want the auction to end
+                    #min_increase(#amount(10*10**8)); //minimum increase. Only amount is supported at the moment
+                    #allow_list([Principal.fromActor(a_wallet), Principal.fromActor(b_wallet)]), // a white list for auction participants if you would like to limit who can bid.
+                    #notify([InventoryIndexCanisterPrincipal])
+                ]
                 };
             }; } );
 
@@ -295,7 +274,7 @@ let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
 
 ```
 
-7. Claim Royalties - Currently royalties are not paid out automatically.  To see if you have any royalties to recover you can call balance_nft_origyn and inspect the sales collection. If any sales exist, you can collect the sales by calling the below function:
+7. Claim Royalties - Royalties should be paid out automatically.  In the case that they have not, or to see if you have any royalties to recover you can call balance_nft_origyn and inspect the sales collection. If any sales exist, you can collect the sales by calling the below function:
 
 ```
 
@@ -317,7 +296,7 @@ let end_sale = await canister.sale_nft_origyn(#end_sale("2"));
 
 ```
 
-## Lost Deposits
+## Lost Deposits - Depricated
 
 Sometimes a call to sale_nft_origyn(#escrow_deposit) will fail for an unexpected reason. Perhaps the canister went down after the payment was successful, or perhaps your code did not add a transfer fee.
 
