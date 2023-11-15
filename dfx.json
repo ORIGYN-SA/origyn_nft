@@ -3,7 +3,9 @@
  
         "origyn_nft_reference": {
             "main": "src/origyn_nft_reference/main.mo",
-            "type": "motoko"
+            "type": "motoko",
+            "gzip" : true
+            
         },
         "opie_test": {
           "main": "src/origyn_nft_reference/main.mo",
@@ -137,12 +139,13 @@
     "defaults": {
         "build": {
             "args": "",
-            "packtool": "mops sources"
+            "packtool": "mops sources",
+            "zip" : true
         },
         "replica": {
             "subnet_type": "system"
         }
     },
-    "dfx": "0.14.0",
+    "dfx": "0.15.1",
     "version": 1
 }

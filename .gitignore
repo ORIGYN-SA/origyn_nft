@@ -3,6 +3,8 @@
 .idea/
 **/*~
 .vessel/
+# Adding mops here
+.mops/
 
 # Github Access Token
 gittoken.key

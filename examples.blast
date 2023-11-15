@@ -1,0 +1,1 @@
+{"cells":[{"kind":1,"language":"markdown","value":"Get NFT Balance from a canister"},{"kind":2,"language":"javascript","value":"let my = await ic(\"2asuf-uqaaa-aaaaj-azrka-cai\");\n\nlet me = identity.getPrincipal()\n//log(me);\n\nlet my_balance = await my.balance_of_nft_origyn({principal : me});\n\nlog(my_balance);"}]}

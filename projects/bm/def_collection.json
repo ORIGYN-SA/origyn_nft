@@ -49,7 +49,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/com.bm.brain.XXXXXX.hidden"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/collection/-/com.bm.brain.XXXXXX.hidden"
                                             },
                                             "immutable": true
                                         },
@@ -101,7 +101,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/ledger"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/collection/-/ledger"
                                             },
                                             "immutable": true
                                         },
@@ -156,7 +156,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/wallet"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/collection/-/wallet"
                                             },
                                             "immutable": true
                                         },
@@ -211,7 +211,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/library"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/collection/-/library"
                                             },
                                             "immutable": true
                                         },
@@ -266,7 +266,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/-/bm-01/-/data"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/-/bm-01/-/data"
                                             },
                                             "immutable": true
                                         },
@@ -321,7 +321,7 @@
                                         {
                                             "name": "location",
                                             "value": {
-                                                "Text": "https://CANISTER-ID.raw.ic0.app/collection/-/marketplace"
+                                                "Text": "https://CANISTER-ID.raw.icp0.io/collection/-/marketplace"
                                             },
                                             "immutable": true
                                         },

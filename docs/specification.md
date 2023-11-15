@@ -417,6 +417,8 @@ com.origyn.originator  - suggested - Originator of the collection - used for pay
 
 com.origyn.royalties.primary.default - Array() - List of Classes of rates used for primary sales.  These will be copied to NFTs in the collection during minting.
 
+com.origyn.royalties.broker_dev_fund_override - overrides sending unassigned broker fee to the development/bounty account.
+
 ```
 {name = "com.origyn.royalties.primary.default"; value=#Array([
                 #Class([

@@ -537,7 +537,7 @@ module {
       * @param path - the path to use for the address
       * @returns the complete URL address
       */
-    private func _build_address(state : Types.State, use_token_id : Text, allocation_canister: Principal, location : Text, path :Text ) : Text {
+    private func _build_storge_address(state : Types.State, use_token_id : Text, allocation_canister: Principal, path :Text ) : Text {
       switch(
       Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")),
       Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")),
@@ -548,14 +548,10 @@ module {
         };
         
         case(_,_,_){
-          if(Text.startsWith(location, #text("http")) == true){
-            //if the location is a full http address
-            location
-          } else {
-            //for relative paths
-            "https://" # Principal.toText(allocation_canister) # ".ic0.app/" # location
-          };
-          
+         
+          //for relative paths
+          "https://" # Principal.toText(allocation_canister) # ".icp0.io/" # path
+
         };
       };
 
@@ -596,7 +592,7 @@ module {
 
             debug if(debug_channel.library) D.print("trying " # debug_show(Metadata.get_primary_host(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_port(state, use_token_id, Principal.fromBlob("\04")), Metadata.get_primary_protocol(state, use_token_id,Principal.fromBlob("\04"))));
 
-            let address = _build_address(state, use_token_id, allocation_canister, location, path);
+            let address = _build_storge_address(state, use_token_id, allocation_canister, path);
 
             debug if(debug_channel.library)  D.print("got a location " # address);
 
@@ -1778,7 +1774,7 @@ module {
                 debug if(debug_channel.request) D.print(debug_show(path_size));
                 let token_id = "";
 
-                let ?metadata = Map.get(state.state.nft_metadata, Map.thash,token_id) else return _not_found("metadata not found");
+                let ?metadata = Map.get(state.state.nft_metadata, Map.thash, token_id) else return _not_found("metadata not found");
 
                 if(path_size > 1){
                     if(path_array[1] == "-"){
@@ -1863,7 +1859,7 @@ module {
                     if(path_array[1] == "ledger_info"){
                         debug if(debug_channel.request) D.print("render ledger_info "  # token_id );
 
-                        let ?ledger = Map.get(state.state.nft_ledgers, Map.thash, token_id) else return json(#Option(null), null);
+                        let ledger = state.state.master_ledger;
                         
                         let page = if(path_array.size() > 2){
                           switch(Conversion.textToNat(path_array[2])){

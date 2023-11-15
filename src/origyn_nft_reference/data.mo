@@ -7,6 +7,8 @@ import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Types "types";
 
+import NFTUtils "utils";
+
 module {
 
   let Map = MigrationTypes.Current.Map;
@@ -86,9 +88,12 @@ module {
 
     //this is currently a very ineffcient way of doing this. Once candy adds dicitionaries we should switch to that
     //currently we are rewriting the entire __apps section each time.
+
+    var bFoundApp = false;
     for(this_item in found_array.vals()){
       if(?app_id == _get_text_attribute_from_class(this_item, Types.metadata.__apps_app_id)){
         debug if(debug_channel.data_access)  D.print("got the app");
+        bFoundApp := true;
         switch(request){
           case(#replace(detail)){
             debug if(debug_channel.data_access) D.print("this is replace");
@@ -175,7 +180,149 @@ module {
       };
     };
 
-    found_metadata := #Class(switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(Buffer.toArray(new_list)))}])){
+    if(bFoundApp == false){
+
+      //only the network, or collection owner can add a data node.
+      if(NFTUtils.is_owner_network(state, caller) == false 
+      /* and (switch(Metadata.is_nft_owner(found_metadata, #Principal(caller))){
+            case(#ok(val)) val;
+            case(#err(err)) false;
+        }) == false */
+        ){
+          return #err(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "update_app_nft_origyn - only  network or collection owner can add a data dapp", ? caller));
+        };
+
+      switch(request){
+          case(#replace(detail)){
+          //this is a new item and needs to be added;
+
+          //validate the data
+          debug if(debug_channel.data_access) D.print("this is a new node");
+          //we check to see if we have write rights
+          let write_node = switch(Properties.getClassPropertyShared(detail.data, "write")){
+            //nyi: create user story and test for missing read/write
+
+            case(null){return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - write node not found", ? caller))};
+            case(?write_node){write_node};
+          };
+
+          let read_node = switch(Properties.getClassPropertyShared(detail.data, "read")){
+            //nyi: create user story and test for missing read/write
+
+            case(null){return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - read node not found", ? caller))};
+            case(?write_node){write_node};
+          };
+
+          let permission_node = switch(Properties.getClassPropertyShared(detail.data, "permissions")){
+            //nyi: create user story and test for missing read/write
+
+            case(null){return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "update_app_nft_origyn - permissions node not found", ? caller))};
+            case(?write_node){write_node};
+          };
+                                
+          debug if(debug_channel.data_access) D.print("have the write node");
+                
+          switch(write_node.value){
+            case(#Text(write_detail)){
+              if(write_detail == "public"){
+                //nyi: anyone can write. Maybe an error?
+                return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "update_app_nft_origyn - write node cannot be public - this isn't a bathroom stall", ? caller));
+              } else if (write_detail == "nft_owner") {
+                
+              } else if (write_detail == "collection_owner") {
+                
+              } else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - write node mal formed", ? caller));
+              };
+              new_list.add(detail.data);
+            };
+            case(#Class(write_detail)){
+              debug if(debug_channel.data_access) D.print("have write detail");
+              let ?write_type = Properties.getClassPropertyShared(write_node.value, "type") else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
+              };
+              debug if(debug_channel.data_access) D.print("have write type");
+              let #Text(write_type_detail) = write_type.value else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - not in proper type of write type", ? caller));
+              };
+
+              debug if(debug_channel.data_access) D.print("have write type detial");
+              if(write_type_detail != "allow"){
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only allow list and public implemented", ? caller));
+              };
+            };
+            case(_){
+               return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - write node mal formed", ? caller));
+            };
+          };
+
+          switch(read_node.value){
+            case(#Text(write_detail)){
+              if(write_detail == "public"){
+               
+              } else if (write_detail == "nft_owner") {
+                
+              } else if (write_detail == "collection_owner") {
+                
+              } else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - read node mal formed", ? caller));
+              };
+              new_list.add(detail.data);
+            };
+            case(#Class(write_detail)){
+              debug if(debug_channel.data_access) D.print("have read detail");
+              let ?write_type = Properties.getClassPropertyShared(write_node.value, "type") else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
+              };
+              debug if(debug_channel.data_access) D.print("have write type");
+              let #Text(write_type_detail) = write_type.value else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - not in proper type of write type", ? caller));
+              };
+
+              debug if(debug_channel.data_access) D.print("have write type detial");
+              if(write_type_detail != "allow"){
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only allow list and public implemented", ? caller));
+              };
+            };
+            case(_){
+               return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - read node mal formed", ? caller));
+            };
+          };
+
+          switch(permission_node.value){
+
+            case(#Class(write_detail)){
+              debug if(debug_channel.data_access) D.print("have read detail");
+              let ?write_type = Properties.getClassPropertyShared(write_node.value, "type") else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - type is null for write type", ? caller));
+              };
+              debug if(debug_channel.data_access) D.print("have write type");
+              let #Text(write_type_detail) = write_type.value else {
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - not in proper type of write type", ? caller));
+              };
+
+              debug if(debug_channel.data_access) D.print("have write type detial");
+              if(write_type_detail != "allow"){
+                return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only allow list and public implemented", ? caller));
+              };
+            };
+            case(_){
+               return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - permission node mal formed", ? caller));
+            };
+          };
+
+          new_list.add(detail.data);
+        };
+        case(_){
+           return #err(Types.errors(?state.canistergeekLogger,  #nyi, "update_app_nft_origyn - only replace can add a node - mal formed", ? caller));
+        };
+      };
+
+     
+    };
+
+    found_metadata := #Class(
+      switch(Properties.updatePropertiesShared(Conversions.candySharedToProperties(this_metadata), [{name = Types.metadata.__apps; mode=#Set(#Array(Buffer.toArray(new_list)))}])){
         case(#err(errType)){
             return #err(Types.errors(?state.canistergeekLogger,  #update_class_error, "update_app_nft_origyn - set metadata status" # debug_show(errType), ?caller));
         };
@@ -187,3 +334,4 @@ module {
     return #ok(true);
   };
 };
+
