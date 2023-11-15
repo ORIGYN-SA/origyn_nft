@@ -48,7 +48,22 @@ module {
     let Properties = MigrationTypes.Current.Properties;
     let Workspace = MigrationTypes.Current.Workspace;
 
+    
+    public let NANOS = 1_000_000_000;
+    public let MINUTE_LENGTH = 60_000_000_000;
+    public let HOUR_LENGTH = 3_600_000_000_000;
+    public let DAY_LENGTH = 86_400_000_000_000;
+    public let YEAR_LENGTH = 31_536_000_000_000_000; //365 days...no leap year
 
+    public func OGY() : MigrationTypes.Current.TokenSpec {#ic({
+        canister = Principal.fromText("jwcfb-hyaaa-aaaaj-aac4q-cai");
+      fee = ?200_000;
+      symbol = "OGY";
+      decimals = 8;
+      id = null;
+      standard =#ICRC1; //use #Ledger instead
+      });
+    };
 
     /**
     * Converts a Nat value to a token ID Text value.
@@ -133,18 +148,18 @@ module {
             case(#auction(state)){
                 #ok(state);
             };
-            case(_){
+            /* case(_){
                 return #err(Types.errors(null, #nyi, "get_auction_state_from_status - not an auction type " # current_sale.sale_id, null));
-            };
+            }; */
         };
     };
 
     /**
     * Returns the auction state from the provided stable sale status.
-    * @param {Types.SaleStatusStable} current_sale - The stable sale status to use.
-    * @returns {Result.Result<Types.AuctionStateStable, Types.OrigynError>} The resulting auction state.
+    * @param {Types.SaleStatusShared} current_sale - The stable sale status to use.
+    * @returns {Result.Result<Types.AuctionStateShared, Types.OrigynError>} The resulting auction state.
     */
-    public func get_auction_state_from_statusStable(current_sale : Types.SaleStatusStable ) : Result.Result<Types.AuctionStateStable, Types.OrigynError> {
+    public func get_auction_state_from_statusStable(current_sale : Types.SaleStatusShared ) : Result.Result<Types.AuctionStateShared, Types.OrigynError> {
 
         switch(current_sale.sale_type) {
             case(#auction(state)){
@@ -237,6 +252,30 @@ module {
         h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
         h.write(Conversions.candySharedToBytes(#Text("ledger")));
         h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.token_hash_uncompressed(request.token))));
+        let sub_hash =h.sum([]);
+
+        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
+                   
+        return {
+            principal = host;
+            account_id_text = Hex.encode(to);
+            account_id = Blob.fromArray(to);
+            account = {
+                principal = host;
+                sub_account = (Blob.fromArray(sub_hash));
+            }
+        };
+    };
+
+    /**
+    * Retrieves information about a phantom account to return for icrc7 royalties.
+    * @returns {Types.SubAccountInfo} An object containing information about the sub-account.
+    */
+    public func get_icrc7_royalty_account(host: Principal) : Types.SubAccountInfo{
+        
+        debug if (debug_channel.announce) D.print("Getting icrc7 account");
+        let h = SHA256.New();
+        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.icrc7royalty")));
         let sub_hash =h.sum([]);
 
         let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));

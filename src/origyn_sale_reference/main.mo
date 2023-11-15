@@ -58,7 +58,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         var nft_reservation_size : Nat = 0;
         var user_allocations : Types.Allocations = Map.new<Principal, Types.Allocation>();
         var user_registrations : Types.Registrations = Map.new<Principal, Types.Registration>();
-        var user_purchases: Types.Purchases = Map.new<Principal, Map.Map<Text,NFTTypes.TransactionRecord>>();
+        var user_purchases: Types.Purchases = Map.new<Principal, Map.Map<Text,NFTMigrationTypes.Current.TransactionRecord>>();
         var allocation_expiration : Int = __initargs.allocation_expiration;
         var nft_gateway : ?Principal = __initargs.nft_gateway;
         var sale_open_date = __initargs.sale_open_date;
@@ -817,7 +817,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
         personal_reservations: ([Types.Reservation], Nat, Nat);
         group_reservations: ([Types.Reservation], Nat, Nat);
-        purchases: [(Text, NFTTypes.TransactionRecord)];
+        purchases: [(Text, NFTMigrationTypes.Current.TransactionRecord)];
     }{
         //D.print("creating graph for " #debug_show(user, groups, reservations, inventory, purchases));
 
@@ -1045,7 +1045,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
                                     Iter.toArray<(Nat,?Nat)>(Map.entries<Nat,?Nat>(item.1.prices)))}));
             personal_reservations = (user_info.personal_reservations, 0, 0);
             group_reservations  = (user_info.group_reservations,0, 0);
-            purchases : [(Text, NFTTypes.TransactionRecord)] = switch(Map.get<Principal, Map.Map<Text,NFTTypes.TransactionRecord>>(state.user_purchases, Map.phash, user)){
+            purchases : [(Text, NFTMigrationTypes.Current.TransactionRecord)] = switch(Map.get<Principal, Map.Map<Text,NFTMigrationTypes.Current.TransactionRecord>>(state.user_purchases, Map.phash, user)){
               case(null){[]};
               case(?val){Iter.toArray(Map.entries(val))};
             };
@@ -1132,7 +1132,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
         //D.print("current_allocation" # debug_show(current_allocation));
 
         //Adjust allocation size by existing purchases
-        let purchases = Map.get<Principal, Map.Map<Text,NFTTypes.TransactionRecord>>(state.user_purchases, Map.phash, request.principal);
+        let purchases = Map.get<Principal, Map.Map<Text,NFTMigrationTypes.Current.TransactionRecord>>(state.user_purchases, Map.phash, request.principal);
 
 
         let reserved = RBU.RBTree<Text,?Nat>(Text.compare); // token_id, group_id, ?price
@@ -1377,7 +1377,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
 
         //process the results
 
-        let results = Buffer.Buffer<{token_id: Text; transaction: Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>}>(1);
+        let results = Buffer.Buffer<{token_id: Text; transaction: Result.Result<NFTMigrationTypes.Current.TransactionRecord, Types.OrigynError>}>(1);
         var tracker = 0;
         //D.print("the inventory " # debug_show(Iter.toArray(Map.entries(state.nft_inventory))));
         for(thisResponse in transfer_result.vals()){
@@ -1436,7 +1436,7 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
             prices: [(?TokenSpec, ?Nat, [(Nat, ?Nat)])]; //token, max_allowed, (amount, number)
             personal_reservations: ([Types.Reservation], Nat, Nat);
             group_reservations: ([Types.Reservation], Nat, Nat);
-            purchases: [(Text, NFTTypes.TransactionRecord)];
+            purchases: [(Text, NFTMigrationTypes.Current.TransactionRecord)];
         }; allocation_size: Nat}{
 
         //check to see if the user has any groups and reservations.
@@ -1656,9 +1656,9 @@ shared (deployer) actor class SaleCanister(__initargs : Types.InitArgs) = this {
     *
     * @param {Text} token_id - The token id of the NFT to be claimed.
     *
-    * @returns {Promise<Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>>} A promise that resolves to a `Result` object containing either a `TransactionRecord` or an `OrigynError`.
+    * @returns {Promise<Result.Result<NFTMigrationTypes.Current.TransactionRecord, Types.OrigynError>>} A promise that resolves to a `Result` object containing either a `TransactionRecord` or an `OrigynError`.
     */
-    public shared(msg) func execute_claim_sale_nft_origyn(token_id : Text) : async Result.Result<NFTTypes.TransactionRecord, Types.OrigynError>{
+    public shared(msg) func execute_claim_sale_nft_origyn(token_id : Text) : async Result.Result<NFTMigrationTypes.Current.TransactionRecord, Types.OrigynError>{
 
         return #err(Types.errors(#nyi, "not implemented", ?msg.caller));
     };

@@ -28,7 +28,8 @@ import DROUTE "mo:droute_client/Droute";
 import KYC "mo:icrc17_kyc";
 import CanistergeekTypes "mo:canistergeek/canistergeek";
 import http "mo:http/Http";
-import Testable "mo:matchers/Testable";
+
+import Star "mo:star/star";
 
 
 module {
@@ -160,6 +161,17 @@ module {
         canister_status : { canister_id : canister_id } -> async canister_status;
     };
 
+    public type Subscriber = actor {
+        notify_sale_nft_origyn : shared (SubscriberNotification) -> ();
+    };
+
+    public type SubscriberNotification = {
+      escrow_info : SubAccountInfo;
+      sale : SaleStatusShared;
+      seller : Account;
+      collection: Principal;
+    };
+
     public type StageChunkArg = {
         token_id : Text;
         library_id : Text;
@@ -206,7 +218,7 @@ module {
     public type SalesConfig = {
         escrow_receipt : ?EscrowReceipt;
         broker_id : ?Principal;
-        pricing : PricingConfig;
+        pricing : PricingConfigShared;
     };
 
      public type ICTokenSpec = {
@@ -280,6 +292,13 @@ module {
         transaction : TransactionRecord;
     };
 
+
+    public type RecognizeEscrowResponse = {
+        receipt : EscrowReceipt;
+        balance : Nat;
+        transaction : ?TransactionRecord;
+    };
+
     public type BidRequest = {
         escrow_receipt : EscrowReceipt;
         sale_id : Text;
@@ -292,32 +311,30 @@ module {
 
     public type DistributeSaleResponse = [Result.Result<ManageSaleResponse, OrigynError>];
 
+    public type AskSubscribeResponse = Bool;
+
     public type BidResponse = TransactionRecord;
 
     public type PricingConfig = {
       #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
-      #flat: {
-          token: TokenSpec;
-          amount: Nat; //Nat to support cycles
-      };
       //below have not been signficantly desinged or vetted
-      #dutch: DutchConfig;
-      #auction: AuctionConfig;
-      #nifty: NiftyConfig;
+      #auction: AuctionConfig; //depricated - use ask
+      #ask: AskConfig;
       #extensible: CandyTypes.CandyShared;
     };
 
-    public type DutchConfig = {
-        start_price: Nat;
-        decay_per_hour: {
-          #flat: Nat;
-          #percent: Float;
-        };
-        reserve: ?Nat;
-        start_date: Int;
-        allow_list : ?[Principal];
-        token: TokenSpec;
+    public type PricingConfigShared = {
+      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      #auction: AuctionConfig; //depricated - use ask
+      #ask: AskConfigShared;
+      #extensible: CandyTypes.CandyShared;
     };
+
+    public type AskConfig =  ?[AskFeature];
+    public type AskConfigShared =  MigrationTypes.Current.AskConfigShared;
+    public type DutchParams =  MigrationTypes.Current.DutchParams;
+  
+    public type AskFeature = MigrationTypes.Current.AskFeature;
 
     public type NiftyConfig = {
       duration: ?Int;
@@ -337,9 +354,9 @@ module {
             start_date: Int;
             ending: {
                 #date: Int;
-                #waitForQuiet: {
+                #wait_for_quiet: {
                     date: Int;
-                    extention: Nat64;
+                    extension: Nat64;
                     fade: Float;
                     max: Nat
                 };
@@ -362,18 +379,18 @@ module {
     };
 
     public type NFTInfoStable = {
-        current_sale : ?SaleStatusStable;
+        current_sale : ?SaleStatusShared;
         metadata : CandyTypes.CandyShared;
     };
 
-    
-
-    public type AuctionStateStable = {
-        config : PricingConfig;
+    public type AuctionStateShared = {
+        config : PricingConfigShared;
         current_bid_amount : Nat;
         current_broker_id : ?Principal;
         end_date : Int;
+        start_date : Int;
         min_next_bid : Nat;
+        token : TokenSpec;
         current_escrow : ?EscrowReceipt;
         wait_for_quiet_count : ?Nat;
         allow_list : ?[(Principal, Bool)]; // user, tree
@@ -386,95 +403,49 @@ module {
         winner : ?Account;
     };
 
-    public type DutchStateStable = {
-    config: PricingConfig;
-     current_broker_id: ?Principal;
-     end_date: ?Int;
-     allow_list: ?[(Principal, Bool)]; //empty set means everyone
-     status: {
-        #open;
-        #closed;
-        #not_started;
-    };
-     winner: ?Account;
-  };
-
-  public type NiftyStateStable = {
-    config: PricingConfig;
-     current_broker_id: ?Principal;
-     end_date: Int;
-     min_bid: Nat;
-     allow_list: ?[(Principal, Bool)]; //empty set means everyone
-     status: {
-        #open;
-        #closed;
-        #not_started;
-    };
-     winner: ?Account;
-  };
-
-    public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateStable {
-        {
-            config = val.config;
-            current_bid_amount = val.current_bid_amount;
-            current_broker_id = val.current_broker_id;
-            end_date = val.end_date;
-            min_next_bid = val.min_next_bid;
-            current_escrow = val.current_escrow;
-            wait_for_quiet_count = val.wait_for_quiet_count;
-            allow_list = do ? {
-                Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
-            };
-            participants = Iter.toArray(Map.entries<Principal, Int>(val.participants));
-            status = val.status;
-            winner = val.winner;
+    public func AuctionState_stabalize_for_xfer(val : AuctionState) : AuctionStateShared {
+      {
+        config = switch(val.config){
+          case(#instant) #instant;
+          case(#auction(e)) #auction(e);
+          case(#ask(e)){
+            switch(e){
+              case(null) #ask(null);
+              case(?items){
+                #ask(?(Iter.toArray<AskFeature>(Map.vals(items))));
+              };
+            }
+          };
+          case(#extensible(e)) #extensible(e);
         };
-    };
-
-    
-
-    public func NiftyState_stabalize_for_xfer(val : MigrationTypes.Current.NiftyState) : NiftyStateStable {
-        {
-            config = val.config;
-            current_broker_id = val.current_broker_id;
-            end_date = val.end_date;
-            min_bid = val.min_bid;
-            allow_list = do ? {
-                Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
-            };
-            status = val.status;
-            winner = val.winner;
+        current_bid_amount = val.current_bid_amount;
+        current_broker_id = val.current_broker_id;
+        end_date = val.end_date;
+        start_date = val.start_date;
+        token = val.token;
+        min_next_bid = val.min_next_bid;
+        current_escrow = val.current_escrow;
+        wait_for_quiet_count = val.wait_for_quiet_count;
+        allow_list = do ? {
+            Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
         };
+        participants = Iter.toArray(Map.entries<Principal, Int>(val.participants));
+        status = val.status;
+        winner = val.winner;
+      };
     };
 
-    public func DutchState_stabalize_for_xfer(val : MigrationTypes.Current.DutchState) : DutchStateStable {
-        {
-            config = val.config;
-            current_broker_id = val.current_broker_id;
-            end_date = val.end_date;
-            allow_list = do ? {
-                Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
-            };
-            status = val.status;
-            winner = val.winner;
-        };
-    };
-
-    
-
-    public type SaleStatusStable = {
+    public type SaleStatusShared = {
         sale_id : Text; //sha256?;
         original_broker_id : ?Principal;
         broker_id : ?Principal;
         token_id : Text;
         sale_type : {
-            #auction : AuctionStateStable;
-            #dutch : DutchStateStable;
-            #nifty : NiftyStateStable;
+            #auction : AuctionStateShared;
         };
     };
 
-    public func SalesStatus_stabalize_for_xfer(item : SaleStatus) : SaleStatusStable {
+    public func SalesStatus_stabalize_for_xfer(item : SaleStatus) : SaleStatusShared {
         {
             sale_id = item.sale_id;
             token_id = item.token_id;
@@ -483,12 +454,6 @@ module {
             sale_type = switch (item.sale_type) {
                 case (#auction(val)) {
                     #auction(AuctionState_stabalize_for_xfer(val));
-                };
-                case (#dutch(val)) {
-                    #dutch(DutchState_stabalize_for_xfer(val));
-                };
-                case (#nifty(val)) {
-                    #nifty(NiftyState_stabalize_for_xfer(val));
                 };
             };
         };
@@ -515,10 +480,10 @@ module {
     };
     */
 
-    public type State = State_v0_1_4;
+    public type State = State_v0_1_5;
 
-    public type State_v0_1_4 = {
-        state : GatewayState_v0_1_4;
+    public type State_v0_1_5 = {
+        state : GatewayState_v0_1_5;
         canister : () -> Principal;
         get_time : () -> Int;
         nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
@@ -526,8 +491,12 @@ module {
         droute_client : DROUTE.Droute;
         kyc_client: KYC.kyc;
         canistergeekLogger : Canistergeek.Logger;
+        handle_notify : () -> async();
+        notify_timer : {
+          get: () ->?Nat;
+          set: (?Nat) -> ();
+        };
         //btreemap : Stable_Memory;
-
     };
 
     public type BucketDat = {
@@ -595,7 +564,7 @@ module {
     public type StableSalesBalances = [(Account, Account, Text, EscrowRecord)];
     public type StableOffers = [(Account, Account, Int)];
     public type StableNftLedger = [(Text, TransactionRecord)];
-    public type StableNftSales = [(Text, SaleStatusStable)];
+    public type StableNftSales = [(Text, SaleStatusShared)];
 
     public type NFTBackupChunk = {
         canister : Principal;
@@ -606,7 +575,7 @@ module {
         sales_balances : StableSalesBalances;
         offers : StableOffers;
         nft_ledgers : StableNftLedger;
-        nft_sales : [(Text, SaleStatusStable)];
+        nft_sales : [(Text, SaleStatusShared)];
     };
 
     public type StateSize = {
@@ -619,19 +588,19 @@ module {
         nft_sales : Nat;
     };
 
-    public type GatewayState = GatewayState_v0_1_4;
+    public type GatewayState = GatewayState_v0_1_5;
 
     
 
-    public type StorageState = StorageState_v_0_1_4;
+    public type StorageState = StorageState_v_0_1_5;
 
-    public type StorageState_v_0_1_4 = {
+    public type StorageState_v_0_1_5 = {
         var state : StorageMigrationTypes.Current.State;
         canister : () -> Principal;
         get_time : () -> Int;
         var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
-        refresh_state : () -> StorageState_v_0_1_4;
-        btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
+        refresh_state : () -> StorageState_v_0_1_5;
+        //btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
         use_stable_storage : Bool;
     };
 
@@ -682,119 +651,7 @@ module {
         };
     };
 
-    public type TransactionRecord = {
-        token_id: Text;
-        index: Nat;
-        txn_type: {
-            #auction_bid : {
-                buyer: Account;
-                amount: Nat;
-                token: TokenSpec;
-                sale_id: Text;
-                extensible: CandyTypes.CandyShared;
-            };
-            #mint : {
-                from: Account;
-                to: Account;
-                //nyi: metadata hash
-                sale: ?{token: TokenSpec;
-                    amount: Nat; //Nat to support cycles
-                    };
-                extensible: CandyTypes.CandyShared;
-            };
-            #sale_ended : {
-                seller: Account;
-                buyer: Account;
-               
-                token: TokenSpec;
-                sale_id: ?Text;
-                amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyShared;
-            };
-            #royalty_paid : {
-                seller: Account;
-                buyer: Account;
-                receiver: Account;
-                tag: Text;
-                token: TokenSpec;
-                sale_id: ?Text;
-                amount: Nat;//Nat to support cycles
-                extensible: CandyTypes.CandyShared;
-            };
-            #sale_opened : {
-                pricing: PricingConfig;
-                sale_id: Text;
-                extensible: CandyTypes.CandyShared;
-            };
-            #owner_transfer : {
-                from: Account;
-                to: Account;
-                extensible: CandyTypes.CandyShared;
-            }; 
-            #escrow_deposit : {
-                seller: Account;
-                buyer: Account;
-                token: TokenSpec;
-                token_id: Text;
-                amount: Nat;//Nat to support cycles
-                trx_id: TransactionID;
-                extensible: CandyTypes.CandyShared;
-            };
-            #escrow_withdraw : {
-                seller: Account;
-                buyer: Account;
-                token: TokenSpec;
-                token_id: Text;
-                amount: Nat;//Nat to support cycles
-                fee: Nat;
-                trx_id: TransactionID;
-                extensible: CandyTypes.CandyShared;
-            };
-            #deposit_withdraw : {
-                buyer: Account;
-                token: TokenSpec;
-                amount: Nat;//Nat to support cycles
-                fee: Nat;
-                trx_id: TransactionID;
-                extensible: CandyTypes.CandyShared;
-            };
-            #sale_withdraw : {
-                seller: Account;
-                buyer: Account;
-                token: TokenSpec;
-                token_id: Text;
-                amount: Nat; //Nat to support cycles
-                fee: Nat;
-                trx_id: TransactionID;
-                extensible: CandyTypes.CandyShared;
-            };
-            #canister_owner_updated : {
-                owner: Principal;
-                extensible: CandyTypes.CandyShared;
-            };
-            #canister_managers_updated : {
-                managers: [Principal];
-                extensible: CandyTypes.CandyShared;
-            };
-            #canister_network_updated : {
-                network: Principal;
-                extensible: CandyTypes.CandyShared;
-            };
-            #data : {
-              data_dapp: ?Text;
-              data_path: ?Text;
-              hash: ?[Nat8];
-              extensible: CandyTypes.CandyShared;
-            }; //nyi
-            #burn: {
-              from: ?Account;
-              extensible: CandyTypes.CandyShared;
-            };
-            #extensible : CandyTypes.CandyShared;
-
-        };
-        timestamp: Int;
-    };
+    public type TransactionRecord = MigrationTypes.Current.TransactionRecord;
 
     public type NFTUpdateRequest = {
         #replace : {
@@ -828,42 +685,80 @@ module {
         #end_sale : Text; //token_id
         #open_sale : Text; //token_id;
         #escrow_deposit : EscrowRequest;
+        #recognize_escrow : EscrowRequest;
         #refresh_offers : ?Account;
         #bid : BidRequest;
         #withdraw : WithdrawRequest;
         #distribute_sale : DistributeSaleRequest;
+        #ask_subscribe : AskSubscribeRequest;
+    };
+
+    public type AskSubscribeRequest = {
+      #subscribe: {
+        filter: ?{
+          token_ids: ?[TokenIDFilter]; 
+          tokens: ?[TokenSpecFilter];
+        };
+        stake: (Principal, Nat);
+      };
+      #unsubscribe: (Principal, Nat);
+    };
+
+    public type TokenIDFilter = {
+      token_id: Text;
+      tokens: [{
+        min_amount: ?Nat;
+        max_amount: ?Nat;
+        token: TokenSpec;
+      }];
+      filter_type: {
+        #allow;
+        #block;
+      };
+    };
+
+    public type TokenSpecFilter = {
+      token: TokenSpec;
+      filter_type: {
+        #allow;
+        #block;
+      };
     };
 
     public type ManageSaleResponse = {
         #end_sale : EndSaleResponse; //trx record if succesful
         #open_sale : Bool; //true if opened, false if not;
         #escrow_deposit : EscrowResponse;
+        #recognize_escrow : RecognizeEscrowResponse;
         #refresh_offers : [EscrowRecord];
         #bid : BidResponse;
         #withdraw : WithdrawResponse;
         #distribute_sale : DistributeSaleResponse;
+        #ask_subscribe : AskSubscribeResponse;
     };
 
     public type SaleInfoRequest = {
         #active : ?(Nat, Nat); //get al list of active sales
         #history : ?(Nat, Nat); //skip, take
         #status : Text; //saleID
+        #escrow_info : EscrowReceipt;
         #deposit_info : ?Account;
     };
 
     public type SaleInfoResponse = {
         #active : {
-            records : [(Text, ?SaleStatusStable)];
+            records : [(Text, ?SaleStatusShared)];
             eof : Bool;
             count : Nat;
         };
         #history : {
-            records : [?SaleStatusStable];
+            records : [?SaleStatusShared];
             eof : Bool;
             count : Nat;
         };
-        #status : ?SaleStatusStable;
+        #status : ?SaleStatusShared;
         #deposit_info : SubAccountInfo;
+        #escrow_info : SubAccountInfo;
     };
 
     public type GovernanceRequest = {
@@ -1027,6 +922,7 @@ module {
         #escrow_cannot_be_removed;
         #escrow_owner_not_the_owner;
         #escrow_withdraw_payment_failed;
+        #escrow_not_large_enough;
         #existing_sale_found;
         #id_not_found_in_metadata;
         #improper_interface;
@@ -1057,6 +953,7 @@ module {
         #validate_trx_wrong_host;
         #withdraw_too_large;
         #nyi;
+        #noop;
         #kyc_error;
         #kyc_fail;
     };
@@ -1231,11 +1128,20 @@ module {
                     caller = caller;
                 };
             };
+            case (#noop) {
+                return {
+                    number = 1997;
+                    text = "not yet implemented";
+                    error = the_error;
+                    flag_point = flag_point;
+                    caller = caller;
+                };
+            };
 
             case (#unreachable) {
                 return {
                     number = 1998;
-                    text = "unreachable";
+                    text = "no op";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;
@@ -1309,6 +1215,7 @@ module {
                     caller = caller;
                 };
             };
+            
             case (#validate_deposit_failed) {
                 return {
                     number = 3003;
@@ -1376,6 +1283,15 @@ module {
                 return {
                     number = 3010;
                     text = "could not pay the sales withdraw";
+                    error = the_error;
+                    flag_point = flag_point;
+                    caller = caller;
+                };
+            };
+            case(#escrow_not_large_enough){
+               return {
+                    number = 3011;
+                    text = "the balance in the escrow is not large enough for the escrow required";
                     error = the_error;
                     flag_point = flag_point;
                     caller = caller;
@@ -1477,7 +1393,7 @@ module {
             case (#token_non_transferable) {
                 return {
                     number = 4009;
-                    text = "token is soulbound";
+                    text = "token is non-transferable";
                     error = the_error;
                     flag_point = flag_point;}
             }; 
@@ -1512,6 +1428,7 @@ module {
         __system_physical : Text;
         __system_escrowed : Text;
         __apps :Text;
+        broker_royalty_dev_fund_override: Text;
         collection_kyc_canister_buyer : Text;
         collection_kyc_canister_seller : Text;
         library : Text;
@@ -1540,6 +1457,7 @@ module {
         royalty_network : Text;
         royalty_custom : Text;
         secondary_royalties_default : Text;
+        icrc7_description : Text;
 
         __apps_app_id : Text;
         __system_current_sale_id : Text;
@@ -1554,6 +1472,7 @@ module {
         __system_physical = "com.origyn.physical";
         __system_escrowed = "com.origyn.escrow_node";
         __apps = "__apps";
+        broker_royalty_dev_fund_override = "com.origyn.royalties.broker_dev_fund_override";
         collection_kyc_canister_buyer = "com.origyn.kyc_canister_buyer";
         collection_kyc_canister_seller = "com.origyn.kyc_canister_seller";
         library = "library";
@@ -1581,6 +1500,7 @@ module {
         royalty_network = "com.origyn.royalty.network";
         royalty_custom = "com.origyn.royalty.custom";
         experience_asset = "experience_asset";
+        icrc7_description = "com.origyn.icrc7.description";
         __apps_app_id = "app_id";
         __system_current_sale_id = "current_sale_id";
     };
@@ -1958,6 +1878,7 @@ module {
     public type NFTUpdateResult = Result.Result<NFTUpdateResponse, OrigynError>;
     public type OwnerUpdateResult = Result.Result<OwnerTransferResponse, OrigynError>;
     public type ManageSaleResult = Result.Result<ManageSaleResponse, OrigynError>;
+    public type ManageSaleStar = Star.Star<ManageSaleResponse, OrigynError>;
     public type SaleInfoResult = Result.Result<SaleInfoResponse, OrigynError>;
     public type StorageMetricsResult = Result.Result<StorageMetrics, OrigynError>;
     public type StageLibraryResult = Result.Result<StageLibraryResponse, OrigynError>;
@@ -2037,6 +1958,6 @@ module {
 
     public type AuctionState = MigrationTypes.Current.AuctionState;
     public type SaleStatus = MigrationTypes.Current.SaleStatus;
-    public type GatewayState_v0_1_4 = MigrationTypes.Current.State;
+    public type GatewayState_v0_1_5 = MigrationTypes.Current.State;
 
 };

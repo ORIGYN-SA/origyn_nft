@@ -90,23 +90,67 @@ Owner Tranfers moves an NFT from one wallet of an owner to another owner of a wa
         pricing: PricingConfig;
     };
 
-    public type PricingConfig = {
-        #instant; //executes an escrow recipt transfer - only available for non-marketable NFTs
-        #auction: AuctionConfig;
-        //below have not been signficantly designed or vetted
-        #flat: { //nyi
-            token: TokenSpec;
-            amount: Nat; //Nat to support cycles
-        };
-        #dutch: {
-            start_price: Nat;
-            decay_per_hour: Float;
-            reserve: ?Nat;
-        };
-        #extensible:{
-            #candyClass
-        }
+    public type PricingConfigShared = {
+      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      #auction: AuctionConfig; //depricated - use ask
+      #ask: AskConfigShared;
+      #extensible: CandyTypes.CandyShared;
     };
+
+    public type AskFeature = {
+      #atomic;
+      #buy_now: Nat;
+      #wait_for_quiet: {
+          extension: Nat64;
+          fade: Float;
+          max: Nat
+      };
+      #allow_list : [Principal];
+      #notify: [Principal];
+      #reserve: Nat;
+      #start_date: Int;
+      #start_price: Nat;
+      #min_increase: {
+        #percentage: Float;
+        #amount: Nat;
+      };
+      #ending: {
+        #date: Int;
+        #timeout: Nat;
+      };
+      #token: TokenSpec;
+      #dutch: DutchParams;
+      #kyc: Principal;
+      #nifty_settlement: {
+        duration: ?Int;
+        expiration: ?Int;
+        fixed: Bool;
+        lenderOffer: Bool;
+        interestRatePerSecond: Float;
+      };
+    };
+
+    public type DutchParams = {
+        time_unit: {
+          #hour : Nat;
+          #minute : Nat;
+          #day : Nat;
+        };
+        decay_type:{
+          #flat: Nat;
+          #percent: Float;
+        };
+    };
+
+    public type AskConfigShared = ?[AskFeature];
+
+    public type AskSubscriptionInfo = {
+     filter: ?{
+        token_ids: ?[TokenIDFilter]; 
+        tokens: ?[TokenSpecFilter];
+      };
+     stake: (Principal, Nat, ?Nat);
+  };
 
     public type TokenSpec = {
         #ic: ICTokenSpec;
@@ -127,27 +171,6 @@ Owner Tranfers moves an NFT from one wallet of an owner to another owner of a wa
         };
     };
 
-    public type AuctionConfig = {
-        reserve: ?Nat;
-        token: TokenSpec;
-        buy_now: ?Nat;
-        start_price: Nat;
-        start_date: Int;
-        ending: {
-            #date: Int;
-            #waitForQuiet: { //nyi
-                date: Int;
-                extention: Nat64;
-                fade: Float;
-                max: Nat
-            };
-        };
-        min_increase: {
-            #percentage: Float; //nyi
-            #amount: Nat;
-        };
-        allow_list : ?[Principal]; //Result must pass waivers
-    };
 
     market_transfer_nft_origyn(MarketTransferRequest) -> Result<MarketTransferRequestResponse, OrigynError>
     market_transfer_batch_nft_origyn([MarketTransferRequest]) -> [Result<MarketTransferRequestResponse, OrigynError>]
@@ -165,7 +188,42 @@ Currently implemented pricing configs are:
 Instant transfers are used to sell an unminted NFT or a direct sale of a minted NFT. They require an escrow to be on file with the canister.  The owner of an NFT must be given the escrow receipt and must submit the receipt with the transfer request.
 
 ```
-#auction
+#ask
+```
+
+Asks invite the community to purchase your NFT.
+
+Features:
+
+  #buy_now: Nat; //set a buy it now price
+  #allow_list : [Principal]; //restrict access to an auction
+  #notify: [Principal]; //notify canisters using the new notify interface
+  #reserve: Nat; //set a reserve price
+  #start_date: Int; //set a date in the future for the sale to start. Defaults to now
+  #start_price: Nat; //set a start price.  Defaults to 1.
+  #min_increase: {  //set a min increase.  Defaults to 5%.
+    #percentage: Float;
+    #amount: Nat;
+  };
+  #ending: { //set an end time for the sale. Defaults to 1 minute.
+    #date: Int; //a specific date
+    #timeout: Nat; //nanoseconds in the future
+  };
+  #token: TokenSpec; //the token spec for the currency to use for the Sale.  Defaults to OGY
+  #dutch: {
+    time_unit: { //increment period and multiple
+      #hour : Nat;
+      #minute : Nat;
+      #day : Nat;
+    };
+    decay_type:{ //amount to decrease the price at each interval
+      #flat: Nat;
+      #percent: Float;
+    };
+
+
+```
+#auction - Deprecated - use ask instead
 ```
 
 An auction allows users to bid on an NFT until it closes. The winner can then claim the NFT. Bidders must post an escrow for their bids.
@@ -179,6 +237,62 @@ Note: For alternative mappings the existence of an escrow is the approval for th
     * transferEXT(request : EXTTransferRequest) -> EXTTransferResponse; transfer() also exists for legacy native ext support
     * transfer(request : EXTTransferRequest) -> EXTTransferResponse; transfer() also exists for legacy native ext support
 
+## Sale Notifications
+
+The creator of a new #ask type market transfer can notify canisters of their sale by setting the #notifications feature to a list of principals.  Remote canisters can listen by implementing the following function:
+
+```
+
+public type AuctionStateShared = {
+        config : PricingConfigShared;
+        current_bid_amount : Nat;
+        current_broker_id : ?Principal;
+        end_date : Int;
+        start_date : Int;
+        min_next_bid : Nat;
+        token : TokenSpec;
+        current_escrow : ?EscrowReceipt;
+        wait_for_quiet_count : ?Nat;
+        allow_list : ?[(Principal, Bool)]; // user, tree
+        participants : [(Principal, Int)]; //user, timestamp of last access
+        status : {
+            #open;
+            #closed;
+            #not_started;
+        };
+        winner : ?Account;
+    };
+
+     public type SubAccountInfo = {
+        principal : Principal;
+        account_id : Blob;
+        account_id_text : Text;
+        account : {
+            principal : Principal;
+            sub_account : Blob;
+        };
+    };
+
+public type SaleStatusShared = {
+        sale_id : Text; //sha256?;
+        original_broker_id : ?Principal;
+        broker_id : ?Principal;
+        token_id : Text;
+        sale_type : {
+            #auction : AuctionStateShared;
+        };
+    };
+
+ public type SubscriberNotification = {
+      escrow_info : SubAccountInfo;
+      sale : SaleStatusShared;
+      seller : Account;
+      collection: Principal;
+    };
+
+
+public shared(msg) func notify_sale_nft_origyn(request : Types.SubscriberNotification) : ()
+```
 
 ## Minting
 
@@ -416,6 +530,8 @@ com.origyn.node  - suggested - Node that endorses and authenticates NFTs minted 
 com.origyn.originator  - suggested - Originator of the collection - used for paying node royalties
 
 com.origyn.royalties.primary.default - Array() - List of Classes of rates used for primary sales.  These will be copied to NFTs in the collection during minting.
+
+com.origyn.royalties.broker_dev_fund_override - overrides sending unassigned broker fee to the development/bounty account.
 
 ```
 {name = "com.origyn.royalties.primary.default"; value=#Array([
@@ -678,11 +794,40 @@ Sales are managed through the sale_nft_origyn function and information can be re
 
     sale_nft_origyn : shared ManageSaleRequest -> async Result.Result<ManageSaleResponse,OrigynError>;
 
+    public type ICTokenSpec = {
+        canister: Principal;
+        fee: ?Nat;
+        symbol: Text;
+        decimals: Nat;
+        id: ?Nat;
+        standard: {
+            #DIP20;
+            #Ledger;
+            #EXTFungible;
+            #ICRC1; //use #Ledger instead
+            #Other : CandyTypes.CandyShared;
+        };
+    };
+
+    public type TokenSpec = {
+      #ic: ICTokenSpec;
+      #extensible : CandyTypes.CandyShared; //#Class
+    };
+
+    public type EscrowReceipt = {
+        amount: Nat; //Nat to support cycles
+        seller: Account;
+        buyer: Account;
+        token_id: Text;
+        token: TokenSpec;
+    };
+
     public type SaleInfoRequest = {
         #active : ?(Nat, Nat); //get al list of active sales
         #history : ?(Nat, Nat); //skip, take
         #status : Text; //saleID
-        #deposit_info : ?Account;
+        #deposit_info : ?Account; //deprecated, use escrow_info
+        #escrow_info : EscrowReceipt.
     };
 
     public type SaleInfoResponse = {

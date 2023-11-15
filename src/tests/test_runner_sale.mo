@@ -359,7 +359,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //leave d out but try to get one anyway...should fail
 
-        let aRedeem_payment_2 = await a_wallet.send_ledger_payment(dfx_ledger, (30 * 10 ** 8) + 600000, Principal.fromActor(canister));
+        let aRedeem_payment_2 = await a_wallet.send_ledger_deposit(dfx_ledger, (30 * 10 ** 8) + 600000, Principal.fromActor(canister));
 
         D.print("apayment"# debug_show(aRedeem_payment_2));
 
@@ -389,7 +389,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("about to payment b");
         
         //register b for 4 with additive
-        let bRedeem_payment_2 = await b_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        let bRedeem_payment_2 = await b_wallet.send_ledger_deposit(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
         D.print("about to escrow b" # debug_show(bRedeem_payment_2));
 
@@ -413,7 +413,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //regist d for 2 with non-additive but should get allocated none due to reservations
 
-        let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let dRedeem_payment_2 = await d_wallet.send_ledger_deposit(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -514,7 +514,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("reddem for third a " # debug_show(a_wallet_try_redeem_for_third));
 
 
-        let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let cRedeem_payment_2 = await c_wallet.send_ledger_deposit(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1000,7 +1000,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
          let advancer = await sale_canister.__advance_time(allocation_date + 1);
 
-        let aRedeem_payment_2 = await a_wallet.send_ledger_payment(dfx_ledger, (30 * 10 ** 8) + 600000, Principal.fromActor(canister));
+        let aRedeem_payment_2 = await a_wallet.send_ledger_deposit(dfx_ledger, (30 * 10 ** 8) + 600000, Principal.fromActor(canister));
 
         D.print("apayment"# debug_show(aRedeem_payment_2));
 
@@ -1031,7 +1031,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("about to payment b");
         
         //register b for 4 with additive
-        let bRedeem_payment_2 = await b_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        let bRedeem_payment_2 = await b_wallet.send_ledger_deposit(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
         D.print("about to escrow b" # debug_show(bRedeem_payment_2));
 
@@ -1062,7 +1062,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //regist d for 2 with non-additive but should get allocated none due to reservations
 
-        let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let dRedeem_payment_2 = await d_wallet.send_ledger_deposit(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1168,7 +1168,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         D.print("reddem for third a " # debug_show(a_wallet_try_redeem_for_third));
 
 
-        let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let cRedeem_payment_2 = await c_wallet.send_ledger_deposit(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1578,7 +1578,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
        
         //have a redeem thier allocation
 
-        let fRedeem_payment = await f_wallet.send_ledger_payment(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let fRedeem_payment = await f_wallet.send_ledger_deposit(dfx_ledger, (20  * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let f_wallet_try_escrow_general_no_lock = await f_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(fRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
 
@@ -1608,7 +1608,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //send payment to nft canister
 
-        let aRedeem_payment = await a_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let aRedeem_payment = await a_wallet.send_ledger_deposit(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let a_wallet_try_escrow_general_no_lock = await a_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(aRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?(lock_until - 1));
 
@@ -1618,7 +1618,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //create a new payment with lock
 
-        let aRedeem_payment_2 = await a_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400001, Principal.fromActor(canister));
+        let aRedeem_payment_2 = await a_wallet.send_ledger_deposit(dfx_ledger, (20 * 10 ** 8) + 400001, Principal.fromActor(canister));
 
         D.print("escrow general valid a" # debug_show(aRedeem_payment_2) );
 
@@ -1678,7 +1678,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         
         //register b for 4 with additive
-        let bRedeem_payment_2 = await b_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        let bRedeem_payment_2 = await b_wallet.send_ledger_deposit(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
         let b_wallet_try_escrow_general_valid = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1698,7 +1698,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //regist d for 2 with non-additive
 
-        let dRedeem_payment_2 = await d_wallet.send_ledger_payment(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
+        let dRedeem_payment_2 = await d_wallet.send_ledger_deposit(dfx_ledger, (40 * 10 ** 8) + 800000, Principal.fromActor(canister));
 
         let d_wallet_try_escrow_general_valid = await d_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(dRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 40 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1718,7 +1718,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         let d_wallet_registration_after_four = await sale_canister.get_registration_sale_nft_origyn(Principal.fromActor(d_wallet));
 
         //register e for 2 with general
-        let eRedeem_payment_2 = await e_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let eRedeem_payment_2 = await e_wallet.send_ledger_deposit(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let e_wallet_try_escrow_general_valid = await e_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(eRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20  * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -1804,7 +1804,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //todo: make sure we can't register after the sale_opened_date
 
-        let cRedeem_payment_2 = await c_wallet.send_ledger_payment(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
+        let cRedeem_payment_2 = await c_wallet.send_ledger_deposit(dfx_ledger, (20 * 10 ** 8) + 400000, Principal.fromActor(canister));
 
         let c_wallet_try_escrow_general_valid = await c_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(cRedeem_payment_2){case(#ok(val)){?val};case(#err(err)){?0};}, 20 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -2173,7 +2173,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
 
         //have b try to redeem the allocation should fail
 
-        let bRedeem_payment = await b_wallet.send_ledger_payment(dfx_ledger, (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
+        let bRedeem_payment = await b_wallet.send_ledger_deposit(dfx_ledger, (10 * 10 ** 8) + 200000, Principal.fromActor(canister));
 
         let b_wallet_try_escrow_general = await b_wallet.try_escrow_general_staged(Principal.fromActor(canister), Principal.fromActor(canister), dfx_ledger, switch(bRedeem_payment){case(#ok(val)){?val};case(#err(err)){?0};}, 10 * 10 ** 8, ?dfx_token_spec, ?lock_until);
 
@@ -2197,7 +2197,7 @@ shared (deployer) actor class test_runner_sale(dfx_ledger: Principal, dfx_ledger
         
         //create a new payment with lock
 
-        let aRedeem_payment_2 = await a_wallet.send_ledger_payment(dfx_ledger, (30  * 10 ** 8) + 600000, Principal.fromActor(canister));
+        let aRedeem_payment_2 = await a_wallet.send_ledger_deposit(dfx_ledger, (30  * 10 ** 8) + 600000, Principal.fromActor(canister));
 
         D.print("attempted payment " # debug_show(aRedeem_payment_2));
 
