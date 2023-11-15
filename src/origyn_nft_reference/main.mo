@@ -2834,7 +2834,10 @@ shared (deployer) actor class Nft_Canister() = this {
 
       let aBuf = Buffer.Buffer<(Text, ICRC7.Value)>(1);
 
-      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
+      let metadata = switch(Metadata.get_metadata_for_token(state, "", msg.caller, ?state.canister(), state.state.collection_data.owner)){
+        case(#ok(val))val;
+        case(#err(err)) D.trap("Cannot find metadata for collection " # debug_show(err));
+      };
 
       let description : Text = switch(Properties.getClassPropertyShared(metadata, Types.metadata.icrc7_description)){
         case(null){"N/A";};
@@ -2935,7 +2938,10 @@ shared (deployer) actor class Nft_Canister() = this {
     public query(msg) func icrc7_description() : async ?Text{
       let state = get_state();
 
-      let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.canister(), ?state.canister(), state.state.collection_data.owner) else D.trap("Cannot find metadata for collection");
+      let metadata = switch(Metadata.get_metadata_for_token(state, "", msg.caller, ?state.canister(), state.state.collection_data.owner)){
+        case(#ok(val))val;
+        case(#err(err)) D.trap("Cannot find metadata for collection " # debug_show(err));
+      };
 
       let description : Text = switch(Properties.getClassPropertyShared(metadata, Types.metadata.icrc7_description)){
         case(null){"N/A";};
