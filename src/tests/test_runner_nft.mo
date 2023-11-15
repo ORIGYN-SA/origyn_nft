@@ -2037,6 +2037,16 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         D.print(debug_show (primary_sale));
 
+         //create fake wallet for time duration
+        let fake_wallet1 = await TestWalletDef.test_wallet();
+         //create fake wallet for time duration
+        let fake_wallet2 = await TestWalletDef.test_wallet();
+        let fake_wallet22 = await TestWalletDef.test_wallet();
+        let fake_wallet23 = await TestWalletDef.test_wallet();
+        let fake_wallet24 = await TestWalletDef.test_wallet();
+        let fake_wallet235 = await TestWalletDef.test_wallet();
+        let fake_wallet246 = await TestWalletDef.test_wallet();
+
         //MKT0014 todo: check the transaction record and confirm the gensis reocrd
 
         //BAL0005
@@ -2083,6 +2093,16 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
               };
             
         });
+
+         //create fake wallet for time duration
+        let fake_wallet14 = await TestWalletDef.test_wallet();
+         //create fake wallet for time duration
+        let fake_wallet25 = await TestWalletDef.test_wallet();
+        let fake_wallet2e25 = await TestWalletDef.test_wallet();
+        let fake_wallet23e5 = await TestWalletDef.test_wallet();
+        let fake_wallet245 = await TestWalletDef.test_wallet();
+        let fake_wallet2355 = await TestWalletDef.test_wallet();
+        let fake_wallet2465 = await TestWalletDef.test_wallet();
 
         D.print("secondary result" # debug_show(specific_market));
 
@@ -2181,6 +2201,17 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 1*10**8, "3", current_sales_id, ?Principal.fromActor(b_wallet));
             D.print("a_wallet_try_bid_valid " # debug_show(a_wallet_try_bid_valid));
 
+            //create fake wallet for time duration
+            let fake_wallet3 = await TestWalletDef.test_wallet();
+            //create fake wallet for time duration
+            let fake_wallet4 = await TestWalletDef.test_wallet();
+            //create fake wallet for time duration
+            let fake_wallet5 = await TestWalletDef.test_wallet();
+            let fake_wallet57 = await TestWalletDef.test_wallet();
+            let fake_wallet58 = await TestWalletDef.test_wallet();
+            let fake_wallet575 = await TestWalletDef.test_wallet();
+            let fake_wallet585 = await TestWalletDef.test_wallet();
+
                 //advance time
             let mode = canister.__set_time_mode(#test);
             let time_result = await canister.__advance_time(end_date + 1);
@@ -2193,9 +2224,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print(debug_show(end_proper));
 
             //create wallets to force rounds
-            let fake_wallet = await TestWalletDef.test_wallet();
-            let fake_wallet2 = await TestWalletDef.test_wallet();
-            let fake_wallet3 = await TestWalletDef.test_wallet();
+            let fake_wallet66 = await TestWalletDef.test_wallet();
+            let fake_wallet67 = await TestWalletDef.test_wallet();
+            let fake_wallet78 = await TestWalletDef.test_wallet();
+            let fake_wallet69 = await TestWalletDef.test_wallet();
+            let fake_wallet79 = await TestWalletDef.test_wallet();
+            let fake_wallet697 = await TestWalletDef.test_wallet();
+            let fake_wallet797 = await TestWalletDef.test_wallet();
 
             let a_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
             let b_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
@@ -2259,9 +2294,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             
 
             //create wallets to force rounds
-            let fake_wallet4 = await TestWalletDef.test_wallet();
-            let fake_wallet5 = await TestWalletDef.test_wallet();
-            let fake_wallet6 = await TestWalletDef.test_wallet();
+            let fake_wallet8 = await TestWalletDef.test_wallet();
+            let fake_wallet9 = await TestWalletDef.test_wallet();
+            let fake_wallet10 = await TestWalletDef.test_wallet();
+            let fake_wallet854 = await TestWalletDef.test_wallet();
+            let fake_wallet956 = await TestWalletDef.test_wallet();
+            let fake_wallet1076 = await TestWalletDef.test_wallet();
 
             let a_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
             let b_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
