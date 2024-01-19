@@ -41,7 +41,7 @@ module {
     switch(request){
       case(#clear_shared_wallets(token_id)){
       //clears shared wallets from an NFT leaving only the last assigned owner in control of the NFT
-        let #ok(metadata) = Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner) else {
+        let ?metadata = Map.get(state.state.nft_metadata, Map.thash, token_id) else {
           return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "governance_nft_origyn - clear_shared_wallets token not found", ?caller));
         };
 
@@ -55,7 +55,7 @@ module {
       
       case(#update_system_var(request)){
       //clears shared wallets from an NFT leaving only the last assigned owner in control of the NFT
-        let #ok(metadata) = Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner) else {
+        let ?metadata = Map.get(state.state.nft_metadata, Map.thash, request.token_id) else {
           return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "governance_nft_origyn - update_system_var token not found", ?caller));
         };
 

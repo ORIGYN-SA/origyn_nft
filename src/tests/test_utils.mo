@@ -63,14 +63,18 @@ module {
     public let memo_one : ?[Nat8] = ?[0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,1];
 
 
-    public func buildCollection(canister: Types.Service, app: Principal, node: Principal, originator: Principal, file_size: Nat) : async (
+    public func buildCollection(canister: Types.Service, app: Principal, node: Principal, originator: Principal, file_size: Nat, broker_override: Bool) : async (
             Result.Result<Text,Types.OrigynError>, 
             Result.Result<Principal,Types.OrigynError>) {
         //D.print("calling stage in build standard");
 
-        let stage = await canister.stage_nft_origyn(standardCollection(Principal.fromActor(canister), app, node, originator, file_size));
-        //D.print(debug_show(stage));
-        //D.print("finished stage in build standard");
+        let aCollection : {metadata : CandyTypes.CandyShared} = standardCollection(Principal.fromActor(canister), app, node, originator, file_size, broker_override);
+
+        D.print("Building test standard collection "  # debug_show(broker_override, aCollection));
+
+        let stage = await canister.stage_nft_origyn(aCollection);
+        D.print(debug_show(stage));
+        D.print("finished stage in build standard");
 
         let fileStage = await canister.stage_library_nft_origyn(standardFileChunk("","collection_banner","collection banner", #Option(null)));
         //let fileStage2 = await canister.stage_library_nft_origyn(standardFileChunk("","item/test/collection.csv","collection csv", #Option(null));
@@ -257,6 +261,7 @@ module {
         node: Principal,
         originator: Principal,
         file_size: Nat,
+        broker_override : Bool
         ) : {metadata : CandyTypes.CandyShared} {
         {metadata = #Class([
             {name = "id"; value=#Text(""); immutable= true},
@@ -309,7 +314,7 @@ module {
                     {name = "library_id"; value=#Text("collection_banner"); immutable= true},
                     {name = "title"; value=#Text("collection_banner"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},// ipfs, arweave, portal
-                    {name = "location"; value=#Text("https://" # Principal.toText(canister) # ".raw.ic0.app/collection/-/collection_banner"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(canister) # ".raw.icp0.io/collection/-/collection_banner"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
                     {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(file_size); immutable= true},
@@ -413,6 +418,11 @@ module {
             {name = "primary_host"; value=#Text("localhost"); immutable= false},
             {name = "primary_port"; value=#Text("8000"); immutable= false},
             {name = "primary_protocol"; value=#Text("http"); immutable= false},
+            {name = "com.origyn.royalties.broker_dev_fund_override"; value= if(broker_override){
+              #Bool(true);
+            } else {
+              #Bool(false)
+            }; immutable= false},
         ])}
     };
 

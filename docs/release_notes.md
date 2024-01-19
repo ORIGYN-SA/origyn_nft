@@ -38,7 +38,7 @@ Library-id - Each library item in your token's asset library has a unique text-b
 v0.1.5
 
 * Network and collection owner can now add a data dapp to an NFT.
-* Breaking Change:  read permission for nft owner is now nft_origyn
+* Breaking Change: read permission for nft owner is now nft_owner
 * Shared wallets can now read nft_owner data.
 * Default minimum increase for asks set to 5%.
 * Default end date for ask is one minute after start.
@@ -101,6 +101,7 @@ public type AskFeature = {
 ```
 
 * Dutch auctions are now available using the new #ask type. You can set a high price and then decay by the minute, day, hour by a flat amount or a percentage.  Reserve prices can also be provided.
+* Updated ICRC7 test implementation to latest draft spec. This may change in the future.
 
 v0.1.4
 

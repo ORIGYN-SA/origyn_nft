@@ -30,7 +30,7 @@ import utils "test_utils";
 //import Instant "test_runner_instant_transfer";
 import MigrationTypes "../origyn_nft_reference/migrations/types";
 
-// ttps://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=1526457217 will provide a facility to convert
+// ttps://m7sm4-2iaaa-aaaab-qabra-cai.raw.icp0.io/?tag=1526457217 will provide a facility to convert
 // a account hash to an account id
 // ie dfx canister --network ic call mexqz-aqaaa-aaaab-qabtq-cai say '(principal "r7inp-6aaaa-aaaaa-aaabq-cai", blob "20\8F\6F\7F\9B\0D\B3\29\36\AA\8B\F4\78\38\E8\B8\15\37\30\F7\3D\03\99\EA\BB\68\98\11\08\64\90\61")'
 
@@ -88,9 +88,9 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         let suite = S.suite(
             "test nft",
             [
-              S.test("testAuction_v3", switch(await testAuction_v3()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
+               S.test("testAuction_v3", switch(await testAuction_v3()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
              S.test("testDutch", switch (await testDutch()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
-              S.test("testRecognizeEscrow", switch (await testRecognizeEscrow()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
+              S.test("testRecognizeEscrow", switch (await testRecognizeEscrow()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))), 
                
               S.test("testRoyalties", switch (await testRoyalties()) { case (#success) { true }; case (_) { false } }, M.equals<Bool>(T.bool(true))),
 
@@ -100,7 +100,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
               S.test("testStandardLedger", switch(await testStandardLedger()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testMarketTransfer", switch(await testMarketTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
               S.test("testOwnerTransfer", switch(await testOwnerTransfer()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))),
-              S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true)))
+              S.test("testOffer", switch(await testOffers()){case(#success){true};case(_){false};}, M.equals<Bool>(T.bool(true))) 
              
             ],
         );
@@ -1893,6 +1893,16 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
           return #fail(Error.message(e));
         };
 
+        let noBrokerPrincipal = try{
+          await g_canister_factory.create({
+            owner = Principal.fromActor(this);
+            storage_space = null;
+        });
+        } catch (e){
+          D.print(Error.message(e));
+          return #fail(Error.message(e));
+        };
+
         D.print("have canister");
 
         let canister : Types.Service = actor (Principal.toText(newPrincipal));
@@ -1901,8 +1911,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             Principal.fromActor(canister),
             Principal.fromActor(n_wallet),
             Principal.fromActor(this),
-
             2048000,
+            false
         );
 
         let updateNetwork = canister.collection_update_nft_origyn(#UpdateNetwork(?Principal.fromActor(net_wallet)));
@@ -1919,6 +1929,35 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         D.print("finished stage");
         D.print(debug_show (standardStage.0));
 
+        let noBrokerCanister : Types.Service = actor (Principal.toText(noBrokerPrincipal));
+
+        let standardStage_collection_noBroker = await utils.buildCollection(
+            noBrokerCanister,
+            Principal.fromActor(noBrokerCanister),
+            Principal.fromActor(n_wallet),
+            Principal.fromActor(this),
+            2048000,
+            true
+        );
+
+         D.print("has broker canister");
+        D.print(debug_show(newPrincipal));
+
+        D.print("no broker canister");
+        D.print(debug_show(noBrokerPrincipal, standardStage_collection_noBroker));
+
+        let standardStage_no_broker = await utils.buildStandardNFT("1", noBrokerCanister, Principal.fromActor(noBrokerCanister), 1024, false, Principal.fromActor(o_wallet));
+
+        D.print("stage no broker");
+        D.print(debug_show (standardStage_no_broker));
+
+
+        let mint_attempt6 = await noBrokerCanister.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
+
+        D.print("mint no broker");
+        D.print(debug_show (mint_attempt6));
+        
+
         //fund a_wallet
         let funding_result = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(a_wallet); subaccount = null};
@@ -1927,6 +1966,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             from_subaccount = null;
             created_at_time = null;
             amount =  1000 * 10 ** 8;});
+
+        D.print("funding result a");
+        D.print(debug_show (funding_result));
+        
 
         let funding_result2 = await dfx.icrc1_transfer({
             to =  {owner = Principal.fromActor(b_wallet); subaccount = null};
@@ -1994,6 +2037,16 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         D.print(debug_show (primary_sale));
 
+         //create fake wallet for time duration
+        let fake_wallet1 = await TestWalletDef.test_wallet();
+         //create fake wallet for time duration
+        let fake_wallet2 = await TestWalletDef.test_wallet();
+        let fake_wallet22 = await TestWalletDef.test_wallet();
+        let fake_wallet23 = await TestWalletDef.test_wallet();
+        let fake_wallet24 = await TestWalletDef.test_wallet();
+        let fake_wallet235 = await TestWalletDef.test_wallet();
+        let fake_wallet246 = await TestWalletDef.test_wallet();
+
         //MKT0014 todo: check the transaction record and confirm the gensis reocrd
 
         //BAL0005
@@ -2040,6 +2093,16 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
               };
             
         });
+
+         //create fake wallet for time duration
+        let fake_wallet14 = await TestWalletDef.test_wallet();
+         //create fake wallet for time duration
+        let fake_wallet25 = await TestWalletDef.test_wallet();
+        let fake_wallet2e25 = await TestWalletDef.test_wallet();
+        let fake_wallet23e5 = await TestWalletDef.test_wallet();
+        let fake_wallet245 = await TestWalletDef.test_wallet();
+        let fake_wallet2355 = await TestWalletDef.test_wallet();
+        let fake_wallet2465 = await TestWalletDef.test_wallet();
 
         D.print("secondary result" # debug_show(specific_market));
 
@@ -2138,6 +2201,17 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             let a_wallet_try_bid_valid = await a_wallet.try_bid(Principal.fromActor(canister), Principal.fromActor(this), Principal.fromActor(dfx), 1*10**8, "3", current_sales_id, ?Principal.fromActor(b_wallet));
             D.print("a_wallet_try_bid_valid " # debug_show(a_wallet_try_bid_valid));
 
+            //create fake wallet for time duration
+            let fake_wallet3 = await TestWalletDef.test_wallet();
+            //create fake wallet for time duration
+            let fake_wallet4 = await TestWalletDef.test_wallet();
+            //create fake wallet for time duration
+            let fake_wallet5 = await TestWalletDef.test_wallet();
+            let fake_wallet57 = await TestWalletDef.test_wallet();
+            let fake_wallet58 = await TestWalletDef.test_wallet();
+            let fake_wallet575 = await TestWalletDef.test_wallet();
+            let fake_wallet585 = await TestWalletDef.test_wallet();
+
                 //advance time
             let mode = canister.__set_time_mode(#test);
             let time_result = await canister.__advance_time(end_date + 1);
@@ -2150,9 +2224,13 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print(debug_show(end_proper));
 
             //create wallets to force rounds
-            let fake_wallet = await TestWalletDef.test_wallet();
-            let fake_wallet2 = await TestWalletDef.test_wallet();
-            let fake_wallet3 = await TestWalletDef.test_wallet();
+            let fake_wallet66 = await TestWalletDef.test_wallet();
+            let fake_wallet67 = await TestWalletDef.test_wallet();
+            let fake_wallet78 = await TestWalletDef.test_wallet();
+            let fake_wallet69 = await TestWalletDef.test_wallet();
+            let fake_wallet79 = await TestWalletDef.test_wallet();
+            let fake_wallet697 = await TestWalletDef.test_wallet();
+            let fake_wallet797 = await TestWalletDef.test_wallet();
 
             let a_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
             let b_balance5 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
@@ -2168,6 +2246,74 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             D.print("canister wallet " # debug_show((Principal.fromActor(canister),canister_balance, canister_balance2, canister_balance3, canister_balance5)));
             D.print("net wallet " # debug_show((Principal.fromActor(net_wallet),net_balance, net_balance2, net_balance3, net_balance5)));
         //test balances
+
+        D.print("sending tokens to canisters");
+        let a_wallet_send_tokens_to_canister_no_broker = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 400000, Principal.fromActor(noBrokerCanister));
+
+         D.print("send deposit for no broker " # debug_show(a_wallet_send_tokens_to_canister_no_broker) );
+
+        D.print("Sending real escrow now for no broker");
+        let a_wallet_try_escrow_specific_staged_no_broker = await a_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(noBrokerCanister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "1", null, null, null);
+
+
+
+        D.print("secondary sale for no broker " # debug_show(a_wallet_try_escrow_specific_staged_no_broker) );
+
+        let specific_market3 = await noBrokerCanister.market_transfer_nft_origyn({
+            token_id = "1";
+            sales_config = {
+                escrow_receipt = ?{
+                    seller = #principal(Principal.fromActor(this));
+                    buyer = #principal(Principal.fromActor(a_wallet));
+                    token_id = "1";
+                    token = #ic({
+                        canister = Principal.fromActor(dfx);
+                        standard = #Ledger;
+                        decimals = 8;
+                        symbol = "LDG";
+                        fee = ?200000;
+                        id = null;
+                    });
+                    amount = 100_000_000;
+                  };
+                  pricing = #instant;
+                  broker_id = null;
+              };
+            
+        });
+
+
+        D.print("secondary result no broker" # debug_show(specific_market3));
+
+        //advance time
+            let mode2 = canister.__set_time_mode(#test);
+            let time_result2 = await canister.__advance_time(end_date + 4);
+            D.print("new time");
+            D.print(debug_show(time_result2));
+
+            
+
+            //create wallets to force rounds
+            let fake_wallet8 = await TestWalletDef.test_wallet();
+            let fake_wallet9 = await TestWalletDef.test_wallet();
+            let fake_wallet10 = await TestWalletDef.test_wallet();
+            let fake_wallet854 = await TestWalletDef.test_wallet();
+            let fake_wallet956 = await TestWalletDef.test_wallet();
+            let fake_wallet1076 = await TestWalletDef.test_wallet();
+
+            let a_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(a_wallet); subaccount = null});
+            let b_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(b_wallet); subaccount = null});
+            let n_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(n_wallet); subaccount = null});
+            let o_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(o_wallet); subaccount = null});
+            let canister_balance6 = await dfx.icrc1_balance_of( {owner =Principal.fromActor(canister); subaccount = null});
+            let net_balance6 = await dfx.icrc1_balance_of(net_account);
+
+            D.print("a wallet 6 " # debug_show(( a_balance6)));
+            D.print("b wallet 6 " # debug_show(( b_balance6)));
+            D.print("n wallet 6 " # debug_show((n_balance6)));
+            D.print("o wallet 6 " # debug_show(( o_balance6)));
+            D.print("canister wallet 6 " # debug_show((canister_balance6)));
+            D.print("net wallet 6 " # debug_show((net_balance6)));
 
         
 

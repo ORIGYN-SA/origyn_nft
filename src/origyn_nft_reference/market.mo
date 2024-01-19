@@ -2007,8 +2007,8 @@ module {
             };
             debug if(debug_channel.royalties) D.print("attempt to distribute royalties request instant" # debug_show(Buffer.toArray(request_buffer)));
 
-            let future = await service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
-            debug if(debug_channel.royalties) D.print("attempt to distribute royalties instant" # debug_show(future));
+            let future = service.sale_batch_nft_origyn(Buffer.toArray(request_buffer));
+            //debug if(debug_channel.royalties) D.print("attempt to distribute royalties instant" # debug_show(future));
           };
 
           return #ok(txn_record);
@@ -2120,22 +2120,26 @@ module {
               } else if(tag == Types.metadata.royalty_broker){
                 switch(request.broker_id, request.original_broker_id){
                   case(null, null){ 
-                    let collection = switch (Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)) {
-                        case (#err(err)) {
-                            #Class([]);
-                        };
-                        case (#ok(val)) {
-                            val;
-                        };
-                    };
-                    let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
-                      case(#ok(val)) val;
-                      case(_) false;
+                    let ?collection = Map.get(state.state.nft_metadata, Map.thash,"") else {
+                      state.canistergeekLogger.logMessage("process royalties cannot find collection metatdata. this should not happene" # debug_show(request.token_id), #Bool(false), null);
+                      D.trap("process royalties cannot find collection metatdata. this should not happen");
                     };
 
+                    let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
+                      case(#ok(val)) val;
+                      case(_) {
+                         state.canistergeekLogger.logMessage("_process_royalties overriding error candy type" # debug_show(collection) # debug_show(request.token_id), #Bool(false), null);
+                        false};
+                    };
+
+                    
+
                     if(override){
+                      state.canistergeekLogger.logMessage("_process_royalties overriding " # debug_show(request.token_id), #Bool(override), null);
                       continue royaltyLoop;
                     };
+
+                    state.canistergeekLogger.logMessage("_process_royalties override result using dev fund" # debug_show(request.token_id), #Bool(override), null);
                     
                     [dev_fund]
                   }; //dev fund
@@ -2521,25 +2525,21 @@ module {
 
         Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
 
-        let this_ledger = switch(Map.get(state.state.nft_ledgers, Map.thash, request.token_id)){
-            case(null){
-                let newBuf = SB.init<MigrationTypes.Current.TransactionRecord>();
-                Map.set(state.state.nft_ledgers, Map.thash, request.token_id, newBuf);
-                newBuf;
-            };
-            case(?val){val;};
-        };
 
-        let txn = {
+        let txn = Metadata.add_transaction_record(state, {
             token_id = request.token_id;
-            index = SB.size<MigrationTypes.Current.TransactionRecord>(this_ledger);
+            index = 0;
             timestamp = state.get_time();
             txn_type = #sale_opened({
                 sale_id = sale_id;
                 pricing = request.sales_config.pricing;
                 extensible = #Option(null);});
-        };
-        SB.add(this_ledger, txn);
+        }, caller
+
+        );
+
+        
+
 
         //set timer for notify
         if(notify.size() > 0){
@@ -2558,7 +2558,7 @@ module {
           case(null){};
         };
 
-        return #ok(txn);
+        return txn;
     };
 
     private func _get_ask_sale_detail(state: StateAccess, val: [Types.AskFeature], caller: Principal) : Result.Result<{

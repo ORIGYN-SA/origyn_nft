@@ -142,7 +142,7 @@ shared (deployer) actor class test_wallet() = this {
                     {name = "id"; value=#Text("page"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
-                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(acanister)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(acanister)) # ".raw.icp0.io/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
                     {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(4); immutable= true},

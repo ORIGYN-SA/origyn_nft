@@ -858,6 +858,7 @@ module {
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
+    var master_ledger : SB.StableBuffer<TransactionRecord>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var pending_sale_notifications : Set.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;

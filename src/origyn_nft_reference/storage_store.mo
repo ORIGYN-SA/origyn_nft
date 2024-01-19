@@ -213,9 +213,9 @@ module {
       //D.print("putting the chunk");
       if(chunk.chunk + 1 <= SB.size(file_chunks)){
             if(state.use_stable_storage){
-              let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
-              let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
-                SB.add(file_chunks,#Nat32(btreeKey));
+              //let btreeKey = Text.hash("token:" # tokenId # "/library:" # lib # "/index:none" # "/chunk:" # Nat.toText(chunk.chunk));
+              //let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                //SB.add(file_chunks,#Nat32(btreeKey));
             } else {
               SB.put(file_chunks, chunk.chunk, #Blob(chunk.content));
             };        
@@ -230,15 +230,15 @@ module {
             if(this_index == chunk.chunk){
               // If flag use_stable_storage is true we insert Blobs into stablebtree
                 if (state.use_stable_storage) {                   
-                    let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
-                    SB.add(file_chunks,#Nat32(btreeKey));
+                    //let insertBtree = state.btreemap_storage.insert(btreeKey, Blob.toArray(chunk.content));
+                    //SB.add(file_chunks,#Nat32(btreeKey));
                 } else {
                     SB.add(file_chunks, #Blob(chunk.content));
                 };              
             } else {
               if (state.use_stable_storage) {                 
-                  let insertBtree = state.btreemap_storage.insert(btreeKey, []);
-                  SB.add(file_chunks, #Nat32(btreeKey));
+                  //let insertBtree = state.btreemap_storage.insert(btreeKey, []);
+                  //SB.add(file_chunks, #Nat32(btreeKey));
               } else {
                   SB.add(file_chunks, #Blob(Blob.fromArray([])));
               };              

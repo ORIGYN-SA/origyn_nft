@@ -130,7 +130,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
                     {name = "library_id"; value=#Text("aftermint"); immutable= true},
                     {name = "title"; value=#Text("page"); immutable= true},
                     {name = "location_type"; value=#Text("canister"); immutable= true},
-                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister_b)) # ".raw.ic0.app/_/1/_/page"); immutable= true},
+                    {name = "location"; value=#Text("https://" # Principal.toText(Principal.fromActor(canister_b)) # ".raw.icp0.io/_/1/_/page"); immutable= true},
                     {name = "content_type"; value=#Text("text/html; charset=UTF-8"); immutable= true},
                     {name = "content_hash"; value=#Bytes([0,0,0,0]); immutable= true},
                     {name = "size"; value=#Nat(2048000); immutable= true},
@@ -794,7 +794,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
-        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000);
+        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000, false);
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
         let mint_attempt = await canister_b.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
