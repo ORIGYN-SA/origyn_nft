@@ -261,6 +261,7 @@ module {
         buyer: Account;
         token_id: Text;
         token: TokenSpec;
+        fee_schema: ?Text;
     };
 
     public type EscrowRequest = {

@@ -63,7 +63,42 @@ module {
 
     public type DutchParams = v0_1_5.DutchParams;
 
-    public type AskFeature = v0_1_5.AskFeature;
+    public type AskFeature = {
+      #atomic;
+      #buy_now: Nat;
+      #wait_for_quiet: {
+          extension: Nat64;
+          fade: Float;
+          max: Nat
+      };
+      #allow_list : [Principal];
+      #notify: [Principal];
+      #reserve: Nat;
+      #start_date: Int;
+      #start_price: Nat;
+      #min_increase: {
+        #percentage: Float;
+        #amount: Nat;
+      };
+      #ending: {
+        #date: Int;
+        #timeout: Nat;
+      };
+      #token: TokenSpec;
+      #dutch: DutchParams;
+      #kyc: Principal;
+      #nifty_settlement: {
+        duration: ?Int;
+        expiration: ?Int;
+        fixed: Bool;
+        lenderOffer: Bool;
+        interestRatePerSecond: Float;
+      };
+      #merchant_pays_fee: {
+        account: Account;
+        fee_schema: ?Text
+      }
+    };
 
   public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
 
