@@ -795,6 +795,17 @@ module {
                 };
               };
             };
+            let merchant_pays_fee = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #merchant_pays_fee)){
+                  case(?#merchant_pays_fee(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
             let start_date = switch(config){
               case(null) null;
               case(?config){
@@ -1174,6 +1185,7 @@ module {
                   metadata = metadata;
                   token_id = ?token_id;
                   token = winning_escrow.token;
+                  merchant_pays_fee = merchant_pays_fee;
                 }, caller);
 
                 remaining := royalty_result.0;
@@ -2053,7 +2065,8 @@ module {
         sale_id: ?Text;
         metadata : CandyTypes.CandyShared;
         token_id: ?Text;
-        token: Types.TokenSpec
+        token: Types.TokenSpec;
+        merchant_pays_fee: ?Types.MerchantParams
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
       let dev_fund : {owner: Principal; sub_account: ?[Nat8];} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]};
@@ -2191,7 +2204,13 @@ module {
               {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]
               };
             } else if (merchandPayFees) {
-              merchand_principal
+              switch(merchant_pays_fee){
+                case(null){
+                  // error msg, merchandPayFees need #merchant_pays_fee AskFeature
+                  this_principal
+                };
+                case(?val){val.account};
+              }
             } else {
               this_principal
             };

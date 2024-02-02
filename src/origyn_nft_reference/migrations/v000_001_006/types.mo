@@ -63,6 +63,11 @@ module {
 
     public type DutchParams = v0_1_5.DutchParams;
 
+    public type MerchantParams = {
+        account: Account;
+        fee_schema: ?Text
+      };
+
     public type AskFeature = {
       #atomic;
       #buy_now: Nat;
@@ -94,10 +99,7 @@ module {
         lenderOffer: Bool;
         interestRatePerSecond: Float;
       };
-      #merchant_pays_fee: {
-        account: Account;
-        fee_schema: ?Text
-      }
+      #merchant_pays_fee: MerchantParams 
     };
 
   public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
