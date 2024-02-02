@@ -2102,7 +2102,6 @@ module {
                   case(null) [dev_fund] ; //dev fund
                   case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister,tokenSpec.id)}] ;
                 };
-
               } else if(tag == Types.metadata.royalty_node){
                 let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
                 switch(val){
@@ -2178,9 +2177,21 @@ module {
             request.remaining -= this_royalty;
             //royaltyList.add(#principal(principal), this_royalty);
 
+            let merchandPayFees : Boolean = switch(Properties.getClassPropertyShared(this_item, "merchandPayFees")){
+              case(null){False};
+              case(?val){
+                switch(val.value){
+                  case(#Bool(True)) True;
+                  case(_) False;
+                };
+              };
+            };
+
             let send_account : {owner: Principal; sub_account: ?[Nat8]} = if(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner){
               {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]
               };
+            } else if (merchandPayFees) {
+              merchand_principal
             } else {
               this_principal
             };
