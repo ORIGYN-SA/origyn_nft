@@ -63,10 +63,7 @@ module {
 
     public type DutchParams = v0_1_5.DutchParams;
 
-    public type MerchantParams = {
-        account: Account;
-        fee_schema: ?Text
-      };
+    public type FeeAccountsParams = [(Text, Account)];
 
     public type AskFeature = {
       #atomic;
@@ -99,7 +96,7 @@ module {
         lenderOffer: Bool;
         interestRatePerSecond: Float;
       };
-      #merchant_pays_fee: MerchantParams 
+      #fee_accounts : FeeAccountsParams;
     };
 
   public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
