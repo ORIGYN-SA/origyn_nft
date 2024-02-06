@@ -17,7 +17,6 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
 import MapUtils "mo:map/utils";
-import SB "mo:stablebuffer/StableBuffer";
 import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
 
@@ -36,6 +35,7 @@ module {
 
     let CandyTypes = MigrationTypes.Current.CandyTypes;
     let Conversions = MigrationTypes.Current.Conversions;
+    let SB = MigrationTypes.Current.SB;
     //let Properties = MigrationTypes.Current.Properties;
     //let Workspace = MigrationTypes.Current.Workspace;
 
@@ -297,6 +297,7 @@ module {
         escrow_receipt : EscrowReceipt;
         sale_id : Text;
         broker_id : ?Principal;
+        fee_schema : ?Text;
     };
 
     public type DistributeSaleRequest = {

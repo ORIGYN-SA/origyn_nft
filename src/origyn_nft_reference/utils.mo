@@ -26,7 +26,6 @@ import Candy "mo:candy/types";
 //import CandyTypes "mo:candy/types";
 //import Conversions "mo:candy/conversion";
 //import Properties "mo:candy/properties";
-import SB "mo:stablebuffer/StableBuffer";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Workspace "mo:candy/workspace";
 
@@ -47,6 +46,7 @@ module {
     let Conversions = MigrationTypes.Current.Conversions;
     let Properties = MigrationTypes.Current.Properties;
     let Workspace = MigrationTypes.Current.Workspace;
+    let SB = MigrationTypes.Current.SB;
 
     
     public let NANOS = 1_000_000_000;

@@ -89,10 +89,11 @@ module {
       #kyc;
       #nifty_settlement;
       #fee_accounts;
+      #fee_schema;
     };
     public type DutchParams = v0_1_5.DutchParams;
 
-    public type FeeAccountsParams = [(Text, Principal)];
+    public type FeeAccountsParams = [(Text, Account)];
 
     public type AskFeature = {
       #atomic;
@@ -126,6 +127,7 @@ module {
         interestRatePerSecond: Float;
       };
       #fee_accounts : FeeAccountsParams;
+      #fee_schema : Text;
     };
 
   public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
@@ -394,7 +396,6 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
         buyer: Account;
         token_id: Text;
         token: TokenSpec;
-        fee_schema: ?Text;
     };
 
   public let compare_library = v0_1_5.compare_library;
@@ -442,6 +443,7 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
+    var master_ledger : SB.StableBuffer<TransactionRecord>;
     var nft_sales : Map.Map<Text, SaleStatus>;
     var pending_sale_notifications : Set.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;

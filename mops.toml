@@ -33,6 +33,5 @@ icrc17_kyc = "https://github.com/ORIGYN-SA/kyc.mo#master@46c149ad404316039c63920
 candy_0_2_0 = "https://github.com/icdevs/candy_library#0.2.0@4fc5aebec44355da94a4d3ebef87623e4545d89a"
 stableBTree = "https://github.com/sardariuss/MotokoStableBTree#c91509efa915ba7996b7f83d27ed9af206b869b1@c91509efa915ba7996b7f83d27ed9af206b869b1"
 star = "0.1.0"
-StableBuffer = "https://github.com/skilesare/StableBuffer#v0.2.0@110660769d11ba93c618dc4712525d20503bdc37"
 droute-client = "https://github.com/ORIGYN-SA/droute-client#v0.1.0@923184d7e68a9b8768d39ca81c81b1a716db382a"
 motoko-hash-map = "https://github.com/ZhenyaUsenko/motoko-hash-map#v7.0.0@f0e25632e5da80118274e78ceeb5bec95f3c2b81"

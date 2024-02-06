@@ -11,7 +11,7 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import Map "mo:map/Map";
-import SB "mo:stablebuffer/StableBuffer";
+
 
 import Metadata "metadata";
 import NFTUtils "utils";
@@ -24,6 +24,7 @@ module {
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
+  let SB = MigrationTypes.Current.SB;
 
 
     //lets user turn debug messages on and off for local replica
