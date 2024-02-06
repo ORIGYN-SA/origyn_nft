@@ -59,8 +59,23 @@ module {
 
   public type AuctionConfig = v0_1_5.AuctionConfig;
 
-  public type AskFeatureKey = v0_1_5.AskFeatureKey;
-
+  public type AskFeatureKey = {
+      #atomic;
+      #buy_now;
+      #wait_for_quiet;
+      #allow_list;
+      #notify;
+      #reserve;
+      #start_date;
+      #start_price;
+      #min_increase;
+      #ending;
+      #token;
+      #dutch;
+      #kyc;
+      #nifty_settlement;
+      #fee_accounts;
+    };
     public type DutchParams = v0_1_5.DutchParams;
 
     public type FeeAccountsParams = [(Text, Account)];
@@ -105,16 +120,175 @@ module {
 
   public type AskConfigShared = ?[AskFeature];
 
-  public let  ask_feature_set_eq : (a: AskFeatureKey, b: AskFeatureKey) -> Bool  =v0_1_5.ask_feature_set_eq;
+public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
 
-  public let ask_feature_set_hash : (a: AskFeatureKey) -> Nat = v0_1_5.ask_feature_set_hash;
+    switch(a,b){
+      case(#atomic, #atomic){
+        return true;
+      };
+      case(#buy_now, #buy_now){
+        return true;
+      };
+      case(#wait_for_quiet, #wait_for_quiet){
+        return true;
+      };
+      case(#allow_list, #allow_list){
+        return true;
+      };
+      case(#notify, #notify){
+        return true;
+      };
+      case(#reserve, #reserve){
+        return true;
+      };
+      case(#start_date, #start_date){
+        return true;
+      };
+      case(#start_price, #start_price){
+        return true;
+      };
+      case(#min_increase, #min_increase){
+        return true;
+      };
+      case(#ending, #ending){
+        return true;
+      };
+      case(#token, #token){
+        return true;
+      };
+      case(#dutch, #dutch){
+        return true;
+      };
+      case(#kyc, #kyc){
+        return true;
+      };
+      case(#nifty_settlement, #nifty_settlement){
+        return true;
+      };
+      case(#fee_accounts, #fee_accounts){
+        return true;
+      };
+      case(_,_) {
+        return false;
+      };
+    };
+  };
 
-  public let features_to_map : (items: [AskFeature]) -> Map.Map<AskFeatureKey, AskFeature> = v0_1_5.features_to_map;
+  public func ask_feature_set_hash (a: AskFeatureKey) : Nat {
 
-  public let feature_to_key : (request: AskFeature) -> AskFeatureKey = v0_1_5.feature_to_key;
+    switch(a){
+      case(#atomic){
+        return 11311112;
+      };
+      case(#buy_now){
+        return 222234453;
+      };
+      case(#wait_for_quiet){
+        return 32223345;
+      };
+      case(#allow_list){
+        return 444445324;
+      };
+      case(#notify){
+        return 555554234;
+      };
+      case(#reserve){
+        return 666323;
+      };
+      case(#start_date){
+        return 74424533;
+      };
+      case(#start_price){
+        return 84453456;
+      };
+      case(#min_increase){
+        return 9345455;
+      };
+      case(#ending){
+        return 1044345;
+      };
+      case(#token){
+        return 112345466;
+      };
+      case(#dutch){
+        return 1266844;
+      };
+      case(#kyc){
+        return 13345466;
+      };
+      case(#nifty_settlement){
+        return 14345667;
+      };
+      case(#fee_accounts){
+        return 0; // TODO CHECK WITH AUSTIN HOW TO DEAL WITH ThAT
+      };
+    };
+  };
+
+  public func features_to_map(items: [AskFeature]) : Map.Map<AskFeatureKey, AskFeature>{
+    let feature_set = Map.new<AskFeatureKey, AskFeature>();
+
+    for(thisItem in items.vals()){
+      ignore Map.put<AskFeatureKey,AskFeature>(feature_set, ask_feature_set_tool, 
+      feature_to_key(thisItem), thisItem);
+    };
+
+    return feature_set;
+  };
+
+  public func feature_to_key(request: AskFeature) : AskFeatureKey{
+
+      switch(request){
+        case(#atomic){
+          return #atomic;
+        };
+        case(#buy_now(e)){
+          return #buy_now;
+        };
+        case(#wait_for_quiet(e)){
+          return #wait_for_quiet;
+        };
+        case(#allow_list(e)){
+          return #allow_list;
+        };
+        case(#notify(e)){
+          return #notify;
+        };
+        case(#reserve(e)){
+          return #reserve;
+        };
+        case(#start_date(e)){
+          return #start_date;
+        };
+        case(#start_price(e)){
+          return #start_price;
+        };
+        case(#min_increase(e)){
+          return #min_increase;
+        };
+        case(#ending(e)){
+          return #ending;
+        };
+        case(#token(e)){
+          return #token;
+        };
+        case(#dutch(e)){
+          return #dutch;
+        };
+        case(#kyc(e)){
+          return #kyc;
+        };
+        case(#nifty_settlement(e)){
+          return #nifty_settlement;
+        };
+        case(#fee_accounts(e)){
+          return #fee_accounts;
+        };
+      };
+  };
 
   //public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq, func() = #atomic) : MapUtils.HashUtils<AskFeatureKey>;
-  public let ask_feature_set_tool = v0_1_5.ask_feature_set_tool;
+  public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq) : MapUtils.HashUtils<AskFeatureKey>;
 
   public type PricingConfig = v0_1_5.PricingConfig;
 
@@ -122,7 +296,26 @@ module {
 
   public let pricing_shared_to_pricing : (request : PricingConfigShared) -> PricingConfig = v0_1_5.pricing_shared_to_pricing;
 
-  public type AuctionState = v0_1_5.AuctionState;
+  public type AuctionState = {
+    config: PricingConfig;
+    var current_bid_amount: Nat;
+    var current_broker_id: ?Principal;
+    var end_date: Int;
+    var start_date: Int;
+    token : TokenSpec;
+    var min_next_bid: Nat;
+    var current_escrow: ?EscrowReceipt;
+    var wait_for_quiet_count: ?Nat;
+    allow_list: ?Map.Map<Principal,Bool>; //empty set means everyone
+    var participants: Map.Map<Principal,Int>;
+    var status: {
+        #open;
+        #closed;
+        #not_started;
+    };
+    var notify_queue: ?Deque.Deque<(Principal, ?SubscriptionID)>;
+    var winner: ?Account;
+  };
 
   public type SubscriptionID = Nat;
 
@@ -156,7 +349,14 @@ module {
 
     public type EscrowRecord = v0_1_5.EscrowRecord;
 
-     public type EscrowReceipt = v0_1_5.EscrowReceipt;
+     public type EscrowReceipt = {
+        amount: Nat; //Nat to support cycles
+        seller: Account;
+        buyer: Account;
+        token_id: Text;
+        token: TokenSpec;
+        fee_schema: ?Text;
+    };
 
   public let compare_library = v0_1_5.compare_library;
 

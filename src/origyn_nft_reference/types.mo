@@ -255,14 +255,7 @@ module {
         };
     };
 
-    public type EscrowReceipt = {
-        amount: Nat; //Nat to support cycles
-        seller: Account;
-        buyer: Account;
-        token_id: Text;
-        token: TokenSpec;
-        fee_schema: ?Text;
-    };
+    public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
 
     public type EscrowRequest = {
         token_id : Text; //empty string for general escrow
