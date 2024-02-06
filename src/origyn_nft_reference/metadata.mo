@@ -763,8 +763,18 @@ module {
           
           ]); immutable = true;});
         };
+        case(#fee_accounts(e)){
+          candy_buffer.add({name="fee_accounts"; value=#Array(
+            Array.map<(Text, Principal), CandyTypes.CandyShared> (e, 
+            func(x:(Text, Principal)) {
+              #Map([
+              (#Text("fixed"),#Text(x.0)),
+              (#Text("lenderOffer"),#Principal(x.1)),
+              ])
+            }
+          )); immutable = true;});
+        };
       };
-
     };
 
     #Class(Buffer.toArray(candy_buffer));
@@ -885,6 +895,17 @@ module {
             (#Text("interestRatePerSecond"),#Float(e.interestRatePerSecond))
           
           ]); immutable = true;});
+        };
+        case(#fee_accounts(e)){
+          candy_buffer.add({name="fee_accounts"; value=#Array(
+            Array.map<(Text, Principal), CandyTypes.CandyShared> (e, 
+            func(x:(Text, Principal)) {
+              #Map([
+              (#Text("fixed"),#Text(x.0)),
+              (#Text("lenderOffer"),#Principal(x.1)),
+              ])
+            }
+          )); immutable = true;});
         };
       };
 

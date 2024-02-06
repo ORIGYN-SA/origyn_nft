@@ -2106,14 +2106,7 @@ module {
         var tmp_principal : [{owner: Principal; sub_account: ?[Nat8];}] = if (fee_accounts and fee_accounts.size() > 0) {
               for ((fee_name, account) in fee_accounts.vals()){
                 if (fee_name == tag) {
-                  switch(account){
-                    case(#account(acc)){
-                      [acc];
-                    };
-                    case(_) {
-                      // What to do here ? 
-                      []
-                    };
+                  [acc];
                 };
               }
             }

@@ -309,20 +309,9 @@ module {
 
     public type BidResponse = TransactionRecord;
 
-    public type PricingConfig = {
-      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
-      //below have not been signficantly desinged or vetted
-      #auction: AuctionConfig; //depricated - use ask
-      #ask: AskConfig;
-      #extensible: CandyTypes.CandyShared;
-    };
+    public type PricingConfig = MigrationTypes.Current.PricingConfig;
 
-    public type PricingConfigShared = {
-      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
-      #auction: AuctionConfig; //depricated - use ask
-      #ask: AskConfigShared;
-      #extensible: CandyTypes.CandyShared;
-    };
+    public type PricingConfigShared = MigrationTypes.Current.PricingConfigShared;
 
     public type AskConfig =  ?[AskFeature];
     public type AskConfigShared =  MigrationTypes.Current.AskConfigShared;
@@ -455,12 +444,7 @@ module {
 
     public type MarketTransferRequestReponse = TransactionRecord;
 
-    public type Account = {
-        #principal : Principal;
-        #account : {owner: Principal; sub_account: ?Blob};
-        #account_id : Text;
-        #extensible : CandyTypes.CandyShared;
-    };
+    public type Account = MigrationTypes.Current.Account;
 
     /*
     public type Stable_Memory = {

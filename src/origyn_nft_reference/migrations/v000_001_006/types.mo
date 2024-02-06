@@ -7,6 +7,7 @@ import Text "mo:base/Text";
 import Nat32 "mo:base/Nat32";
 import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
+import Deque "mo:base/Deque";
 import MapUtils "mo:map_7_0_0/utils";
 
 
@@ -49,11 +50,24 @@ module {
 
   public type TransactionRecord = v0_1_5.TransactionRecord;
 
-  public type SaleStatus = v0_1_5.SaleStatus;
+  public type SaleStatus = {
+      sale_id: Text; //sha256?;
+      original_broker_id: ?Principal;
+      broker_id: ?Principal;
+      token_id: Text;
+      sale_type: {
+          #auction: AuctionState;
+      };
+  };
 
   public type HttpAccess= v0_1_5.HttpAccess;
 
-  public type Account = v0_1_5.Account;
+  public type Account = {
+      #principal : Principal;
+      #account : {owner: Principal; sub_account: ?Blob};
+      #account_id : Text;
+      #extensible : CandyTypes.CandyShared;
+  };
 
   public type TransactionID = v0_1_5.TransactionID;
 
@@ -78,7 +92,7 @@ module {
     };
     public type DutchParams = v0_1_5.DutchParams;
 
-    public type FeeAccountsParams = [(Text, Account)];
+    public type FeeAccountsParams = [(Text, Principal)];
 
     public type AskFeature = {
       #atomic;
@@ -290,11 +304,36 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
   //public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq, func() = #atomic) : MapUtils.HashUtils<AskFeatureKey>;
   public let ask_feature_set_tool = (ask_feature_set_hash, ask_feature_set_eq) : MapUtils.HashUtils<AskFeatureKey>;
 
-  public type PricingConfig = v0_1_5.PricingConfig;
+  public type PricingConfig = {
+      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      //below have not been signficantly desinged or vetted
+      #auction: AuctionConfig; //depricated - use ask
+      #ask: AskConfig;
+      #extensible: CandyTypes.CandyShared;
+  };
 
-  public type PricingConfigShared = v0_1_5.PricingConfigShared;
+  public type PricingConfigShared = {
+      #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      //below have not been signficantly desinged or vetted
+      #auction: AuctionConfig; //depricated - use ask
+      #ask: AskConfigShared;
+      #extensible: CandyTypes.CandyShared;
+  };
 
-  public let pricing_shared_to_pricing : (request : PricingConfigShared) -> PricingConfig = v0_1_5.pricing_shared_to_pricing;
+  public func pricing_shared_to_pricing(request : PricingConfigShared) : PricingConfig {
+    switch(request){
+      case(#instant) #instant; //executes an escrow recipt transfer -only available for non-marketable NFTs
+      //below have not been signficantly desinged or vetted
+      case(#auction(val)) #auction(val); //depricated - use ask
+      case(#ask(val)) {
+        #ask(?features_to_map(switch(val){
+          case(null) [];
+          case(?val) val;
+        }));
+      };
+      case(#extensible(e)) #extensible(e);
+    };
+  };
 
   public type AuctionState = {
     config: PricingConfig;
