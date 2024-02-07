@@ -189,7 +189,6 @@ module {
             var current_broker_id = val.current_broker_id;
             var end_date = val.end_date;
             var start_date = config.start_date;
-            var next_dutch_timer = null;
             token = config.token;
             var min_next_bid = val.min_next_bid;
             var current_escrow = val.current_escrow;
@@ -317,7 +316,7 @@ module {
       var escrow_balances = state.escrow_balances;
       var sales_balances = state.sales_balances;
       var nft_ledgers = new_ledgers;
-      var master_ledger = SB_lib.init< v0_1_5.TransactionRecord>();
+      var master_ledger = SB_lib.init<v0_1_5.TransactionRecord>();
       var nft_sales = new_sales;
       var access_tokens = state.access_tokens;
       var kyc_cache = state.kyc_cache;

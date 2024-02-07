@@ -765,11 +765,12 @@ module {
 
         //debug if(debug_channel.end_sale) D.print("current sale state " # debug_show(current_sale_state));
 
-        let {buy_now_price; start_date;} = switch(current_sale_state.config){
+        let {buy_now_price; start_date; fee_accounts;} = switch(current_sale_state.config){
           case(#auction(config)){
             {
               buy_now_price = config.buy_now;
               start_date = config.start_date;
+              fee_accounts = null;
             };
           };
           case(#ask(config)){
@@ -829,7 +830,9 @@ module {
                 null;
               }
             };
-            start_date = start_date};
+            start_date = start_date;
+            fee_accounts = fee_accounts;
+            };
           };
           case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
         };
@@ -1990,6 +1993,7 @@ module {
                 metadata = metadata;
                 token_id = ?request.token_id;
                 token = escrow.token;
+                fee_accounts = fee_accounts;
             }, caller);
 
             remaining := royalty_result.0;
@@ -2066,7 +2070,7 @@ module {
         metadata : CandyTypes.CandyShared;
         token_id: ?Text;
         token: Types.TokenSpec;
-        fee_accounts: ?Types.FeeAccountsParams
+        fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
       let dev_fund : {owner: Principal; sub_account: ?[Nat8];} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]};
@@ -2103,14 +2107,13 @@ module {
           };
         };
 
-        var tmp_principal : [{owner: Principal; sub_account: ?[Nat8];}] = if (fee_accounts and fee_accounts.size() > 0) {
+        var tmp_principal : [{owner: Principal; sub_account: ?[Nat8];}] = if (request.fee_accounts != null and request.fee_accounts.size() > 0) {
               for ((fee_name, account) in fee_accounts.vals()){
                 if (fee_name == tag) {
                   [acc];
                 };
               }
-            }
-          };
+            };
 
         var principal : [{owner: Principal; sub_account: ?[Nat8];}] = 
           if (tmp_principal.size() > 0) {

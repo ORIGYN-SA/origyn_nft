@@ -3,13 +3,11 @@ import Deque "mo:base/Deque";
 import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import StableBuffer "mo:base/Buffer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import CandyTypes "mo:candy_0_2_0/types";
 import EXT "mo:ext/Core";
 import Map "mo:map/Map";
-import SB "mo:stablebuffer/StableBuffer";
 
 import NFTTypes "../origyn_nft_reference/migrations/types";
 
@@ -19,6 +17,8 @@ module {
 
     type TokenSpec = NFTTypes.Current.TokenSpec;
     type ICTokenSpec = NFTTypes.Current.ICTokenSpec;
+
+    let SB = NFTTypes.Current.SB;
 
     public type OrigynError = {number : Nat32; text: Text; error: Errors; flag_point: Text;};
 

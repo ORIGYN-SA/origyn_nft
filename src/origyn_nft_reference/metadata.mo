@@ -13,11 +13,9 @@ import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 import Droute "mo:droute_client/Droute";
 
-import SB "mo:stablebuffer/StableBuffer";
 import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
-import StableBuffer "mo:stablebuffer/StableBuffer";
 
 
 module {
@@ -765,14 +763,14 @@ module {
         };
         case(#fee_accounts(e)){
           candy_buffer.add({name="fee_accounts"; value=#Array(
-            Array.map<(Text, Principal), CandyTypes.CandyShared> (e, 
-            func(x:(Text, Principal)) {
+            Array.map<(Text, MigrationTypes.Current.Account), CandyTypes.CandyShared> (e, 
+            func(x:(Text, MigrationTypes.Current.Account)) {
               #Map([
-              (#Text("fixed"),#Text(x.0)),
-              (#Text("lenderOffer"),#Principal(x.1)),
-              ])
-            }
-          )); immutable = true;});
+              (#Text("fee_name"),#Text(x.0)),
+              (#Text("fee_account"),account_to_candy(x.1))])})); immutable = true;});
+        };
+        case(#fee_schema(e)){
+          candy_buffer.add({name="fee_schema"; value=#Text(e); immutable = true;});
         };
       };
     };
@@ -898,14 +896,17 @@ module {
         };
         case(#fee_accounts(e)){
           candy_buffer.add({name="fee_accounts"; value=#Array(
-            Array.map<(Text, Principal), CandyTypes.CandyShared> (e, 
-            func(x:(Text, Principal)) {
+            Array.map<(Text, MigrationTypes.Current.Account), CandyTypes.CandyShared> (e, 
+            func(x:(Text, MigrationTypes.Current.Account)) {
               #Map([
-              (#Text("fixed"),#Text(x.0)),
-              (#Text("lenderOffer"),#Principal(x.1)),
+              (#Text("fee_name"),#Text(x.0)),
+              (#Text("fee_account"),account_to_candy(x.1)),
               ])
             }
           )); immutable = true;});
+        };
+        case(#fee_schema(e)){
+          candy_buffer.add({name="fee_schema"; value=#Text(e); immutable = true;});
         };
       };
 
