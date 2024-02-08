@@ -369,7 +369,7 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
         return 14345667;
       };
       case(#fee_accounts){
-        return 0; // TODO CHECK WITH AUSTIN HOW TO DEAL WITH ThAT
+        return 14345670;
       };
     };
   };
