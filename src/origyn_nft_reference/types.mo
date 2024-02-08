@@ -199,10 +199,7 @@ module {
         };
     };
 
-    public type MarketTransferRequest = {
-        token_id : Text;
-        sales_config : SalesConfig;
-    };
+    public type MarketTransferRequest = MigrationTypes.Current.MarketTransferRequest;
 
     public type OwnerTransferResponse = {
         transaction : TransactionRecord;
@@ -215,11 +212,7 @@ module {
         to : Account;
     };
 
-    public type SalesConfig = {
-        escrow_receipt : ?EscrowReceipt;
-        broker_id : ?Principal;
-        pricing : PricingConfigShared;
-    };
+    public type SalesConfig = MigrationTypes.Current.SalesConfig;
 
      public type ICTokenSpec = {
       canister: Principal;
@@ -330,27 +323,7 @@ module {
       token: TokenSpec;
     };
 
-    public type AuctionConfig = {
-            reserve: ?Nat;
-            token: TokenSpec;
-            buy_now: ?Nat;
-            start_price: Nat;
-            start_date: Int;
-            ending: {
-                #date: Int;
-                #wait_for_quiet: {
-                    date: Int;
-                    extension: Nat64;
-                    fade: Float;
-                    max: Nat
-                };
-            };
-            min_increase: {
-                #percentage: Float;
-                #amount: Nat;
-            };
-            allow_list : ?[Principal];
-        };
+    public type AuctionConfig = MigrationTypes.Current.AuctionConfig;
 
     public let AuctionConfigDefault = {
         reserve = null;

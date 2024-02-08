@@ -48,7 +48,120 @@ module {
 
   
 
-  public type TransactionRecord = v0_1_5.TransactionRecord;
+  public type TransactionRecord = {
+        token_id: Text;
+        index: Nat;
+        txn_type: {
+            #auction_bid : {
+                buyer: Account;
+                amount: Nat;
+                token: TokenSpec;
+                sale_id: Text;
+                extensible: CandyTypes.CandyShared;
+            };
+            #mint : {
+                from: Account;
+                to: Account;
+                //nyi: metadata hash
+                sale: ?{token: TokenSpec;
+                    amount: Nat; //Nat to support cycles
+                    };
+                extensible: CandyTypes.CandyShared;
+            };
+            #sale_ended : {
+                seller: Account;
+                buyer: Account;
+               
+                token: TokenSpec;
+                sale_id: ?Text;
+                amount: Nat;//Nat to support cycles
+                extensible: CandyTypes.CandyShared;
+            };
+            #royalty_paid : {
+                seller: Account;
+                buyer: Account;
+                receiver: Account;
+                tag: Text;
+                token: TokenSpec;
+                sale_id: ?Text;
+                amount: Nat;//Nat to support cycles
+                extensible: CandyTypes.CandyShared;
+            };
+            #sale_opened : {
+                pricing: PricingConfigShared;
+                sale_id: Text;
+                extensible: CandyTypes.CandyShared;
+            };
+            #owner_transfer : {
+                from: Account;
+                to: Account;
+                extensible: CandyTypes.CandyShared;
+            }; 
+            #escrow_deposit : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat;//Nat to support cycles
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyShared;
+            };
+            #escrow_withdraw : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat;//Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyShared;
+            };
+            #deposit_withdraw : {
+                buyer: Account;
+                token: TokenSpec;
+                amount: Nat;//Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyShared;
+            };
+            #sale_withdraw : {
+                seller: Account;
+                buyer: Account;
+                token: TokenSpec;
+                token_id: Text;
+                amount: Nat; //Nat to support cycles
+                fee: Nat;
+                trx_id: TransactionID;
+                extensible: CandyTypes.CandyShared;
+            };
+            #canister_owner_updated : {
+                owner: Principal;
+                extensible: CandyTypes.CandyShared;
+            };
+            #canister_managers_updated : {
+                managers: [Principal];
+                extensible: CandyTypes.CandyShared;
+            };
+            #canister_network_updated : {
+                network: Principal;
+                extensible: CandyTypes.CandyShared;
+            };
+            #data : {
+              data_dapp: ?Text;
+              data_path: ?Text;
+              hash: ?[Nat8];
+              extensible: CandyTypes.CandyShared;
+            }; //nyi
+            #burn: {
+              from: ?Account;
+              extensible: CandyTypes.CandyShared;
+            };
+            #extensible : CandyTypes.CandyShared;
+
+        };
+        timestamp: Int;
+    };
+
 
   public type SaleStatus = {
       sale_id: Text; //sha256?;
@@ -71,7 +184,27 @@ module {
 
   public type TransactionID = v0_1_5.TransactionID;
 
-  public type AuctionConfig = v0_1_5.AuctionConfig;
+  public type AuctionConfig = {
+            reserve: ?Nat;
+            token: TokenSpec;
+            buy_now: ?Nat;
+            start_price: Nat;
+            start_date: Int;
+            ending: {
+                #date: Int;
+                #wait_for_quiet: {
+                    date: Int;
+                    extension: Nat64;
+                    fade: Float;
+                    max: Nat
+                };
+            };
+            min_increase: {
+                #percentage: Float;
+                #amount: Nat;
+            };
+            allow_list : ?[Principal];
+        };
 
   public type AskFeatureKey = {
       #atomic;
@@ -321,6 +454,17 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
       #ask: AskConfigShared;
       #extensible: CandyTypes.CandyShared;
   };
+
+  public type SalesConfig = {
+        escrow_receipt : ?EscrowReceipt;
+        broker_id : ?Principal;
+        pricing : PricingConfigShared;
+    };
+
+  public type MarketTransferRequest = {
+        token_id : Text;
+        sales_config : SalesConfig;
+    };
 
   public func pricing_shared_to_pricing(request : PricingConfigShared) : PricingConfig {
     switch(request){
