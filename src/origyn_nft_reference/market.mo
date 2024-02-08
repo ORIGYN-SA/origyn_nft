@@ -2041,7 +2041,7 @@ module {
     * 
     * @returns {Array<Nat8>} An array of 8-bit natural numbers representing the calculated network royalty account.
     */
-    public func get_network_royalty_account(principal : Principal, ledger_token_id: ?Nat) : [Nat8]{
+    public func get_network_royalty_account(principal : Principal, ledger_token_id: ?Nat) : Blob{
       let h = SHA256.New();
       h.write(Conversions.candySharedToBytes(#Text("com.origyn.network_royalty")));
       h.write(Conversions.candySharedToBytes(#Text("canister-id")));
@@ -2053,7 +2053,7 @@ module {
         };
         case(null) {};
       };
-      h.sum([]);
+      Blob.fromArray(h.sum([]));
     };
 
     //handles royalty distribution
@@ -2073,7 +2073,7 @@ module {
         fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
-      let dev_fund : {owner: Principal; sub_account: ?[Nat8];} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]};
+      let dev_fund : {owner: Principal; sub_account: ?Blob;} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?Blob.fromArray([90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79])};
 
       debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
 
@@ -2107,15 +2107,26 @@ module {
           };
         };
 
-        var tmp_principal : [{owner: Principal; sub_account: ?[Nat8];}] = if (request.fee_accounts != null and request.fee_accounts.size() > 0) {
-              for ((fee_name, account) in fee_accounts.vals()){
-                if (fee_name == tag) {
-                  [acc];
+        let fee_accounts : MigrationTypes.Current.FeeAccountsParams = switch (request.fee_accounts) {
+            case(?val) val;
+            case(null) [];
+        };
+
+        let tmp_principal : [{owner: Principal; sub_account: ?Blob;}] = if (fee_accounts.size() > 0) {
+              switch (Array.find<(Text, MigrationTypes.Current.Account)>(fee_accounts, func (val) { return val.0 == tag; })) {
+                case(?val) {
+                  switch (val.1){
+                    case(#account(x)) {[x];};
+                    case(_) {[];}; // TODO CHECK WITH AUSTIN 
+                  };
                 };
-              }
+                case(null){[]}; 
+              };
+            } else {
+              [];
             };
 
-        var principal : [{owner: Principal; sub_account: ?[Nat8];}] = 
+        var principal : [{owner: Principal; sub_account: ?Blob;}] = 
           if (tmp_principal.size() > 0) {
             tmp_principal;
           } else {
@@ -2203,8 +2214,8 @@ module {
             request.remaining -= this_royalty;
             //royaltyList.add(#principal(principal), this_royalty);
 
-            let send_account : {owner: Principal; sub_account: ?[Nat8]} = if(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner){
-              {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?[90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79]
+            let send_account : {owner: Principal; sub_account: ?Blob} = if(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner){
+              {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?Blob.fromArray([90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79])
               };
             } else {
               this_principal
@@ -2220,7 +2231,7 @@ module {
                 receiver = #account({ owner = send_account.owner;
                 sub_account = switch(send_account.sub_account){
                     case(null) null;
-                    case(?val) ?Blob.fromArray(val);
+                    case(?val) ?val;
                   }
                 });
                 sale_id = request.sale_id;
@@ -2241,7 +2252,7 @@ module {
                 { owner = send_account.owner;
                   sub_account = switch(send_account.sub_account){
                     case(null) null;
-                    case(?val) ?Blob.fromArray(val);
+                    case(?val) ?val;
                   };
                 });
               sale_id = request.sale_id;
