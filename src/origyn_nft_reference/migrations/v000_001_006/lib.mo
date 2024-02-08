@@ -4,7 +4,8 @@ import Deque "mo:base/Deque";
 import CandyTypes = "mo:candy/types";
 
 import SB_lib "mo:stablebuffer_0_2_0/StableBuffer"; 
-
+import Map_lib "mo:map_7_0_0/Map";
+import Buffer "mo:base/Buffer";
 
 import MigrationTypes "../types";
 import v0_1_5 "../v000_001_005/types";
@@ -142,6 +143,161 @@ module {
     let new_sales : Map.Map<Text, v0_1_6.SaleStatus> = Map.mapFilter<Text, v0_1_5.SaleStatus, v0_1_6.SaleStatus>(state.nft_sales, upgradeSaleStatus
     );
 
+
+   let upgradePricingConfig = func(x : v0_1_5.PricingConfig) : v0_1_6.PricingConfig {
+      switch(x){
+        case(#instant){#instant};
+        case(#auction(e)){#auction(e)};
+        case(#extensible(e)){#extensible(e);};
+        case(#ask(e)){
+          switch(e){
+            case(?val) {
+              let m = Map.new<v0_1_6.AskFeatureKey, v0_1_6.AskFeature>();
+              for ((key, value:v0_1_5.AskFeature) in Map.entries(val)) {
+                let updatedValue : v0_1_6.AskFeature = switch(value) {
+                  case(#atomic){#atomic};
+                  case(#buy_now(e)){#buy_now(e)};
+                  case(#wait_for_quiet(e)){#wait_for_quiet(e)};
+                  case(#allow_list(e)){#allow_list(e)};
+                  case(#notify(e)){#notify(e)};
+                  case(#reserve(e)){#reserve(e)};
+                  case(#start_date(e)){#start_date(e)};
+                  case(#start_price(e)){#start_price(e)};
+                  case(#min_increase(e)){#min_increase(e)};
+                  case(#ending(e)){#ending(e)};
+                  case(#token(e)){#token(e)};
+                  case(#dutch(e)){#dutch(e)};
+                  case(#kyc(e)){#kyc(e)};
+                  case(#nifty_settlement(e)){#nifty_settlement(e)};
+                };
+                Map.set<v0_1_6.AskFeatureKey, v0_1_6.AskFeature>(m, MigrationTypes.Current.ask_feature_set_tool, key, updatedValue);
+              };
+
+              #ask(?m);
+            };
+            case(null) {
+              #ask(null)
+            }
+          };
+        };
+      };
+   };
+
+   let upgradePricingConfigShared = func(x : v0_1_5.PricingConfigShared) : v0_1_6.PricingConfigShared {
+      switch(x){
+        case(#instant){#instant};
+        case(#auction(e)){#auction(e)};
+        case(#extensible(e)){#extensible(e);};
+        case(#ask(e)){
+          switch(e){
+            case(?val) {
+              let buffer: Buffer.Buffer<v0_1_6.AskFeature> = Buffer.Buffer<v0_1_6.AskFeature>(1);
+
+              for (ask_feature in val.vals()) {
+                let updatedValue : v0_1_6.AskFeature = switch(ask_feature) {
+                  case(#atomic){#atomic};
+                  case(#buy_now(e)){#buy_now(e)};
+                  case(#wait_for_quiet(e)){#wait_for_quiet(e)};
+                  case(#allow_list(e)){#allow_list(e)};
+                  case(#notify(e)){#notify(e)};
+                  case(#reserve(e)){#reserve(e)};
+                  case(#start_date(e)){#start_date(e)};
+                  case(#start_price(e)){#start_price(e)};
+                  case(#min_increase(e)){#min_increase(e)};
+                  case(#ending(e)){#ending(e)};
+                  case(#token(e)){#token(e)};
+                  case(#dutch(e)){#dutch(e)};
+                  case(#kyc(e)){#kyc(e)};
+                  case(#nifty_settlement(e)){#nifty_settlement(e)};
+                };
+                buffer.add(updatedValue);
+              };
+
+              #ask(?Buffer.toArray(buffer) );
+            };
+            case(null) {
+              #ask(null)
+            }
+          };
+        };
+      };
+   };
+
+    D.print("in upgrading ledgers");
+    let new_ledgers = Map_lib.map<
+      Text, 
+      SB_lib.StableBuffer<v0_1_5.TransactionRecord>, 
+      SB_lib.StableBuffer<v0_1_6.TransactionRecord>>(
+      state.nft_ledgers, 
+      func (key: Text, v1 : SB_lib.StableBuffer<v0_1_5.TransactionRecord>) : SB_lib.StableBuffer<v0_1_6.TransactionRecord>{
+        let buffer = SB_lib.initPresized<v0_1_6.TransactionRecord>(SB_lib.size(v1));
+        
+        for(thisItem in SB_lib.vals<v0_1_5.TransactionRecord>(v1)){
+          SB_lib.add<v0_1_6.TransactionRecord>(buffer, {
+            token_id = thisItem.token_id;
+            index = thisItem.index;
+            timestamp = thisItem.timestamp;
+              txn_type = switch(thisItem.txn_type){
+                case(#auction_bid(e)){
+                  #auction_bid(e);
+                };
+                case(#mint(e)){
+                  #mint(e);
+                };
+                case(#sale_ended(e)){
+                  #sale_ended(e);
+                };
+                case(#royalty_paid(e)){
+                  #royalty_paid(e);
+                };
+                case(#sale_opened(e)){
+                  #sale_opened({
+                    sale_id = e.sale_id;
+                    extensible = e.extensible;
+                    pricing = upgradePricingConfigShared(e.pricing);
+                  });
+                };
+                case(#owner_transfer(e)){
+                  #owner_transfer(e);
+                };
+                case(#escrow_deposit(e)){
+                  #escrow_deposit(e);
+                };
+                case(#escrow_withdraw(e)){
+                  #escrow_withdraw(e);
+                };
+                case(#deposit_withdraw(e)){
+                  #deposit_withdraw(e);
+                };
+                case(#sale_withdraw(e)){
+                  #sale_withdraw(e);
+                };
+                case(#canister_owner_updated(e)){
+                  #canister_owner_updated(e);
+                };
+                case(#canister_managers_updated(e)){
+                  #canister_managers_updated(e);
+                };
+                case(#canister_network_updated(e)){
+                  #canister_network_updated(e);
+                };
+                case(#data(e)){
+                  #data(e);
+                };
+                case(#burn(e)){
+                  #burn(e);
+                };
+                case(#extensible(e)){
+                  #extensible(e);
+                };
+              };
+          });
+        };
+
+        return buffer;
+      });
+
+
     //init certification here
 
     return #v0_1_6(#data({
@@ -154,7 +310,7 @@ module {
       var nft_metadata = state.nft_metadata;
       var escrow_balances = state.escrow_balances;
       var sales_balances = state.sales_balances;
-      var nft_ledgers = state.nft_ledgers;
+      var nft_ledgers = new_ledgers;
       var master_ledger = state.master_ledger;
       var nft_sales = new_sales;
       var access_tokens = state.access_tokens;

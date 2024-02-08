@@ -1993,7 +1993,7 @@ module {
                 metadata = metadata;
                 token_id = ?request.token_id;
                 token = escrow.token;
-                fee_accounts = fee_accounts;
+                fee_accounts = null; // not sure here 
             }, caller);
 
             remaining := royalty_result.0;
