@@ -223,13 +223,7 @@ module {
       };
    };
 
-    D.print("in upgrading ledgers");
-    let new_ledgers = Map_lib.map<
-      Text, 
-      SB_lib.StableBuffer<v0_1_5.TransactionRecord>, 
-      SB_lib.StableBuffer<v0_1_6.TransactionRecord>>(
-      state.nft_ledgers, 
-      func (key: Text, v1 : SB_lib.StableBuffer<v0_1_5.TransactionRecord>) : SB_lib.StableBuffer<v0_1_6.TransactionRecord>{
+   let stable_buffer_v1_5_to_v1_6 = func (key: Text, v1 : SB_lib.StableBuffer<v0_1_5.TransactionRecord>) : SB_lib.StableBuffer<v0_1_6.TransactionRecord>{
         let buffer = SB_lib.initPresized<v0_1_6.TransactionRecord>(SB_lib.size(v1));
         
         for(thisItem in SB_lib.vals<v0_1_5.TransactionRecord>(v1)){
@@ -295,7 +289,18 @@ module {
         };
 
         return buffer;
-      });
+      };
+
+
+    D.print("in upgrading ledgers");
+    let new_ledgers = Map_lib.map<
+      Text, 
+      SB_lib.StableBuffer<v0_1_5.TransactionRecord>, 
+      SB_lib.StableBuffer<v0_1_6.TransactionRecord>>(
+      state.nft_ledgers, stable_buffer_v1_5_to_v1_6);
+
+    let new_master_ledger : SB_lib.StableBuffer<v0_1_6.TransactionRecord> = stable_buffer_v1_5_to_v1_6("", state.master_ledger);
+      
 
 
     //init certification here
@@ -311,7 +316,7 @@ module {
       var escrow_balances = state.escrow_balances;
       var sales_balances = state.sales_balances;
       var nft_ledgers = new_ledgers;
-      var master_ledger = state.master_ledger;
+      var master_ledger = new_master_ledger;
       var nft_sales = new_sales;
       var access_tokens = state.access_tokens;
       var kyc_cache = state.kyc_cache;

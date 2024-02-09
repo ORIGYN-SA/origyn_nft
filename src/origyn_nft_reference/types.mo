@@ -290,7 +290,7 @@ module {
         escrow_receipt : EscrowReceipt;
         sale_id : Text;
         broker_id : ?Principal;
-        fee_schema : ?Text;
+        // fee_schema : ?Text;
     };
 
     public type DistributeSaleRequest = {

@@ -1860,7 +1860,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
         let net_account = {
           owner = Principal.fromActor(net_wallet);
-          subaccount = ?Market.get_network_royalty_account(Principal.fromActor(dfx), null)
+          subaccount = ?Market.get_network_royalty_account(Principal.fromActor(dfx), null);
         };
 
         let alist = [

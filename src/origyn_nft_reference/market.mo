@@ -2041,7 +2041,7 @@ module {
     * 
     * @returns {Array<Nat8>} An array of 8-bit natural numbers representing the calculated network royalty account.
     */
-    public func get_network_royalty_account(principal : Principal, ledger_token_id: ?Nat) : Blob{
+    public func get_network_royalty_account(principal : Principal, ledger_token_id: ?Nat) : [Nat8]{
       let h = SHA256.New();
       h.write(Conversions.candySharedToBytes(#Text("com.origyn.network_royalty")));
       h.write(Conversions.candySharedToBytes(#Text("canister-id")));
@@ -2053,7 +2053,7 @@ module {
         };
         case(null) {};
       };
-      Blob.fromArray(h.sum([]));
+      h.sum([]);
     };
 
     //handles royalty distribution
@@ -2140,7 +2140,7 @@ module {
                     debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
                     switch(state.state.collection_data.network){
                       case(null) [dev_fund] ; //dev fund
-                      case(?val) [{owner = val; sub_account = ?get_network_royalty_account(tokenSpec.canister,tokenSpec.id)}] ;
+                      case(?val) [{owner = val; sub_account = ?Blob.fromArray(get_network_royalty_account(tokenSpec.canister,tokenSpec.id))}] ;
                     };
                   } else if(tag == Types.metadata.royalty_node){
                     let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
