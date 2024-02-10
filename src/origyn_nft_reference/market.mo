@@ -1316,11 +1316,11 @@ module {
       //add the escrow
 
       if(balance > 0){
-        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account)){
+        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
-            let new_from = Map.new<Types.TokenSpec,Nat>();
+            let new_from = Map.new<Types.TokenSpec,MigrationTypes.Current.FeeDepositDetail>();
 
-            Map.set<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account, new_from);
+            Map.set<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account, new_from);
             new_from;
           };
           case(?val){
@@ -1328,9 +1328,28 @@ module {
           };
         };
 
-        Map.set(a_from, token_handler, request.token, balance);
+        var a_token = switch(Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(a_from, token_handler, request.token)){
+          case(null){
+            let new_token = {
+              total_balance= balance;
+              locks = Map.new<Text, Nat>();
+            };
+
+            Map.set<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(a_from, token_handler, request.token, new_token);
+            new_token;
+          };
+          case(?val){
+            val;
+          };
+        };
+
+        //todo: make sure balance hasn't gone below locks
+
+        Map.set(a_from, token_handler, request.token, {total_balance= balance; locks = a_token.locks});
       } else {
-        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account)){
+
+        //todo: make sure balance hasn't gone below locks and if so, we may need to cancle some sales.
+        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
             return 0;
           };
@@ -2518,6 +2537,10 @@ module {
             }
           };
           case(#ask(?val)){
+            //todo: This would be a good place to check the state.fee_deposit_balances for any fee_accounts that might be expected to make sure the seller still has the fees listed. We may wan to have some escape hatch such that if the amount is not there then the auction ends with the last highest bid or is cancled if no bid.  It will be easier for fixed auctions for us keep track of this.  We don't want to create a situation where a user creates an auction, we check for an expected fee and it is there, but then they with draw their fee_deposit and users are stuck bidding on an auction that can never settle.
+            //I guess I need to lock their fee deposit from being withdrawn if they have any open auctions.
+            //Rate will be interesting...we will likely have to calculate the max price they could sell for and force the buy_now to top out at that amount.
+
             switch(_get_ask_sale_detail(state, val, caller)){
               case(#ok(val)) val;
               case(#err(err)) return #err(err);
@@ -3701,6 +3724,8 @@ module {
         case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller)));
       };
 
+      //todo: check locks and makes sure that we are not transfering out a locked amount
+
       //attempt to send payment
                           debug if(debug_channel.withdraw_deposit) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
       var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
@@ -4613,6 +4638,10 @@ module {
           };
         };
       };
+
+      //todo: This would be a good place to check the state.fee_deposit_balances for any fee_accounts that might be expected to make sure the seller still has the fees listed. We may wan to have some escape hatch such that if the amount is not there then the auction ends with the last highest bid or is cancled if no bid.  It will be easier for fixed auctions for us keep track of this.  We don't want to create a situation where a user creates an auction, we check for an expected fee and it is there, but then they with draw their fee_deposit and users are stuck bidding on an auction that can never settle.
+      //I guess I need to lock their fee deposit from being withdrawn if they have any open auctions.
+      //Rate will be interesting...we will likely have to calculate the max price they could sell for and force the buy_now to top out at that amount.
 
       //kyc
       debug if(debug_channel.bid) D.print("trying kyc" # debug_show("")); 

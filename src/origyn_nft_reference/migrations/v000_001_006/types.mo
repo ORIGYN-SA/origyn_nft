@@ -541,7 +541,12 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
     public type SalesLedgerTrie = v0_1_5.SalesLedgerTrie;
 
     public type FeeDepositTrie = Map.Map<Account, 
-                                    Map.Map<TokenSpec, Nat>>;
+                                    Map.Map<TokenSpec, FeeDepositDetail>>;
+
+    public type FeeDepositDetail = {
+      total_balance: Nat;
+      locks: Map.Map<Text, Nat>; //locks for sale ids
+    };
 
     public type EscrowBuyerTrie = v0_1_5.EscrowBuyerTrie;
 
