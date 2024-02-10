@@ -337,6 +337,35 @@ module {
         };
     };
 
+    /**
+    * Retrieves information about a fee deposit account for an Origyn NFT transaction.
+    * @param {Types.Account} request - The request object containing transaction details.
+    * @param {Principal} host - The host of the sub-account.
+    * @returns {Types.SubAccountInfo} An object containing information about the fee deposit sub-account.
+    */
+    public func get_fee_deposit_account_info(request : Types.Account, host: Principal) : Types.SubAccountInfo{
+        
+        let h = SHA256.New();
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.fee_deposit"))));
+        h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("user"))));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(request))));
+        let sub_hash =h.sum([]);
+
+        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
+                
+
+        return {
+            principal = host;
+            account_id_text = Hex.encode(to);
+            account_id = Blob.fromArray(to);
+            account = {
+                principal = host;
+                sub_account =(Blob.fromArray(sub_hash));
+            }
+        };
+    };
+    
+
     /*
     public func getMemoryBySize(size : Nat, memory : Types.Stable_Memory) : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>{
       if(size <= 1000){

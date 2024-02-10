@@ -256,6 +256,11 @@ module {
         lock_to_date : ?Int; //timestamp to lock escrow until.
     };
 
+    public type FeeDepositRequest = {
+        account : Account; 
+        token : TokenSpec;
+    };
+
     public type DepositDetail = {
         token : TokenSpec;
         seller : Account;
@@ -278,6 +283,13 @@ module {
         balance : Nat;
         transaction : TransactionRecord;
     };
+
+    public type FeeDepositResponse = {
+        balance : Nat;
+        transaction : TransactionRecord;
+    };
+
+    
 
 
     public type RecognizeEscrowResponse = {
@@ -637,6 +649,7 @@ module {
         #end_sale : Text; //token_id
         #open_sale : Text; //token_id;
         #escrow_deposit : EscrowRequest;
+        #fee_deposit : FeeDepositRequest;
         #recognize_escrow : EscrowRequest;
         #refresh_offers : ?Account;
         #bid : BidRequest;
@@ -681,6 +694,7 @@ module {
         #end_sale : EndSaleResponse; //trx record if succesful
         #open_sale : Bool; //true if opened, false if not;
         #escrow_deposit : EscrowResponse;
+        #fee_deposit : FeeDepositResponse;
         #recognize_escrow : RecognizeEscrowResponse;
         #refresh_offers : [EscrowRecord];
         #bid : BidResponse;
@@ -694,6 +708,7 @@ module {
         #history : ?(Nat, Nat); //skip, take
         #status : Text; //saleID
         #escrow_info : EscrowReceipt;
+        #fee_deposit_info: ?Account;
         #deposit_info : ?Account;
     };
 
@@ -711,6 +726,7 @@ module {
         #status : ?SaleStatusShared;
         #deposit_info : SubAccountInfo;
         #escrow_info : SubAccountInfo;
+        #fee_deposit_info: SubAccountInfo;
     };
 
     public type GovernanceRequest = {
@@ -771,6 +787,13 @@ module {
         withdraw_to : Account;
     };
 
+    public type FeeDepositWithdrawDescription = {
+        account : Account;
+        token : TokenSpec;
+        amount : Nat;
+        withdraw_to : Account;
+    };
+
     public type RejectDescription = {
         buyer : Account;
         seller : Account;
@@ -783,6 +806,7 @@ module {
         #sale : WithdrawDescription;
         #reject : RejectDescription;
         #deposit : DepositWithdrawDescription;
+        #fee_deposit : FeeDepositWithdrawDescription;
     };
 
     public type WithdrawResponse = TransactionRecord;
@@ -1374,6 +1398,7 @@ module {
         __system_status : Text;
         __system_secondary_royalty : Text;
         __system_primary_royalty : Text;
+        __system_ogy_fixed_royalty : Text;
         __system_node : Text;
         __system_originator : Text;
         __system_wallet_shares : Text;
@@ -1401,6 +1426,7 @@ module {
         primary_port: Text;
         primary_protocol: Text;
         primary_royalties_default : Text;
+        ogy_fixed_royalties_default : Text;
 
         originator_override : Text;
         royalty_broker : Text;
@@ -1418,6 +1444,7 @@ module {
         __system_status = "status";
         __system_secondary_royalty = "com.origyn.royalties.secondary";
         __system_primary_royalty = "com.origyn.royalties.primary";
+        __system_ogy_fixed_royalty = "com.origyn.royalties.ogy.fixed";
         __system_node = "com.origyn.node";
         __system_originator = "com.origyn.originator";
         __system_wallet_shares = "com.origyn.wallet_shares";
@@ -1440,6 +1467,7 @@ module {
         preview_asset = "preview_asset";
         primary_royalties_default = "com.origyn.royalties.primary.default";
         secondary_royalties_default = "com.origyn.royalties.secondary.default";
+        ogy_fixed_royalties_default = "com.origyn.royalties.ogy.fixed.default";
         hidden_asset = "hidden_asset";
         is_soulbound = "is_soulbound";
         primary_host = "primary_host";

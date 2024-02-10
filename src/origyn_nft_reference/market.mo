@@ -716,6 +716,23 @@ module {
       return #ok(#escrow_info(NFTUtils.get_escrow_account_info(request, state.canister())));
     };
 
+  
+    /**
+    * returns an account that a seller can deposit tokens into for fees
+    * 
+    * @param {StateAccess} state - StateAccess object for accessing the canister's state.
+    * @param {Types.Account} request - Account Info to use to derive the account.
+    * @returns {Result.Result<Types.FeeDepositInfoResponse,Types.OrigynError>} - A result containing the deposit information.
+    */
+    public func fee_deposit_info_nft_origyn(state: StateAccess, request: Types.Account) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
+
+      debug if(debug_channel.invoice) D.print("in fee deposit info nft origyn.");
+
+
+      debug if(debug_channel.invoice) D.print("getting info for " # debug_show(request));
+      return #ok(#fee_deposit_info(NFTUtils.get_fee_deposit_account_info(request, state.canister())));
+    };
+
     //ends a sale if it is past the date or a buy it now has occured
     public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
         debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
@@ -1282,6 +1299,50 @@ module {
       };
       return #awaited(#distribute_sale(future));
     };
+
+
+    //processes a change in fee deposit balance
+    /**
+    * Processes a change in fee_deposit balance.
+    * 
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.FeeDepositRequest} FeeDepositRequest - The request record to be processed.
+    * @returns {Types.EscrowRecord} - The updated escrow record.
+    */
+    public func put_fee_deposit_balance(
+      state: StateAccess, 
+      request: Types.FeeDepositRequest,
+      balance: Nat): Nat {
+      //add the escrow
+
+      if(balance > 0){
+        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account)){
+          case(null){
+            let new_from = Map.new<Types.TokenSpec,Nat>();
+
+            Map.set<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account, new_from);
+            new_from;
+          };
+          case(?val){
+            val;
+          };
+        };
+
+        Map.set(a_from, token_handler, request.token, balance);
+      } else {
+        var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, Nat>>(state.state.fee_deposit_balances, account_handler, request.account)){
+          case(null){
+            return 0;
+          };
+          case(?val){
+            Map.remove(val, token_handler, request.token);
+          };
+        };
+      };
+
+      return balance;
+    };
+
 
     //processes a change in escrow balance
     /**
@@ -3223,6 +3284,77 @@ module {
         }));
     };
 
+    //recognizes tokens sent to a fee_deposit account
+    public func deposit_fee_nft_origyn(state: StateAccess, request : Types.FeeDepositRequest, caller: Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError> {
+        //account owner, canister, manager, collection owner can all call this
+        if(Types.account_eq(#principal(caller), request.account) == false and 
+            Types.account_eq(#principal(caller), #principal(state.canister())) == false and
+             Types.account_eq(#principal(caller), #principal(state.state.collection_data.owner)) == false and
+               Array.filter<Principal>(state.state.collection_data.managers, func(item: Principal){item == caller}).size() == 0){
+            return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "deposit_fee_nft_origyn - escrow - account and caller do not match", ?caller)));
+        };
+
+        debug if(debug_channel.escrow) D.print("in deposit_fee");
+        debug if(debug_channel.escrow) D.print(debug_show(request));
+
+        debug if(debug_channel.escrow) D.print(debug_show(state.canister()));
+
+  
+        debug if(debug_channel.escrow) D.print("verifying the deposit");
+       
+        let balance = switch(request.token){
+          case(#ic(token)){
+            switch(token.standard){
+              case(#Ledger or #ICRC1){
+                debug if(debug_channel.escrow) D.print("found ledger");
+                let checker = Ledger_Interface.Ledger_Interface();
+                switch(await* checker.fee_deposit_balance(state.canister(), request,  caller)){
+                  case(#trappable(val)) (val.balance);
+                  case(#awaited(val)) (val.balance);
+                  case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                  case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                };
+              };
+              case(_) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show(request), ?caller)));
+            };
+          };
+          case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show(request), ?caller)));
+        };
+
+        //put the fee
+        debug if(debug_channel.escrow) D.print("putting the escrow");
+
+        let deposit_result = put_fee_deposit_balance(state, request, balance);
+
+        debug if(debug_channel.escrow) D.print(debug_show(deposit_result));
+        
+
+        //add fee deposit transaction
+        let new_trx = switch(Metadata.add_transaction_record(state,{
+          token_id = "";
+          index = 0;
+          txn_type = #fee_deposit {
+            request with 
+            amount = balance;
+            extensible = #Option(null);
+          };
+          timestamp = state.get_time();
+        }, caller)) {
+          case(#err(err)){
+            debug if(debug_channel.escrow) D.print("in a bad error");
+            debug if(debug_channel.escrow) D.print(debug_show(err));
+            //nyi: this is really bad and will mess up certificatioin later so we should really throw
+            return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show(request), ?caller)));
+          };
+          case(#ok(new_trx)) new_trx;
+        };
+
+        return #awaited(#fee_deposit({
+          balance = balance;
+          transaction = new_trx;
+        }));
+    };
+
     public func ask_subscribe_nft_origyn(state: StateAccess, request: Types.AskSubscribeRequest, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
       return #trappable(#ask_subscribe(false));
     };
@@ -3522,6 +3654,91 @@ module {
             token_id = "";
             index = 0;
             txn_type = #deposit_withdraw({
+              details with 
+              amount = Nat.sub(details.amount, transaction_id.fee);
+              fee = transaction_id.fee;
+              trx_id = transaction_id.trx_id;
+              extensible = #Option(null);
+            }
+            );
+            timestamp = state.get_time();
+          }, caller)) {
+            case(#ok(val)) return #awaited(#withdraw(val));
+            case(#err(err))  return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show(transaction_id) , ?caller)));
+          };
+        };
+      };
+
+    };
+
+    /**
+    * Withdraw fee deposit funds to a specified account using the specified details.
+    * @param {StateAccess} state - The state of the canister.
+    * @param {Types.DepositWithdrawDescription} details - The details of the withdrawal or deposit.
+    * @param {Principal} caller - The caller of the function.
+    * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - The result of the operation which may contain an error.
+    */
+    private func _withdraw_fee_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.FeeDepositWithdrawDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse,Types.OrigynError>{
+      debug if(debug_channel.withdraw_deposit) D.print("in deposit withdraw");
+      debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
+      debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
+      if(caller != state.canister() and Types.account_eq(#principal(caller), details.account) == false){
+        //cant withdraw for someone else
+        return #err(#trappable(Types.errors(?state.canistergeekLogger,  #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match" , ?caller)));
+      };
+
+      debug if(debug_channel.withdraw_deposit) D.print("about to verify");
+
+      let deposit_account = NFTUtils.get_deposit_info(details.account, state.canister());
+
+      //NFT-112
+      let fee = switch(details.token){
+        case(#ic(token)){
+          let token_fee = Option.get(token.fee, 0);
+          if(details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount" , ?caller)));
+          token_fee;
+        };
+        case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show(details), ?caller)));
+      };
+
+      //attempt to send payment
+                          debug if(debug_channel.withdraw_deposit) D.print("sending payment" # debug_show((details.withdraw_to, details.amount, caller)));
+      var transaction_id : ?{trx_id: Types.TransactionID; fee: Nat} = null;
+      
+      transaction_id := switch(details.token){
+        case(#ic(token)){
+          switch(token.standard){
+            case(#Ledger or #ICRC1){
+              //D.print("found ledger");
+              let checker = Ledger_Interface.Ledger_Interface();
+
+              debug if(debug_channel.withdraw_deposit) D.print("returning amount " # debug_show(details.amount, token.fee));
+              
+              try{
+                switch(await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)){
+                  case(#ok(val)) ?val;
+                  case(#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
+
+                };
+              } catch (e){
+                return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
+              };
+            };
+            case(_) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show(details), ?caller)));
+          };
+        };
+        case(#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show(details), ?caller)));
+      };
+
+      debug if(debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show(transaction_id) # debug_show(details));
+
+      switch(transaction_id){
+        case(null) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller)));
+        case(?transaction_id){
+          switch(Metadata.add_transaction_record(state,{
+            token_id = "";
+            index = 0;
+            txn_type = #fee_deposit_withdraw({
               details with 
               amount = Nat.sub(details.amount, transaction_id.fee);
               fee = transaction_id.fee;

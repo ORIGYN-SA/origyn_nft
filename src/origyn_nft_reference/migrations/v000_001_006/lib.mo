@@ -315,6 +315,7 @@ module {
       var nft_metadata = state.nft_metadata;
       var escrow_balances = state.escrow_balances;
       var sales_balances = state.sales_balances;
+      var fee_deposit_balances = Map.new<v0_1_6.Account, Map.Map<v0_1_6.TokenSpec, Nat>>();
       var nft_ledgers = new_ledgers;
       var master_ledger = new_master_ledger;
       var nft_sales = new_sales;
