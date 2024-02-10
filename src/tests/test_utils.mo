@@ -325,7 +325,7 @@ module {
                 ]),
                 
             ]); immutable= false},
-            {name = "com.origyn.royalties.ogy.fixed"; value=#Array([
+            {name = "com.origyn.royalties.ogy.fixed.default"; value=#Array([
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
                     {name = "fixedXDR"; value=#Nat(100000000); immutable= true},

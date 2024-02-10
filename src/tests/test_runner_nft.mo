@@ -2528,7 +2528,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
             #start_price(10 * 10 ** 8),
             #ending(#date(get_time() + DAY_LENGTH)),
             #fee_accounts([("com.origyn.royalty.node", #account({owner = newPrincipal; sub_account = ?sellerFeeDepositAccount.account.sub_account}))]),
-            #fee_schema("com.origyn.royalty.ogy.fixed")
+            #fee_schema("com.origyn.royalties.ogy.fixed")
         ]);
        
         let start_auction_attempt_owner = await canister.market_transfer_nft_origyn({
