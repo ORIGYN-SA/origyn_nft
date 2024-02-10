@@ -261,7 +261,8 @@ module {
         node: Principal,
         originator: Principal,
         file_size: Nat,
-        broker_override : Bool
+        broker_override : Bool,
+        ledgerToken: TokenSpec
         ) : {metadata : CandyTypes.CandyShared} {
         {metadata = #Class([
             {name = "id"; value=#Text(""); immutable= true},
@@ -307,6 +308,59 @@ module {
                 #Class([
                     {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
                     {name = "rate"; value=#Float(0.005); immutable= true}
+                ]),
+            ]); immutable= false},
+            {name = "com.origyn.royalties.primary.default"; value=#Array([
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
+                    {name = "rate"; value=#Float(0.06); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.node"); immutable= true},
+                    {name = "rate"; value=#Float(0.07777); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
+                    {name = "rate"; value=#Float(0.005); immutable= true}
+                ]),
+                
+            ]); immutable= false},
+            {name = "com.origyn.royalties.ogy.fixed"; value=#Array([
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.broker"); immutable= true},
+                    {name = "fixedXDR"; value=#Nat(100000000); immutable= true},
+                    {name = "tokenCanister"; value=#Principal(ledgerToken.canister); immutable= true},
+                    {name = "tokenSymbol"; value=#Text(ledgerToken.symbol); immutable= true},
+                    {name = "tokenDecimals"; value=#Text(ledgerToken.decimals); immutable= true},
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.node"); immutable= true},
+                    {name = "fixedXDR"; value=#Nat(100000000); immutable= true},
+                    {name = "tokenCanister"; value=#Principal(ledgerToken.canister); immutable= true},
+                    {name = "tokenSymbol"; value=#Text(ledgerToken.symbol); immutable= true},
+                    {name = "tokenDecimals"; value=#Text(ledgerToken.decimals); immutable= true},
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.originator"); immutable= true},
+                    {name = "fixedXDR"; value=#Nat(100000000); immutable= true},
+                    {name = "tokenCanister"; value=#Principal(ledgerToken.canister); immutable= true},
+                    {name = "tokenSymbol"; value=#Text(ledgerToken.symbol); immutable= true},
+                    {name = "tokenDecimals"; value=#Text(ledgerToken.decimals); immutable= true},
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.custom"); immutable= true},
+                    {name = "fixedXDR"; value=#Nat(100000000); immutable= true},
+                    {name = "tokenCanister"; value=#Principal(ledgerToken.canister); immutable= true},
+                    {name = "tokenSymbol"; value=#Text(ledgerToken.symbol); immutable= true},
+                    {name = "tokenDecimals"; value=#Text(ledgerToken.decimals); immutable= true},
+                    {name = "account"; value=#Principal(originator); immutable= true}
+                ]),
+                #Class([
+                    {name = "tag"; value=#Text("com.origyn.royalty.network"); immutable= true},
+                    {name = "fixedXDR"; value=#Nat(100000000); immutable= true},
+                    {name = "tokenCanister"; value=#Principal(ledgerToken.canister); immutable= true},
+                    {name = "tokenSymbol"; value=#Text(ledgerToken.symbol); immutable= true},
+                    {name = "tokenDecimals"; value=#Text(ledgerToken.decimals); immutable= true},
                 ]),
             ]); immutable= false},
             {name = "library"; value=#Array([
