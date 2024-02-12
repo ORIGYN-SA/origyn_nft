@@ -967,6 +967,11 @@ shared (deployer) actor class Nft_Canister() = this {
                 canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
                 await* Market.escrow_nft_origyn(get_state(), val, caller);
             };
+            case (#fee_deposit(val)) {
+                 let log_data = "Type : fee deposit, token id : " # debug_show(val);
+                canistergeekLogger.logMessage("sale_nft_origyn",#Text(log_data),?caller);
+                await* Market.deposit_fee_nft_origyn(get_state(), val, caller);
+            };
             case (#recognize_escrow(val)) {
                  let log_data = "Type : recognize escrow, token id : " # debug_show(val);
                 canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data),?caller);

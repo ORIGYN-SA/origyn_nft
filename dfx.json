@@ -146,6 +146,6 @@
             "subnet_type": "system"
         }
     },
-    "dfx": "0.15.1",
+    "dfx": "0.16.1",
     "version": 1
 }

@@ -124,6 +124,22 @@ module {
                 trx_id: TransactionID;
                 extensible: CandyTypes.CandyShared;
             };
+            #fee_deposit :
+            {
+              amount : Nat;
+              account : Account;
+              extensible : CandyTypes.CandyShared;
+              token : TokenSpec;
+            };
+            #fee_deposit_withdraw :
+            {
+              amount : Nat;
+              account : Account;
+              extensible : CandyTypes.CandyShared;
+              fee : Nat;
+              token : TokenSpec;
+              trx_id : TransactionID
+            };
             #sale_withdraw : {
                 seller: Account;
                 buyer: Account;
@@ -524,6 +540,14 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
 
     public type SalesLedgerTrie = v0_1_5.SalesLedgerTrie;
 
+    public type FeeDepositTrie = Map.Map<Account, 
+                                    Map.Map<TokenSpec, FeeDepositDetail>>;
+
+    public type FeeDepositDetail = {
+      total_balance: Nat;
+      locks: Map.Map<Text, Nat>; //locks for sale ids
+    };
+
     public type EscrowBuyerTrie = v0_1_5.EscrowBuyerTrie;
 
     public type EscrowSellerTrie = v0_1_5.EscrowSellerTrie;
@@ -586,6 +610,7 @@ public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
     var nft_metadata : Map.Map<Text, CandyTypes.CandyShared>;
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;
+    var fee_deposit_balances : FeeDepositTrie;
     var nft_ledgers : Map.Map<Text, SB.StableBuffer<TransactionRecord>>;
     var master_ledger : SB.StableBuffer<TransactionRecord>;
     var nft_sales : Map.Map<Text, SaleStatus>;

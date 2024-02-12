@@ -20,7 +20,7 @@ import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
-import KYCService "../../.mops/_github/icrc17_kyc@master/test/service_example";
+import KYCService "../../.mops/_github/icrc17_kyc#master@46c149ad404316039c63920f9197cdceb1c40289/test/service_example";
 
 import MigrationTypes "../origyn_nft_reference/migrations/types";
 
@@ -1765,8 +1765,19 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
         D.print("running KYC");
 
         let dfx : DFXTypes.Service = actor(Principal.toText(dfx_ledger));
+
+        let dfxspec = {
+                      canister = Principal.fromActor(dfx);
+                      standard =  #Ledger;
+                      decimals = 8;
+                      symbol = "LDG";
+                      fee = ?200000;
+                      id = null;
+                    };
         
         let dfx2 : DFXTypes.Service = actor(Principal.toText(dfx_ledger2));
+
+       
         
 
         let a_wallet = await TestWalletDef.test_wallet();
@@ -1822,7 +1833,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
             Principal.fromActor(canister), 
             Principal.fromActor(canister),
             Principal.fromActor(this),
-            2048000, false);
+            2048000, false, dfxspec);
 
         let some_metadata = await canister.nft_origyn("");
 

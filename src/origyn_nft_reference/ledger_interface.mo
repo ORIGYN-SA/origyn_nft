@@ -150,7 +150,7 @@ class Ledger_Interface() {
   * @param {Principal} host - The canister ID of the ledger that manages the deposit
   * @param {Types.EscrowRequest} escrow - The deposit request to be transferred to an escrow account
   * @param {Principal} caller - The principal that initiated the transfer deposit request
-  * @returns {async* Result.Result<{transaction_id: Types.TransactionID; subaccount_info: Types.SubAccountInfo}, Types.OrigynError>} The result of the transfer deposit operation containing the transaction ID and subaccount information if successful, or an error if unsuccessful.
+  * @returns {async* Result.Result<{balance: Nat; subaccount_info: Types.SubAccountInfo}, Types.OrigynError>} The balance if succesful.
   */
   public func escrow_balance(host: Principal, escrow : Types.EscrowRequest, caller: Principal) : async* Star.Star<{balance: Nat; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
     debug if(debug_channel.deposit) D.print("in escrow_balance ledger deposit");
@@ -194,6 +194,53 @@ class Ledger_Interface() {
         case(#err(val)) return #err(val);
       };
     } catch (e) return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(escrow.deposit), ?caller)));
+  };
+
+  //gets a balance for an fee deposit account
+  /**
+  * Gets the balance in an fee deposit subaccount
+  * @param {Principal} host - The canister ID of the ledger that manages the deposit
+  * @param {Types.FeeDepositRequest} escrow - The deposit request to be checked
+  * @param {Principal} caller - The principal that initiated the transfer deposit request
+  * @returns {async* Star.Star<{balance: Nat; subaccount_info: Types.SubAccountInfo}, Types.OrigynError>} The balance if succesful, or an error if unsuccessful.
+  */
+  public func fee_deposit_balance(host: Principal, request : Types.FeeDepositRequest, caller: Principal) : async* Star.Star<{balance: Nat; subaccount_info: Types.SubAccountInfo}, Types.OrigynError> {
+    debug if(debug_channel.deposit) D.print("in fee_deposit_balance");
+    debug if(debug_channel.deposit) D.print(Principal.toText(host));
+    debug if(debug_channel.deposit) D.print(debug_show(request));
+
+     //nyi: extra safety make sure the caller is the buyer(or the network?)
+    let fee_deposit_account_info : Types.SubAccountInfo = NFTUtils.get_fee_deposit_account_info(
+      request.account
+    , host);
+
+
+    let #ic(ledger) = request.token else return #err(#trappable(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(request), ?caller)));
+
+    try {
+       
+      debug if(debug_channel.deposit) D.print("getting balance " # debug_show(fee_deposit_account_info));
+
+      let result = await* balance(
+        {
+          ledger = ledger.canister;
+          account = {
+            owner = fee_deposit_account_info.account.principal;
+            subaccount = ?Blob.toArray(fee_deposit_account_info.account.sub_account);
+          };
+          caller = caller;
+        }
+      );
+
+      debug if(debug_channel.deposit) D.print("found balance " # debug_show(result));
+
+
+      switch(result){
+        case(#awaited(val)){return #awaited({balance = val; subaccount_info = fee_deposit_account_info})};
+        case(#trappable(val)){return #awaited({balance = val; subaccount_info = fee_deposit_account_info})};
+        case(#err(val)) return #err(val);
+      };
+    } catch (e) return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(request), ?caller)));
   };
 
   //allows a user to withdraw money from a sale

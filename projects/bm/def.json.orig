@@ -1,0 +1,332 @@
+{
+    "meta" : {
+        "metadata" : {
+            "Class": [
+                {"name":"id", "value":{"Text":"bm-XXXXXX"}, "immutable":true},
+                {"name":"primary_asset", "value":{"Text":"com.bm.brain.XXXXXX.primary"}, "immutable":true},
+                {"name":"preview_asset", "value":{"Text":"com.bm.brain.XXXXXX.primary"}, "immutable":true},
+                {"name":"experience_asset", "value":{"Text":"com.bm.brain.XXXXXX.html"}, "immutable":true},
+                {"name":"hidden_asset", "value":{"Text":"com.bm.brain.hidden"}, "immutable":true},
+                {"name":"library", "value":{"Array":[
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"com.bm.brain.XXXXXX.primary"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"bm - brain XXXXXX"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"canister"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/com.bm.brain.XXXXXX.primary"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"image/png"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":500000}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"com.bm.brain.hidden"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Random-brain"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/com.bm.brain.XXXXXX.hidden2"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"image/gif"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":9990000}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"com.bm.brain.XXXXXX.html"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"bm Sample"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"canister"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/com.bm.brain.XXXXXX.html"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":500000}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"wallet"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Wallet dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/wallet"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":1503756}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"ledger"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Ledger dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/ledger"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":974320}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"data"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Data dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/data"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":936231}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"marketplace"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Marketplace dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/marketplace"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":936231}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]},
+                        {"Class":[
+                            {"name":"library_id", "value":{"Text":"dapp_library"}, "immutable":true},
+                            {"name":"title", "value":{"Text":"Library dApp"}, "immutable":true},
+                            {"name":"location_type", "value":{"Text":"collection"}, "immutable":true},
+                            {"name":"location", "value":{"Text":"https://CANISTER-ID.raw.icp0.io/-/bm-XXXXXX/-/dapp_library"}, "immutable":true},
+                            {"name":"content_type", "value":{"Text":"text/html"}, "immutable":true},
+                            {"name":"content_hash", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"size", "value":{"Nat":936231}, "immutable":true},
+                            {"name":"sort", "value":{"Text":"1"}, "immutable":true},
+                            {"name":"read","value":{"Text":"public"}, "immutable":false}
+                        ]}
+                    ]
+                }, "immutable":false},
+                {"name":"__apps", "value":{"Array":[
+                        {"Class":[
+                            {"name":"app_id", "value":{"Text":"com.bm.sample.app"}, "immutable":true},
+                            {"name":"read", "value":{"Text":"public"}, "immutable":false},
+                            {"name":"write", "value":{"Class":[
+                                {"name":"type", "value":{"Text":"allow"}, "immutable":false},
+                                {"name":"list", "value":{"Array":[
+                                        {"Principal" : "APP-ID"}
+                                    ]
+                                }, "immutable":false}
+                                
+                            ]}, "immutable":false},
+                            {"name":"permissions", "value":{"Class":[
+                                {"name":"type", "value":{"Text":"allow"}, "immutable":false},
+                                {"name":"list", "value":{"Array": [
+                                        {"Principal" : "APP-ID"}
+                                    ]
+                                }, "immutable":false}
+                                
+                            ]}, "immutable":false},
+                            {"name":"data", "value":{"Class":[
+                                {"name":"com.bm.sample.app.name", "value":{"Text":"brain XXXXXX"}, "immutable":false},
+                                {"name":"com.bm.sample.app.total_in_collection", "value":{"Nat":16}, "immutable":false},
+                                {"name":"com.bm.sample.app.creator_name", "value":{"Text":"bm"}, "immutable":false},
+                                {"name":"com.bm.sample.app.creator_principal", "value":{"Principal":"CREATOR-PRINCIPAL-ID"}, "immutable":false},
+                                {"name":"com.bm.sample.app.private_id", "value":{"Class":[
+                                    {"name":"data", "value":{"Text":"you shouldn't see this"}, "immutable":false},
+                                    {"name":"read", "value":{"Class":[
+                                        {"name":"type", "value":{"Text":"allow"}, "immutable":false},
+                                        {"name":"list", "value":{"Array":[
+                                                {"Principal" : "APP-ID"}
+                                            ]
+                                        }, "immutable":false}
+                                        
+                                    ]}, "immutable":false},
+                                    {"name":"write", "value":{"Class":[
+                                        {"name":"type", "value":{"Text":"allow"}, "immutable":false},
+                                        {"name":"list", "value":{"Array": [
+                                                {"Principal" : "APP-ID"}
+                                            ]
+                                        }, "immutable":false}
+                                        
+                                    ]}, "immutable":false}
+                                    
+                                ]}, "immutable":false}
+                            
+                                
+                            ]}, "immutable":false}
+                        ]}
+                    ]
+                }, "immutable":true},
+                {"name":"owner", "value":{"Principal":"CANISTER-ID"}, "immutable":false},
+                {"name":"is_soulbound", "value":{"Bool":YYYYYY}, "immutable":YYYYYY},
+                {
+                    "name": "default_royalty_primary",
+                    "value": {
+                        "Array": [
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+<<<<<<< HEAD
+=======
+                        
+>>>>>>> develop
+                    },
+                    "immutable": false
+                },
+                {
+                    "name": "default_royalty_secondary",
+                    "value": {
+<<<<<<< HEAD
+                        "Array": [
+=======
+                        "Array":  [
+>>>>>>> develop
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.broker"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.node"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.005 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.originator"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Class": [
+                                        {
+                                            "name": "tag",
+                                            "value": {
+                                                "Text": "com.origyn.royalty.custom"
+                                            },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "rate",
+                                            "value": { "Float": 0.05 },
+                                            "immutable": true
+                                        },
+                                        {
+                                            "name": "account",
+                                            "value": {
+                                                "Principal": "CANISTER-ID"
+                                            },
+                                            "immutable": false
+                                        }
+                                    ]
+                                }
+                            ]
+                    },
+                    "immutable": false
+                }
+
+            ]
+          }
+       
+    },
+    "library" :[
+        {
+            "library_id": "com.bm.brain.XXXXXX.primary",
+            "library_file": "./projects/bm/XXXXXX.png"
+        },
+        {
+            "library_id": "com.bm.brain.XXXXXX.html",
+            "library_file": "./projects/bm/XXXXXX.html"
+        }
+    ]
+}

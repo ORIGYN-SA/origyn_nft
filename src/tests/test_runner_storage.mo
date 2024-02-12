@@ -27,6 +27,15 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
     let it = C.Tester({ batchSize = 8 });
 
+    let dfxspec = {
+      canister = dfx_ledger;
+      standard =  #Ledger;
+      decimals = 8;
+      symbol = "LDG";
+      fee = ?200000;
+      id = null;
+    };
+
     
     private var DAY_LENGTH = 60 * 60 * 24 * 10 ** 9;
     private var dip20_fee = ?200_000;
@@ -794,7 +803,7 @@ shared (deployer) actor class test_runner(dfx_ledger: Principal, dfx_ledger2: Pr
 
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
-        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000, false);
+        let standardStage_b_collection = await utils.buildCollection( canister_b, Principal.fromActor(canister_b), Principal.fromActor(canister_b), Principal.fromActor(canister_b), 2048000, false, dfxspec);
         //D.print("DONE staging b " # debug_show(standardStage_b));
 
         let mint_attempt = await canister_b.mint_nft_origyn("1", #principal(Principal.fromActor(this)));
