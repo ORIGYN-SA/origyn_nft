@@ -1253,28 +1253,18 @@ module {
             };
         };
 
-        //todo: generalize and copy all "com.origyn.royalty.*" properties to the __system metadata of the new token.
+        let updateRoyalty = func (metadata : Metadata, propKey : Text, systemKey : Text) : Metadata {
+            let royaltyValue = switch (Properties.getClassPropertyShared(collection, propKey)) {
+                case (null) { #Array([]); };
+                case (?val) { val.value; };
+            };
 
-        var primary_royalties = switch (Properties.getClassPropertyShared(collection, Types.metadata.primary_royalties_default)) {
-            case (null) #Array([]);
-            case (?val) val.value;
+            return Metadata.set_system_var(metadata, systemKey, royaltyValue);
         };
 
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_primary_royalty, primary_royalties);
-
-        var secondary_royalties = switch (Properties.getClassPropertyShared(collection, Types.metadata.secondary_royalties_default)) {
-            case (null) #Array([]);
-            case (?val) val.value;
-        };
-
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_secondary_royalty, secondary_royalties);
-
-        var ogy_fixed_royalties = switch (Properties.getClassPropertyShared(collection, Types.metadata.ogy_fixed_royalties_default)) {
-            case (null) #Array([]);
-            case (?val) val.value;
-        };
-
-        metadata := Metadata.set_system_var(metadata, Types.metadata.__system_ogy_fixed_royalty, ogy_fixed_royalties);
+        metadata := updateRoyalty(metadata, Types.metadata.primary_royalties_default, Types.metadata.__system_primary_royalty);
+        metadata := updateRoyalty(metadata, Types.metadata.secondary_royalties_default, Types.metadata.__system_secondary_royalty);
+        metadata := updateRoyalty(metadata, Types.metadata.ogy_fixed_royalties_default, Types.metadata.__system_ogy_fixed_royalty);
 
         var node_principal = switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_node)) {
             case (null) {
