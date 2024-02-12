@@ -932,6 +932,7 @@ module {
         #noop;
         #kyc_error;
         #kyc_fail;
+        #low_fee_balance;
     };
 
     public func errors(logger: ?Canistergeek.Logger, the_error : Errors, flag_point: Text, caller: ?Principal) : OrigynError {
@@ -1386,7 +1387,14 @@ module {
                     text = "kyc fail";
                     error = the_error;
                     flag_point = flag_point;}
-            };              
+            };   
+            case(#low_fee_balance){
+                return {
+                    number = 4012; 
+                    text = "low_fee_balance";
+                    error = the_error;
+                    flag_point = flag_point;}
+            };   
         };
     };
 

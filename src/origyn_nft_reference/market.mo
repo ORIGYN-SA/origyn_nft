@@ -1300,6 +1300,43 @@ module {
       return #awaited(#distribute_sale(future));
     };
 
+    /**
+    * Calculates the total amount of free tokens available for fees.
+    * This function takes into account the total balance of a specific token for an account and subtracts any amounts that are locked,
+    * resulting in the amount of free tokens that can be used for fees.
+    * 
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.FeeDepositRequest} FeeDepositRequest - The request record to be processed.
+    * @returns {Nat} - The amount of free tokens available for fees. Returns 0 if the calculated free amount is negative or if no balance is found.
+    */
+    private func get_unlocked_token_fee_balance(
+      state: StateAccess, 
+      request: Types.FeeDepositRequest) : Nat {
+        return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
+          case(null){
+            0;
+          };
+          case(?val){
+            switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
+              case(null){
+                0;
+              };
+              case(?token){
+                var all_locked_value = 0;
+                for(lock_value in Map.vals(token.locks)){
+                  all_locked_value += lock_value;
+                };
+                if (token.total_balance - all_locked_value > 0){
+                  return token.total_balance - all_locked_value;
+                } else {
+                  // TODO ERROR HANDLING
+                  return 0;
+                }
+              };
+            };
+          };
+      }
+    };
 
     //processes a change in fee deposit balance
     /**
@@ -1312,7 +1349,7 @@ module {
     public func put_fee_deposit_balance(
       state: StateAccess, 
       request: Types.FeeDepositRequest,
-      balance: Nat): Nat {
+      balance: Nat): Result.Result<Nat, Types.OrigynError>  {
       //add the escrow
 
       if(balance > 0){
@@ -1343,15 +1380,22 @@ module {
           };
         };
 
-        //todo: make sure balance hasn't gone below locks
+        // Make sure balance hasn't gone below locks
+        var total_locked = 0;
+        for (lock_value in Map.vals(a_token.locks)){
+          total_locked += lock_value;
+        };
+        
+        if (balance < total_locked) {
+          return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "put_fee_deposit_balance new balance value is below tokens locks value. total_locked : " # debug_show(total_locked), null));
+        };
 
         Map.set(a_from, token_handler, request.token, {total_balance= balance; locks = a_token.locks});
       } else {
 
-        //todo: make sure balance hasn't gone below locks and if so, we may need to cancle some sales.
         var a_from = switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
-            return 0;
+            return #ok(0);
           };
           case(?val){
             Map.remove(val, token_handler, request.token);
@@ -1359,7 +1403,7 @@ module {
         };
       };
 
-      return balance;
+      return #ok(balance);
     };
 
 

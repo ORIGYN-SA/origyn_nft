@@ -1253,7 +1253,7 @@ module {
             };
         };
 
-        let updateRoyalty = func (metadata : Metadata, propKey : Text, systemKey : Text) : Metadata {
+        let updateRoyalty = func (metadata : CandyTypes.CandyShared, propKey : Text, systemKey : Text) : CandyTypes.CandyShared {
             let royaltyValue = switch (Properties.getClassPropertyShared(collection, propKey)) {
                 case (null) { #Array([]); };
                 case (?val) { val.value; };
