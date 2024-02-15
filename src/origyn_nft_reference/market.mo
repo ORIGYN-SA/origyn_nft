@@ -1333,17 +1333,18 @@ module {
     };
 
     /**
-    * Calculates the total amount of free tokens available for fees.
-    * This function takes into account the total balance of a specific token for an account and subtracts any amounts that are locked,
-    * resulting in the amount of free tokens that can be used for fees.
-    * 
     * @param {StateAccess} state - The state access object.
     * @param {Types.FeeDepositRequest} FeeDepositRequest - The request record to be processed.
     * @returns {Nat} - The amount of free tokens available for fees. Returns 0 if the calculated free amount is negative or if no balance is found.
     */
-    private func get_unlocked_token_fee_balance(
+    private func lock_token_fee_balance(
       state: StateAccess, 
-      request: Types.FeeDepositRequest) : Nat {
+      request:  {
+        account : Types.Account; 
+        token : Types.TokenSpec;
+        token_to_lock : Nat;
+        sale_id : Text;
+    }) : Nat {
         return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
             0;
@@ -1353,17 +1354,66 @@ module {
               case(null){
                 0;
               };
-              case(?token){
-                var all_locked_value = 0;
+              case(?token) {
+                var all_locked_value : Nat = 0;
                 for(lock_value in Map.vals(token.locks)){
                   all_locked_value += lock_value;
                 };
-                if (token.total_balance - all_locked_value > 0){
-                  return token.total_balance - all_locked_value;
+
+                if (token.total_balance - all_locked_value > request.token_to_lock) {
+                  let _ = Map.put<Text, Nat>(token.locks, Map.thash, request.sale_id, request.token_to_lock);
+
+                  return token.total_balance - (all_locked_value + request.token_to_lock);
                 } else {
                   // TODO ERROR HANDLING
                   return 0;
                 }
+              };
+            };
+          };
+      }
+    };
+
+    /**
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.FeeDepositRequest} FeeDepositRequest - The request record to be processed.
+    * @returns {Nat} - The amount of free tokens available for fees. Returns 0 if the calculated free amount is negative or if no balance is found.
+    */
+    private func unlock_token_fee_balance(
+      state: StateAccess, 
+      request:  {
+        account : Types.Account; 
+        token : Types.TokenSpec;
+        sale_id : Text;
+    }) : Nat {
+        return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
+          case(null){
+            0;
+          };
+          case(?val){
+            switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
+              case(null){
+                0;
+              };
+              case(?token) {
+                let previous_balance : Nat = switch(Map.get<Text, Nat>(token.locks, Map.thash, request.sale_id)) {
+                  case(?val) {val};
+                  case(null) {
+                    // TODO RAISE ERROR
+                    0;
+                  };
+                };
+                // let new_balance : Nat = token.total_balance - previous_balance;
+                let _ = Map.remove<Text, Nat>(token.locks, Map.thash, request.sale_id);
+
+                // let _ = Map.put<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, 
+                // request.token,
+                // {
+                //   total_balance = new_balance;
+                //   locks = token.locks;
+                // });
+
+                return new_balance;
               };
             };
           };
@@ -2533,6 +2583,8 @@ module {
           dutch : ?MigrationTypes.Current.DutchParams;
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
+          fee_accounts: ?FeeAccountsParams;
+          fee_schema: Text;
         } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
             
@@ -2597,6 +2649,8 @@ module {
               allow_list = allow_list;
               dutch = null;
               notify = [];
+              fee_accounts = null;
+              fee_schema = Types.metadata.__system_secondary_royalty;
             }
           };
           case(#ask(null)){
@@ -2610,6 +2664,8 @@ module {
               allow_list = null;
               dutch = null;
               notify = [];
+              fee_accounts = null;
+              fee_schema = Types.metadata.__system_secondary_royalty;
             }
           };
           case(#ask(?val)){
@@ -2617,10 +2673,43 @@ module {
             //I guess I need to lock their fee deposit from being withdrawn if they have any open auctions.
             //Rate will be interesting...we will likely have to calculate the max price they could sell for and force the buy_now to top out at that amount.
 
-            switch(_get_ask_sale_detail(state, val, caller)){
+            let ret = switch(_get_ask_sale_detail(state, val, caller)){
               case(#ok(val)) val;
               case(#err(err)) return #err(err);
             };
+
+            let token_spec = if (fee_schema == Types.metadata.__system_ogy_fixed_royalty) {
+              // OGY TOKEN_SPEC
+            } else {
+              ret.token;
+            };
+            let fee_schema = ret.fee_schema;
+
+            let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
+            // check if fund are provisioned by #fee_deposit
+            for ((royalties_name, account) in ret.fee_accounts.vals()) {
+              switch (lock_token_fee_balance(state, {
+                account = account; 
+                token = token_spec;
+                token_to_lock = 0; //TODO need fixed fees here, this feature is not available for no-fixed fees
+                sale_id : request.sale_id;
+              })) {
+                case (#ok(val)) {
+                  tmp_locked_fees.add(account, token_spec, fees);
+                };
+                case (#err(err)) {
+                  for ((_account, _token_spec, fees) in tmp_locked_fees.vals()) {
+                    unlock_token_fee_balance(state, {
+                      account = _account; 
+                      token = _token_spec;
+                      sale_id : request.sale_id;
+                    })
+                  };
+                  return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "market_transfer_nft_origyn low_fee_balance", ?caller));
+                };
+              };
+            }
+
           };
           
           case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn nyi pricing type", ?caller));
@@ -2766,6 +2855,8 @@ module {
           dutch : ?MigrationTypes.Current.DutchParams;
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
+          fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
+          fee_schema : Text;
         }, Types.OrigynError>{
       //what does an escrow reciept do for an auction? Place a bid?
             //for now ignore
@@ -2831,7 +2922,19 @@ module {
               case(_){null};
             };
 
-            
+            let fee_accounts = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_accounts)){
+              case(?#fee_accounts(val)){
+                ?val;
+              };
+              case(_){null};
+            }; 
+
+            let fee_schema : Text = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_schema)){
+              case(?#fee_schema(val)){
+                val;
+              };
+              case(_){ Types.metadata.__system_secondary_royalty };
+            }; 
 
             let token : MigrationTypes.Current.TokenSpec= switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
               case(?#token(val)){
@@ -2877,6 +2980,8 @@ module {
               start_price : Nat = start_price;
               end_date : Int  = end_date;
               dutch = dutch;
+              fee_accounts = fee_accounts;
+              fee_schema = fee_schema;
               allow_list = if(Map.size(allow_list) == 0){
                 null;
               } else {
