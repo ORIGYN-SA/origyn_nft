@@ -722,15 +722,20 @@ module {
     * 
     * @param {StateAccess} state - StateAccess object for accessing the canister's state.
     * @param {Types.Account} request - Account Info to use to derive the account.
+    * @param {Principal} caller - Principal of the caller making the request.
     * @returns {Result.Result<Types.FeeDepositInfoResponse,Types.OrigynError>} - A result containing the deposit information.
     */
-    public func fee_deposit_info_nft_origyn(state: StateAccess, request: Types.Account) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
+    public func fee_deposit_info_nft_origyn(state: StateAccess, request: ?Types.Account, caller: Principal) : Result.Result<Types.SaleInfoResponse,Types.OrigynError> {
 
       debug if(debug_channel.invoice) D.print("in fee deposit info nft origyn.");
 
+      let account = switch(request){
+        case(null) #principal(caller);
+        case(?val) val;
+      };
 
       debug if(debug_channel.invoice) D.print("getting info for " # debug_show(request));
-      return #ok(#fee_deposit_info(NFTUtils.get_fee_deposit_account_info(request, state.canister())));
+      return #ok(#fee_deposit_info(NFTUtils.get_fee_deposit_account_info(account, state.canister())));
     };
 
     //ends a sale if it is past the date or a buy it now has occured

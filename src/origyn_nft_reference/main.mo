@@ -1159,6 +1159,9 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#escrow_info(val)) {
                 Market.escrow_info_nft_origyn(get_state(), val, caller);
             };
+            case (#fee_deposit_info(val)) {
+                Market.fee_deposit_info_nft_origyn(get_state(), val, caller);
+            };
         };
     };
 
@@ -1191,6 +1194,7 @@ shared (deployer) actor class Nft_Canister() = this {
             case (#status(val)) { "Type : status " # debug_show (val) };
             case (#deposit_info(val)) { "Type : deposit info " # debug_show (val) };
             case (#escrow_info(val)) { "Type : escrow info " # debug_show (val) };
+            case (#fee_deposit_info(val)) { "Type : fee deposit info " # debug_show (val) };
         };
         canistergeekLogger.logMessage("sale_info_secure_nft_origyn", #Text(log_data), ?msg.caller);
         canistergeekMonitor.collectMetrics();
