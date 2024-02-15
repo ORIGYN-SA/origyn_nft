@@ -782,12 +782,13 @@ module {
 
         //debug if(debug_channel.end_sale) D.print("current sale state " # debug_show(current_sale_state));
 
-        let {buy_now_price; start_date; fee_accounts;} = switch(current_sale_state.config){
+        let {buy_now_price; start_date; fee_accounts; fee_schema;} = switch(current_sale_state.config){
           case(#auction(config)){
             {
               buy_now_price = config.buy_now;
               start_date = config.start_date;
               fee_accounts = null;
+              fee_schema = null;
             };
           };
           case(#ask(config)){
@@ -824,6 +825,17 @@ module {
                 };
               };
             };
+            let fee_schema = switch(config){
+              case(null) null;
+              case(?config){
+                switch(Map.get(config, MigrationTypes.Current.ask_feature_set_tool, #fee_schema)){
+                  case(?#fee_schema(val)){
+                    ?val;
+                  };
+                  case(_){null};
+                };
+              };
+            };
             let start_date = switch(config){
               case(null) null;
               case(?config){
@@ -849,6 +861,7 @@ module {
             };
             start_date = start_date;
             fee_accounts = fee_accounts;
+            fee_schema = fee_schema;
             };
           };
           case(_) return #err(#trappable(Types.errors(?state.canistergeekLogger,  #sale_not_found, "end_sale_nft_origyn - not an auction type ", ?caller)));
@@ -1175,10 +1188,24 @@ module {
 
               //log royalties
               //currently for auctions there are only secondary royalties
-              let royalty= switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
+
+              let royalty_fee_schema = switch (fee_schema) {
+                case (?val) {
+                  if (val == Types.metadata.__system_primary_royalty or val == Types.metadata.__system_secondary_royalty or val == Types.metadata.__system_ogy_fixed_royalty) {
+                    val;
+                  } else {
+                    Types.metadata.__system_secondary_royalty;
+                  };
+                };
+                case (null) {
+                  Types.metadata.__system_secondary_royalty;
+                };
+              };
+
+              let royalty = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                 case(null){[];};
                 case(?val){
-                  royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+                  royalty_to_array(val.value, royalty_fee_schema);
                 };
               };
 
