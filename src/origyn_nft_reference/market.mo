@@ -4376,6 +4376,9 @@ module {
         case(#reject(details)){
           return await* _reject_offer(state, withdraw, details, caller);
         };
+        case (#fee_deposit(details)) {
+          return await* _withdraw_fee_deposit(state, withdraw, details, caller);
+        };
       };
       return #err(#trappable(Types.errors(?state.canistergeekLogger,  #nyi, "withdraw_nft_origyn  - nyi - " , ?caller)));
     };

@@ -1113,9 +1113,17 @@ shared (deployer) actor class Nft_Canister() = this {
                         case (#deposit(v)) {
                             "Type : withdraw with deposit" # debug_show (v);
                         };
+                        case (#fee_deposit(v)) {
+                            "Type : withdraw with fee deposit" # debug_show (v);
+                        };
                     };
                     canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data), ?msg.caller);
                     result_buffer.add(Market.withdraw_nft_origyn(get_state(), val, msg.caller));
+                };
+                case (#fee_deposit(val)) {
+                    let log_data = "Type : fee_deposit :  " # debug_show (val);
+                    canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data), ?msg.caller);
+                    result_buffer.add(Market.deposit_fee_nft_origyn(get_state(), val, msg.caller));
                 };
             };
 
