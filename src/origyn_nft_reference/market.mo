@@ -1344,15 +1344,15 @@ module {
         token : Types.TokenSpec;
         token_to_lock : Nat;
         sale_id : Text;
-    }) : Nat {
+    }) : Result.Result<Nat, Types.OrigynError> {
         return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
-            0;
+            return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - account not found  " # debug_show(request.account), null));
           };
           case(?val){
             switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
               case(null){
-                0;
+                return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - token not found  " # debug_show(request.token), null));
               };
               case(?token) {
                 var all_locked_value : Nat = 0;
@@ -1363,10 +1363,9 @@ module {
                 if (token.total_balance - all_locked_value > request.token_to_lock) {
                   let _ = Map.put<Text, Nat>(token.locks, Map.thash, request.sale_id, request.token_to_lock);
 
-                  return token.total_balance - (all_locked_value + request.token_to_lock);
+                  return #ok(token.total_balance - (all_locked_value + request.token_to_lock));
                 } else {
-                  // TODO ERROR HANDLING
-                  return 0;
+                  return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "lock_token_fee_balance - low_fee_balance  ", null));
                 }
               };
             };
@@ -1413,7 +1412,7 @@ module {
                 //   locks = token.locks;
                 // });
 
-                return new_balance;
+                return 0;
               };
             };
           };
@@ -2573,6 +2572,16 @@ module {
           return #err(Types.errors(?state.canistergeekLogger,  #nyi, "cannot auction off a unminted item", ?caller))
         };
 
+        let h = SHA256.New();
+        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.sale-id")));
+        h.write(Conversions.candySharedToBytes(#Text("token-id")));
+        h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
+        h.write(Conversions.candySharedToBytes(#Text("seller")));
+        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
+        h.write(Conversions.candySharedToBytes(#Text("timestamp")));
+        h.write(Conversions.candySharedToBytes(#Int(state.get_time())));
+        let sale_id : Text = Conversions.candySharedToText(#Bytes(h.sum([])));
+
         let {
           reserve : ?Nat; 
           buy_now : ?Nat; 
@@ -2583,7 +2592,7 @@ module {
           dutch : ?MigrationTypes.Current.DutchParams;
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
-          fee_accounts: ?FeeAccountsParams;
+          fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
           fee_schema: Text;
         } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
@@ -2678,38 +2687,43 @@ module {
               case(#err(err)) return #err(err);
             };
 
-            let token_spec = if (fee_schema == Types.metadata.__system_ogy_fixed_royalty) {
-              // OGY TOKEN_SPEC
-            } else {
-              ret.token;
-            };
-            let fee_schema = ret.fee_schema;
-
-            let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
-            // check if fund are provisioned by #fee_deposit
-            for ((royalties_name, account) in ret.fee_accounts.vals()) {
-              switch (lock_token_fee_balance(state, {
-                account = account; 
-                token = token_spec;
-                token_to_lock = 0; //TODO need fixed fees here, this feature is not available for no-fixed fees
-                sale_id : request.sale_id;
-              })) {
-                case (#ok(val)) {
-                  tmp_locked_fees.add(account, token_spec, fees);
+            switch (ret.fee_accounts) {
+              case (?fee_accounts) {
+                let token_spec = if (fee_schema == Types.metadata.__system_ogy_fixed_royalty) {
+                  NFTUtils.OGY();
+                } else {
+                  ret.token;
                 };
-                case (#err(err)) {
-                  for ((_account, _token_spec, fees) in tmp_locked_fees.vals()) {
-                    unlock_token_fee_balance(state, {
-                      account = _account; 
-                      token = _token_spec;
-                      sale_id : request.sale_id;
-                    })
+                let fee_schema = ret.fee_schema;
+
+                let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
+                // check if fund are provisioned by #fee_deposit
+                for ((royalties_name, account) in fee_accounts.vals()) {
+                  switch (lock_token_fee_balance(state, {
+                    account = account; 
+                    token = token_spec;
+                    token_to_lock = 0; //TODO need fixed fees here, this feature is not available for no-fixed fees
+                    sale_id = sale_id;
+                  })) {
+                    case (#ok(val)) {
+                      tmp_locked_fees.add(account, token_spec, fees);
+                    };
+                    case (#err(err)) {
+                      for ((_account, _token_spec, fees) in tmp_locked_fees.vals()) {
+                        let _ = unlock_token_fee_balance(state, {
+                          account = _account; 
+                          token = _token_spec;
+                          sale_id = sale_id;
+                        });
+                      };
+                      return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "market_transfer_nft_origyn low_fee_balance", ?caller));
+                    };
                   };
-                  return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "market_transfer_nft_origyn low_fee_balance", ?caller));
                 };
+                ret;
               };
-            }
-
+              case (null) {ret};
+            };
           };
           
           case(_) return #err(Types.errors(?state.canistergeekLogger,  #nyi, "market_transfer_nft_origyn nyi pricing type", ?caller));
@@ -2745,19 +2759,7 @@ module {
           case(#err(err)){
             return #err(Types.errors(?state.canistergeekLogger,  err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller))
           };
-        };
-
-        let h = SHA256.New();
-        h.write(Conversions.candySharedToBytes(#Text("com.origyn.nft.sale-id")));
-        h.write(Conversions.candySharedToBytes(#Text("token-id")));
-        h.write(Conversions.candySharedToBytes(#Text(request.token_id)));
-        h.write(Conversions.candySharedToBytes(#Text("seller")));
-        h.write(Conversions.candySharedToBytes(#Nat(MigrationTypes.Current.account_hash_uncompressed(owner))));
-        h.write(Conversions.candySharedToBytes(#Text("timestamp")));
-        h.write(Conversions.candySharedToBytes(#Int(state.get_time())));
-        let sale_id = Conversions.candySharedToText(#Bytes(h.sum([])));
-
-        
+        };        
 
         var participants = Map.new<Principal, Int>();
         Map.set<Principal, Int>(participants, Map.phash, caller, state.get_time());
