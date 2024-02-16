@@ -4709,53 +4709,70 @@ module {
       debug if(debug_channel.bid) D.print("verifying Escrow");
       var verified = switch(verify_escrow_receipt(state, request.escrow_receipt, null, ?request.sale_id)){
           case(#err(err)){
-            //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
-            //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
-            if(canister_call == false){
+            //todo: make an exception here that if start_price and buy_now_price are 0 then it is verified.
+            if(dutch == false and current_sale_state.min_next_bid == 0 and buy_now_price == ?0){
+              {
+                found_asset = {
+                  token_spec = request.escrow_receipt.token;
+                  escrow = {request.escrow_receipt with 
+                  account_hash = null;
+                  lock_to_date = null;
+                  sale_id = ?request.sale_id;
+                  //token : TokenSpec__4
+                  };
+                }; 
+                found_asset_list = Map.new<MigrationTypes.Current.TokenSpec,MigrationTypes.Current.EscrowRecord>();
+              }
+            } else {
 
-              //not a canister call... trying to recognize escrow
-              
-              debug if(debug_channel.bid) D.print("Not a canister call, trying escrow");
-              state.canistergeekLogger.logMessage("bid_nft_origyn Not a canister call, trying recognize escrow " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
-              switch(Star.toResult(await* recognize_escrow_nft_origyn(state, { 
-              deposit = {request.escrow_receipt with
-                sale_id = ?request.sale_id;
-                trx_id = null;
-              };
-              lock_to_date = null;
-              token_id = request.escrow_receipt.token_id;
-              }, 
-              caller))){
-                case(#ok(val)){
-                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow succeeded " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
+              //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
+              //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
+              if(canister_call == false){
 
-                  debug if(debug_channel.bid) D.print("recognizing escrow was successful, recaling bid");
-                  return await* bid_nft_origyn(state, request, caller, true);
+                //not a canister call... trying to recognize escrow
+                
+                debug if(debug_channel.bid) D.print("Not a canister call, trying escrow");
+                state.canistergeekLogger.logMessage("bid_nft_origyn Not a canister call, trying recognize escrow " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
+                switch(Star.toResult(await* recognize_escrow_nft_origyn(state, { 
+                deposit = {request.escrow_receipt with
+                  sale_id = ?request.sale_id;
+                  trx_id = null;
                 };
-                case(#err(err)){
-                  state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show((request.escrow_receipt, request.sale_id, err.flag_point)) , #Option(null), null);
-                  if(debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
-                };
-              };
+                lock_to_date = null;
+                token_id = request.escrow_receipt.token_id;
+                }, 
+                caller))){
+                  case(#ok(val)){
+                    state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow succeeded " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
 
-              state.canistergeekLogger.logMessage("bid_nft_origyn attempting escrow from deposit " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
-
-              switch(await* escrow_nft_origyn(state,
-                  {deposit =
-                    {
-                      request.escrow_receipt with 
-                      sale_id = ?request.sale_id;
-                      trx_id = null;
-                    }; 
-                  lock_to_date = null; token_id = request.escrow_receipt.token_id}
-                , caller)){
-                  //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
-                  case(#trappable(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
-                  case(#awaited(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
-                  case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
-                  case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
+                    debug if(debug_channel.bid) D.print("recognizing escrow was successful, recaling bid");
+                    return await* bid_nft_origyn(state, request, caller, true);
+                  };
+                  case(#err(err)){
+                    state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show((request.escrow_receipt, request.sale_id, err.flag_point)) , #Option(null), null);
+                    if(debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
+                  };
                 };
-            } else return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller)))
+
+                state.canistergeekLogger.logMessage("bid_nft_origyn attempting escrow from deposit " #debug_show((request.escrow_receipt, request.sale_id)) , #Option(null), null);
+
+                switch(await* escrow_nft_origyn(state,
+                    {deposit =
+                      {
+                        request.escrow_receipt with 
+                        sale_id = ?request.sale_id;
+                        trx_id = null;
+                      }; 
+                    lock_to_date = null; token_id = request.escrow_receipt.token_id}
+                  , caller)){
+                    //we can't just continue here because the owner may have changed out from underneath us...safer to sart from the begining
+                    case(#trappable(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
+                    case(#awaited(newEscrow)) return await* bid_nft_origyn(state, request, caller, true);
+                    case(#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
+                    case(#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed " # err.flag_point, ?caller)));
+                  };
+              } else return #err(#awaited(Types.errors(?state.canistergeekLogger,  err.error, "bid_nft_origyn auto try escrow failed after canister call " # err.flag_point, ?caller)))
+            };
           };
           case(#ok(res)) res;
       };
