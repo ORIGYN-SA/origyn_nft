@@ -1384,22 +1384,21 @@ module {
         account : Types.Account; 
         token : Types.TokenSpec;
         sale_id : Text;
-    }) : Nat {
+    }) : Result.Result<Nat, Types.OrigynError> {
         return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
-            0;
+            return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - account not found  " # debug_show(request.account), null));
           };
           case(?val){
             switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
               case(null){
-                0;
+                return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - token not found  " # debug_show(request.token), null));
               };
               case(?token) {
                 let previous_balance : Nat = switch(Map.get<Text, Nat>(token.locks, Map.thash, request.sale_id)) {
                   case(?val) {val};
                   case(null) {
-                    // TODO RAISE ERROR
-                    0;
+                    return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - no fees locked for token" # debug_show(request.token), null));
                   };
                 };
                 // let new_balance : Nat = token.total_balance - previous_balance;
@@ -1412,7 +1411,7 @@ module {
                 //   locks = token.locks;
                 // });
 
-                return 0;
+                return #ok(token.total_balance);
               };
             };
           };
@@ -2678,10 +2677,6 @@ module {
             }
           };
           case(#ask(?val)){
-            //todo: This would be a good place to check the state.fee_deposit_balances for any fee_accounts that might be expected to make sure the seller still has the fees listed. We may wan to have some escape hatch such that if the amount is not there then the auction ends with the last highest bid or is cancled if no bid.  It will be easier for fixed auctions for us keep track of this.  We don't want to create a situation where a user creates an auction, we check for an expected fee and it is there, but then they with draw their fee_deposit and users are stuck bidding on an auction that can never settle.
-            //I guess I need to lock their fee deposit from being withdrawn if they have any open auctions.
-            //Rate will be interesting...we will likely have to calculate the max price they could sell for and force the buy_now to top out at that amount.
-
             let ret = switch(_get_ask_sale_detail(state, val, caller)){
               case(#ok(val)) val;
               case(#err(err)) return #err(err);
@@ -2689,20 +2684,23 @@ module {
 
             switch (ret.fee_accounts) {
               case (?fee_accounts) {
+                let fee_schema = ret.fee_schema;
+
                 let token_spec = if (fee_schema == Types.metadata.__system_ogy_fixed_royalty) {
                   NFTUtils.OGY();
                 } else {
                   ret.token;
                 };
-                let fee_schema = ret.fee_schema;
 
                 let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
                 // check if fund are provisioned by #fee_deposit
                 for ((royalties_name, account) in fee_accounts.vals()) {
+                  let fees = 0;  //TODO need fixed fees here, this feature is not available for no-fixed fees
+
                   switch (lock_token_fee_balance(state, {
                     account = account; 
                     token = token_spec;
-                    token_to_lock = 0; //TODO need fixed fees here, this feature is not available for no-fixed fees
+                    token_to_lock = fees;
                     sale_id = sale_id;
                   })) {
                     case (#ok(val)) {
