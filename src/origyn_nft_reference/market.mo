@@ -1335,11 +1335,13 @@ module {
     }) : Result.Result<Nat, Types.OrigynError> {
         return switch(Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)){
           case(null){
+            debug if(debug_channel.market) D.print("lock_token_fee_balance: lock_token_fee_balance - account not found  " # debug_show(request.account));
             return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - account not found  " # debug_show(request.account), null));
           };
           case(?val){
             switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
               case(null){
+                debug if(debug_channel.market) D.print("lock_token_fee_balance: lock_token_fee_balance - token not found  " # debug_show(request.token));
                 return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - token not found  " # debug_show(request.token), null));
               };
               case(?token) {
@@ -1348,7 +1350,9 @@ module {
                   all_locked_value += lock_value;
                 };
 
-                if (token.total_balance - all_locked_value > request.token_to_lock) {
+                debug if(debug_channel.market) D.print("lock_token_fee_balance: all_locked_value = " # debug_show(all_locked_value) # " token_to_lock " # debug_show(request.token_to_lock) );
+
+                if (token.total_balance - all_locked_value : Nat > request.token_to_lock) {
                   let _ = Map.put<Text, Nat>(token.locks, Map.thash, request.sale_id, request.token_to_lock);
 
                   return #ok(token.total_balance - (all_locked_value + request.token_to_lock));
@@ -1383,12 +1387,12 @@ module {
                 return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - token not found  " # debug_show(request.token), null));
               };
               case(?token) {
-                let previous_balance : Nat = switch(Map.get<Text, Nat>(token.locks, Map.thash, request.sale_id)) {
-                  case(?val) {val};
-                  case(null) {
-                    return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - no fees locked for token" # debug_show(request.token), null));
-                  };
-                };
+                // let previous_balance : Nat = switch(Map.get<Text, Nat>(token.locks, Map.thash, request.sale_id)) {
+                //   case(?val) {val};
+                //   case(null) {
+                //     return #err(Types.errors(?state.canistergeekLogger,  #content_not_found, "lock_token_fee_balance - no fees locked for token" # debug_show(request.token), null));
+                //   };
+                // };
                 // let new_balance : Nat = token.total_balance - previous_balance;
                 let _ = Map.remove<Text, Nat>(token.locks, Map.thash, request.sale_id);
 
@@ -2249,6 +2253,8 @@ module {
     };
 
     private func _load_fixed_royalty(royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
+      debug if(debug_channel.royalties) D.print("_load_fixed_royalty" # debug_show(royalty));
+
       let tag = switch(Properties.getClassPropertyShared(royalty, "tag")){
         case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing tag in fixed royalty  ", null)); };
         case(?val){
@@ -2752,17 +2758,27 @@ module {
             switch (ret.fee_accounts) {
               case (?fee_accounts) {
                 debug if(debug_channel.market) D.print("fee_accounts is set !");
-                if (ret.fee_schema != Types.metadata.__system_fixed_royalty) {
-                  debug if(debug_channel.market) D.print("but __system_fixed_royalty is not set -> error");
-                  return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn fee_accounts need fixed ogy fee_schema. Not compatible yet with default royalty schema.", ?caller));
+                let fee_schema : Text = switch (ret.fee_schema) {
+                  case (?val) {
+                    if (val != Types.metadata.__system_fixed_royalty) {
+                      debug if(debug_channel.market) D.print("but __system_fixed_royalty bad value, only com.origyn.royalties.fixed can be used -> error");
+                      return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn fee_accounts need fixed ogy fee_schema. Not compatible yet with default royalty schema.", ?caller));
+                    };
+                    val;
+                  };
+                  case (null) {
+                      debug if(debug_channel.market) D.print("but __system_fixed_royalty is not set -> error");
+                      return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn fee_accounts need fixed ogy fee_schema. Not compatible yet with default royalty schema.", ?caller));
+                  };
                 };
 
                 let royalties : [CandyTypes.CandyShared] = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                   case(null){[];};
                   case(?val){
-                    royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+                    royalty_to_array(val.value, fee_schema);
                   };
                 };
+                debug if(debug_channel.market) D.print("royalties = " # debug_show(royalties));
 
                 for(royalty in royalties.vals()){
                   let loaded_royalty = switch(_load_fixed_royalty(royalty)) {
@@ -2780,6 +2796,7 @@ module {
                   for ((royalties_name, account) in fee_accounts.vals()) {
                     let fees : Nat = Int.abs(Float.toInt(Float.ceil(loaded_royalty.fixedXDR)));
 
+                    debug if(debug_channel.market) D.print("royalties_name = " # debug_show(royalties_name) # " fees " # debug_show(fees) );
                     switch (lock_token_fee_balance(state, {
                       account = account; 
                       token = token_spec;
