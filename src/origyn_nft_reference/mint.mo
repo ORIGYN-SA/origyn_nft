@@ -1264,7 +1264,7 @@ module {
 
         metadata := updateRoyalty(metadata, Types.metadata.primary_royalties_default, Types.metadata.__system_primary_royalty);
         metadata := updateRoyalty(metadata, Types.metadata.secondary_royalties_default, Types.metadata.__system_secondary_royalty);
-        metadata := updateRoyalty(metadata, Types.metadata.ogy_fixed_royalties_default, Types.metadata.__system_ogy_fixed_royalty);
+        metadata := updateRoyalty(metadata, Types.metadata.fixed_royalties_default, Types.metadata.__system_fixed_royalty);
 
         var node_principal = switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_node)) {
             case (null) {

@@ -302,7 +302,6 @@ module {
         escrow_receipt : EscrowReceipt;
         sale_id : Text;
         broker_id : ?Principal;
-        // fee_schema : ?Text;
     };
 
     public type DistributeSaleRequest = {
@@ -1406,7 +1405,7 @@ module {
         __system_status : Text;
         __system_secondary_royalty : Text;
         __system_primary_royalty : Text;
-        __system_ogy_fixed_royalty : Text;
+        __system_fixed_royalty : Text;
         __system_node : Text;
         __system_originator : Text;
         __system_wallet_shares : Text;
@@ -1434,7 +1433,7 @@ module {
         primary_port: Text;
         primary_protocol: Text;
         primary_royalties_default : Text;
-        ogy_fixed_royalties_default : Text;
+        fixed_royalties_default : Text;
 
         originator_override : Text;
         royalty_broker : Text;
@@ -1452,7 +1451,7 @@ module {
         __system_status = "status";
         __system_secondary_royalty = "com.origyn.royalties.secondary";
         __system_primary_royalty = "com.origyn.royalties.primary";
-        __system_ogy_fixed_royalty = "com.origyn.royalties.ogy.fixed";
+        __system_fixed_royalty = "com.origyn.royalties.fixed";
         __system_node = "com.origyn.node";
         __system_originator = "com.origyn.originator";
         __system_wallet_shares = "com.origyn.wallet_shares";
@@ -1475,7 +1474,7 @@ module {
         preview_asset = "preview_asset";
         primary_royalties_default = "com.origyn.royalties.primary.default";
         secondary_royalties_default = "com.origyn.royalties.secondary.default";
-        ogy_fixed_royalties_default = "com.origyn.royalties.ogy.fixed.default";
+        fixed_royalties_default = "com.origyn.royalties.fixed.default";
         hidden_asset = "hidden_asset";
         is_soulbound = "is_soulbound";
         primary_host = "primary_host";

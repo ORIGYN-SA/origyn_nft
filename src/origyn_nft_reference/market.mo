@@ -44,7 +44,7 @@ module {
       ensure = false;
       invoice = false;
       end_sale = false;
-      market = false;
+      market = true;
       royalties = true;
       offers = false;
       escrow = true;
@@ -1194,25 +1194,13 @@ module {
               //log royalties
               //currently for auctions there are only secondary royalties
 
-              let royalty_fee_schema = switch (fee_schema) {
-                case (?val) {
-                  if (val == Types.metadata.__system_primary_royalty or val == Types.metadata.__system_secondary_royalty or val == Types.metadata.__system_ogy_fixed_royalty) {
-                    val;
-                  } else {
-                    Types.metadata.__system_secondary_royalty;
-                  };
-                };
-                case (null) {
-                  Types.metadata.__system_secondary_royalty;
-                };
-              };
-
               let royalty = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                 case(null){[];};
                 case(?val){
-                  royalty_to_array(val.value, royalty_fee_schema);
+                  royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
                 };
               };
+
 
               debug if(debug_channel.market) D.print("royalty is " # debug_show(royalty));
               
@@ -2260,6 +2248,83 @@ module {
       h.sum([]);
     };
 
+    private func _load_fixed_royalty(royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
+      let tag = switch(Properties.getClassPropertyShared(royalty, "tag")){
+        case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing tag in fixed royalty  ", null)); };
+        case(?val){
+            switch(val.value){
+              case(#Text(val)) val;
+              case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing tag in fixed royalty  ", null)); };
+            };
+        };
+      };
+
+      let fixedXDR = switch(Properties.getClassPropertyShared(royalty, "fixedXDR")){
+          case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing fixedXDR in fixed royalty  ", null)); };
+          case(?val){
+            switch(val.value){
+              case(#Float(val)) {val};
+              case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing fixedXDR in fixed royalty  ", null)); };
+            };
+          };
+        };
+
+      let tokenCanister : ?Principal = switch(Properties.getClassPropertyShared(royalty, "tokenCanister")){
+        case(null){null}; 
+        case(?val){
+            switch(val.value){
+              case(#Principal(val)) {?val};
+              case(_) null; 
+            };
+        };
+      };
+
+      let tokenSymbol : ?Text = switch(Properties.getClassPropertyShared(royalty, "tokenSymbol")){
+        case(null){null}; 
+        case(?val){
+            switch(val.value){
+              case(#Text(val)) {?val};
+              case(_) null; 
+            };
+        };
+      };
+
+      let tokenDecimals : ?Nat = switch(Properties.getClassPropertyShared(royalty, "tokenDecimals")){
+        case(null){null}; 
+        case(?val){
+            switch(val.value){
+              case(#Nat(val)) {?val};
+              case(_) null; 
+            };
+        };
+      };
+
+      let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null) {
+        switch (tokenCanister) {
+          case (?canisterId) {
+            ?#ic({
+              canister = canisterId;
+              decimals = Option.get<Nat>(tokenDecimals, 0);
+              fee = null;
+              id = null;
+              standard = #ICRC1;
+              symbol = Option.get<Text>(tokenSymbol, "");
+            });
+          };
+          case (null) {null};
+        };
+      } else {
+        null;
+      };
+
+      return #ok({
+        tag = tag;
+        fixedXDR = fixedXDR;
+        token = token;
+      });
+    };
+
+
     //handles royalty distribution
     private func _process_royalties(state : StateAccess, request : {
         var remaining: Nat;
@@ -2592,7 +2657,7 @@ module {
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
           fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
-          fee_schema: Text;
+          fee_schema: ?Text;
         } = switch(request.sales_config.pricing){
           case(#auction(auction_details)){
             
@@ -2658,7 +2723,7 @@ module {
               dutch = null;
               notify = [];
               fee_accounts = null;
-              fee_schema = Types.metadata.__system_secondary_royalty;
+              fee_schema = null;
             }
           };
           case(#ask(null)){
@@ -2673,51 +2738,71 @@ module {
               dutch = null;
               notify = [];
               fee_accounts = null;
-              fee_schema = Types.metadata.__system_secondary_royalty;
+              fee_schema = null;
             }
           };
           case(#ask(?val)){
+            debug if(debug_channel.market) D.print("load ask detail");
             let ret = switch(_get_ask_sale_detail(state, val, caller)){
               case(#ok(val)) val;
               case(#err(err)) return #err(err);
             };
 
+            debug if(debug_channel.market) D.print("checking fee_accounts parameters");
             switch (ret.fee_accounts) {
               case (?fee_accounts) {
-                let fee_schema = ret.fee_schema;
-
-                let token_spec = if (fee_schema == Types.metadata.__system_ogy_fixed_royalty) {
-                  NFTUtils.OGY();
-                } else {
-                  ret.token;
+                debug if(debug_channel.market) D.print("fee_accounts is set !");
+                if (ret.fee_schema != Types.metadata.__system_fixed_royalty) {
+                  debug if(debug_channel.market) D.print("but __system_fixed_royalty is not set -> error");
+                  return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn fee_accounts need fixed ogy fee_schema. Not compatible yet with default royalty schema.", ?caller));
                 };
 
-                let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
-                // check if fund are provisioned by #fee_deposit
-                for ((royalties_name, account) in fee_accounts.vals()) {
-                  let fees = 0;  //TODO need fixed fees here, this feature is not available for no-fixed fees
+                let royalties : [CandyTypes.CandyShared] = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
+                  case(null){[];};
+                  case(?val){
+                    royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+                  };
+                };
 
-                  switch (lock_token_fee_balance(state, {
-                    account = account; 
-                    token = token_spec;
-                    token_to_lock = fees;
-                    sale_id = sale_id;
-                  })) {
-                    case (#ok(val)) {
-                      tmp_locked_fees.add(account, token_spec, fees);
-                    };
-                    case (#err(err)) {
-                      for ((_account, _token_spec, fees) in tmp_locked_fees.vals()) {
-                        let _ = unlock_token_fee_balance(state, {
-                          account = _account; 
-                          token = _token_spec;
-                          sale_id = sale_id;
-                        });
+                for(royalty in royalties.vals()){
+                  let loaded_royalty = switch(_load_fixed_royalty(royalty)) {
+                    case (#ok(val)) { val;};
+                    case (#err(err)) { return #err(err);};
+                  };
+
+                  let token_spec = switch (loaded_royalty.token) {
+                    case (?val) { val; };
+                    case (_) { ret.token; };
+                  };
+
+                  let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.Account, MigrationTypes.Current.TokenSpec, Nat)>(5);
+                  // check if fund are provisioned by #fee_deposit
+                  for ((royalties_name, account) in fee_accounts.vals()) {
+                    let fees : Nat = Int.abs(Float.toInt(Float.ceil(loaded_royalty.fixedXDR)));
+
+                    switch (lock_token_fee_balance(state, {
+                      account = account; 
+                      token = token_spec;
+                      token_to_lock = fees;
+                      sale_id = sale_id;
+                    })) {
+                      case (#ok(val)) {
+                        tmp_locked_fees.add(account, token_spec, fees);
                       };
-                      return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "market_transfer_nft_origyn low_fee_balance", ?caller));
+                      case (#err(err)) {
+                        for ((_account, _token_spec, fees) in tmp_locked_fees.vals()) {
+                          let _ = unlock_token_fee_balance(state, {
+                            account = _account; 
+                            token = _token_spec;
+                            sale_id = sale_id;
+                          });
+                        };
+                        return #err(Types.errors(?state.canistergeekLogger,  #low_fee_balance, "market_transfer_nft_origyn low_fee_balance", ?caller));
+                      };
                     };
                   };
                 };
+
                 ret;
               };
               case (null) {ret};
@@ -2856,7 +2941,7 @@ module {
           allow_list : ?Map.Map<Principal, Bool>;
           notify : [Principal];
           fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
-          fee_schema : Text;
+          fee_schema : ?Text;
         }, Types.OrigynError>{
       //what does an escrow reciept do for an auction? Place a bid?
             //for now ignore
@@ -2922,19 +3007,19 @@ module {
               case(_){null};
             };
 
-            let fee_accounts = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_accounts)){
+            let fee_accounts : ?MigrationTypes.Current.FeeAccountsParams = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_accounts)){
               case(?#fee_accounts(val)){
                 ?val;
               };
               case(_){null};
             }; 
 
-            let fee_schema : Text = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_schema)){
+            let fee_schema : ?Text = switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #fee_schema)){
               case(?#fee_schema(val)){
-                val;
+                ?val;
               };
-              case(_){ Types.metadata.__system_secondary_royalty };
-            }; 
+              case(_){ null };
+            };
 
             let token : MigrationTypes.Current.TokenSpec= switch(Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #token)){
               case(?#token(val)){
