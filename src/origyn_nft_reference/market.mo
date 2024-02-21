@@ -787,7 +787,7 @@ module {
 
         //debug if(debug_channel.end_sale) D.print("current sale state " # debug_show(current_sale_state));
 
-        let {buy_now_price; start_date; fee_accounts; fee_schema;} = switch(current_sale_state.config){
+        let {buy_now_price; start_date; fee_accounts; fee_schema : ?Text;} = switch(current_sale_state.config){
           case(#auction(config)){
             {
               buy_now_price = config.buy_now;
@@ -1194,13 +1194,23 @@ module {
               //log royalties
               //currently for auctions there are only secondary royalties
 
+              let _fee_schema : Text = switch (fee_schema) {
+                case (?val) {
+                  if (val != Types.metadata.__system_fixed_royalty) {
+                    val;
+                  } else {
+                    Types.metadata.__system_secondary_royalty;
+                  };
+                };
+                case (null) {Types.metadata.__system_secondary_royalty};
+              };
+
               let royalty = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
                 case(null){[];};
                 case(?val){
-                  royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
+                  royalty_to_array(val.value, _fee_schema);
                 };
               };
-
 
               debug if(debug_channel.market) D.print("royalty is " # debug_show(royalty));
               
@@ -1213,6 +1223,7 @@ module {
                 var remaining = Nat.sub(winning_escrow.amount, fee_);
 
                 let royalty_result =  _process_royalties(state, {
+                  name = _fee_schema;
                   var remaining = remaining;
                   total = total;
                   fee = fee_;
@@ -2147,25 +2158,19 @@ module {
 
           debug if(debug_channel.market) D.print("calculating royalty" # debug_show(metadata));
 
-          let royalty = if(b_freshmint == false){
-            //secondary
-            switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
-              case(null){[];};
-              case(?val){
-                debug if(debug_channel.market) D.print("found metadata" # debug_show(val.value));
-                royalty_to_array(val.value, Types.metadata.__system_secondary_royalty);
-              };
-            };
+          let _fee_schema : Text = if(b_freshmint == false){
+            Types.metadata.__system_secondary_royalty;
           } else {
-            //primary
-            switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
+            Types.metadata.__system_primary_royalty;
+          };
+
+          let royalty = switch(Properties.getClassPropertyShared(metadata, Types.metadata.__system)){
               case(null){[];};
               case(?val){
                 debug if(debug_channel.market) D.print("found metadata" # debug_show(val.value));
-                royalty_to_array(val.value, Types.metadata.__system_primary_royalty);
+                royalty_to_array(val.value, _fee_schema);
               };
             };
-          };
 
           debug if(debug_channel.market) D.print("royalty is " # debug_show(royalty));
           //note: this code path is always taken since checker.transferSale requires it or errors
@@ -2177,6 +2182,7 @@ module {
 
             debug if(debug_channel.royalties) D.print("calling process royalty" # debug_show((total,remaining)));
             let royalty_result = _process_royalties(state, {
+                name = _fee_schema;
                 var remaining = remaining;
                 total = total;
                 fee = fee;
@@ -2252,82 +2258,98 @@ module {
       h.sum([]);
     };
 
-    private func _load_fixed_royalty(royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
-      debug if(debug_channel.royalties) D.print("_load_fixed_royalty" # debug_show(royalty));
-
+    private func _load_royalty(fee_schema:Text, royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
+      debug if(debug_channel.royalties) D.print("_load_royalty" # debug_show(royalty));
       let tag = switch(Properties.getClassPropertyShared(royalty, "tag")){
-        case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing tag in fixed royalty  ", null)); };
+        case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing tag in royalty  ", null)); };
         case(?val){
             switch(val.value){
               case(#Text(val)) val;
-              case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing tag in fixed royalty  ", null)); };
+              case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing tag in royalty  ", null)); };
             };
         };
       };
 
-      let fixedXDR = switch(Properties.getClassPropertyShared(royalty, "fixedXDR")){
-          case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing fixedXDR in fixed royalty  ", null)); };
+      if (fee_schema == Types.metadata.__system_fixed_royalty) {
+        let fixedXDR = switch(Properties.getClassPropertyShared(royalty, "fixedXDR")){
+            case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null)); };
+            case(?val){
+              switch(val.value){
+                case(#Float(val)) {val};
+                case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null)); };
+              };
+            };
+          };
+
+        let tokenCanister : ?Principal = switch(Properties.getClassPropertyShared(royalty, "tokenCanister")){
+          case(null){null}; 
           case(?val){
-            switch(val.value){
-              case(#Float(val)) {val};
-              case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_fixed_royalty - missing fixedXDR in fixed royalty  ", null)); };
-            };
+              switch(val.value){
+                case(#Principal(val)) {?val};
+                case(_) null; 
+              };
           };
         };
 
-      let tokenCanister : ?Principal = switch(Properties.getClassPropertyShared(royalty, "tokenCanister")){
-        case(null){null}; 
-        case(?val){
-            switch(val.value){
-              case(#Principal(val)) {?val};
-              case(_) null; 
-            };
-        };
-      };
-
-      let tokenSymbol : ?Text = switch(Properties.getClassPropertyShared(royalty, "tokenSymbol")){
-        case(null){null}; 
-        case(?val){
-            switch(val.value){
-              case(#Text(val)) {?val};
-              case(_) null; 
-            };
-        };
-      };
-
-      let tokenDecimals : ?Nat = switch(Properties.getClassPropertyShared(royalty, "tokenDecimals")){
-        case(null){null}; 
-        case(?val){
-            switch(val.value){
-              case(#Nat(val)) {?val};
-              case(_) null; 
-            };
-        };
-      };
-
-      let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null) {
-        switch (tokenCanister) {
-          case (?canisterId) {
-            ?#ic({
-              canister = canisterId;
-              decimals = Option.get<Nat>(tokenDecimals, 0);
-              fee = null;
-              id = null;
-              standard = #ICRC1;
-              symbol = Option.get<Text>(tokenSymbol, "");
-            });
+        let tokenSymbol : ?Text = switch(Properties.getClassPropertyShared(royalty, "tokenSymbol")){
+          case(null){null}; 
+          case(?val){
+              switch(val.value){
+                case(#Text(val)) {?val};
+                case(_) null; 
+              };
           };
-          case (null) {null};
         };
+
+        let tokenDecimals : ?Nat = switch(Properties.getClassPropertyShared(royalty, "tokenDecimals")){
+          case(null){null}; 
+          case(?val){
+              switch(val.value){
+                case(#Nat(val)) {?val};
+                case(_) null; 
+              };
+          };
+        };
+
+        let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null) {
+          switch (tokenCanister) {
+            case (?canisterId) {
+              ?#ic({
+                canister = canisterId;
+                decimals = Option.get<Nat>(tokenDecimals, 0);
+                fee = null;
+                id = null;
+                standard = #ICRC1;
+                symbol = Option.get<Text>(tokenSymbol, "");
+              });
+            };
+            case (null) {null};
+          };
+        } else {
+          null;
+        };
+
+        return #ok(#fixed({
+          tag = tag;
+          fixedXDR = fixedXDR;
+          token = token;
+        }));
       } else {
-        null;
-      };
+        let rate = switch(Properties.getClassPropertyShared(royalty, "rate")){
+          case(null) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null)); };
+          case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) { return #err(Types.errors(null,  #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null)); };
+              };
+          };
+        };
 
-      return #ok({
-        tag = tag;
-        fixedXDR = fixedXDR;
-        token = token;
-      });
+        return #ok(#dynamic({
+          tag = tag;
+          rate = rate;
+        }));
+      };
     };
 
 
@@ -2346,6 +2368,7 @@ module {
         token_id: ?Text;
         token: Types.TokenSpec;
         fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
+        fee_schema: Text;
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
       let dev_fund : {owner: Principal; sub_account: ?Blob;} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?Blob.fromArray([90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79])};
@@ -2361,32 +2384,23 @@ module {
         };
 
         debug if(debug_channel.royalties) D.print("getting items from class " # debug_show(this_item));
+
+        let loaded_royalty = switch(_load_royalty(fee_schema, royalty)) {
+          case (#ok(val))  { val;               };
+          case (#err(err)) { return #err(err);  };
+        };
+
+        let tag = switch(loaded_royalty) {
+          case (#fixed(val))   { val.tag; };
+          case (#dynamic(val)) { val.tag; };
+        };
               
-        let rate = switch(Properties.getClassPropertyShared(this_item, "rate")){
-          case(null){0:Float};
-          case(?val){
-            switch(val.value){
-              case(#Float(val)) val;
-              case(_) 0:Float;
-            };
-          };
-        };
-
-        let tag = switch(Properties.getClassPropertyShared(this_item, "tag")){
-          case(null){"other"}; 
-          case(?val){
-              switch(val.value){
-                case(#Text(val)) val;
-                case(_) "other"; 
-              };
-          };
-        };
-
         let fee_accounts : MigrationTypes.Current.FeeAccountsParams = switch (request.fee_accounts) {
             case(?val) val;
             case(null) [];
         };
 
+        // TODO USE FEES ESCROW
         let tmp_principal : [{owner: Principal; sub_account: ?Blob;}] = if (fee_accounts.size() > 0) {
               switch (Array.find<(Text, MigrationTypes.Current.Account)>(fee_accounts, func (val) { return val.0 == tag; })) {
                 case(?val) {
@@ -2477,9 +2491,23 @@ module {
             };
           };
 
-        debug if(debug_channel.royalties) D.print("have vals" # debug_show((rate, tag, principal)));
+        let total_royalty = switch(loaded_royalty) {
+          case (#fixed(val))   { val.fixedXDR; };
+          case (#dynamic(val)) { (request.total * Int.abs(Float.toInt(val.rate * 1_000_000)))/1_000_000; };
+        };
 
-        let total_royalty = (request.total * Int.abs(Float.toInt(rate * 1_000_000)))/1_000_000;
+        let royalty_token : ?TokenSpec = switch(loaded_royalty) {
+          case (#fixed(val))   { 
+            // need fee_accounts to be set
+            if (fee_accounts.size() > 0) {
+              val.token; 
+            } else {
+              D.trap("process royalties cannot find fee_accounts buy fee_schema is set to fixed royalty schema. this should not happen");
+              null
+            };
+          };
+          case (_) { null; };
+        };
 
         debug if(debug_channel.royalties) D.print("test royalty" # debug_show((total_royalty, principal)));
         for(this_principal in principal.vals()){
@@ -2780,9 +2808,18 @@ module {
                 };
                 debug if(debug_channel.market) D.print("royalties = " # debug_show(royalties));
 
-                for(royalty in royalties.vals()){
-                  let loaded_royalty = switch(_load_fixed_royalty(royalty)) {
-                    case (#ok(val)) { val;};
+                for(royalty in royalties.vals()) {
+                  let loaded_royalty = switch(_load_royalty(fee_schema, royalty)) {
+                    case (#ok(val)) { 
+                      switch (val) {
+                        case (#fixed(v)) {v;};
+                        // case (#dynamic(v)) {v;}; TODO not available now
+                        case (_) {
+                          debug if(debug_channel.market) D.print("but __system_fixed_royalty is not set -> error");
+                          return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn fee_accounts need fixed ogy fee_schema. Not compatible yet with default royalty schema.", ?caller));
+                        };
+                      };
+                    };
                     case (#err(err)) { return #err(err);};
                   };
 

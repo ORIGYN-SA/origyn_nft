@@ -286,9 +286,15 @@ module {
   public type AskConfigShared = ?[AskFeature];
 
   public type Royalty = {
-    tag: Text;
-    fixedXDR: Float;
-    token : ?TokenSpec;
+    #fixed : {
+      tag: Text;
+      fixedXDR: Float;
+      token : ?TokenSpec;
+    };
+    #dynamic : {
+      tag: Text;
+      rate: Float;
+    };
   };
 
 public func ask_feature_set_eq (a: AskFeatureKey, b: AskFeatureKey) : Bool {
