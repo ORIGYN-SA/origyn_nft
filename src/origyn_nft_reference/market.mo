@@ -1223,7 +1223,6 @@ module {
                 var remaining = Nat.sub(winning_escrow.amount, fee_);
 
                 let royalty_result =  _process_royalties(state, {
-                  name = _fee_schema;
                   var remaining = remaining;
                   total = total;
                   fee = fee_;
@@ -1236,7 +1235,6 @@ module {
                   metadata = metadata;
                   token_id = ?token_id;
                   token = winning_escrow.token;
-                  fee_accounts = fee_accounts;
                 }, caller);
 
                 remaining := royalty_result.0;
@@ -2182,7 +2180,6 @@ module {
 
             debug if(debug_channel.royalties) D.print("calling process royalty" # debug_show((total,remaining)));
             let royalty_result = _process_royalties(state, {
-                name = _fee_schema;
                 var remaining = remaining;
                 total = total;
                 fee = fee;
@@ -2195,7 +2192,6 @@ module {
                 metadata = metadata;
                 token_id = ?request.token_id;
                 token = escrow.token;
-                fee_accounts = null; // not sure here 
             }, caller);
 
             remaining := royalty_result.0;
@@ -2367,8 +2363,6 @@ module {
         metadata : CandyTypes.CandyShared;
         token_id: ?Text;
         token: Types.TokenSpec;
-        fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
-        fee_schema: Text;
     }, caller: Principal) : (Nat, [Types.EscrowRecord]){
 
       let dev_fund : {owner: Principal; sub_account: ?Blob;} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?Blob.fromArray([90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79])};
@@ -2385,129 +2379,98 @@ module {
 
         debug if(debug_channel.royalties) D.print("getting items from class " # debug_show(this_item));
 
-        let loaded_royalty = switch(_load_royalty(fee_schema, royalty)) {
-          case (#ok(val))  { val;               };
-          case (#err(err)) { return #err(err);  };
-        };
-
-        let tag = switch(loaded_royalty) {
-          case (#fixed(val))   { val.tag; };
-          case (#dynamic(val)) { val.tag; };
-        };
-              
-        let fee_accounts : MigrationTypes.Current.FeeAccountsParams = switch (request.fee_accounts) {
-            case(?val) val;
-            case(null) [];
-        };
-
-        // TODO USE FEES ESCROW
-        let tmp_principal : [{owner: Principal; sub_account: ?Blob;}] = if (fee_accounts.size() > 0) {
-              switch (Array.find<(Text, MigrationTypes.Current.Account)>(fee_accounts, func (val) { return val.0 == tag; })) {
-                case(?val) {
-                  switch (val.1){
-                    case(#account(x)) {[x];};
-                    case(_) {[];}; // TODO CHECK WITH AUSTIN 
-                  };
-                };
-                case(null){[]}; 
-              };
-            } else {
-              [];
+        let rate = switch(Properties.getClassPropertyShared(this_item, "rate")){
+          case(null){0:Float};
+          case(?val){
+            switch(val.value){
+              case(#Float(val)) val;
+              case(_) 0:Float;
             };
+          };
+        };
+
+        let tag = switch(Properties.getClassPropertyShared(this_item, "tag")){
+          case(null){"other"}; 
+          case(?val){
+              switch(val.value){
+                case(#Text(val)) val;
+                case(_) "other"; 
+              };
+          };
 
         var principal : [{owner: Principal; sub_account: ?Blob;}] = 
-          if (tmp_principal.size() > 0) {
-            tmp_principal;
-          } else {
-            switch(Properties.getClassPropertyShared(this_item, "account")){
-                case(null){
-                  let #ic(tokenSpec) = request.token else {
-                    debug if(debug_channel.royalties) D.print("not an IC token spec so continuing " # debug_show(request.token));
-                    continue royaltyLoop;
-                  }; //we only support ic token specs for royalties
-                  if(tag == Types.metadata.royalty_network){
-                    debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
-                    switch(state.state.collection_data.network){
-                      case(null) [dev_fund] ; //dev fund
-                      case(?val) [{owner = val; sub_account = ?Blob.fromArray(get_network_royalty_account(tokenSpec.canister,tokenSpec.id))}] ;
-                    };
-                  } else if(tag == Types.metadata.royalty_node){
-                    let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
-                    switch(val){
-                      case(#Option(null)) [dev_fund] ; //dev fund
-                      case(#Principal(val)) [{owner = val; sub_account = null;}];
-                      case(_) [dev_fund];
-                    };
-                  } else if(tag == Types.metadata.royalty_originator){
-                    let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
-                    switch(val){
-                      case(#Option(null)) [dev_fund]; //dev fund
-                      case(#Principal(val)) [{owner = val; sub_account = null;}];
-                      case(_) [dev_fund] ;
-                    };
-                  } else if(tag == Types.metadata.royalty_broker){
-                    switch(request.broker_id, request.original_broker_id){
-                      case(null, null){ 
-                        let ?collection = Map.get(state.state.nft_metadata, Map.thash,"") else {
-                          state.canistergeekLogger.logMessage("process royalties cannot find collection metatdata. this should not happene" # debug_show(request.token_id), #Bool(false), null);
-                          D.trap("process royalties cannot find collection metatdata. this should not happen");
-                        };
-
-                        let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
-                          case(#ok(val)) val;
-                          case(_) {
-                            state.canistergeekLogger.logMessage("_process_royalties overriding error candy type" # debug_show(collection) # debug_show(request.token_id), #Bool(false), null);
-                            false};
-                        };
-
-                        
-
-                        if(override){
-                          state.canistergeekLogger.logMessage("_process_royalties overriding " # debug_show(request.token_id), #Bool(override), null);
-                          continue royaltyLoop;
-                        };
-
-                        state.canistergeekLogger.logMessage("_process_royalties override result using dev fund" # debug_show(request.token_id), #Bool(override), null);
-                        
-                        [dev_fund]
-                      }; //dev fund
-                      case(?val, null) [{owner = val; sub_account = null;}];
-                      case(null, ?val2) [{owner = val2; sub_account = null;}];
-                      case(?val, ?val2){
-                        if(val == val2) [{owner = val; sub_account = null;}]
-                        else [{owner = val; sub_account = null;}, {owner = val2; sub_account = null;}];
+          switch(Properties.getClassPropertyShared(this_item, "account")){
+              case(null){
+                let #ic(tokenSpec) = request.token else {
+                  debug if(debug_channel.royalties) D.print("not an IC token spec so continuing " # debug_show(request.token));
+                  continue royaltyLoop;
+                }; //we only support ic token specs for royalties
+                if(tag == Types.metadata.royalty_network){
+                  debug if(debug_channel.royalties) D.print("found the network" # debug_show(get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
+                  switch(state.state.collection_data.network){
+                    case(null) [dev_fund] ; //dev fund
+                    case(?val) [{owner = val; sub_account = ?Blob.fromArray(get_network_royalty_account(tokenSpec.canister,tokenSpec.id))}] ;
+                  };
+                } else if(tag == Types.metadata.royalty_node){
+                  let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
+                  switch(val){
+                    case(#Option(null)) [dev_fund] ; //dev fund
+                    case(#Principal(val)) [{owner = val; sub_account = null;}];
+                    case(_) [dev_fund];
+                  };
+                } else if(tag == Types.metadata.royalty_originator){
+                  let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
+                  switch(val){
+                    case(#Option(null)) [dev_fund]; //dev fund
+                    case(#Principal(val)) [{owner = val; sub_account = null;}];
+                    case(_) [dev_fund] ;
+                  };
+                } else if(tag == Types.metadata.royalty_broker){
+                  switch(request.broker_id, request.original_broker_id){
+                    case(null, null){ 
+                      let ?collection = Map.get(state.state.nft_metadata, Map.thash,"") else {
+                        state.canistergeekLogger.logMessage("process royalties cannot find collection metatdata. this should not happene" # debug_show(request.token_id), #Bool(false), null);
+                        D.trap("process royalties cannot find collection metatdata. this should not happen");
                       };
+
+                      let override = switch(Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)){
+                        case(#ok(val)) val;
+                        case(_) {
+                          state.canistergeekLogger.logMessage("_process_royalties overriding error candy type" # debug_show(collection) # debug_show(request.token_id), #Bool(false), null);
+                          false};
+                      };
+
+                      
+
+                      if(override){
+                        state.canistergeekLogger.logMessage("_process_royalties overriding " # debug_show(request.token_id), #Bool(override), null);
+                        continue royaltyLoop;
+                      };
+
+                      state.canistergeekLogger.logMessage("_process_royalties override result using dev fund" # debug_show(request.token_id), #Bool(override), null);
+                      
+                      [dev_fund]
+                    }; //dev fund
+                    case(?val, null) [{owner = val; sub_account = null;}];
+                    case(null, ?val2) [{owner = val2; sub_account = null;}];
+                    case(?val, ?val2){
+                      if(val == val2) [{owner = val; sub_account = null;}]
+                      else [{owner = val; sub_account = null;}, {owner = val2; sub_account = null;}];
                     };
-                  } else { 
-                    [dev_fund]; //dev fund
                   };
-                };  //dev fund
-                case(?val){
-                  switch(val.value){
-                      case(#Principal(val)) [{owner = val; sub_account = null;}];
-                      case(_) [dev_fund]; //dev fund
-                  };
+                } else { 
+                  [dev_fund]; //dev fund
                 };
-            };
+              };  //dev fund
+              case(?val){
+                switch(val.value){
+                    case(#Principal(val)) [{owner = val; sub_account = null;}];
+                    case(_) [dev_fund]; //dev fund
+                };
+              };
           };
 
-        let total_royalty = switch(loaded_royalty) {
-          case (#fixed(val))   { val.fixedXDR; };
-          case (#dynamic(val)) { (request.total * Int.abs(Float.toInt(val.rate * 1_000_000)))/1_000_000; };
-        };
-
-        let royalty_token : ?TokenSpec = switch(loaded_royalty) {
-          case (#fixed(val))   { 
-            // need fee_accounts to be set
-            if (fee_accounts.size() > 0) {
-              val.token; 
-            } else {
-              D.trap("process royalties cannot find fee_accounts buy fee_schema is set to fixed royalty schema. this should not happen");
-              null
-            };
-          };
-          case (_) { null; };
-        };
+        let total_royalty = (request.total * Int.abs(Float.toInt(rate * 1_000_000)))/1_000_000;
 
         debug if(debug_channel.royalties) D.print("test royalty" # debug_show((total_royalty, principal)));
         for(this_principal in principal.vals()){

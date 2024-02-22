@@ -2517,6 +2517,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
         };
 
         D.print("sellerFeeDepositAccount = " # debug_show(sellerFeeDepositAccount));
+        
         let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
             #reserve(10 * 10 ** 8),
             #token(#ic({
