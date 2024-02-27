@@ -1270,7 +1270,8 @@ module {
                   fee_accounts = fee_accounts;
                   fee_schema = _fee_schema;
                 }, caller)) {
-                  case(#ok(val)) { val; };
+                  case(#trappable(val)) { val; };
+                  case(#awaited(val)) { val; };
                   case(#err(err)) { return #err(#awaited(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "end_sale_nft_origyn - error _process_royalties ", ?caller))); };
                 };
 
@@ -2217,7 +2218,7 @@ module {
 
             debug if(debug_channel.royalties) D.print("calling process royalty" # debug_show((total,remaining)));
 
-            let royalty_result =  switch(_process_royalties(state, {
+            let royalty_result =  switch(Star.toResult(_process_royalties(state, {
                 name = _fee_schema;
                 var remaining = remaining;
                 total = total;
@@ -2233,7 +2234,7 @@ module {
                 token = escrow.token;
                 fee_accounts = null; // not sure here 
                 fee_schema = _fee_schema;
-              }, caller)) {
+              }, caller))) {
                 case(#ok(val)) { val; };
                 case(#err(err)) { return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "market_transfer_nft_origyn - error _process_royalties ", ?caller)); };
               };
@@ -2409,13 +2410,14 @@ module {
         token: Types.TokenSpec;
         fee_accounts: ?MigrationTypes.Current.FeeAccountsParams;
         fee_schema: Text;
-    }, caller: Principal) : Result.Result<(Nat, [Types.EscrowRecord]),Types.OrigynError>{
+    }, caller: Principal) : async* Star.Star<(Nat, [Types.EscrowRecord]),Types.OrigynError>{
 
       let dev_fund : {owner: Principal; sub_account: ?Blob;} = {owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai"); sub_account = ?Blob.fromArray([90,139,65,137,126,28,225,88,245,212,115,206,119,123,54,216,86,30,91,21,25,35,79,182,234,229,219,103,248,132,25,79])};
 
       debug if(debug_channel.royalties) D.print("in process royalty" # debug_show(request));
 
       let results = Buffer.Buffer<Types.EscrowRecord>(1);
+      var awaited = false;
 
       label royaltyLoop for(this_item in request.royalty.vals()){
         let the_array = switch(this_item){
@@ -2427,7 +2429,13 @@ module {
 
         let loaded_royalty = switch(_load_royalty(request.fee_schema, this_item)) {
           case (#ok(val))  { val;};
-          case (#err(err)) { return #err(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller));  };
+          case (#err(err)) { 
+            if (awaited == true) {
+              return #err(#awaited(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller)));  
+            } else {
+              return #err(#trappable(Types.errors(?state.canistergeekLogger,  #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller)));  
+            };
+          };
         };
 
         let tag = switch(loaded_royalty) {
@@ -2532,49 +2540,47 @@ module {
                           this_principal
                         };
 
-                        let _token_id = switch(token_id){
-                            case(null) null;
-                            case(?val) ?val;
+                        let _token_id = switch(request.token_id){
+                            case(null) "";
+                            case(?val) val;
                           };
 
-                        let _escrow = request.escrow.clone();
-                        let _escrow.buyer = fee_accounts_set;
-                        let _escrow.seller = send_account;
-                        let _escrow.amount = this_royalty;
-                        let _escrow.token_id = _token_id; // TODO AUSTIN, what is the token id here ?
-                        let _escrow.token = switch(loaded_royalty) {
-                          case (#fixed(val))   {
-                            switch (val.token) {
-                              case (?_token) {_token;};
-                              case (_) {request.escrow.token;};
-                            }
+                        var _escrow : Types.EscrowReceipt = {request.escrow with
+                          buyer = #account(fee_accounts_set);
+                          seller = #account(send_account);
+                          amount = this_royalty;
+                          token_id = _token_id; // TODO AUSTIN, what is the token id here ?
+                          token = switch(loaded_royalty) {
+                            case (#fixed(val))   {
+                              switch (val.token) {
+                                case (?_token) {_token;};
+                                case (_) {request.escrow.token;};
+                              }
+                            };
+                            case (#dynamic(_)) { request.escrow.token; };
                           };
-                          case (#dynamic(_)) { request.escrow.token; };
                         };
 
                         let checker = Ledger_Interface.Ledger_Interface();
-                        try {
-                          // TODO GWOJDA create here a internal function and 2 wrappers, one for transfer_sale and one for transfer_fees
-                          // and change this      
-                          // let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info(basic_info, host);
-                          // let sale_account_info = NFTUtils.get_sale_account_info(basic_info, host);
-
-                          switch(await* checker.transfer_sale(state.canister(), _escrow, _token_id, caller)){
-                              case(#ok(val)){
-                              };
-                              case(#err(err)){
-                              };
-                          };
-                        } 
-                        catch(e){
+                        
+                        switch(await* checker.transfer_fees(state.canister(), _escrow, _token_id, caller)){
+                            case(#awaited(val)){
+                              awaited = true;
+                              // stack in pending transfer
+                            };
+                            case(#trappable(val)){
+                              // stack in pending transfer
+                            };
+                            case(#err(err)){
+                              // rollback pending transfer
+                            };
                         };
 
                         let id = Metadata.add_transaction_record(state, {
                           token_id = request.escrow.token_id;
                           index = 0;
                           txn_type = #royalty_paid {
-                            request.escrow with 
-                            amount = this_royalty;
+                            _escrow with 
                             tag = tag;
                             receiver = #account({ owner = send_account.owner;
                             sub_account = switch(send_account.sub_account){
@@ -2594,8 +2600,7 @@ module {
                         debug if(debug_channel.royalties) D.print("added trx" # debug_show(id));
 
                         let newReciept = {
-                          request.escrow with 
-                          amount = this_royalty;
+                          _escrow with 
                           seller = #account(
                             { owner = send_account.owner;
                               sub_account = switch(send_account.sub_account){
@@ -2611,12 +2616,9 @@ module {
                         results.add(newReciept);
                         debug if(debug_channel.royalties) D.print("new_sale_balance" # debug_show(newReciept));
                       } else {
-                          //can't pay out if less than fee
+                          // should never happend has token are locks
                       };
                     };
-
-
-
                 };
                 case(_) {}; // TODO CHECK WITH AUSTIN 
               };
@@ -2689,7 +2691,11 @@ module {
           };
         };
       };
-      return #ok(request.remaining, Buffer.toArray(results));
+      if (awaited == true) {
+        return #awaited(request.remaining, Buffer.toArray(results));
+      } else {
+        return #trappable(request.remaining, Buffer.toArray(results));
+      };
     };
 
     //handles non-async market functions like starting an auction

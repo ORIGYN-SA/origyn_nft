@@ -243,6 +243,87 @@ class Ledger_Interface() {
     } catch (e) return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(request), ?caller)));
   };
 
+  private func _transfer( host: Principal, escrow : Types.EscrowReceipt, token_id : Text, caller: Principal, from_account_info : Types.SubAccountInfo, to_account_info : Types.SubAccountInfo) : async* Star.Star<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+    debug if(debug_channel.sale) D.print("sale info used " # debug_show(to_account_info));
+
+    let ledger = switch(escrow.token){
+        case(#ic(detail)){
+            detail;
+        };
+        case(_){
+            return #err(#trappable(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(escrow), ?caller)));
+        }
+    };
+
+    let ledger_fee = Option.get(ledger.fee, 0);
+
+    if(escrow.amount <= ledger_fee){
+        return #err(#trappable(Types.errors(null,  #improper_interface, "ledger_interface - amount is equal or less than fee - not ic" # debug_show(escrow), ?caller)));
+     
+    };
+
+    try{
+        debug if(debug_channel.sale) D.print("sending transfer blocks # " # debug_show((Nat.sub(escrow.amount, ledger_fee), to_account_info.account.sub_account) ));
+        
+        let result = await* transfer({
+            ledger = ledger.canister;
+            to = host;
+            amount = escrow.amount - ledger_fee;
+            fee = ledger_fee;
+            memo = ?Conversion.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id))); // TODO AUSTIN check with austin here, what to do
+            caller = caller;
+            to_subaccount = ?Blob.toArray(from_account_info.account.sub_account);
+            from_subaccount = ?Blob.toArray(to_account_info.account.sub_account);
+            //created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))}
+        });
+
+        let result_block = switch(result){
+            case(#ok(val)){
+                debug if(debug_channel.sale) D.print("sending to sale account was succesful" # debug_show(val));
+                val;
+            };
+            case(#err(err)){
+                return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show(escrow) # " " # debug_show(err), ?caller)));
+            };
+        };
+
+        return #awaited(result_block, to_account_info, Option.get(ledger.fee,0));
+
+    } catch (e){
+        return #err(#awaited(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(escrow), ?caller)));
+    };
+  };
+
+  /**
+  * @param {Principal} host - the principal hosting the ledger
+  * @param {Types.EscrowReceipt} escrow - the escrow receipt object
+  * @param {Text} token_id - the id of the token
+  * @param {Principal} caller - the principal making the call
+  * @returns {async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError>} a result object containing the transaction ID, subaccount info, and fee or an error object
+  */
+  public func transfer_fees( host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async* Star.Star<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+    debug if(debug_channel.sale) D.print("in transfer_sale ledger fees");
+    debug if(debug_channel.sale) D.print(Principal.toText(host));
+    debug if(debug_channel.sale) D.print(debug_show(escrow));
+
+    //nyi: an extra layer of security?
+
+    debug if(debug_channel.sale) D.print("in transfer fees" # token_id # debug_show(Time.now()));
+
+    let basic_info = {
+          amount = escrow.amount;
+          buyer = escrow.buyer;
+          seller = escrow.seller;
+          token = escrow.token;
+          token_id = escrow.token_id;
+      };
+
+    let fees_account_info : Types.SubAccountInfo = NFTUtils.get_fee_deposit_account_info(basic_info.seller, host);
+    let sale_account_info = NFTUtils.get_sale_account_info(basic_info, host);
+
+    return await* _transfer(host, escrow, token_id, caller, fees_account_info, sale_account_info);
+  };
+
   //allows a user to withdraw money from a sale
   /**
   * allows a user to withdraw money from a sale
@@ -252,76 +333,25 @@ class Ledger_Interface() {
   * @param {Principal} caller - the principal making the call
   * @returns {async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError>} a result object containing the transaction ID, subaccount info, and fee or an error object
   */
-  public func transfer_sale( host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
-                    debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
-                    debug if(debug_channel.sale) D.print(Principal.toText(host));
-                    debug if(debug_channel.sale) D.print(debug_show(escrow));
+  public func transfer_sale( host: Principal, escrow : Types.EscrowReceipt,  token_id : Text, caller: Principal) : async* Star.Star<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
+    debug if(debug_channel.sale) D.print("in transfer_sale ledger sale");
+    debug if(debug_channel.sale) D.print(Principal.toText(host));
+    debug if(debug_channel.sale) D.print(debug_show(escrow));
 
-     //nyi: an extra layer of security?
+    debug if(debug_channel.sale) D.print("in transfer sale" # token_id # debug_show(Time.now()));
 
-     debug if(debug_channel.sale) D.print("in transfer sale" # token_id # debug_show(Time.now()));
+    let basic_info = {
+          amount = escrow.amount;
+          buyer = escrow.buyer;
+          seller = escrow.seller;
+          token = escrow.token;
+          token_id = escrow.token_id;
+      };
 
-     let basic_info = {
-            amount = escrow.amount;
-            buyer = escrow.buyer;
-            seller = escrow.seller;
-            token = escrow.token;
-            token_id = escrow.token_id;
-        };
-
-     let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info(basic_info, host);
-
+    let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info(basic_info, host);
     let sale_account_info = NFTUtils.get_sale_account_info(basic_info, host);
 
-                         debug if(debug_channel.sale) D.print("sale info used " # debug_show(sale_account_info));
-
-    let ledger = switch(escrow.token){
-        case(#ic(detail)){
-            detail;
-        };
-        case(_){
-            return #err(Types.errors(null,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(escrow), ?caller));
-        }
-    };
-
-    let ledger_fee = Option.get(ledger.fee, 0);
-
-    if(escrow.amount <= ledger_fee){
-        return #err(Types.errors(null,  #improper_interface, "ledger_interface - amount is equal or less than fee - not ic" # debug_show(escrow), ?caller));
-     
-    };
-
-    try{
-                         debug if(debug_channel.sale) D.print("sending transfer blocks # " # debug_show((Nat.sub(escrow.amount, ledger_fee), sale_account_info.account.sub_account) ));
-
-        debug if(debug_channel.sale)D.print("memo will be com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id);
-        let result = await* transfer({
-            ledger = ledger.canister;
-            to = host;
-            amount = escrow.amount - ledger_fee;
-            fee = ledger_fee;
-            memo = ?Conversion.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.sale_from_escrow" # debug_show(escrow) # token_id)));
-            caller = caller;
-            to_subaccount = ?Blob.toArray(sale_account_info.account.sub_account);
-            from_subaccount = ?Blob.toArray(escrow_account_info.account.sub_account);
-            //created_at_time = ?{timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))}
-        });
-
-        let result_block = switch(result){
-            case(#ok(val)){
-                                     debug if(debug_channel.sale) D.print("sending to sale account was succesful" # debug_show(val));
-                val;
-            };
-            case(#err(err)){
-                return #err(Types.errors(null,  #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show(escrow) # " " # debug_show(err), ?caller));
-            };
-        };
-
-        return #ok(result_block, sale_account_info, Option.get(ledger.fee,0));
-
-    } catch (e){
-        return #err(Types.errors(null,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(escrow), ?caller));
-    };
+    return await* _transfer(host, escrow, token_id, caller, escrow_account_info, sale_account_info);
   };
 
 
