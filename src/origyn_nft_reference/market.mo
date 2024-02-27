@@ -1065,7 +1065,7 @@ module {
                       debug if(debug_channel.end_sale) D.print("found ledger");
                       let checker = Ledger_Interface.Ledger_Interface();
                                                               try {
-                      switch(await* checker.transfer_sale(state.canister(), winning_escrow, token_id, caller)){
+                      switch(Star.toResult(await* checker.transfer_sale(state.canister(), winning_escrow, token_id, caller))){
                           case(#ok(val)){
                               (val.0,?val.1.account.sub_account, token.fee);
                           };
@@ -1253,7 +1253,7 @@ module {
                 //if the fee is bigger than the amount we aren't going to pay anything
                 //this should really be prevented elsewhere
 
-                let royalty_result =  switch(_process_royalties(state, {
+                let royalty_result =  switch(await* _process_royalties(state, {
                   name = _fee_schema;
                   var remaining = remaining;
                   total = total;
@@ -2027,7 +2027,7 @@ module {
                   debug if(debug_channel.market) D.print("found ledger and sending sale " # debug_show(escrow));
                   let checker = Ledger_Interface.Ledger_Interface();
                   try{
-                    switch(await* checker.transfer_sale(state.canister(), escrow, request.token_id, caller)){
+                    switch(Star.toResult(await* checker.transfer_sale(state.canister(), escrow, request.token_id, caller))){
                       case(#ok(val)){
                         (val.0, ?val.1.account.sub_account, val.2);
                       };
@@ -2218,7 +2218,7 @@ module {
 
             debug if(debug_channel.royalties) D.print("calling process royalty" # debug_show((total,remaining)));
 
-            let royalty_result =  switch(Star.toResult(_process_royalties(state, {
+            let royalty_result =  switch(Star.toResult(await* _process_royalties(state, {
                 name = _fee_schema;
                 var remaining = remaining;
                 total = total;
@@ -2565,7 +2565,7 @@ module {
                         
                         switch(await* checker.transfer_fees(state.canister(), _escrow, _token_id, caller)){
                             case(#awaited(val)){
-                              awaited = true;
+                              // awaited = true;
                               // stack in pending transfer
                             };
                             case(#trappable(val)){
