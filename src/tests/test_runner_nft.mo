@@ -2650,7 +2650,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
       memo = utils.memo_one;
       from_subaccount = null;
       created_at_time = null;
-      amount = 1000 * 5 ** 8;
+      amount = 1000 * 10 ** 8;
     });
 
     let fee_wallet_balance = await dfx.icrc1_balance_of({
@@ -2682,10 +2682,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print("sellerFeeDepositAccount = " # debug_show (sellerFeeDepositAccount));
     let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
-      #reserve(10 * 10 ** 8),
+      #reserve(1 * 10 ** 8),
       #token(#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id = null })),
-      #buy_now(10 * 10 ** 8),
-      #start_price(10 * 10 ** 8),
+      #buy_now(1 * 10 ** 8),
+      #start_price(1 * 10 ** 8),
       #ending(#date(get_time() + DAY_LENGTH)),
       #fee_accounts([("com.origyn.royalty.node", #account({ owner = Principal.fromActor(this); sub_account = null }))]),
       #fee_schema("com.origyn.royalties.fixed"),
@@ -2788,6 +2788,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     });
     let net_balance5 = await dfx.icrc1_balance_of(net_account);
 
+    let fee_wallet_balance5 = await dfx.icrc1_balance_of({
+      owner = sellerFeeDepositAccount.account.principal;
+      subaccount = ?Blob.toArray(sellerFeeDepositAccount.account.sub_account);
+    });
+
+    D.print("fee_wallet_balance5 = " # debug_show (fee_wallet_balance5));
     D.print("a wallet " # debug_show ((Principal.fromActor(a_wallet), a_balance, a_balance5)));
     D.print("b wallet " # debug_show ((Principal.fromActor(b_wallet), b_balance, b_balance5)));
     D.print("n wallet " # debug_show ((Principal.fromActor(n_wallet), n_balance, n_balance5)));
@@ -2795,77 +2801,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     D.print("canister wallet " # debug_show ((Principal.fromActor(canister), canister_balance, canister_balance5)));
     D.print("net wallet " # debug_show ((Principal.fromActor(net_wallet), net_balance, net_balance5)));
 
-    //test balances
-
-    D.print("sending tokens to canisters");
-    let a_wallet_send_tokens_to_canister_no_broker = await a_wallet.send_ledger_deposit(Principal.fromActor(dfx), (1 * 10 ** 8) + 400000, Principal.fromActor(noBrokerCanister));
-
-    D.print("send deposit for no broker " # debug_show (a_wallet_send_tokens_to_canister_no_broker));
-
-    D.print("Sending real escrow now for no broker");
-    let a_wallet_try_escrow_specific_staged_no_broker = await a_wallet.try_escrow_specific_staged(Principal.fromActor(this), Principal.fromActor(noBrokerCanister), Principal.fromActor(dfx), null, 1 * 10 ** 8, "1", null, null, null);
-
-    D.print("secondary sale for no broker " # debug_show (a_wallet_try_escrow_specific_staged_no_broker));
-
-    let specific_market3 = await noBrokerCanister.market_transfer_nft_origyn({
-      token_id = "1";
-      sales_config = {
-        escrow_receipt = null;
-        broker_id = null;
-        pricing = #ask(?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer));
-      };
-    });
-
-    D.print("secondary result no broker" # debug_show (specific_market3));
-
-    //advance time
-    let mode2 = canister.__set_time_mode(#test);
-    let time_result2 = await canister.__advance_time(end_date + 4);
-    D.print("new time");
-    D.print(debug_show (time_result2));
-
-    //create wallets to force rounds
-    let fake_wallet8 = await TestWalletDef.test_wallet();
-    let fake_wallet9 = await TestWalletDef.test_wallet();
-    let fake_wallet10 = await TestWalletDef.test_wallet();
-    let fake_wallet854 = await TestWalletDef.test_wallet();
-    let fake_wallet956 = await TestWalletDef.test_wallet();
-    let fake_wallet1076 = await TestWalletDef.test_wallet();
-
-    let a_balance6 = await dfx.icrc1_balance_of({
-      owner = Principal.fromActor(a_wallet);
-      subaccount = null;
-    });
-    let b_balance6 = await dfx.icrc1_balance_of({
-      owner = Principal.fromActor(b_wallet);
-      subaccount = null;
-    });
-    let n_balance6 = await dfx.icrc1_balance_of({
-      owner = Principal.fromActor(n_wallet);
-      subaccount = null;
-    });
-    let o_balance6 = await dfx.icrc1_balance_of({
-      owner = Principal.fromActor(o_wallet);
-      subaccount = null;
-    });
-    let canister_balance6 = await dfx.icrc1_balance_of({
-      owner = Principal.fromActor(canister);
-      subaccount = null;
-    });
-    let net_balance6 = await dfx.icrc1_balance_of(net_account);
-
-    D.print("a wallet 6 " # debug_show ((a_balance6)));
-    D.print("b wallet 6 " # debug_show ((b_balance6)));
-    D.print("n wallet 6 " # debug_show ((n_balance6)));
-    D.print("o wallet 6 " # debug_show ((o_balance6)));
-    D.print("canister wallet 6 " # debug_show ((canister_balance6)));
-    D.print("net wallet 6 " # debug_show ((net_balance6)));
-
     let suite = S.suite(
       "test royalties fixed",
       [
-
         //todo: add test to make sure that the deposit has been reduced
+        S.test("fail if node does not get third royalty", fee_wallet_balance5, M.equals<Nat>(T.nat(600000000))),
         S.test("fail if node does not get third royalty", n_balance5, M.equals<Nat>(T.nat(11153446))),
         S.test("fail if broker does not get new royalty", b_balance5, M.equals<Nat>(T.nat(100007384000))),
         S.test("fail if network does not get third royalty", net_balance5, M.equals<Nat>(T.nat(897000))),

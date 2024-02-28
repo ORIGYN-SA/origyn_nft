@@ -1442,12 +1442,13 @@ module {
               all_locked_value += lock_value;
             };
 
-            debug if (debug_channel.market) D.print("lock_token_fee_balance: all_locked_value = " # debug_show (all_locked_value) # " token_to_lock " # debug_show (request.token_to_lock));
+            debug if (debug_channel.market) D.print("lock_token_fee_balance: total_balance = " # debug_show (token.total_balance) # " all_locked_value = " # debug_show (all_locked_value) # " token_to_lock " # debug_show (request.token_to_lock));
 
             if (token.total_balance - all_locked_value : Nat > request.token_to_lock) {
-              let _ = Map.put<Text, Nat>(token.locks, Map.thash, request.sale_id, request.token_to_lock);
+              let new_token_lock_value = all_locked_value + request.token_to_lock;
+              let _ = Map.put<Text, Nat>(token.locks, Map.thash, request.sale_id, new_token_lock_value);
 
-              return #ok(token.total_balance - (all_locked_value + request.token_to_lock));
+              return #ok(token.total_balance - new_token_lock_value);
             } else {
               return #err(Types.errors(?state.canistergeekLogger, #low_fee_balance, "lock_token_fee_balance - low_fee_balance  ", null));
             };
