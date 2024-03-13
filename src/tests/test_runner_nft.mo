@@ -2597,6 +2597,11 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     });
     D.print("network account is " # debug_show (net_account));
     let net_balance = await dfx.icrc1_balance_of(net_account);
+    D.print("a_balance " # debug_show ((Principal.fromActor(a_wallet), a_balance)));
+    D.print("b_balance " # debug_show ((Principal.fromActor(b_wallet), b_balance)));
+    D.print("n_balance " # debug_show ((Principal.fromActor(n_wallet), n_balance)));
+    D.print("o_balance " # debug_show ((Principal.fromActor(o_wallet), o_balance)));
+    D.print("canister wallet " # debug_show ((Principal.fromActor(canister), canister_balance)));
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
@@ -2650,7 +2655,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
       memo = utils.memo_one;
       from_subaccount = null;
       created_at_time = null;
-      amount = 1000 * 10 ** 8;
+      amount = 10 * 10 ** 8;
     });
 
     let fee_wallet_balance = await dfx.icrc1_balance_of({
@@ -2682,10 +2687,10 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print("sellerFeeDepositAccount = " # debug_show (sellerFeeDepositAccount));
     let option_buffer = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
-      #reserve(1 * 10 ** 8),
+      #reserve(1),
       #token(#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id = null })),
-      #buy_now(1 * 10 ** 8),
-      #start_price(1 * 10 ** 8),
+      #buy_now(1),
+      #start_price(1),
       #ending(#date(get_time() + DAY_LENGTH)),
       #fee_accounts([("com.origyn.royalty.node", #account({ owner = Principal.fromActor(this); sub_account = null }))]),
       #fee_schema("com.origyn.royalties.fixed"),
@@ -2701,7 +2706,45 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     });
 
     D.print("get sale id");
-    let current_sales_id = switch (start_auction_attempt_owner) {
+    // verify that auction fail with startprice < all fees that user has to pay
+    switch (start_auction_attempt_owner) {
+      case (#ok(val)) {
+        D.print("auction should have fail with startprice < all fees that user has to pay");
+        return #fail("error with auction start");
+      };
+      case (#err(item)) {
+        if (item.flag_point != "market_transfer_nft_origyn - start price cannot be less than mininal fee") {
+          D.print("error with auction start");
+          D.print(item.flag_point);
+          return #fail("error with auction start");
+        };
+      };
+    };
+
+    // This one should not fail
+    D.print("sellerFeeDepositAccount = " # debug_show (sellerFeeDepositAccount));
+    let option_buffer2 = Buffer.fromArray<MigrationTypes.Current.AskFeature>([
+      #reserve(1 * 10 ** 8),
+      #token(#ic({ canister = Principal.fromActor(dfx); standard = #Ledger; decimals = 8; symbol = "LDG"; fee = ?200000; id = null })),
+      #buy_now(1 * 10 ** 8),
+      #start_price(1 * 10 ** 8),
+      #ending(#date(get_time() + DAY_LENGTH)),
+      #fee_accounts([("com.origyn.royalty.node", #account({ owner = Principal.fromActor(this); sub_account = null }))]),
+      #fee_schema("com.origyn.royalties.fixed"),
+    ]);
+
+    let start_auction_attempt_owner2 = await canister.market_transfer_nft_origyn({
+      token_id = "3";
+      sales_config = {
+        escrow_receipt = null;
+        broker_id = null;
+        pricing = #ask(?Buffer.toArray<MigrationTypes.Current.AskFeature>(option_buffer2));
+      };
+    });
+
+    D.print("get sale id");
+    // verify that auction fail with startprice < all fees that user has to pay
+    let current_sales_id = switch (start_auction_attempt_owner2) {
       case (#ok(val)) {
         switch (val.txn_type) {
           case (#sale_opened(sale_data)) {
@@ -2794,22 +2837,22 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     });
 
     D.print("fee_wallet_balance5 = " # debug_show (fee_wallet_balance5));
-    D.print("a wallet " # debug_show ((Principal.fromActor(a_wallet), a_balance, a_balance5)));
-    D.print("b wallet " # debug_show ((Principal.fromActor(b_wallet), b_balance, b_balance5)));
-    D.print("n wallet " # debug_show ((Principal.fromActor(n_wallet), n_balance, n_balance5)));
-    D.print("o wallet " # debug_show ((Principal.fromActor(o_wallet), o_balance, o_balance5)));
+    D.print("a wallet " # debug_show ((Principal.fromActor(a_wallet), a_balance - 1 * 10 ** 8 - 200000 /* 1 * 10 ** 8 = price, 200_000 = token fees*/, a_balance5)));
+    D.print("b wallet " # debug_show ((Principal.fromActor(b_wallet), b_balance + 800000 /* 1_000_000 - 200_000 token fees*/, b_balance5)));
+    D.print("n wallet " # debug_show ((Principal.fromActor(n_wallet), n_balance + 800000 /* 1_000_000 - 200_000 token fees*/, n_balance5)));
+    D.print("o wallet " # debug_show ((Principal.fromActor(o_wallet), o_balance + 800000 /* 1_000_000 - 200_000 token fees*/, o_balance5)));
+    D.print("net wallet " # debug_show ((Principal.fromActor(net_wallet), net_balance + 800000 /* 1_000_000 - 200_000 token fees*/, net_balance5)));
     D.print("canister wallet " # debug_show ((Principal.fromActor(canister), canister_balance, canister_balance5)));
-    D.print("net wallet " # debug_show ((Principal.fromActor(net_wallet), net_balance, net_balance5)));
 
     let suite = S.suite(
       "test royalties fixed",
       [
         //todo: add test to make sure that the deposit has been reduced
         S.test("fail if node does not get third royalty", fee_wallet_balance5, M.equals<Nat>(T.nat(600000000))),
-        S.test("fail if node does not get third royalty", n_balance5, M.equals<Nat>(T.nat(11153446))),
-        S.test("fail if broker does not get new royalty", b_balance5, M.equals<Nat>(T.nat(100007384000))),
-        S.test("fail if network does not get third royalty", net_balance5, M.equals<Nat>(T.nat(897000))),
-        S.test("fail if originator does not get second royalty", o_balance5, M.equals<Nat>(T.nat(6253266))),
+        S.test("fail if broker does not get new royalty", b_balance5, M.equals<Nat>(T.nat(100000800000))),
+        S.test("fail if node does not get third royalty", n_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if network does not get third royalty", net_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if originator does not get second royalty", o_balance5, M.equals<Nat>(T.nat(800000))),
 
         //todo: add test to make sure the ignore broker pathway has consistent fees totals and royalties
 
