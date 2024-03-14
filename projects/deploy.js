@@ -5,9 +5,9 @@ import hdkey from 'hdkey';
 import bip39 from 'bip39';
 import ICAgent from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
-import { Crypto } from '@peculiar/webcrypto';
-import { Secp256k1KeyIdentity } from '@dfinity/identity';
-import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_nft_reference.did.js';
+//import { Crypto } from '@peculiar/webcrypto';
+import { Secp256k1KeyIdentity } from '@dfinity/identity-secp256k1';
+import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/service.did.js';
 
 (async () => {
     var argv = minimist(process.argv.slice(2));
@@ -37,7 +37,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
 
     console.log('NFTID', NFT_ID);
 
-    global.crypto = new Crypto();
+    //global.crypto = new Crypto();
 
     function getAgent() {
         return new ICAgent.HttpAgent({
@@ -49,7 +49,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
 
     //console.log("Anonymous Identity ", anonIdentity.getPrincipal().toText());
 
-    var ICP_ENDPOINT = 'http://localhost:8080';
+    var ICP_ENDPOINT = 'http://localhost:4943';
     console.log('argv is ', argv.prod);
     if (argv.prod == 'true') {
         console.log('in prod');
@@ -197,7 +197,7 @@ import { idlFactory } from '../.dfx/local/canisters/origyn_nft_reference/origyn_
             });
             return res;
         } catch (e) {
-            console.log(`There was an error while miting the nft:`);
+            console.log(`There was an error while minting the nft:`);
             console.log(e);
             await new Promise((resolve) => setTimeout(resolve, 3000));
             return await mintNft(token_id, mint_target);

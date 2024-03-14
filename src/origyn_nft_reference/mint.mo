@@ -1196,7 +1196,7 @@ module {
     * @param {Principal} caller - The principal of the caller
     * @returns {Result.Result<(Text, CandyTypes.CandyShared, Types.TransactionRecord), Types.OrigynError>} A result containing the token ID, metadata, and transaction record if successful, or an error if the mint fails
     */
-    public func execute_mint(state : Types.State, token_id : Text, newOwner : Types.Account, escrow : ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyShared, Types.TransactionRecord), Types.OrigynError> {
+    public func execute_mint<system>(state : Types.State, token_id : Text, newOwner : Types.Account, escrow : ?Types.EscrowReceipt, caller : Principal) : Result.Result<(Text, CandyTypes.CandyShared, Types.TransactionRecord), Types.OrigynError> {
         debug if (debug_channel.mint) D.print("in mint");
         var metadata = switch (Metadata.get_metadata_for_token(state, token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
             case (#err(err)) {
@@ -1340,7 +1340,7 @@ module {
 
         //need to add the mint transaction record here
         let txn_record = switch (
-            Metadata.add_transaction_record(
+            Metadata.add_transaction_record<system>(
                 state,
                 {
                     token_id = token_id;

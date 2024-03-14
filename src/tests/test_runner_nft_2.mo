@@ -19,7 +19,7 @@ import TestWalletDef "test_wallet";
 import Time "mo:base/Time";
 import Types "../origyn_nft_reference/types";
 import utils "test_utils";
-import KYCService "../../.mops/_github/icrc17_kyc@master/test/service_example";
+import KYCService "../../.mops/_github/icrc17_kyc#master@46c149ad404316039c63920f9197cdceb1c40289/test/service_example";
 
 import MigrationTypes "../origyn_nft_reference/migrations/types";
 

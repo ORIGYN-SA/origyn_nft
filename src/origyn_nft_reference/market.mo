@@ -620,7 +620,7 @@ module {
     };
 
     //ends a sale if it is past the date or a buy it now has occured
-    public func end_sale_nft_origyn(state: StateAccess, token_id: Text, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func end_sale_nft_origyn<system>(state: StateAccess, token_id: Text, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         debug if(debug_channel.end_sale) D.print("in end_sale_nft_origyn");
         var metadata = switch(Metadata.get_metadata_for_token(state,token_id, caller, ?state.canister(), state.state.collection_data.owner)){
           case(#err(err)) return #err(Types.errors(?state.canistergeekLogger,  #token_not_found, "end_sale_nft_origyn " # err.flag_point, ?caller));
@@ -702,7 +702,7 @@ module {
               //useful for buy it now sales with a long out end date.
               current_sale_state.status := #closed; 
 
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -733,7 +733,7 @@ module {
               //end sale but don't move NFT
               current_sale_state.status := #closed; 
               
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -761,7 +761,7 @@ module {
             //end sale but don't move NFT
             current_sale_state.status := #closed;
 
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
               token_id = token_id;
               index = 0;
               txn_type = #sale_ended {
@@ -1020,7 +1020,7 @@ module {
                 //debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -1649,7 +1649,7 @@ module {
                   Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, new_metadata);
                   metadata := new_metadata;
                   //no need to mint
-                  switch(Metadata.add_transaction_record(state,{
+                  switch(Metadata.add_transaction_record<system>(state,{
                     token_id = request.token_id;
                     index = 0; //mint should always be 0
                     txn_type = #sale_ended({
@@ -1691,7 +1691,7 @@ module {
             //D.print("updating metadata");
             Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, metadata);
             //no need to mint
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
                 token_id = request.token_id;
                 index = 0; //mint should always be 0
                 txn_type = #sale_ended({
@@ -1818,7 +1818,7 @@ module {
     };
 
     //handles royalty distribution
-    private func _process_royalties(state : StateAccess, request : {
+    private func _process_royalties<system>(state : StateAccess, request : {
         var remaining: Nat;
         total: Nat;
         fee: Nat;
@@ -1932,7 +1932,7 @@ module {
           if(this_royalty > request.fee){
             request.remaining -= this_royalty;
             //royaltyList.add(#principal(principal), this_royalty);
-            let id = Metadata.add_transaction_record(state, {
+            let id = Metadata.add_transaction_record<system>(state, {
               token_id = request.escrow.token_id;
               index = 0;
               txn_type = #royalty_paid {
@@ -2283,7 +2283,7 @@ module {
     };
 
     //moves tokens from a deposit into an escrow
-    public func escrow_nft_origyn(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func escrow_nft_origyn<system>(state: StateAccess, request : Types.EscrowRequest, caller: Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
         //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
         //we will also allow a canister/canister owner to create escrows for itself
         if(Types.account_eq(#principal(caller), request.deposit.buyer) == false and 
@@ -2366,7 +2366,7 @@ module {
         
 
         //add deposit transaction
-        let new_trx = switch(Metadata.add_transaction_record(state,{
+        let new_trx = switch(Metadata.add_transaction_record<system>(state,{
           token_id = request.token_id;
           index = 0;
           txn_type = #escrow_deposit {
@@ -2405,7 +2405,7 @@ module {
     * @param {Principal} caller - The caller of the function.
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - The result of the operation which may contain an error.
     */
-    private func _withdraw_deposit(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_deposit<system>(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.DepositWithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       debug if(debug_channel.withdraw_deposit) D.print("in deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print("an deposit withdraw");
       debug if(debug_channel.withdraw_deposit) D.print(debug_show(withdraw));
@@ -2462,7 +2462,7 @@ module {
       switch(transaction_id){
         case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = "";
             index = 0;
             txn_type = #deposit_withdraw({
@@ -2492,7 +2492,7 @@ module {
     * @param {Principal} caller - the caller of the function
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} - the result of the function execution
     */
-    private func _withdraw_escrow(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_escrow<system>(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
 
       debug if(debug_channel.withdraw_escrow) D.print("an escrow withdraw");
       debug if(debug_channel.withdraw_escrow) D.print(debug_show(withdraw));
@@ -2659,7 +2659,7 @@ module {
       switch(transaction_id){
         case(null) return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller));
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = details.token_id;
             index = 0;
             txn_type = #escrow_withdraw({
@@ -2689,7 +2689,7 @@ module {
     * @param {Principal} caller - The caller of the function.
     * @returns {Types.ManageSaleResult} - A Result object that either contains a ManageSaleResponse or an OrigynError if the withdrawal failed.
     */
-    private func _withdraw_sale(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _withdraw_sale<system>(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.WithdrawDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       debug if(debug_channel.withdraw_sale) D.print("withdrawing a sale");
       debug if(debug_channel.withdraw_sale) D.print(debug_show(details));
       debug if(debug_channel.withdraw_sale) D.print(debug_show(caller));
@@ -2789,7 +2789,7 @@ module {
       switch(transaction_id){
         case(null)return #err(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller));
         case(?transaction_id){
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
               token_id = details.token_id;
               index = 0;
               txn_type = #sale_withdraw({
@@ -2818,7 +2818,7 @@ module {
     * @param {Principal} caller - The caller principal.
     * @returns {async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>} A Result type containing either a Types.ManageSaleResponse object or a Types.OrigynError object.
     */
-    private func _reject_offer(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.RejectDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
+    private func _reject_offer<system>(state: StateAccess, withdraw: Types.WithdrawRequest, details: Types.RejectDescription, caller : Principal) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError>{
       // rejects and offer and sends the tokens back to the source
       debug if(debug_channel.withdraw_reject) D.print("an escrow reject");
       if(caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network){
@@ -2986,7 +2986,7 @@ module {
           return #err(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller));
         };
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = details.token_id;
             index = 0;
             txn_type = #escrow_withdraw({
@@ -3073,7 +3073,7 @@ module {
     * @param {Bool} canister_call - Determines if the function is being called from another function within the canister.
     * @returns {Types.ManageSaleResult} A result indicating either a successful bid or an error message.
     */
-    public func bid_nft_origyn(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
+    public func bid_nft_origyn<system>(state: StateAccess, request : Types.BidRequest, caller: Principal, canister_call: Bool) : async* Result.Result<Types.ManageSaleResponse,Types.OrigynError> {
 
 
       //look for an existing sale
@@ -3277,7 +3277,7 @@ module {
 
       debug if(debug_channel.bid) D.print("have buy now" # debug_show(buy_now, current_pricing.buy_now, current_sale_state.current_bid_amount));
 
-      let new_trx = Metadata.add_transaction_record(state,{
+      let new_trx = Metadata.add_transaction_record<system>(state,{
           token_id = request.escrow_receipt.token_id;
           index = 0;
           txn_type = #auction_bid({

@@ -12,9 +12,7 @@
     "scripts": {},
     "type": "module",
     "devDependencies": {
-        "@dfinity/agent": "^0.12.1",
-        "@dfinity/identity": "^0.12.1",
-        "@dfinity/principal": "^0.12.1",
+        "@dfinity/principal": "^1.0.1",
         "@peculiar/webcrypto": "^1.4.0",
         "@types/node-fetch": "^2.6.2",
         "bip39": "^3.0.4",
@@ -31,5 +29,11 @@
         "tabWidth": 4,
         "semi": true,
         "singleQuote": true
+    },
+    "dependencies": {
+        "@dfinity/agent": "^1.0.1",
+        "@dfinity/candid": "^1.0.1",
+        "@dfinity/identity": "^1.0.1",
+        "@dfinity/identity-secp256k1": "^1.0.1"
     }
 }

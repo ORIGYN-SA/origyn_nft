@@ -1486,7 +1486,7 @@ module {
   * @param {Principal} caller - the caller of the function
   * @returns {Result.Result<Types.TransactionRecord, Types.OrigynError>} - the result of the transaction record addition attempt
   */
-  public func add_transaction_record(state : Types.State, rec: MigrationTypes.Current.TransactionRecord, caller: Principal) : Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError>{
+  public func add_transaction_record<system>(state : Types.State, rec: MigrationTypes.Current.TransactionRecord, caller: Principal) : Result.Result<MigrationTypes.Current.TransactionRecord, Types.OrigynError>{
     //nyi: add indexes
     //only allow transactions for existing tokens
     let metadata = if(rec.token_id == ""){
@@ -1533,7 +1533,7 @@ module {
   * @param {Types.TransactionRecord} newTrx - the newly added transaction record
   * @returns {void}
   */
-  public func announceTransaction(state : Types.State, rec : MigrationTypes.Current.TransactionRecord, caller : Principal, newTrx : MigrationTypes.Current.TransactionRecord) : () {
+  public func announceTransaction<system>(state : Types.State, rec : MigrationTypes.Current.TransactionRecord, caller : Principal, newTrx : MigrationTypes.Current.TransactionRecord) : () {
 
 
         if(state.state.collection_data.announce_canister == null){return;};

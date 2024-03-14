@@ -106,7 +106,7 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     // Arbitrary limitation on text size (in bytes)
     let MAX_VALUE_SIZE : Nat32 = 2048000;
 
-    let btreemap_storage = StableBTree.init<K, V>(StableMemory.STABLE_MEMORY, BytesConverter.NAT32_CONVERTER, BytesConverter.bytesPassthrough(MAX_VALUE_SIZE));
+    let btreemap_storage = StableBTree.init<K, V>(StableMemory.STABLE_MEMORY, BytesConverter.NAT32_CONVERTER, BytesConverter.byteArrayConverter(MAX_VALUE_SIZE));
 
     // *************************
     // **** END STABLEBTREE ****
