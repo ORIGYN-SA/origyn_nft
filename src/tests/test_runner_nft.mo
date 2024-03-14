@@ -2837,7 +2837,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
     });
 
     D.print("fee_wallet_balance5 = " # debug_show (fee_wallet_balance5));
-    D.print("a wallet " # debug_show ((Principal.fromActor(a_wallet), a_balance - 1 * 10 ** 8 - 200000 /* 1 * 10 ** 8 = price, 200_000 = token fees*/, a_balance5)));
+    D.print("a wallet " # debug_show ((Principal.fromActor(a_wallet), a_balance, a_balance5)));
     D.print("b wallet " # debug_show ((Principal.fromActor(b_wallet), b_balance + 800000 /* 1_000_000 - 200_000 token fees*/, b_balance5)));
     D.print("n wallet " # debug_show ((Principal.fromActor(n_wallet), n_balance + 800000 /* 1_000_000 - 200_000 token fees*/, n_balance5)));
     D.print("o wallet " # debug_show ((Principal.fromActor(o_wallet), o_balance + 800000 /* 1_000_000 - 200_000 token fees*/, o_balance5)));
@@ -2848,11 +2848,12 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
       "test royalties fixed",
       [
         //todo: add test to make sure that the deposit has been reduced
-        S.test("fail if node does not get third royalty", fee_wallet_balance5, M.equals<Nat>(T.nat(600000000))),
-        S.test("fail if broker does not get new royalty", b_balance5, M.equals<Nat>(T.nat(100000800000))),
-        S.test("fail if node does not get third royalty", n_balance5, M.equals<Nat>(T.nat(800000))),
-        S.test("fail if network does not get third royalty", net_balance5, M.equals<Nat>(T.nat(800000))),
-        S.test("fail if originator does not get second royalty", o_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if seller doest not get his monney", a_balance5, M.equals<Nat>(T.nat(99_499_400_000))), // 1000000000 - 1000000 = 999000000
+        S.test("fail if broker does not get first royalty", b_balance5, M.equals<Nat>(T.nat(100000800000))),
+        S.test("fail if node does not get first royalty", n_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if network does not get first royalty", net_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if originator does not get first royalty", o_balance5, M.equals<Nat>(T.nat(800000))),
+        S.test("fail if fee wallet balance wallet didnt paid", fee_wallet_balance5, M.equals<Nat>(T.nat(999000000))), // 1000000000 - 1000000 = 999000000
 
         //todo: add test to make sure the ignore broker pathway has consistent fees totals and royalties
 

@@ -698,6 +698,14 @@ module {
                 value = #Nat(ledgerToken.decimals);
                 immutable = true;
               },
+              {
+                name = "tokenFee";
+                value = switch (ledgerToken.fee) {
+                  case (?val) { #Nat(val) };
+                  case (null) { #Option(null) };
+                };
+                immutable = true;
+              },
             ]),
             #Class([
               {
@@ -719,6 +727,14 @@ module {
               {
                 name = "tokenDecimals";
                 value = #Nat(ledgerToken.decimals);
+                immutable = true;
+              },
+              {
+                name = "tokenFee";
+                value = switch (ledgerToken.fee) {
+                  case (?val) { #Nat(val) };
+                  case (null) { #Option(null) };
+                };
                 immutable = true;
               },
             ]),
@@ -744,6 +760,14 @@ module {
                 value = #Nat(ledgerToken.decimals);
                 immutable = true;
               },
+              {
+                name = "tokenFee";
+                value = switch (ledgerToken.fee) {
+                  case (?val) { #Nat(val) };
+                  case (null) { #Option(null) };
+                };
+                immutable = true;
+              },
             ]),
             #Class([
               {
@@ -765,6 +789,14 @@ module {
               {
                 name = "tokenDecimals";
                 value = #Nat(ledgerToken.decimals);
+                immutable = true;
+              },
+              {
+                name = "tokenFee";
+                value = switch (ledgerToken.fee) {
+                  case (?val) { #Nat(val) };
+                  case (null) { #Option(null) };
+                };
                 immutable = true;
               },
               {
@@ -793,6 +825,14 @@ module {
               {
                 name = "tokenDecimals";
                 value = #Nat(ledgerToken.decimals);
+                immutable = true;
+              },
+              {
+                name = "tokenFee";
+                value = switch (ledgerToken.fee) {
+                  case (?val) { #Nat(val) };
+                  case (null) { #Option(null) };
+                };
                 immutable = true;
               },
             ]),

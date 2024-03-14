@@ -304,6 +304,7 @@ class Ledger_Interface() {
           val;
         };
         case (#err(err)) {
+          debug if (debug_channel.sale) D.print("ERROR : transfer deposit failed" # debug_show (escrow) # " " # debug_show (err));
           return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show (escrow) # " " # debug_show (err), ?caller)));
         };
       };
@@ -311,38 +312,9 @@ class Ledger_Interface() {
       return #awaited(result_block, to_account_info, Option.get(ledger.fee, 0));
 
     } catch (e) {
+      debug if (debug_channel.sale) D.print("ERROR : transfer deposit ledger throw" # Error.message(e) # debug_show (escrow));
       return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow), ?caller)));
     };
-  };
-
-  /**
-  * @param {Principal} host - the principal hosting the ledger
-  * @param {Types.EscrowReceipt} escrow - the escrow receipt object
-  * @param {Text} token_id - the id of the token
-  * @param {Principal} caller - the principal making the call
-  * @returns {async* Result.Result<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError>} a result object containing the transaction ID, subaccount info, and fee or an error object
-  */
-  public func transfer_fees(host : Principal, escrow : Types.EscrowReceipt, token_id : Text, caller : Principal) : async* Star.Star<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
-    debug if (debug_channel.sale) D.print("in transfer_sale ledger fees");
-    debug if (debug_channel.sale) D.print(Principal.toText(host));
-    debug if (debug_channel.sale) D.print(debug_show (escrow));
-
-    //nyi: an extra layer of security?
-
-    debug if (debug_channel.sale) D.print("in transfer fees" # token_id # debug_show (Time.now()));
-
-    let basic_info = {
-      amount = escrow.amount;
-      buyer = escrow.buyer;
-      seller = escrow.seller;
-      token = escrow.token;
-      token_id = escrow.token_id;
-    };
-
-    let fees_account_info : Types.SubAccountInfo = NFTUtils.get_fee_deposit_account_info(basic_info.buyer, host);
-    let sale_account_info = NFTUtils.get_sale_account_info(basic_info, host);
-
-    return await* _transfer(host, escrow, token_id, caller, fees_account_info, sale_account_info);
   };
 
   //allows a user to withdraw money from a sale

@@ -2462,13 +2462,23 @@ module {
         };
       };
 
-      let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null) {
+      let tokenFee : ?Nat = switch (Properties.getClassPropertyShared(royalty, "tokenFee")) {
+        case (null) { null };
+        case (?val) {
+          switch (val.value) {
+            case (#Nat(val)) { ?val };
+            case (_) null;
+          };
+        };
+      };
+
+      let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null and tokenFee != null) {
         switch (tokenCanister) {
           case (?canisterId) {
             ? #ic({
               canister = canisterId;
               decimals = Option.get<Nat>(tokenDecimals, 0);
-              fee = null;
+              fee = tokenFee;
               id = null;
               standard = #Ledger;
               symbol = Option.get<Text>(tokenSymbol, "");
@@ -2713,24 +2723,15 @@ module {
                       };
                     };
 
-                    debug if (debug_channel.royalties) D.print("transfer fixed royalty =  " # debug_show (this_royalty) # " from " # debug_show (fee_accounts_set) # " to " # debug_show (send_account));
-                    let checker = Ledger_Interface.Ledger_Interface();
-
-                    switch (await* checker.transfer_fees(state.canister(), _escrow, _token_id, caller)) {
-                      case (#awaited(val)) {
-                        // awaited = true;
-                        // stack in pending transfer
-                        // TODO GWOJDA
-                      };
-                      case (#trappable(val)) {
-                        // stack in pending transfer
-                        // TODO GWOJDA
-                      };
-                      case (#err(err)) {
-                        // rollback pending transfer
-                        // TODO GWOJDA
-                      };
+                    let basic_info = {
+                      amount = _escrow.amount;
+                      buyer = _escrow.buyer;
+                      seller = _escrow.seller;
+                      token = _escrow.token;
+                      token_id = _escrow.token_id;
                     };
+
+                    let fees_account_info : Types.SubAccountInfo = NFTUtils.get_fee_deposit_account_info(basic_info.buyer, state.canister());
 
                     let id = Metadata.add_transaction_record(
                       state,
@@ -2771,11 +2772,13 @@ module {
                       });
                       sale_id = request.sale_id;
                       lock_to_date = null;
-                      account_hash = request.account_hash;
+                      account_hash = ?fees_account_info.account.sub_account;
                     };
 
+                    let new_sale_balance = put_sales_balance(state, newReciept, true);
+
                     results.add(newReciept);
-                    debug if (debug_channel.royalties) D.print("new_sale_balance" # debug_show (newReciept));
+                    debug if (debug_channel.royalties) D.print("new_sale_balance" # debug_show (new_sale_balance));
                   } else {
                     //can't pay out if less than fee
                   };
@@ -4842,7 +4845,7 @@ module {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
                   //put the escrow back
-                  debug if (debug_channel.withdraw_sale) D.print("failed, putting back ledger");
+                  debug if (debug_channel.withdraw_sale) D.print("failed, putting back ledger " # debug_show (err));
 
                   handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
                   return #err(#awaited(Types.errors(?state.canistergeekLogger, #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller)));
