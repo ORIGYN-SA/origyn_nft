@@ -872,7 +872,7 @@ module {
 
               current_sale_state.status := #closed; 
 
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -919,7 +919,7 @@ module {
               debug if(debug_channel.end_sale) D.print("ending the sale but not moving the nft" # debug_show(buy_now, buy_now_price, current_sale_state.end_date));
               current_sale_state.status := #closed; 
               
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -947,7 +947,7 @@ module {
             //end sale but don't move NFT
             current_sale_state.status := #closed;
 
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
               token_id = token_id;
               index = 0;
               txn_type = #sale_ended {
@@ -1207,7 +1207,7 @@ module {
                 //debug if(debug_channel.royalties) D.print("attempt to distribute royalties auction" # debug_show(future));
               };
 
-              switch(Metadata.add_transaction_record(state,{
+              switch(Metadata.add_transaction_record<system>(state,{
                 token_id = token_id;
                 index = 0;
                 txn_type = #sale_ended {
@@ -1865,7 +1865,7 @@ module {
                   Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, new_metadata);
                   metadata := new_metadata;
                   //no need to mint
-                  switch(Metadata.add_transaction_record(state,{
+                  switch(Metadata.add_transaction_record<system>(state,{
                     token_id = request.token_id;
                     index = 0; //mint should always be 0
                     txn_type = #sale_ended({
@@ -1907,7 +1907,7 @@ module {
             //D.print("updating metadata");
             Map.set(state.state.nft_metadata, Map.thash, escrow.token_id, metadata);
             //no need to mint
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
                 token_id = request.token_id;
                 index = 0; //mint should always be 0
                 txn_type = #sale_ended({
@@ -2041,7 +2041,7 @@ module {
     };
 
     //handles royalty distribution
-    private func _process_royalties(state : StateAccess, request : {
+    private func _process_royalties<system>(state : StateAccess, request : {
         var remaining: Nat;
         total: Nat;
         fee: Nat;
@@ -3156,7 +3156,7 @@ module {
         
 
         //add deposit transaction
-        let new_trx = switch(Metadata.add_transaction_record(state,{
+        let new_trx = switch(Metadata.add_transaction_record<system>(state,{
           token_id = request.token_id;
           index = 0;
           txn_type = #escrow_deposit {
@@ -3483,7 +3483,7 @@ module {
       switch(transaction_id){
         case(null) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller)));
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = "";
             index = 0;
             txn_type = #deposit_withdraw({
@@ -3680,7 +3680,7 @@ module {
       switch(transaction_id){
         case(null) return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null" , ?caller)));
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = details.token_id;
             index = 0;
             txn_type = #escrow_withdraw({
@@ -3811,7 +3811,7 @@ module {
       switch(transaction_id){
         case(null)return #err(#awaited(Types.errors(?state.canistergeekLogger,  #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null" , ?caller)));
         case(?transaction_id){
-            switch(Metadata.add_transaction_record(state,{
+            switch(Metadata.add_transaction_record<system>(state,{
               token_id = details.token_id;
               index = 0;
               txn_type = #sale_withdraw({
@@ -4008,7 +4008,7 @@ module {
           return #err(#awaited(Types.errors(?state.canistergeekLogger,  #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null" , ?caller)));
         };
         case(?transaction_id){
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = details.token_id;
             index = 0;
             txn_type = #escrow_withdraw({
@@ -4419,7 +4419,7 @@ module {
 
       debug if(debug_channel.bid) D.print("have buy now" # debug_show(buy_now, buy_now_price, current_sale_state.current_bid_amount));
 
-      let new_trx = Metadata.add_transaction_record(state,{
+      let new_trx = Metadata.add_transaction_record<system>(state,{
           token_id = request.escrow_receipt.token_id;
           index = 0;
           txn_type = #auction_bid({

@@ -203,14 +203,13 @@
                                     ]
                                 }
                             ]
-                        
                     },
                     "immutable": false
                 },
                 {
                     "name": "default_royalty_secondary",
                     "value": {
-                        "Array":  [
+                        "Array": [
                                 {
                                     "Class": [
                                         {

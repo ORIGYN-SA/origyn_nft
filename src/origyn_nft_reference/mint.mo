@@ -1340,7 +1340,7 @@ module {
 
         //need to add the mint transaction record here
         let txn_record = switch (
-            Metadata.add_transaction_record(
+            Metadata.add_transaction_record<system>(
                 state,
                 {
                     token_id = token_id;

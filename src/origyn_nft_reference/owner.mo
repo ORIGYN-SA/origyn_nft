@@ -46,7 +46,7 @@ module {
     * 
     * @returns {Types.OwnerUpdateResult} the transaction record and a list of assets associated with the token
     */
-    public func share_wallet_nft_origyn(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
+    public func share_wallet_nft_origyn<system>(state: StateAccess, request : Types.ShareWalletRequest, caller : Principal) :  Result.Result<Types.OwnerTransferResponse,Types.OrigynError> {
       //this should only be used by an owner to transfer between wallets that they own. to protect this, any assets in the canister associated with the account/principal
       //should be moved along with the the token
 
@@ -142,7 +142,7 @@ module {
       Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
 
       //D.print("Adding transaction");
-      let txn_record = switch(Metadata.add_transaction_record(state, {
+      let txn_record = switch(Metadata.add_transaction_record<system>(state, {
             token_id = request.token_id;
             index = 0; //mint should always be 0
             txn_type = #owner_transfer({
