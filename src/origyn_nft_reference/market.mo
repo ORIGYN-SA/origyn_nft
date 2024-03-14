@@ -2186,7 +2186,7 @@ module {
             };
 
 
-            let id = Metadata.add_transaction_record(state, {
+            let id = Metadata.add_transaction_record<system>(state, {
               token_id = request.escrow.token_id;
               index = 0;
               txn_type = #royalty_paid {
@@ -2526,7 +2526,7 @@ module {
         Map.set(state.state.nft_metadata, Map.thash, request.token_id, metadata);
 
 
-        let txn = Metadata.add_transaction_record(state, {
+        let txn = Metadata.add_transaction_record<system>(state, {
             token_id = request.token_id;
             index = 0;
             timestamp = state.get_time();
@@ -3344,7 +3344,7 @@ module {
           
           debug if(debug_channel.escrow) D.print("adding loaded from balance transaction" # debug_show(balance));
           //add deposit transaction
-          switch(Metadata.add_transaction_record(state,{
+          switch(Metadata.add_transaction_record<system>(state,{
             token_id = request.token_id;
             index = 0;
             txn_type = #escrow_deposit {
