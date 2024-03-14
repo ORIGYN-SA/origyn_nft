@@ -4,6 +4,7 @@
         "origyn_nft_reference": {
             "main": "src/origyn_nft_reference/main.mo",
             "type": "motoko",
+            "args": "--incremental-gc",
             "gzip" : true
             
         },

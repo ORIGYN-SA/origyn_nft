@@ -5,7 +5,7 @@ description = "The reference implementation for the ORIGYN NFT."
 repository = "https://github.com/ORIGYN_SA/origyn_nft"
 
 [dependencies]
-base = "0.8.7"
+base = "0.11.0"
 array = "https://github.com/aviate-labs/array.mo#v0.2.1@89bb25b7f24ab31082ee3d843d720404eb1d0304"
 crypto = "https://github.com/aviate-labs/crypto.mo#v0.3.1@daddf4e03e2f224f2b27b1119f95c4791364767f"
 hash = "https://github.com/aviate-labs/hash.mo#v0.1.0@3ee9fc46ba20c196e4913f3ed5aa12e26411e5c6"
