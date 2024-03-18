@@ -2253,7 +2253,7 @@ shared (deployer) actor class Nft_Canister(__initargs : Types.InitArgs) = this {
 
     // version endpoint
     public query func __version() : async Text{
-        "v0.1.3-2";
+        "v0.1.3-2-20240318";
     };
 
     // Lets the NFT accept cycles
