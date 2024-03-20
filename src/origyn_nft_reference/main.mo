@@ -1006,6 +1006,9 @@ shared (deployer) actor class Nft_Canister() = this {
           case (#deposit(v)) {
             "Type : withdraw with deposit " # debug_show (val);
           };
+          case (#fee_deposit(v)) {
+            "Type : withdraw with fee deposit  " # debug_show (val);
+          };
         };
         canistergeekLogger.logMessage("sale_nft_origyn", #Text(log_data), ?caller);
         // D.print("in withdrawl");

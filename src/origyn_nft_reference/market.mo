@@ -1352,9 +1352,13 @@ module {
 
           request_buffer.add(#withdraw(#sale({ new_sale_balance with
           withdraw_to = new_sale_balance.seller })));
-          for (thisRoyalty in royalty_result.1.vals()) {
-            request_buffer.add(#withdraw(#sale({ thisRoyalty with
-            withdraw_to = thisRoyalty.seller })));
+          for ((thisRoyalty, is_fee_account) in royalty_result.1.vals()) {
+            if (is_fee_account) {
+              request_buffer.add(#withdraw(#fee_deposit({ account = thisRoyalty.buyer; token = thisRoyalty.token; amount = thisRoyalty.amount; withdraw_to = thisRoyalty.seller; status = #locked({ sale_id = current_sale.sale_id }) })));
+            } else {
+              request_buffer.add(#withdraw(#sale({ thisRoyalty with
+              withdraw_to = thisRoyalty.seller })));
+            };
           };
           debug if (debug_channel.royalties) D.print("attempt to distribute royalties request auction" # debug_show (Buffer.toArray(request_buffer)));
           //do not await
@@ -1471,6 +1475,45 @@ module {
             } else {
               return #err(Types.errors(?state.canistergeekLogger, #low_fee_balance, "lock_token_fee_balance - low_fee_balance  ", null));
             };
+          };
+        };
+      };
+    };
+  };
+
+  /**
+    * @param {StateAccess} state - The state access object.
+    * @param {Types.FeeDepositRequest} FeeDepositRequest - The request record to be processed.
+    * @returns {Nat} - The amount of free tokens available for fees. Returns 0 if the calculated free amount is negative or if no balance is found.
+    */
+  private func free_token_fee_balance(
+    state : StateAccess,
+    request : {
+      account : Types.Account;
+      token : Types.TokenSpec;
+    },
+  ) : Result.Result<Nat, Types.OrigynError> {
+    debug if (debug_channel.market) D.print("lock_token_fee_balance: state.state.fee_deposit_balances  " # debug_show (state.state.fee_deposit_balances));
+
+    return switch (Map.get<Types.Account, Map.Map<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>>(state.state.fee_deposit_balances, account_handler, request.account)) {
+      case (null) {
+        debug if (debug_channel.market) D.print("lock_token_fee_balance: lock_token_fee_balance - account not found  " # debug_show (request.account));
+        return #err(Types.errors(?state.canistergeekLogger, #content_not_found, "lock_token_fee_balance - account not found  " # debug_show (request.account), null));
+      };
+      case (?val) {
+        switch (Map.get<Types.TokenSpec, MigrationTypes.Current.FeeDepositDetail>(val, token_handler, request.token)) {
+          case (null) {
+            debug if (debug_channel.market) D.print("lock_token_fee_balance: lock_token_fee_balance - token not found  " # debug_show (request.token));
+            return #err(Types.errors(?state.canistergeekLogger, #content_not_found, "lock_token_fee_balance - token not found  " # debug_show (request.token), null));
+          };
+          case (?token) {
+            var all_locked_value : Nat = 0;
+            for (lock_value in Map.vals(token.locks)) {
+              all_locked_value += lock_value;
+            };
+
+            debug if (debug_channel.market) D.print("lock_token_fee_balance: total_balance = " # debug_show (token.total_balance) # " all_locked_value = " # debug_show (all_locked_value));
+            return #ok(token.total_balance - all_locked_value);
           };
         };
       };
@@ -2362,9 +2405,13 @@ module {
           request_buffer.add(#withdraw(#sale({ new_sale_balance with
           withdraw_to = new_sale_balance.seller })));
 
-          for (thisRoyalty in royalty_result.1.vals()) {
+          for ((thisRoyalty, is_fee_account) in royalty_result.1.vals()) {
+            // if (is_fee_account) {
+            //   request_buffer.add(#withdraw(#fee_deposit({ account = thisRoyalty.buyer; token = thisRoyalty.token; amount = thisRoyalty.amount; withdraw_to = thisRoyalty.seller; status = #locked({ sale_id = sale_id }) })));
+            // } else {
             request_buffer.add(#withdraw(#sale({ thisRoyalty with
             withdraw_to = thisRoyalty.seller })));
+            // };
           };
           debug if (debug_channel.royalties) D.print("attempt to distribute royalties request instant" # debug_show (Buffer.toArray(request_buffer)));
 
@@ -2530,7 +2577,7 @@ module {
       fee_schema : Text;
     },
     caller : Principal,
-  ) : async* Star.Star<(Nat, [Types.EscrowRecord]), Types.OrigynError> {
+  ) : async* Star.Star<(Nat, [(Types.EscrowRecord, Bool)]), Types.OrigynError> {
 
     let dev_fund : { owner : Principal; sub_account : ?Blob } = {
       owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai");
@@ -2539,7 +2586,7 @@ module {
 
     debug if (debug_channel.royalties) D.print("in process royalty" # debug_show (request));
 
-    let results = Buffer.Buffer<Types.EscrowRecord>(1);
+    let results = Buffer.Buffer<(Types.EscrowRecord, Bool)>(1);
     var awaited = false;
 
     label royaltyLoop for (this_item in request.royalty.vals()) {
@@ -2770,15 +2817,13 @@ module {
                           case (?val) ?val;
                         };
                       });
+
                       sale_id = request.sale_id;
                       lock_to_date = null;
                       account_hash = ?fees_account_info.account.sub_account;
                     };
 
-                    let new_sale_balance = put_sales_balance(state, newReciept, true);
-
-                    results.add(newReciept);
-                    debug if (debug_channel.royalties) D.print("new_sale_balance" # debug_show (new_sale_balance));
+                    results.add((newReciept, true));
                   } else {
                     //can't pay out if less than fee
                   };
@@ -2855,7 +2900,7 @@ module {
                 //note, if a sale ledger already exists this will add the value, but we need to keep the original amount so we don't double request the same amount.
                 let new_sale_balance = put_sales_balance(state, newReciept, true);
 
-                results.add(newReciept);
+                results.add((newReciept, false));
                 debug if (debug_channel.royalties) D.print("new_sale_balance" # debug_show (newReciept));
               } else {
                 //can't pay out if less than fee
@@ -4483,24 +4528,38 @@ module {
     debug if (debug_channel.withdraw_deposit) D.print(debug_show (withdraw));
     if (caller != state.canister() and Types.account_eq(#principal(caller), details.account) == false) {
       //cant withdraw for someone else
-      return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match", ?caller)));
+      return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "_withdraw_fee_deposit - withdraw - buyer and caller do not match", ?caller)));
     };
 
     debug if (debug_channel.withdraw_deposit) D.print("about to verify");
 
-    let deposit_account = NFTUtils.get_deposit_info(details.account, state.canister());
+    let fee_deposit_account = NFTUtils.get_fee_deposit_account_info(details.account, state.canister());
 
     //NFT-112
     let fee = switch (details.token) {
       case (#ic(token)) {
         let token_fee = Option.get(token.fee, 0);
-        if (details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount", ?caller)));
+        if (details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "_withdraw_fee_deposit - withdraw - withdraw fee is larger than amount", ?caller)));
         token_fee;
       };
-      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show (details), ?caller)));
+      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
-    //todo: check locks and makes sure that we are not transfering out a locked amount
+    switch (details.status) {
+      case (#locked(val)) {};
+      case (#unlocked) {
+        switch (free_token_fee_balance(state, { account = details.account; token = details.token })) {
+          case (#ok(free_token)) {
+            if (free_token < details.amount) {
+              return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - free token : " # debug_show (free_token) # " try to withdraw : " # debug_show (details.amount), ?caller)));
+            };
+          };
+          case (#err(e)) {
+            return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - err getting free token balance - " # debug_show (e), ?caller)));
+          };
+        };
+      };
+    };
 
     //attempt to send payment
     debug if (debug_channel.withdraw_deposit) D.print("sending payment" # debug_show ((details.withdraw_to, details.amount, caller)));
@@ -4516,9 +4575,9 @@ module {
             debug if (debug_channel.withdraw_deposit) D.print("returning amount " # debug_show (details.amount, token.fee));
 
             try {
-              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)) {
+              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)) {
                 case (#ok(val)) ?val;
-                case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
+                case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)), ?caller)));
 
               };
             } catch (e) {
@@ -4529,6 +4588,25 @@ module {
         };
       };
       case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show (details), ?caller)));
+    };
+
+    switch (details.status) {
+      case (#locked(val)) {
+        switch (
+          unlock_token_fee_balance(
+            state,
+            {
+              account = details.account;
+              token = details.token;
+              sale_id = val.sale_id;
+            },
+          )
+        ) {
+          case (#ok(val)) {};
+          case (#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - failed to unlock token " # debug_show (err), ?caller)));
+        };
+      };
+      case (#unlocked) {};
     };
 
     debug if (debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show (transaction_id) # debug_show (details));
