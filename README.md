@@ -4,7 +4,7 @@
 
 ### Purpose
 
-This repo contains the reference implementation of the ORIGYN NFT in motoko, the sales canister reference implementation, and the storage canister implementation that allows unlimited storage for NFT canisters.
+This repo contains the reference implementation of the ORIGYN NFT in Motoko, the sales canister reference implementation, and the storage canister implementation that allows unlimited storage for NFT canisters.
 
 ### Usage
 
@@ -68,7 +68,7 @@ Reusable scripts are placed at the root of the ./projects folder.
 
 ### Git Large File Storage
 
-This project contains video files that are stored in Git LFS. They are now downloaded when you clone the repo.
+This project contains video files that are stored in Git LFS. They are not downloaded when you clone the repo.
 To download the videos, run the following:
 
 ```
@@ -96,7 +96,7 @@ See also: https://github.com/ORIGYN-SA/minting-starter
 
 ### Motoko base
 
-It is important to note that every now and then there are new items in the motoko base library. One example of this is Timer. If you are using an older vesion of the motoko base library in vessel you will have an error complaining about a non existent Timer. In this repo we try to keep libs up-to-date, however, just be aware that from time to time you might need to change the upstream varible in the package-set.dhall to reflect the lastest motoko library.
+It is important to note that every now and then there are new items in the motoko base library. One example of this is Timer. If you use an older version of the Motoko base library in vessel you will have an error complaining about a non-existent Timer. In this repo we try to keep libs up-to-date, however, just be aware that from time to time you might need to change the upstream variable in the package-set.dhall to reflect the latest Motoko library.
 
 [Audit document](./docs/audit.md)
 
@@ -108,7 +108,7 @@ Here are the instructions about how to do it:
 
 - [Download MOC zip file for your Operating System](https://github.com/dfinity/motoko/releases/tag/0.10.2)
 - Run the following command `dfx cache show` to get Motoko version directory installation
-- Unzip file and copy `mo-ide, mo-doc, moc` files to the directory mentioned in step 2
+- Unzip the file and copy `mo-ide, mo-doc, moc` files to the directory mentioned in step 2
 - Make sure you give the right persmissions to those files
 - Run `$(dfx cache show)/moc --version` to verify you have the downloaded version
 
