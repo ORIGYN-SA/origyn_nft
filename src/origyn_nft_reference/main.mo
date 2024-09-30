@@ -929,7 +929,7 @@ shared (deployer) actor class Nft_Canister() = this {
     return await* Owner.transferExt(get_state(), request, msg.caller);
   };
 
-  public shared (msg) func unlisted_tokens_of(account : ICRC7.Account, prev : ?Nat, take : ?Nat32) : async [Nat] {
+  public shared query (msg) func unlisted_tokens_of(account : ICRC7.Account, prev : ?Nat, take : ?Nat32) : async [Nat] {
     let list = Metadata.get_NFTs_for_user(get_state(), #account({ owner = account.owner; sub_account = account.subaccount }));
     let start : Nat = Option.get<Nat>(prev, 0);
     var limit : Nat = Nat32.toNat(Option.get<Nat32>(take, 100)); // Default limit to 100 if not provided
@@ -966,7 +966,7 @@ shared (deployer) actor class Nft_Canister() = this {
     return Buffer.toArray(results);
   };
 
-  public shared (msg) func count_unlisted_tokens_of(account : ICRC7.Account) : async Nat {
+  public shared query (msg) func count_unlisted_tokens_of(account : ICRC7.Account) : async Nat {
     let state = get_state();
     let list = Metadata.get_NFTs_for_user(state, #account({ owner = account.owner; sub_account = account.subaccount }));
     var count = 0;
