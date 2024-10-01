@@ -3118,25 +3118,7 @@ shared (deployer) actor class Nft_Canister() = this {
       case (#ok(val)) { val };
     };
 
-    let ?collection = Map.get(state.state.nft_metadata, Map.thash, "") else {
-      state.canistergeekLogger.logMessage("_build_royalties_broker_account cannot find collection metatdata. this should not happene" # debug_show (token_id), #Bool(false), null);
-      D.trap("_build_royalties_broker_account cannot find collection metatdata. this should not happen");
-    };
-
-    let override = switch (Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)) {
-      case (#ok(val)) val;
-      case (_) {
-        state.canistergeekLogger.logMessage("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (token_id), #Bool(false), null);
-        false;
-      };
-    };
-
-    debug if (debug_channel.icrc7) D.print("override " # debug_show (override));
-    let _royalties_names = if (override) {
-      Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
-    } else {
-      Royalties.royalties_names;
-    };
+    let _royalties_names = Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
     debug if (debug_channel.icrc7) D.print("_royalties_names " # debug_show (_royalties_names));
 
     return ?Royalties.get_total_amount_fixed_royalties(_royalties_names, metadata);
