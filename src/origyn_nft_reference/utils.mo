@@ -16,9 +16,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 import CandyTypesOld "mo:candy_0_1_12/types";
 import CandyUpgrade "mo:candy_0_2_0/upgrade";
+import Map9 "mo:map9/Map";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
@@ -185,39 +185,39 @@ module {
     * @returns {TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>} The resulting TrieMap object.
     */
 
-  public func build_library(items : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> {
+  public func build_library(items : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])]) : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> {
 
-    let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal, Text.hash);
+    let aMap = Map9.new<Text, Map9.Map<Text, CandyTypes.Workspace>>();
     for (this_item in items.vals()) {
-      let bMap = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal, Text.hash);
+      let bMap = Map9.new<Text, CandyTypes.Workspace>();
       for (thatItem in this_item.1.vals()) {
         //upgrade Addressed chunk array
         let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
         for (thisOldItem in thatItem.1.vals()) {
           newItems.add((thisOldItem.0, thisOldItem.1, CandyUpgrade.upgradeCandyShared(thisOldItem.2)));
         };
-        bMap.put(thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
+        ignore Map9.put(bMap, Map9.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
       };
-      aMap.put(this_item.0, bMap);
+      ignore Map9.put(aMap, Map9.thash, this_item.0, bMap);
     };
 
     return aMap;
   };
 
-  public func build_library_new(items : [(Text, [(Text, CandyTypes.AddressedChunkArray)])]) : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> {
+  public func build_library_new(items : [(Text, [(Text, CandyTypes.AddressedChunkArray)])]) : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> {
 
-    let aMap = TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>(Text.equal, Text.hash);
+    let aMap = Map9.new<Text, Map9.Map<Text, CandyTypes.Workspace>>();
     for (this_item in items.vals()) {
-      let bMap = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal, Text.hash);
+      let bMap = Map9.new<Text, CandyTypes.Workspace>();
       for (thatItem in this_item.1.vals()) {
         //upgrade Addressed chunk array
         let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
         for (thisOldItem in thatItem.1.vals()) {
           newItems.add((thisOldItem.0, thisOldItem.1, thisOldItem.2));
         };
-        bMap.put(thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
+        ignore Map9.put(bMap, Map9.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
       };
-      aMap.put(this_item.0, bMap);
+      ignore Map9.put(aMap, Map9.thash, this_item.0, bMap);
     };
 
     return aMap;

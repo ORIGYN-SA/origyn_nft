@@ -34,6 +34,7 @@ import NFTUtils "../origyn_nft_reference/utils";
 import Storage_Store "../origyn_nft_reference/storage_store";
 import Types "../origyn_nft_reference/types";
 import http "../origyn_nft_reference/storage_http";
+import Map9 "mo:map9/Map";
 
 
 shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArgs) = this {
@@ -121,7 +122,8 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     // *************************
 
     //the library needs to stay unstable for maleable access to the Buffers that make up the file chunks
-    private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
+    stable var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library(nft_library_stable);
+
     //store access tokens for owner assets to owner specific data
     private var tokens : TrieMap.TrieMap<Text, MigrationTypes.Current.HttpAccess> = TrieMap.fromEntries<Text, MigrationTypes.Current.HttpAccess>(tokens_stable.vals(), Text.equal, Text.hash);
 
@@ -309,12 +311,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
             case (?val) { val };
         };
 
-        switch (nft_library.get(request.token_id)) {
+        switch (Map9.get(nft_library, Map9.thash, request.token_id)) {
             case (null) {
                 return #err(Types.errors(null,  #token_not_found, "chunk_nft_origyn - cannot find token id - " # request.token_id, ?caller));
             };
             case (?token) {
-                switch (token.get(request.library_id)) {
+                switch (Map9.get(token, Map9.thash, request.library_id)) {
                     case (null) {
                         return #err(Types.errors(null,  #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # request.token_id # " library_id - " # request.library_id, ?caller));
                     };
@@ -537,9 +539,9 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
     */
     public query func show_nft_library_array() : async  [(Text, [(Text, CandyTypes.AddressedChunkArray)])] {
         let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-        for(thisKey in nft_library.entries()){
+        for(thisKey in Map9.entries(nft_library)){
             let thisLibrary_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-            for(thisItem in thisKey.1.entries()){
+            for(thisItem in Map9.entries(thisKey.1)){
                 thisLibrary_buffer.add((thisItem.0, Workspace.workspaceToAddressedChunkArray(thisItem.1)) );
             };
             nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
@@ -552,21 +554,12 @@ shared (deployer) actor class Storage_Canister(__initargs : Types.StorageInitArg
 
         tokens_stable := Iter.toArray(tokens.entries());
 
-        let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-        for (thisKey in nft_library.entries()) {
-            let thisLibrary_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-            for (thisItem in thisKey.1.entries()) {
-                thisLibrary_buffer.add((thisItem.0, Workspace.workspaceToAddressedChunkArray(thisItem.1)));
-            };
-            nft_library_stable_buffer.add((thisKey.0, thisLibrary_buffer.toArray()));
-        };
-
-        nft_library_stable_2 := nft_library_stable_buffer.toArray();
+        
 
     };
 
     system func postupgrade() {
-        nft_library_stable := [];
+        nft_library_stable_2 := [];
         tokens_stable := [];
     };
 };

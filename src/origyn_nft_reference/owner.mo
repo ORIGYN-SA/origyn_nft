@@ -7,7 +7,6 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 import Blob "mo:base/Blob";
 
 import EXT "mo:ext/Core";

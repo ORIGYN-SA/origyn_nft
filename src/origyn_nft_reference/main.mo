@@ -16,7 +16,6 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
-import TrieMap "mo:base/TrieMap";
 import TimerTool "mo:timer-tool";
 
 import BytesConverter "mo:stableBTree/bytesConverter";
@@ -31,6 +30,7 @@ import EXTCommon "mo:ext/Common";
 import ICRC7 "ICRC7";
 
 import Map "mo:map/Map";
+import Map9 "mo:map9/Map";
 import Set "mo:map/Set";
 
 import Star "mo:star/star";
@@ -100,13 +100,11 @@ shared (deployer) actor class Nft_Canister() = this {
 
   // Metrics
   //todo: remove old version in 0.1.5 - rewrite upgrader
-  stable var _canistergeekMonitorUD : ?CanistergeekOld.UpgradeData = null;
   stable var _canistergeekMonitorUD_0_1_4 : ?Canistergeek.UpgradeData = null;
   private let canistergeekMonitor = Canistergeek.Monitor();
 
   // Logs
   //todo: remove old version in 0.1.5 - rewrite upgrader
-  stable var _canistergeekLoggerUD : ?CanistergeekOld.LoggerUpgradeData = null;
   stable var _canistergeekLoggerUD_0_1_4 : ?Canistergeek.LoggerUpgradeData = null;
   private let canistergeekLogger = Canistergeek.Logger();
 
@@ -168,15 +166,12 @@ shared (deployer) actor class Nft_Canister() = this {
 
   // Upgrade storage for non-stable types
   //todo: remove nft_library_stable in 0.1.5 - consider moving into migration
-  stable var nft_library_stable : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])] = [];
   stable var nft_library_stable_2 : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
 
   // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
-  private var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>> = if (nft_library_stable.size() > 0) {
-    NFTUtils.build_library(nft_library_stable);
-  } else {
-    NFTUtils.build_library_new(nft_library_stable_2);
-  };
+  stable var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
+  
+  
 
   // Let us get the principal of the host gateway canister
   private var canister_principal : ?Principal = null;
@@ -3797,73 +3792,32 @@ shared (deployer) actor class Nft_Canister() = this {
     _canistergeekLoggerUD_0_1_4 := ?canistergeekLogger.preupgrade();
     // End Canistergeek
 
-    let nft_library_stable_buffer = Buffer.Buffer<(Text, [(Text, CandyTypes.AddressedChunkArray)])>(nft_library.size());
-
-    for (thisKey in nft_library.entries()) {
-      let this_library_buffer : Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)> = Buffer.Buffer<(Text, CandyTypes.AddressedChunkArray)>(thisKey.1.size());
-      for (this_item in thisKey.1.entries()) {
-        this_library_buffer.add((this_item.0, Workspace.workspaceToAddressedChunkArray(this_item.1)));
-      };
-      nft_library_stable_buffer.add((thisKey.0, Buffer.toArray(this_library_buffer)));
-    };
-
-    nft_library_stable_2 := Buffer.toArray(nft_library_stable_buffer);
+    
 
   };
 
   system func postupgrade() {
-    nft_library_stable := [];
-    nft_library_stable_2 := [];
+    
 
     // Canistergeek
 
-    canistergeekMonitor.postupgrade(_canistergeekMonitorUD);
-    _canistergeekMonitorUD := null;
+    canistergeekMonitor.postupgrade(_canistergeekMonitorUD_0_1_4);
+    _canistergeekMonitorUD_0_1_4 := null;
     //upgrade canister geek data
 
-    if (_canistergeekLoggerUD != null) {
-      let newData = switch (_canistergeekLoggerUD) {
-        case (null) {
-          null;
-        };
-        case (?upgradeData) {
-          switch (upgradeData) {
-            case (#v1(data)) {
-              let newLogBuffer = Buffer.Buffer<{ timeNanos : Nat64; message : Text; data : CandyTypes.CandyShared; caller : ?Principal }>(data.queue.size());
-
-              for (thisItem in data.queue.vals()) {
-                newLogBuffer.add({
-                  timeNanos = thisItem.timeNanos;
-                  message = thisItem.message;
-                  caller = thisItem.caller;
-                  data = CandyUpgrade.upgradeCandyShared(thisItem.data);
-                });
-              };
-
-              ? #v1({
-                queue = Buffer.toArray(newLogBuffer);
-                maxCount = data.maxCount;
-                next = data.next;
-                full = data.full;
-              });
-            };
-          };
-        };
-      };
-
-      canistergeekLogger.postupgrade(newData);
-      _canistergeekLoggerUD := null;
-    } else {
-      canistergeekLogger.postupgrade(_canistergeekLoggerUD_0_1_4);
-      _canistergeekLoggerUD_0_1_4 := null;
-    };
+    
+    canistergeekLogger.postupgrade(_canistergeekLoggerUD_0_1_4);
+    _canistergeekLoggerUD_0_1_4 := null;
+    
 
     //Optional: override default number of log messages to your value
-    canistergeekLogger.setMaxMessagesCount(3000);
+    canistergeekLogger.setMaxMessagesCount(1000);
 
     upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
 
     notify_timer := ?Timer.setTimer(#nanoseconds(1), handle_notify);
+
+    nft_library_stable_2 :=[];
 
     // End Canistergeek
 
