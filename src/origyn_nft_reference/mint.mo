@@ -1275,7 +1275,7 @@ module {
 
     var node_principal = switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_node)) {
       case (null) {
-        #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+        #Principal(Principal.fromText("cjrh3-ivpiy-uhwu3-fenuc-23mkg-vez2x-5dqbl-obt3c-2onzn-alaib-kae")); //dev fund
       };
       case (?val) {
         val.value;
@@ -1288,7 +1288,7 @@ module {
       case (null) {
         switch (Properties.getClassPropertyShared(collection, Types.metadata.__system_originator)) {
           case (null) {
-            #Principal(Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae")); //dev fund
+            #Principal(Principal.fromText("cjrh3-ivpiy-uhwu3-fenuc-23mkg-vez2x-5dqbl-obt3c-2onzn-alaib-kae")); //dev fund
           };
           case (?val) {
             val.value;

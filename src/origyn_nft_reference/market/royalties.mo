@@ -122,8 +122,8 @@ module {
 
   private func dev_fund() : { owner : Principal; sub_account : ?Blob } {
     {
-      owner = Principal.fromText("a3lu7-uiaaa-aaaaj-aadnq-cai");
-      sub_account = ?Blob.fromArray([90, 139, 65, 137, 126, 28, 225, 88, 245, 212, 115, 206, 119, 123, 54, 216, 86, 30, 91, 21, 25, 35, 79, 182, 234, 229, 219, 103, 248, 132, 25, 79]);
+      owner = Principal.fromText("cjrh3-ivpiy-uhwu3-fenuc-23mkg-vez2x-5dqbl-obt3c-2onzn-alaib-kae");
+      sub_account = null;
     };
   };
 
@@ -372,11 +372,7 @@ module {
             };
 
             if (this_royalty > _fee) {
-              let send_account : { owner : Principal; sub_account : ?Blob } = if (Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner) {
-                dev_fund();
-              } else {
-                this_principal;
-              };
+              let send_account : { owner : Principal; sub_account : ?Blob } = this_principal;
 
               let receiver_account = #account({
                 owner = send_account.owner;
@@ -455,11 +451,7 @@ module {
             if (this_royalty > request.fee) {
               request.remaining -= this_royalty;
 
-              let send_account : { owner : Principal; sub_account : ?Blob } = if (Principal.fromText("yfhhd-7eebr-axyvl-35zkt-z6mp7-hnz7a-xuiux-wo5jf-rslf7-65cqd-cae") == this_principal.owner) {
-                dev_fund();
-              } else {
-                this_principal;
-              };
+              let send_account : { owner : Principal; sub_account : ?Blob } = this_principal;
 
               let receiver_account = #account({
                 owner = send_account.owner;

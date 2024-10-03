@@ -313,11 +313,7 @@ module {
     };
 
     debug if (debug_channel.icrc7) D.print("transferICRC7 : feeDepositAccount " # debug_show (feeDepositAccount));
-    let _royalties_names = if (override) {
-      Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
-    } else {
-      Royalties.royalties_names;
-    };
+    let _royalties_names = Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
 
     let fee_deposit_amount : Nat = Royalties.get_total_amount_fixed_royalties(_royalties_names, metadata);
 
