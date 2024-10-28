@@ -964,15 +964,7 @@ module {
     #no_fee_accounts_provided;
   };
 
-  public func errors(logger : ?Canistergeek.Logger, the_error : Errors, flag_point : Text, caller : ?Principal) : OrigynError {
-
-    switch (logger) {
-      case (null) {};
-      case (?logger) {
-        let log_data = "Type : error, flag_point :  " # flag_point # debug_show ((the_error, caller));
-        logger.logMessage("Error", #Text(log_data), caller);
-      };
-    };
+  public func errors(the_error : Errors, flag_point : Text, caller : ?Principal) : OrigynError {
 
     switch (the_error) {
       case (#id_not_found_in_metadata) {
@@ -1834,7 +1826,7 @@ module {
       case (#principal(principal)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(principal, null))));
       case (#account(account)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(account.owner, null))));
       case (#account_id(account_id)) #ok(request);
-      case (#extensible(ex)) return #err(errors(null, #nyi, "force_account_to_account_id", null));
+      case (#extensible(ex)) return #err(errors(#nyi, "force_account_to_account_id", null));
     };
   };
 

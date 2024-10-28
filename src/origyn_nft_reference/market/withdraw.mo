@@ -58,7 +58,7 @@ module {
     debug if (debug_channel.withdraw_deposit) D.print(debug_show (withdraw));
     if (caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) {
       //cant withdraw for someone else
-      return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match", ?caller)));
+      return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match", ?caller)));
     };
 
     debug if (debug_channel.withdraw_deposit) D.print("about to verify");
@@ -69,10 +69,10 @@ module {
     let fee = switch (details.token) {
       case (#ic(token)) {
         let token_fee = Option.get(token.fee, 0);
-        if (details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount", ?caller)));
+        if (details.amount <= token_fee) return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - deposit - withdraw fee is larger than amount", ?caller)));
         token_fee;
       };
-      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show (details), ?caller)));
+      case (_) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - deposit - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
     //attempt to send payment
@@ -91,23 +91,23 @@ module {
             try {
               switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)) {
                 case (#ok(val)) ?val;
-                case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
+                case (#err(err)) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
 
               };
             } catch (e) {
-              return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
+              return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
             };
           };
-          case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show (details), ?caller)));
+          case (_) return #err(#awaited(Types.errors(#nyi, "withdraw_nft_origyn - deposit - - ledger type nyi - " # debug_show (details), ?caller)));
         };
       };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show (details), ?caller)));
+      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - deposit - -  token standard nyi - " # debug_show (details), ?caller)));
     };
 
     debug if (debug_channel.withdraw_deposit) D.print("succesful transaction :" # debug_show (transaction_id) # debug_show (details));
 
     switch (transaction_id) {
-      case (null) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null", ?caller)));
+      case (null) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null", ?caller)));
       case (?transaction_id) {
         switch (
           Metadata.add_transaction_record<system>(
@@ -128,7 +128,7 @@ module {
           )
         ) {
           case (#ok(val)) return #awaited(#withdraw(val));
-          case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
+          case (#err(err)) return #err(#awaited(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
         };
       };
     };
@@ -149,7 +149,7 @@ module {
     if (caller != state.canister() and Types.account_eq(#principal(caller), details.account) == false) {
       //cant withdraw for someone else
       debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw - buyer and caller do not match");
-      return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "_withdraw_fee_deposit - withdraw - buyer and caller do not match", ?caller)));
+      return #err(#trappable(Types.errors(#unauthorized_access, "_withdraw_fee_deposit - withdraw - buyer and caller do not match", ?caller)));
     };
 
     debug if (debug_channel.withdraw_fee_deposit) D.print("about to verify");
@@ -160,10 +160,10 @@ module {
     let fee = switch (details.token) {
       case (#ic(token)) {
         let token_fee = Option.get(token.fee, 0);
-        if (details.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "_withdraw_fee_deposit - withdraw - withdraw fee is larger than amount", ?caller)));
+        if (details.amount <= token_fee) return #err(#trappable(Types.errors(#withdraw_too_large, "_withdraw_fee_deposit - withdraw - withdraw fee is larger than amount", ?caller)));
         token_fee;
       };
-      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - extensible token nyi - " # debug_show (details), ?caller)));
+      case (_) return #err(#trappable(Types.errors(#nyi, "_withdraw_fee_deposit - withdraw - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
     switch (details.status) {
@@ -172,11 +172,11 @@ module {
         switch (FeeAccount.free_token_fee_balance(state, { account = details.account; token = details.token })) {
           case (#ok(free_token)) {
             if (free_token < details.amount) {
-              return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - free token : " # debug_show (free_token) # " try to withdraw : " # debug_show (details.amount), ?caller)));
+              return #err(#trappable(Types.errors(#nyi, "_withdraw_fee_deposit - withdraw - free token : " # debug_show (free_token) # " try to withdraw : " # debug_show (details.amount), ?caller)));
             };
           };
           case (#err(e)) {
-            return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - withdraw - err getting free token balance - " # debug_show (e), ?caller)));
+            return #err(#trappable(Types.errors(#nyi, "_withdraw_fee_deposit - withdraw - err getting free token balance - " # debug_show (e), ?caller)));
           };
         };
       };
@@ -200,17 +200,17 @@ module {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
                   debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw_fee_deposit : deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)));
-                  return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)), ?caller)));
+                  return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)), ?caller)));
                 };
               };
             } catch (e) {
-              return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
+              return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed catch branch " # Error.message(e), ?caller)));
             };
           };
-          case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_fee_deposit - deposit - - ledger type nyi - " # debug_show (details), ?caller)));
+          case (_) return #err(#awaited(Types.errors(#nyi, "withdraw_fee_deposit - deposit - - ledger type nyi - " # debug_show (details), ?caller)));
         };
       };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_fee_deposit - deposit - -  token standard nyi - " # debug_show (details), ?caller)));
+      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "withdraw_fee_deposit - deposit - -  token standard nyi - " # debug_show (details), ?caller)));
     };
 
     debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw_fee_deposit : succesful transaction :" # debug_show (transaction_id) # debug_show (details));
@@ -233,7 +233,7 @@ module {
           };
           case (#err(err)) {
             debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw_fee_deposit : failed to unlock token " # debug_show (err));
-            return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "_withdraw_fee_deposit - failed to unlock token " # debug_show (err), ?caller)));
+            return #err(#trappable(Types.errors(#nyi, "_withdraw_fee_deposit - failed to unlock token " # debug_show (err), ?caller)));
           };
         };
       };
@@ -241,7 +241,7 @@ module {
     };
 
     switch (transaction_id) {
-      case (null) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_fee_deposit - escrow -  payment failed txid null", ?caller)));
+      case (null) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_fee_deposit - escrow -  payment failed txid null", ?caller)));
       case (?transaction_id) {
         let token_id = switch (details.status) {
           case (#locked(val)) { val.token_id };
@@ -267,7 +267,7 @@ module {
           )
         ) {
           case (#ok(val)) return #awaited(#withdraw(val));
-          case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "withdraw_fee_deposit - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
+          case (#err(err)) return #err(#awaited(Types.errors(err.error, "withdraw_fee_deposit - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
         };
       };
     };
@@ -286,7 +286,7 @@ module {
 
     debug if (debug_channel.withdraw_escrow) D.print("an escrow withdraw");
     debug if (debug_channel.withdraw_escrow) D.print(debug_show (withdraw));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match", ?caller)));
+    if (caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match", ?caller)));
 
     debug if (debug_channel.withdraw_escrow) D.print("about to verify");
 
@@ -294,7 +294,7 @@ module {
       case (#err(err)) {
         debug if (debug_channel.withdraw_escrow) D.print("an error");
         debug if (debug_channel.withdraw_escrow) D.print(debug_show (err));
-        return #err(#trappable(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show (details), ?caller)));
+        return #err(#trappable(Types.errors(err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show (details), ?caller)));
       };
       case (#ok(verified)) verified;
     };
@@ -302,7 +302,7 @@ module {
     let account_info = NFTUtils.get_escrow_account_info(verified.found_asset.escrow, state.canister());
     if (verified.found_asset.escrow.amount < details.amount) {
       debug if (debug_channel.withdraw_escrow) D.print("in check amount " # debug_show (verified.found_asset.escrow.amount) # " " # debug_show (details.amount));
-      return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large", ?caller)));
+      return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw too large", ?caller)));
     };
 
     let a_ledger = verified.found_asset.escrow;
@@ -310,7 +310,7 @@ module {
     switch (a_ledger.lock_to_date) {
       case (?val) {
         debug if (debug_channel.withdraw_escrow) D.print("found a lock date " # debug_show ((val, state.get_time())));
-        if (state.get_time() < val) return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show (val), ?caller)));
+        if (state.get_time() < val) return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - this escrow is locked until " # debug_show (val), ?caller)));
       };
       case (null) {
         debug if (debug_channel.withdraw_escrow) D.print("no lock date " # debug_show ((state.get_time())));
@@ -321,10 +321,10 @@ module {
     let fee = switch (details.token) {
       case (#ic(token)) {
         let token_fee = Option.get(token.fee, 0);
-        if (a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount", ?caller)));
+        if (a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - escrow - withdraw fee is larger than amount", ?caller)));
         token_fee;
       };
-      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show (details), ?caller)));
+      case (_) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - escrow - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
     //D.print("got to sale id");
@@ -333,7 +333,7 @@ module {
       case (?sale_id) {
         //check that the owner isn't still the bidder in the sale
         let sale = switch (Map.get(state.state.nft_sales, Map.thash, sale_id)) {
-          case (null) return #err(#trappable(Types.errors(?state.canistergeekLogger, #sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show (a_ledger) # " " # debug_show (withdraw), ?caller)));
+          case (null) return #err(#trappable(Types.errors(#sale_not_found, "withdraw_nft_origyn - escrow - can't find sale top" # debug_show (a_ledger) # " " # debug_show (withdraw), ?caller)));
           case (?sale) sale;
         };
 
@@ -341,7 +341,7 @@ module {
 
         let current_sale_state = switch (NFTUtils.get_auction_state_from_status(sale)) {
           case (#ok(val)) val;
-          case (#err(err)) return #err(#trappable(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller)));
+          case (#err(err)) return #err(#trappable(Types.errors(err.error, "withdraw_nft_origyn - escrow - find state " # err.flag_point, ?caller)));
         };
 
         switch (current_sale_state.status) {
@@ -356,7 +356,7 @@ module {
                 debug if (debug_channel.withdraw_escrow) D.print("found a winner");
                 if (Types.account_eq(val, details.buyer)) {
                   debug if (debug_channel.withdraw_escrow) D.print("should be throwing an error");
-                  return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner", ?caller)));
+                  return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the winner", ?caller)));
                 };
               };
               case (null) {
@@ -371,7 +371,7 @@ module {
                 debug if (debug_channel.withdraw_escrow) D.print(debug_show (val.buyer));
                 if (Types.account_eq(val.buyer, details.buyer)) {
                   debug if (debug_channel.withdraw_escrow) D.print("passed");
-                  return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid", ?caller)));
+                  return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - you are the current bid", ?caller)));
                 };
               };
               case (null) {
@@ -392,7 +392,7 @@ module {
     debug if (debug_channel.withdraw_escrow) D.print(debug_show (details.amount));
     //ok...so we should be good to withdraw
     //first update the escrow
-    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller)));
+    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - escrow - amount too large ", ?caller)));
 
     let target_escrow = {
       details with
@@ -428,26 +428,26 @@ module {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
                   Verify.handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                  return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller)));
+                  return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed err branch " # err.flag_point, ?caller)));
                 };
               };
             } catch (e) {
               //put the escrow back because something went wrong
               Verify.handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-              return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller)));
+              return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow - ledger payment failed catch branch " # Error.message(e), ?caller)));
             };
 
           };
-          case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show (details), ?caller)));
+          case (_) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - escrow - - ledger type nyi - " # debug_show (details), ?caller)));
         };
       };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show (details), ?caller)));
+      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - escrow - -  token standard nyi - " # debug_show (details), ?caller)));
     };
 
     debug if (debug_channel.withdraw_escrow) D.print("succesful transaction :" # debug_show (transaction_id) # debug_show (details));
 
     switch (transaction_id) {
-      case (null) return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null", ?caller)));
+      case (null) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - escrow -  payment failed txid null", ?caller)));
       case (?transaction_id) {
         switch (
           Metadata.add_transaction_record<system>(
@@ -468,7 +468,7 @@ module {
           )
         ) {
           case (#ok(val)) return #awaited(#withdraw(val));
-          case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
+          case (#err(err)) return #err(#awaited(Types.errors(err.error, "withdraw_nft_origyn - escrow - ledger not updated" # debug_show (transaction_id), ?caller)));
         };
       };
     };
@@ -487,20 +487,20 @@ module {
     debug if (debug_channel.withdraw_sale) D.print("withdrawing a sale");
     debug if (debug_channel.withdraw_sale) D.print(debug_show (details));
     debug if (debug_channel.withdraw_sale) D.print(debug_show (caller));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show ((#principal(caller), details.seller)), ?caller)));
+    if (caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show ((#principal(caller), details.seller)), ?caller)));
 
     let verified = switch (Verify.verify_sales_reciept(state, details)) {
       case (#ok(verified)) verified;
       case (#err(err)) {
         debug if (debug_channel.withdraw_sale) D.print("an error");
         debug if (debug_channel.withdraw_sale) D.print(debug_show (err));
-        return #err(#trappable(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show (details), ?caller)));
+        return #err(#trappable(Types.errors(err.error, "withdraw_nft_origyn - sale - - cannot verify escrow - " # debug_show (details), ?caller)));
       };
     };
 
     debug if (debug_channel.withdraw_sale) D.print("have verified");
 
-    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large", ?caller)));
+    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - sales - withdraw too large", ?caller)));
 
     let a_ledger = verified.found_asset.escrow;
 
@@ -514,12 +514,12 @@ module {
         let token_fee = Option.get(token.fee, 0);
         if (a_ledger.amount <= token_fee) {
           debug if (debug_channel.withdraw_sale) D.print("withdraw fee is larger than amount");
-          return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount", ?caller)));
+          return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - sales - withdraw fee is larger than amount", ?caller)));
         };
       };
       case (_) {
         debug if (debug_channel.withdraw_sale) D.print("nyi err");
-        return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show (details), ?caller)));
+        return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show (details), ?caller)));
       };
     };
 
@@ -528,7 +528,7 @@ module {
     debug if (debug_channel.withdraw_sale) D.print(debug_show (details.amount));
     //ok...so we should be good to withdraw
     //first update the escrow
-    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller)));
+    if (verified.found_asset.escrow.amount < details.amount) return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - sale - amount too large ", ?caller)));
 
     let target_escrow = {
       a_ledger with
@@ -560,26 +560,26 @@ module {
                   debug if (debug_channel.withdraw_sale) D.print("failed, putting back ledger " # debug_show (err));
 
                   Verify.handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-                  return #err(#awaited(Types.errors(?state.canistergeekLogger, #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller)));
+                  return #err(#awaited(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed err branch" # err.flag_point, ?caller)));
                 };
               };
             } catch (e) {
               //put the escrow back
               Verify.handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
-              return #err(#awaited(Types.errors(?state.canistergeekLogger, #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller)));
+              return #err(#awaited(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller)));
             };
           };
           case (_) {
-            return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show (details), ?caller)));
+            return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show (details), ?caller)));
           };
         };
       };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show (details), ?caller)));
+      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
     //D.print("have a transactionid and will crate a transaction");
     switch (transaction_id) {
-      case (null) return #err(#awaited(Types.errors(?state.canistergeekLogger, #sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null", ?caller)));
+      case (null) return #err(#awaited(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null", ?caller)));
       case (?transaction_id) {
         switch (
           Metadata.add_transaction_record<system>(
@@ -600,7 +600,7 @@ module {
           )
         ) {
           case (#ok(val)) return #awaited(#withdraw(val));
-          case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show (transaction_id), ?caller)));
+          case (#err(err)) return #err(#awaited(Types.errors(err.error, "withdraw_nft_origyn - sales ledger not updated" # debug_show (transaction_id), ?caller)));
         };
       };
     };
@@ -621,7 +621,7 @@ module {
     if (caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network) {
       //cant withdraw for someone else
       debug if (debug_channel.withdraw_reject) D.print(debug_show ((caller, state.canister(), details.seller, state.state.collection_data.network)));
-      return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "withdraw_nft_origyn - reject - unauthorized", ?caller)));
+      return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - reject - unauthorized", ?caller)));
     };
 
     debug if (debug_channel.withdraw_reject) D.print("about to verify");
@@ -644,7 +644,7 @@ module {
       case (#err(err)) {
         debug if (debug_channel.withdraw_reject) D.print("an error");
         debug if (debug_channel.withdraw_reject) D.print(debug_show (err));
-        return #err(#trappable(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show (details), ?caller)));
+        return #err(#trappable(Types.errors(err.error, "withdraw_nft_origyn - escrow - - cannot verify escrow - " # debug_show (details), ?caller)));
       };
     };
 
@@ -657,10 +657,10 @@ module {
     let fee = switch (details.token) {
       case (#ic(token)) {
         let token_fee = Option.get(token.fee, 0);
-        if (a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(?state.canistergeekLogger, #withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount", ?caller)));
+        if (a_ledger.amount <= token_fee) return #err(#trappable(Types.errors(#withdraw_too_large, "withdraw_nft_origyn - reject - withdraw fee is larger than amount", ?caller)));
         token_fee;
       };
-      case (_) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show (details), ?caller)));
+      case (_) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - reject - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
     debug if (debug_channel.withdraw_reject) D.print("got to sale id");
@@ -669,7 +669,7 @@ module {
       case (?sale_id) {
         //check that the owner isn't still the bidder in the sale
         switch (Map.get(state.state.nft_sales, Map.thash, sale_id)) {
-          case (null) return #err(#trappable(Types.errors(?state.canistergeekLogger, #sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show (a_ledger) # " " # debug_show (withdraw), ?caller)));
+          case (null) return #err(#trappable(Types.errors(#sale_not_found, "withdraw_nft_origyn - reject - can't find sale top" # debug_show (a_ledger) # " " # debug_show (withdraw), ?caller)));
           case (?val) {
 
             debug if (debug_channel.withdraw_reject) D.print("testing current state");
@@ -677,7 +677,7 @@ module {
             let current_sale_state = switch (NFTUtils.get_auction_state_from_status(val)) {
               case (#ok(val)) { val };
               case (#err(err)) {
-                return #err(#trappable(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller)));
+                return #err(#trappable(Types.errors(err.error, "withdraw_nft_origyn - reject - find state " # err.flag_point, ?caller)));
               };
             };
 
@@ -693,7 +693,7 @@ module {
                     debug if (debug_channel.withdraw_reject) D.print("found a winner");
                     if (Types.account_eq(val, details.buyer)) {
                       debug if (debug_channel.withdraw_reject) D.print("should be throwing an error");
-                      return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner", ?caller)));
+                      return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the winner", ?caller)));
                     };
                   };
                   case (null) {
@@ -708,7 +708,7 @@ module {
                     debug if (debug_channel.withdraw_reject) D.print(debug_show (val.buyer));
                     if (Types.account_eq(val.buyer, details.buyer)) {
                       debug if (debug_channel.withdraw_reject) D.print("passed");
-                      return #err(#trappable(Types.errors(?state.canistergeekLogger, #escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid", ?caller)));
+                      return #err(#trappable(Types.errors(#escrow_cannot_be_removed, "withdraw_nft_origyn - reject - you are the current bid", ?caller)));
                     };
                   };
                   case (null) {
@@ -757,18 +757,18 @@ module {
                   //make sure things havent changed in the mean time
                   //D.print("failed, putting back ledger");
                   Verify.handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
-                  return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller)));
+                  return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject - ledger payment failed" # err.flag_point, ?caller)));
                 };
               };
 
             };
             case (_) {
-              return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show (details), ?caller)));
+              return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - reject - - ledger type nyi - " # debug_show (details), ?caller)));
             };
           };
         };
         case (#extensible(val)) {
-          return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show (details), ?caller)));
+          return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - reject - -  token standard nyi - " # debug_show (details), ?caller)));
         };
       };
     } catch (e) {
@@ -777,7 +777,7 @@ module {
       //D.print("failed, putting back throw");
       Verify.handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
 
-      return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e), ?caller)));
+      return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - reject -  payment failed" # Error.message(e), ?caller)));
     };
 
     debug if (debug_channel.withdraw_reject) D.print("succesful transaction :" # debug_show (transaction_id) # debug_show (details));
@@ -785,7 +785,7 @@ module {
     switch (transaction_id) {
       case (null) {
         //really should have failed already
-        return #err(#awaited(Types.errors(?state.canistergeekLogger, #escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null", ?caller)));
+        return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - transaction -  payment failed txid null", ?caller)));
       };
       case (?transaction_id) {
         switch (
@@ -810,7 +810,7 @@ module {
             return #awaited(#withdraw(val));
           };
           case (#err(err)) {
-            return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show (transaction_id), ?caller)));
+            return #err(#awaited(Types.errors(err.error, "withdraw_nft_origyn - transaction - ledger not updated" # debug_show (transaction_id), ?caller)));
           };
         };
       };

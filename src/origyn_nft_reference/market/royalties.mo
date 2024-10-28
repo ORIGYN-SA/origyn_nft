@@ -191,12 +191,12 @@ module {
   public func _load_royalty(fee_schema : Text, royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
     debug if (debug_channel.royalties) D.print("_load_royalty" # debug_show (royalty));
 
-    let ?properties : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "tag") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
-    let #Text(tag) = properties.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
+    let ?properties : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "tag") else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
+    let #Text(tag) = properties.value else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
 
     if (fee_schema == Types.metadata.__system_fixed_royalty) {
-      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "fixedXDR") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
-      let #Float(fixedXDR) = properties_2.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
+      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "fixedXDR") else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
+      let #Float(fixedXDR) = properties_2.value else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
 
       let tokenCanister : ?Principal = switch (Properties.getClassPropertyShared(royalty, "tokenCanister")) {
         case (null) { null };
@@ -258,8 +258,8 @@ module {
 
       return #ok(#fixed({ tag = tag; fixedXDR = fixedXDR; token = token }));
     } else {
-      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "rate") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
-      let #Float(rate) = properties_2.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
+      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "rate") else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
+      let #Float(rate) = properties_2.value else return #err(Types.errors( #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
 
       return #ok(#dynamic({ tag = tag; rate = rate }));
     };
@@ -284,7 +284,7 @@ module {
           // should never happen and been check before processing royalties.
           debug if (debug_channel.royalties) D.print("_process_royalties - error _load_royalty - this path should never happened.");
           return (request.remaining, []);
-          // return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller));
+          // return #err(Types.errors( #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller));
         };
       };
 

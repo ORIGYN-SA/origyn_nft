@@ -24,7 +24,7 @@ validate deposit was used before we implemented sub accounts. We are leaving it 
             detail;
         };
         case(_){
-            return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(deposit), ?caller));
         }
     };
      //D.print(debug_show(canister));
@@ -42,7 +42,7 @@ validate deposit was used before we implemented sub accounts. We are leaving it 
 
         if( transfer.to != Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, null)))){
            //D.print("Host didnt match");
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_trx_wrong_host, "ledger_interface - validate deposit - bad host" # debug_show(deposit) # " should be " # Principal.toText(host), ?caller));
+            return #err(Types.errors(  #validate_trx_wrong_host, "ledger_interface - validate deposit - bad host" # debug_show(deposit) # " should be " # Principal.toText(host), ?caller));
         };
 
        //D.print("comparing buyer");
@@ -55,15 +55,15 @@ validate deposit was used before we implemented sub accounts. We are leaving it 
        //D.print(debug_show(deposit.buyer));
         if(Types.account_eq(#account_id(Hex.encode(Blob.toArray(transfer.from))), deposit.buyer) == false){
            //D.print("from and buyer didnt match " # debug_show(transfer.from) # " " # debug_show(deposit.buyer));
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_wrong_buyer, "ledger_interface - validate deposit - bad buyer" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #validate_deposit_wrong_buyer, "ledger_interface - validate deposit - bad buyer" # debug_show(deposit), ?caller));
         };
 
         if(Nat64.toNat(transfer.amount.e8s) != deposit.amount){
            //D.print("amount didnt match");
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_wrong_amount, "ledger_interface - validate deposit - bad amount" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #validate_deposit_wrong_amount, "ledger_interface - validate deposit - bad amount" # debug_show(deposit), ?caller));
         };
     } catch (e){
-        return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(deposit), ?caller));
+        return #err(Types.errors(  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(deposit), ?caller));
     };
      //D.print("returning true");
     return #ok(true);

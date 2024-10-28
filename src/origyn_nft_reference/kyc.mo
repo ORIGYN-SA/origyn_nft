@@ -112,7 +112,7 @@ module {
       };
       case (_) {
         debug if (debug_channel.kyc == true) D.print("unsupported spec");
-        return #err(Types.errors(?state.canistergeekLogger, #nyi, "pass_kyc - unsupported spec " # debug_show (escrow.token), ?caller));
+        return #err(Types.errors(#nyi, "pass_kyc - unsupported spec " # debug_show (escrow.token), ?caller));
       };
     };
 
@@ -134,7 +134,7 @@ module {
       };
       case (_) {
         debug if (debug_channel.kyc == true) D.print("unsupported buyer");
-        return #err(Types.errors(?state.canistergeekLogger, #nyi, "pass_kyc - unsupported buyer " # debug_show (escrow.token), ?caller));
+        return #err(Types.errors(#nyi, "pass_kyc - unsupported buyer " # debug_show (escrow.token), ?caller));
       };
     };
 
@@ -324,7 +324,7 @@ module {
         #IC({ token with id = null; fee = token.fee });
       };
       case (_) {
-        return #err(Types.errors(?state.canistergeekLogger, #nyi, "pass_kyc - unsupported spec " # debug_show (escrow.token), ?caller));
+        return #err(Types.errors(#nyi, "pass_kyc - unsupported spec " # debug_show (escrow.token), ?caller));
       };
     };
 
@@ -345,7 +345,7 @@ module {
         });
       };
       case (_) {
-        return #err(Types.errors(?state.canistergeekLogger, #nyi, "pass_kyc - unsupported buyer " # debug_show (escrow.token), ?caller));
+        return #err(Types.errors(#nyi, "pass_kyc - unsupported buyer " # debug_show (escrow.token), ?caller));
       };
     };
 

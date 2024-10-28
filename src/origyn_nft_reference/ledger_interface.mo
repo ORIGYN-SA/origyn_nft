@@ -46,7 +46,7 @@ class Ledger_Interface() {
             detail;
         };
         case(_){
-            return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(deposit), ?caller));
         }
     };
      //D.print(debug_show(canister));
@@ -64,7 +64,7 @@ class Ledger_Interface() {
 
         if( transfer.to != Blob.fromArray(AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, null)))){
            //D.print("Host didnt match");
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_trx_wrong_host, "ledger_interface - validate deposit - bad host" # debug_show(deposit) # " should be " # Principal.toText(host), ?caller));
+            return #err(Types.errors(  #validate_trx_wrong_host, "ledger_interface - validate deposit - bad host" # debug_show(deposit) # " should be " # Principal.toText(host), ?caller));
         };
 
        //D.print("comparing buyer");
@@ -77,15 +77,15 @@ class Ledger_Interface() {
        //D.print(debug_show(deposit.buyer));
         if(Types.account_eq(#account_id(Hex.encode(Blob.toArray(transfer.from))), deposit.buyer) == false){
            //D.print("from and buyer didnt match " # debug_show(transfer.from) # " " # debug_show(deposit.buyer));
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_wrong_buyer, "ledger_interface - validate deposit - bad buyer" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #validate_deposit_wrong_buyer, "ledger_interface - validate deposit - bad buyer" # debug_show(deposit), ?caller));
         };
 
         if(Nat64.toNat(transfer.amount.e8s) != deposit.amount){
            //D.print("amount didnt match");
-            return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_wrong_amount, "ledger_interface - validate deposit - bad amount" # debug_show(deposit), ?caller));
+            return #err(Types.errors(  #validate_deposit_wrong_amount, "ledger_interface - validate deposit - bad amount" # debug_show(deposit), ?caller));
         };
     } catch (e){
-        return #err(Types.errors(?state.canistergeekLogger,  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(deposit), ?caller));
+        return #err(Types.errors(  #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show(deposit), ?caller));
     };
      //D.print("returning true");
     return #ok(true);
@@ -118,7 +118,7 @@ class Ledger_Interface() {
 
     let deposit_account = NFTUtils.get_deposit_info(escrow.deposit.buyer, host);
 
-    let #ic(ledger) = escrow.deposit.token else return #err(Types.errors(null, #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller));
+    let #ic(ledger) = escrow.deposit.token else return #err(Types.errors( #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller));
 
     try {
       //D.print("sending transfer blocks # " # debug_show(escrow.deposit.amount - ledger.fee));
@@ -138,7 +138,7 @@ class Ledger_Interface() {
 
       let result_block = switch (result) {
         case (#ok(val)) val;
-        case (#err(err)) return #err(Types.errors(null, #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show (escrow.deposit) # " " # debug_show (err), ?caller));
+        case (#err(err)) return #err(Types.errors( #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show (escrow.deposit) # " " # debug_show (err), ?caller));
       };
 
       return #ok({
@@ -146,7 +146,7 @@ class Ledger_Interface() {
         subaccount_info = escrow_account_info;
       });
 
-    } catch (e) return #err(Types.errors(null, #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow.deposit), ?caller));
+    } catch (e) return #err(Types.errors( #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow.deposit), ?caller));
   };
 
   //gets a balance for an escrow account
@@ -174,7 +174,7 @@ class Ledger_Interface() {
       host,
     );
 
-    let #ic(ledger) = escrow.deposit.token else return #err(#trappable(Types.errors(null, #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller)));
+    let #ic(ledger) = escrow.deposit.token else return #err(#trappable(Types.errors( #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller)));
 
     try {
       //D.print("sending transfer blocks # " # debug_show(escrow.deposit.amount - ledger.fee));
@@ -207,7 +207,7 @@ class Ledger_Interface() {
         };
         case (#err(val)) return #err(val);
       };
-    } catch (e) return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow.deposit), ?caller)));
+    } catch (e) return #err(#awaited(Types.errors( #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow.deposit), ?caller)));
   };
 
   //gets a balance for an fee deposit account
@@ -229,7 +229,7 @@ class Ledger_Interface() {
       host,
     );
 
-    let #ic(ledger) = request.token else return #err(#trappable(Types.errors(null, #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (request), ?caller)));
+    let #ic(ledger) = request.token else return #err(#trappable(Types.errors( #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (request), ?caller)));
 
     try {
 
@@ -261,7 +261,7 @@ class Ledger_Interface() {
         };
         case (#err(val)) return #err(val);
       };
-    } catch (e) return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (request), ?caller)));
+    } catch (e) return #err(#awaited(Types.errors( #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (request), ?caller)));
   };
 
   private func _transfer(host : Principal, escrow : Types.EscrowReceipt, token_id : Text, caller : Principal, from_account_info : Types.SubAccountInfo, to_account_info : Types.SubAccountInfo) : async* Star.Star<(Types.TransactionID, Types.SubAccountInfo, Nat), Types.OrigynError> {
@@ -272,14 +272,14 @@ class Ledger_Interface() {
         detail;
       };
       case (_) {
-        return #err(#trappable(Types.errors(null, #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller)));
+        return #err(#trappable(Types.errors( #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show (escrow), ?caller)));
       };
     };
 
     let ledger_fee = Option.get(ledger.fee, 0);
 
     if (escrow.amount <= ledger_fee) {
-      return #err(#trappable(Types.errors(null, #improper_interface, "ledger_interface - amount is equal or less than fee - not ic" # debug_show (escrow), ?caller)));
+      return #err(#trappable(Types.errors( #improper_interface, "ledger_interface - amount is equal or less than fee - not ic" # debug_show (escrow), ?caller)));
 
     };
 
@@ -305,7 +305,7 @@ class Ledger_Interface() {
         };
         case (#err(err)) {
           debug if (debug_channel.sale) D.print("ERROR : transfer deposit failed" # debug_show (escrow) # " " # debug_show (err));
-          return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show (escrow) # " " # debug_show (err), ?caller)));
+          return #err(#awaited(Types.errors( #validate_deposit_failed, "ledger_interface - transfer deposit failed " # debug_show (escrow) # " " # debug_show (err), ?caller)));
         };
       };
 
@@ -313,7 +313,7 @@ class Ledger_Interface() {
 
     } catch (e) {
       debug if (debug_channel.sale) D.print("ERROR : transfer deposit ledger throw" # Error.message(e) # debug_show (escrow));
-      return #err(#awaited(Types.errors(null, #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow), ?caller)));
+      return #err(#awaited(Types.errors( #validate_deposit_failed, "ledger_interface - validate deposit - ledger throw " # Error.message(e) # debug_show (escrow), ?caller)));
     };
   };
 
@@ -401,14 +401,14 @@ class Ledger_Interface() {
           val;
         };
         case (#Err(err)) {
-          return #err(Types.errors(null, #improper_interface, "ledger_interface - transfer failed " # debug_show (request) # " " # debug_show (err), ?request.caller));
+          return #err(Types.errors( #improper_interface, "ledger_interface - transfer failed " # debug_show (request) # " " # debug_show (err), ?request.caller));
         };
       };
 
       return #ok(#nat(result_block));
 
     } catch (e) {
-      return #err(Types.errors(null, #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show (request), ?request.caller));
+      return #err(Types.errors( #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show (request), ?request.caller));
     };
 
   };
@@ -451,7 +451,7 @@ class Ledger_Interface() {
       return #awaited(result);
 
     } catch (e) {
-      return #err(#awaited(Types.errors(null, #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show (request), ?request.caller)));
+      return #err(#awaited(Types.errors( #improper_interface, "ledger_interface - ledger throw " # Error.message(e) # debug_show (request), ?request.caller)));
     };
 
   };
@@ -476,7 +476,7 @@ class Ledger_Interface() {
 
       let account_id = switch (account) {
         case (#account_id(val)) {
-          return #err(Types.errors(null, #nyi, "ledger_interface - send payment - bad account - Account ID no longer supported. use ICRC1 Account" # debug_show (account), ?caller));
+          return #err(Types.errors( #nyi, "ledger_interface - send payment - bad account - Account ID no longer supported. use ICRC1 Account" # debug_show (account), ?caller));
         };
         case (#principal(val)) {
           {
@@ -494,7 +494,7 @@ class Ledger_Interface() {
           };
         };
         case (_) {
-          return #err(Types.errors(null, #nyi, "ledger_interface - send payment - bad account" # debug_show (account), ?caller));
+          return #err(Types.errors( #nyi, "ledger_interface - send payment - bad account" # debug_show (account), ?caller));
         };
       };
 
@@ -518,9 +518,9 @@ class Ledger_Interface() {
 
       switch (result) {
         case (#Ok(val)) #ok({ trx_id = #nat(val); fee = token_fee });
-        case (#Err(err)) #err(Types.errors(null, #nyi, "ledger_interface - send payment - payment failed " # debug_show (err), ?caller));
+        case (#Err(err)) #err(Types.errors( #nyi, "ledger_interface - send payment - payment failed " # debug_show (err), ?caller));
       };
-    } catch (e) return #err(Types.errors(null, #nyi, "ledger_interface - send payment - payment failed " # Error.message(e), ?caller));
+    } catch (e) return #err(Types.errors( #nyi, "ledger_interface - send payment - payment failed " # Error.message(e), ?caller));
   };
 
 };
