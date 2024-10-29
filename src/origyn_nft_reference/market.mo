@@ -4100,7 +4100,7 @@ module {
           //not a canister call... trying to recognize escrow
 
           debug if (debug_channel.bid) D.print("Not a canister call, trying escrow");
-          state.canistergeekLogger.logMessage("bid_nft_origyn Not a canister call, trying recognize escrow " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
+          // NFTUtils.logDirectly("bid_nft_origyn Not a canister call, trying recognize escrow " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
           switch (
             Star.toResult(
               await* recognize_escrow_nft_origyn(
@@ -4119,18 +4119,18 @@ module {
             )
           ) {
             case (#ok(val)) {
-              state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow succeeded " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
+              // NFTUtils.logDirectly("bid_nft_origyn recognize escrow succeeded " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
 
               debug if (debug_channel.bid) D.print("recognizing escrow was successful, recaling bid");
               return await* bid_nft_origyn(state, request, caller, true);
             };
             case (#err(err)) {
-              state.canistergeekLogger.logMessage("bid_nft_origyn recognize escrow failed " #debug_show ((request.escrow_record, sale_id, err.flag_point)), #Option(null), null);
+              // NFTUtils.logDirectly("bid_nft_origyn recognize escrow failed " #debug_show ((request.escrow_record, sale_id, err.flag_point)), #Option(null), null);
               if (debug_channel.bid) D.print("recognition of escrow failed, attempting recognition of deposit");
             };
           };
 
-          state.canistergeekLogger.logMessage("bid_nft_origyn attempting escrow from deposit " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
+          // NFTUtils.logDirectly("bid_nft_origyn attempting escrow from deposit " #debug_show ((request.escrow_record, sale_id)), #Option(null), null);
 
           switch (
             await* escrow_nft_origyn(

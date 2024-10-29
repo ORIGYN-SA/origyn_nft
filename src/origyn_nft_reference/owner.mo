@@ -299,14 +299,14 @@ module {
     };
 
     let ?collection = Map.get(state.state.nft_metadata, Map.thash, "") else {
-      state.canistergeekLogger.logMessage("transferICRC7 cannot find collection metatdata. this should not happene" # debug_show (tokenAsNat), #Bool(false), null);
+      // NFTUtils.logDirectly("transferICRC7 cannot find collection metatdata. this should not happene" # debug_show (tokenAsNat), #Bool(false), null);
       D.trap("transferICRC7 cannot find collection metatdata. this should not happen");
     };
 
     let override = switch (Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)) {
       case (#ok(val)) val;
       case (_) {
-        state.canistergeekLogger.logMessage("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (tokenAsNat), #Bool(false), null);
+        // NFTUtils.logDirectly("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (tokenAsNat), #Bool(false), null);
         false;
       };
     };

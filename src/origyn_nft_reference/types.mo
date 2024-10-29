@@ -26,7 +26,6 @@ import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 import DROUTE "mo:droute_client/Droute";
 import KYC "mo:icrc17_kyc";
-import CanistergeekTypes "mo:canistergeek/canistergeek";
 import http "mo:http/Http";
 
 import Star "mo:star/star";
@@ -236,7 +235,6 @@ module {
   };
 
   public let TokenSpecDefault = #extensible(#Option(null));
-  public let Canistergeek = CanistergeekTypes;
 
   //nyi: anywhere a deposit address is used, check blob for size in inspect message
   public type SubAccountInfo = {
@@ -471,7 +469,6 @@ module {
     refresh_state : () -> State;
     droute_client : DROUTE.Droute;
     kyc_client : KYC.kyc;
-    canistergeekLogger : Canistergeek.Logger;
     handle_notify : () -> async ();
     icrc3 : ICRC3.ICRC3;
     notify_timer : {

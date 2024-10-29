@@ -180,12 +180,6 @@ let TokenSpecDefault
 ```
 
 
-## Value `Canistergeek`
-``` motoko no-repl
-let Canistergeek
-```
-
-
 ## Type `SubAccountInfo`
 ``` motoko no-repl
 type SubAccountInfo = { principal : Principal; account_id : Blob; account_id_text : Text; account : { principal : Principal; sub_account : Blob } }
@@ -389,7 +383,7 @@ public type Stable_Memory = {
 
 ## Type `State_v0_1_6`
 ``` motoko no-repl
-type State_v0_1_6 = { state : GatewayState; canister : () -> Principal; get_time : () -> Int; nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>; refresh_state : () -> State; droute_client : DROUTE.Droute; kyc_client : KYC.kyc; canistergeekLogger : Canistergeek.Logger; handle_notify : () -> async (); icrc3 : ICRC3.ICRC3; notify_timer : { get : () -> ?Nat; set : (?Nat) -> () } }
+type State_v0_1_6 = { state : GatewayState; canister : () -> Principal; get_time : () -> Int; nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>; refresh_state : () -> State; droute_client : DROUTE.Droute; kyc_client : KYC.kyc; handle_notify : () -> async (); icrc3 : ICRC3.ICRC3; notify_timer : { get : () -> ?Nat; set : (?Nat) -> () } }
 ```
 
 
@@ -707,7 +701,7 @@ type Errors = {#app_id_not_found; #asset_mismatch; #attempt_to_stage_system_data
 
 ## Function `errors`
 ``` motoko no-repl
-func errors(logger : ?Canistergeek.Logger, the_error : Errors, flag_point : Text, caller : ?Principal) : OrigynError
+func errors( the_error : Errors, flag_point : Text, caller : ?Principal) : OrigynError
 ```
 
 

@@ -38,18 +38,22 @@ module {
     */
   private func get_collection_kyc_canister_buyer(state : Types.State) : ?Principal {
     debug if (debug_channel.kyc == true) D.print(Types.metadata.collection_kyc_canister_buyer);
-    state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer called", #Option(null), null);
+
+    NFTUtils.logDirectly("get_collection_kyc_canister_buyer called", #Option(null), null);
     let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(), state.state.collection_data.owner) else {
-      state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer was null", #Option(null), null);
+
+      NFTUtils.logDirectly("get_collection_kyc_canister_buyer was null", #Option(null), null);
       return null;
     };
 
     debug if (debug_channel.kyc == true) D.print("metadata: " # debug_show (metadata));
     let #ok(value) = Metadata.get_nft_principal_property(metadata, Types.metadata.collection_kyc_canister_buyer) else {
-      state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer improper principal", #Option(null), null);
+
+      NFTUtils.logDirectly("get_collection_kyc_canister_buyer improper principal", #Option(null), null);
       return null;
     };
-    state.canistergeekLogger.logMessage("get_collection_kyc_canister_buyer returning", #Principal(value), null);
+
+    NFTUtils.logDirectly("get_collection_kyc_canister_buyer returning", #Principal(value), null);
 
     return ?value;
   };
@@ -61,15 +65,17 @@ module {
     */
   private func get_collection_kyc_canister_seller(state : Types.State) : ?Principal {
     let #ok(metadata) = Metadata.get_metadata_for_token(state, "", state.state.collection_data.owner, ?state.canister(), state.state.collection_data.owner) else {
-      state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller was null", #Option(null), null);
+
+      // NFTUtils.logDirectly("get_collection_kyc_canister_seller was null", #Option(null), null);
       return null;
     };
     let #ok(value) = Metadata.get_nft_principal_property(metadata, Types.metadata.collection_kyc_canister_seller) else {
-      state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller improper principal", #Option(null), null);
+
+      // NFTUtils.logDirectly("get_collection_kyc_canister_seller improper principal", #Option(null), null);
       return null;
     };
 
-    state.canistergeekLogger.logMessage("get_collection_kyc_canister_seller returning", #Principal(value), null);
+    // NFTUtils.logDirectly("get_collection_kyc_canister_seller returning", #Principal(value), null);
     return ?value;
   };
 
@@ -141,7 +147,7 @@ module {
     debug if (debug_channel.kyc == true) D.print("getting collection canister");
     let sale_kyc = get_sale_kyc_canister(state, escrow.sale_id);
 
-    state.canistergeekLogger.logMessage("pass_kyc_buyer was null", #Text(debug_show (sale_kyc)), ?caller);
+    // NFTUtils.logDirectly("pass_kyc_buyer was null", #Text(debug_show (sale_kyc)), ?caller);
 
     let sale_result : MigrationTypes.Current.KYCResult =
     //currently nyi
@@ -209,11 +215,11 @@ module {
       };
     };
 
-    state.canistergeekLogger.logMessage("collection result", #Text(debug_show (collection_result)), ?caller);
+    // NFTUtils.logDirectly("collection result", #Text(debug_show (collection_result)), ?caller);
 
     let elective_kyc = await* get_elective_kyc_canister(state, caller);
 
-    state.canistergeekLogger.logMessage("elective kyc", #Text(debug_show (elective_kyc)), ?caller);
+    // NFTUtils.logDirectly("elective kyc", #Text(debug_show (elective_kyc)), ?caller);
 
     let elective_result : MigrationTypes.Current.KYCResult =
     //currently nyi
@@ -285,7 +291,7 @@ module {
       true;
     } else false;
 
-    state.canistergeekLogger.logMessage("pass_kyc_buyer did async", #Text(debug_show (did_async, kyc_result, aml_result)), ?caller);
+    // NFTUtils.logDirectly("pass_kyc_buyer did async", #Text(debug_show (did_async, kyc_result, aml_result)), ?caller);
 
     let result : MigrationTypes.Current.RunKYCResult = {
       did_async = did_async;
@@ -317,7 +323,7 @@ module {
 
     var message : Text = "";
 
-    state.canistergeekLogger.logMessage("pass_kyc_seller called", #Text(debug_show (escrow, caller)), ?caller);
+    // NFTUtils.logDirectly("pass_kyc_seller called", #Text(debug_show (escrow, caller)), ?caller);
 
     let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch (escrow.token) {
       case (#ic(token)) {
@@ -351,7 +357,7 @@ module {
 
     let sale_kyc = get_sale_kyc_canister(state, escrow.sale_id);
 
-    state.canistergeekLogger.logMessage("pass_kyc_seller sale kyc", #Text(debug_show (sale_kyc)), ?caller);
+    // NFTUtils.logDirectly("pass_kyc_seller sale kyc", #Text(debug_show (sale_kyc)), ?caller);
 
     let sale_result : MigrationTypes.Current.KYCResult =
     //currently nyi
@@ -487,7 +493,7 @@ module {
       true;
     } else false;
 
-    state.canistergeekLogger.logMessage("pass_kyc_seller did async", #Text(debug_show (did_async, kyc_result, message, aml_result)), ?caller);
+    // NFTUtils.logDirectly("pass_kyc_seller did async", #Text(debug_show (did_async, kyc_result, message, aml_result)), ?caller);
 
     let result : MigrationTypes.Current.RunKYCResult = {
       did_async = did_async;
@@ -518,7 +524,8 @@ module {
   public func notify_kyc(state : StateAccess, escrow : MigrationTypes.Current.EscrowRecord, caller : Principal) : async* () {
 
     debug if (debug_channel.kyc == true) D.print("in notify kyc");
-    state.canistergeekLogger.logMessage("notify_kyc called", #Text(debug_show (escrow, caller)), ?caller);
+
+    // NFTUtils.logDirectly("notify_kyc called", #Text(debug_show (escrow, caller)), ?caller);
 
     let kycTokenSpec : MigrationTypes.Current.KYCTokenSpec = switch (escrow.token) {
       case (#ic(token)) {
@@ -596,7 +603,7 @@ module {
 
     let elective_kyc = get_elective_kyc_canister(state, caller);
 
-    state.canistergeekLogger.logMessage("collection_kyc_buyer value in notify", #Text(debug_show (collection_kyc_buyer, caller)), ?caller);
+    // NFTUtils.logDirectly("collection_kyc_buyer value in notify", #Text(debug_show (collection_kyc_buyer, caller)), ?caller);
 
     let elective_result : MigrationTypes.Current.KYCResult =
     //currently nyi
