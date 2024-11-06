@@ -17,6 +17,7 @@ import TimerTool "mo:timer-tool";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
 import Map "mo:map/Map";
+import Map9 "mo:map9/Map";
 import MapUtils "mo:map/utils";
 import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
@@ -466,7 +467,7 @@ module {
     state : GatewayState;
     canister : () -> Principal;
     get_time : () -> Int;
-    nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
+    nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>>;
     refresh_state : () -> State;
     droute_client : DROUTE.Droute;
     kyc_client : KYC.kyc;
@@ -578,7 +579,7 @@ module {
     var state : StorageMigrationTypes.Current.State;
     canister : () -> Principal;
     get_time : () -> Int;
-    var nft_library : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>;
+    var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>>;
     refresh_state : () -> StorageState_v_0_1_5;
     //btreemap_storage : StableBTreeTypes.IBTreeMap<Nat32, [Nat8]>;
     use_stable_storage : Bool;

@@ -12,6 +12,7 @@ import Timer "mo:base/Timer";
 import TrieMap "mo:base/TrieMap";
 import Droute "mo:droute_client/Droute";
 import BlockTypes "ledger/block_types";
+import Map9 "mo:map9/Map";
 
 import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
@@ -477,17 +478,17 @@ module {
   * @param {Text} library_id - The id of the library.
   * @returns {Result.Result<CandyTypes.Workspace, Types.OrigynError>} A result containing either the library item or an error.
   */
-  public func get_library_item_from_store(store : TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>, token_id : Text, library_id : Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError> {
+  public func get_library_item_from_store(store : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>>, token_id : Text, library_id : Text) : Result.Result<CandyTypes.Workspace, Types.OrigynError> {
     //D.print("get_library_item_from_store");
-    switch (store.get(token_id)) {
+    switch (Map9.get(store, Map9.thash, token_id)) {
       case (null) {
         //no library exists
         if (debug_channel.update_metadata) D.print("token id empty");
         return #err(Types.errors(null, #library_not_found, "getLibraryStore - cannot find token_id in library store", null));
       };
       case (?token) {
-        if (debug_channel.update_metadata) D.print("looking for token" # debug_show (Iter.toArray<Text>(token.keys())));
-        switch (token.get(library_id)) {
+        if (debug_channel.update_metadata) D.print("looking for token" # debug_show (Iter.toArray<Text>(Map9.keys(token))));
+        switch (Map9.get(token, Map9.thash, library_id)) {
           case (null) {
             //no libaray exists
             if (debug_channel.update_metadata) D.print("no libaray exists");
@@ -2300,15 +2301,15 @@ module {
 
     //nyi: we need to check to make sure the chunk is public or caller has rights
 
-    switch (state.nft_library.get(allocation.token_id)) {
+    switch (Map9.get(state.nft_library, Map9.thash, allocation.token_id)) {
       case (null) {
         return #err(Types.errors(?state.canistergeekLogger, #token_not_found, "chunk_nft_origyn - cannot find token id - " # allocation.token_id, caller));
       };
       case (?token) {
-        switch (token.get(allocation.library_id)) {
+        switch (Map9.get(token, Map9.thash, allocation.library_id)) {
           case (null) {
             //D.print("library was null when we wanted one " # request.library_id);
-            for (this_item in token.entries()) {
+            for (this_item in Map9.entries(token)) {
               //D.print(this_item.0);
             };
             return #err(Types.errors(?state.canistergeekLogger, #library_not_found, "chunk_nft_origyn - cannot find library id: token_id - " # allocation.token_id # " library_id - " # allocation.library_id, caller));

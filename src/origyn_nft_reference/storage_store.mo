@@ -8,9 +8,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 
 import Map "mo:map/Map";
+import Map9 "mo:map9/Map";
 
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
@@ -104,7 +104,7 @@ module {
     };
 
     debug if (debug_channel.stage) D.print("looking for workspace");
-    var found_workspace : CandyTypes.Workspace = switch (state.nft_library.get(chunk.token_id)) {
+    var found_workspace : CandyTypes.Workspace = switch (Map9.get(state.nft_library, Map9.thash, chunk.token_id)) {
       case (null) {
         if (bDelete) return #ok({ canister = state.canister() });
 
@@ -117,15 +117,15 @@ module {
         SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
         debug if (debug_channel.stage) D.print("put the zone");
-        var new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal, Text.hash);
+        var new_library = Map9.new<Text, CandyTypes.Workspace>();
         debug if (debug_channel.stage) D.print("putting workspace");
-        new_library.put(chunk.library_id, new_workspace);
+        ignore Map9.put(new_library, Map9.thash, chunk.library_id, new_workspace);
         debug if (debug_channel.stage) D.print("putting library");
-        state.nft_library.put(chunk.token_id, new_library);
+        ignore Map9.put(state.nft_library, Map9.thash, chunk.token_id, new_library);
         new_workspace;
       };
       case (?library) {
-        switch (library.get(chunk.library_id)) {
+        switch (Map9.get(library, Map9.thash, chunk.library_id)) {
           case (null) {
             debug if (debug_channel.stage) D.print("nft exists but not file");
             //nft exists but this file librry entry doesnt exist
@@ -133,13 +133,13 @@ module {
             let new_workspace = Workspace.initWorkspace(2);
 
             SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
-            library.put(chunk.library_id, new_workspace);
+            ignore Map9.put(library, Map9.thash, chunk.library_id, new_workspace);
             new_workspace;
           };
           case (?workspace) {
             //D.print("found workspace");
             if (bDelete == true) {
-              library.delete(chunk.library_id);
+              ignore Map9.remove(library, Map9.thash, chunk.library_id);
             };
             workspace;
           };

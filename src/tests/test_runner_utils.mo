@@ -67,7 +67,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     let theNat = NFTUtils.get_token_id_as_nat("1");
     //D.print(debug_show(theNat));
-    let ?theText = NFTUtils.get_nat_as_token_id(theNat) else {
+    let #ok(theText) = NFTUtils.get_nat_as_token_id(theNat) else {
       return #fail("get_nat_as_token_id failed");
     };
 
@@ -76,7 +76,7 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     let theNat2 = NFTUtils.get_token_id_as_nat("com.origyn.nft.SomethingFunky");
     D.print(debug_show (theNat2));
-    let ?theText2 = NFTUtils.get_nat_as_token_id(theNat2) else {
+    let #ok(theText2) = NFTUtils.get_nat_as_token_id(theNat2) else {
       return #fail("get_nat_as_token_id failed");
     };
     D.print("the text should be back");

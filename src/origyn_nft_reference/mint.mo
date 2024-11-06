@@ -8,9 +8,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import TrieMap "mo:base/TrieMap";
 
 import Map "mo:map/Map";
+import Map9 "mo:map9/Map";
 
 import Metadata "metadata";
 import NFTUtils "utils";
@@ -1011,7 +1011,7 @@ module {
         //the chunk goes on this canister
 
         debug if (debug_channel.stage) D.print("looking for workspace");
-        var found_workspace : CandyTypes.Workspace = switch (state.nft_library.get(chunk.token_id)) {
+        var found_workspace : CandyTypes.Workspace = switch (Map9.get(state.nft_library, Map9.thash, chunk.token_id)) {
           case (null) {
             if (bDelete == true or content_size == 0) {
               //this was never allocated; return;
@@ -1031,16 +1031,16 @@ module {
             SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
             debug if (debug_channel.stage) D.print("put the zone");
-            let new_library = TrieMap.TrieMap<Text, CandyTypes.Workspace>(Text.equal, Text.hash);
+            let new_library = Map9.new<Text, CandyTypes.Workspace>();
             debug if (debug_channel.stage) D.print("putting workspace");
-            new_library.put(chunk.library_id, new_workspace);
+            ignore Map9.put(new_library, Map9.thash, chunk.library_id, new_workspace);
             debug if (debug_channel.stage) D.print("putting library");
-            state.nft_library.put(chunk.token_id, new_library);
+            ignore Map9.put(state.nft_library, Map9.thash, chunk.token_id, new_library);
             new_workspace;
           };
           case (?library) {
 
-            switch (library.get(chunk.library_id)) {
+            switch (Map9.get(library, Map9.thash, chunk.library_id)) {
               case (null) {
                 if (bDelete == true or content_size == 0) {
                   //this was never allocated; return;
@@ -1057,12 +1057,12 @@ module {
 
                 SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
-                library.put(chunk.library_id, new_workspace);
+                ignore Map9.put(library, Map9.thash, chunk.library_id, new_workspace);
                 new_workspace;
               };
               case (?workspace) {
                 if (bDelete == true) {
-                  library.delete(chunk.library_id);
+                  ignore Map9.remove(library, Map9.thash, chunk.library_id);
                 };
                 debug if (debug_channel.stage) D.print("found workspace");
                 workspace;
@@ -1102,10 +1102,10 @@ module {
             case (null) {};
           };
           Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
-          switch (state.nft_library.get(chunk.token_id)) {
+          switch (Map9.get(state.nft_library, Map9.thash, chunk.token_id)) {
             case (null) {};
             case (?library) {
-              library.delete(chunk.library_id);
+              ignore Map9.remove(library, Map9.thash, chunk.library_id);
             };
           };
 
@@ -1347,7 +1347,7 @@ module {
 
     //need to add the mint transaction record here
     let txn_record = switch (
-      Metadata.add_transaction_record(
+      Metadata.add_transaction_record<system>(
         state,
         {
           token_id = token_id;
