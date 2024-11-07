@@ -1488,8 +1488,8 @@ module {
 
   };
 
-  public let OGY_LEDGER_CANISTER_ID = "lkwrt-vyaaa-aaaaq-aadhq-cai"; // production
-  // public let OGY_LEDGER_CANISTER_ID = "j5naj-nqaaa-aaaal-ajc7q-cai"; // staging
+  // public let OGY_LEDGER_CANISTER_ID = "lkwrt-vyaaa-aaaaq-aadhq-cai"; // production
+  public let OGY_LEDGER_CANISTER_ID = "j5naj-nqaaa-aaaal-ajc7q-cai"; // staging
 
   public func OGY() : TokenSpec {
     #ic({

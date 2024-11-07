@@ -124,7 +124,7 @@ fn install_canisters(
   let ogy_ledger_canister_id: Principal = create_canister_with_id(
     pic,
     controller,
-    "lkwrt-vyaaa-aaaaq-aadhq-cai"
+    "j5naj-nqaaa-aaaal-ajc7q-cai"
   );
   let ldg_ledger_canister_id: Principal = create_canister(pic, controller);
   let notify_canister_id: Principal = create_canister(pic, controller);

@@ -548,5 +548,4 @@ module {
   } {
     return { owner = principal; sub_account = null };
   };
-
 };

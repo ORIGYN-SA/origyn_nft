@@ -23,10 +23,13 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
   SaleInfoRequest,
   EndingType,
   ManageSaleRequest,
+  Account3,
   ManageSaleResult,
 };
 use std::time::SystemTime;
 use canister_time::{ NANOS_PER_MILLISECOND, MINUTE_IN_MS };
+use crate::client::icrc1_icrc2_token;
+use utils::consts::E8S_FEE_OGY;
 
 #[test]
 fn test_get_nat_as_token_id_origyn() {
@@ -599,3 +602,102 @@ fn test_update_metadata_node() {
 //     )
 //   );
 // }
+
+#[test]
+fn test_burned_tokens_list() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  let MAX_NFTS = 5;
+  // loop to create multiple nft
+  for i in 0..MAX_NFTS {
+    init_nft_with_premint_nft(
+      pic,
+      origyn_nft.clone(),
+      originator.clone(),
+      net_principal.clone(),
+      nft_owner.clone(),
+      i.to_string()
+    );
+  }
+
+  pic.set_time(SystemTime::now());
+
+  let total_supply = crate::client::origyn_nft_reference::client::icrc7_total_supply(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone()
+  );
+
+  println!("total_supply: {:?}", total_supply);
+
+  let token_id_as_nat = crate::client::origyn_nft_reference::client::get_token_id_as_nat(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    "1".to_string()
+  );
+
+  let transfer_fee: Option<Nat> = crate::client::origyn_nft_reference::client::icrc7_transfer_fee(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    token_id_as_nat.clone()
+  );
+
+  match transfer_fee {
+    Some(fee) => {
+      let balance = icrc1_icrc2_token::client::balance_of(
+        pic,
+        ogy_ledger.clone(),
+        nft_owner.clone()
+      );
+
+      let approve_res: icrc1_icrc2_token::icrc2_approve::Response = icrc1_icrc2_token::client::approve(
+        pic,
+        nft_owner.clone(),
+        ogy_ledger.clone(),
+        origyn_nft.clone(),
+        None,
+        fee.clone() + Nat::from(E8S_FEE_OGY)
+      );
+
+      match approve_res {
+        icrc1_icrc2_token::icrc2_approve::Response::Ok(_) => (),
+        icrc1_icrc2_token::icrc2_approve::Response::Err(err) => panic!("approve failed: {:?}", err),
+      }
+
+      let args: origyn_nft_reference::origyn_nft_reference_canister::TransferArgs = origyn_nft_reference::origyn_nft_reference_canister::TransferArgs {
+        memo: None,
+        from_subaccount: None,
+        created_at_time: None,
+        to: Account3 { owner: origyn_nft.clone(), subaccount: None },
+        token_id: token_id_as_nat.clone(),
+      };
+
+      let response: origyn_nft_reference::origyn_nft_reference_canister::TransferResult = crate::client::origyn_nft_reference::client::icrc7_transfer(
+        pic,
+        origyn_nft.clone(),
+        nft_owner.clone(),
+        vec![args]
+      );
+
+      for item in response {
+        println!("item: {:?}", item);
+      }
+    }
+    None => panic!("transfer fee not found"),
+  }
+
+  let total_supply_2 = crate::client::origyn_nft_reference::client::icrc7_total_supply(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone()
+  );
+
+  println!("total_supply_2: {:?}", total_supply_2);
+}

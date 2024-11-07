@@ -52,7 +52,7 @@ module {
   let Properties = MigrationTypes.Current.Properties;
   let JSON = MigrationTypes.Current.JSON;
 
-  let { ihash; nhash; thash; phash; calcHash } = Map;
+  let { ihash; nhash; thash; calcHash } = Map;
 
   //the max size of a streaming chunk
   private let __MAX_STREAM_CHUNK = 2048000;
@@ -801,7 +801,7 @@ module {
 
                                 let size = switch(item.get(2).get(0)){
                                   case(#Nat(val)) val;
-                                  case(_){
+                                  case(_) {
                                      D.print("Could not find size for stabletree - renderLibrary");
                                      0;
                                   };
@@ -1900,10 +1900,23 @@ module {
           };
           if (path_array[1] == "translate") {
             let rawkeys = if (NFTUtils.is_owner_manager_network(state, caller) == true) {
-              Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }));
-
+              Iter.toArray<Text>(
+                Iter.filter<Text>(
+                  Map.keys(state.state.nft_metadata),
+                  func(key : Text) : Bool {
+                    Metadata.filter_keys_owner((key, state));
+                  },
+                )
+              ); // Should always have the "" item and need to remove it
             } else {
-              Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }));
+              Iter.toArray<Text>(
+                Iter.filter<Text>(
+                  Map.keys(state.state.nft_ledgers),
+                  func(key : Text) : Bool {
+                    Metadata.filter_keys_owner((key, state));
+                  },
+                )
+              ); // Should always have the "" item and need to remove it
             };
 
             let translation = Array.map<Text, CandyTypes.CandyShared>(
@@ -1932,10 +1945,23 @@ module {
         } else {
           debug if (debug_channel.request) D.print("collection info");
           let rawkeys = if (NFTUtils.is_owner_manager_network(state, caller) == true) {
-            Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }));
-
+            Iter.toArray<Text>(
+              Iter.filter<Text>(
+                Map.keys(state.state.nft_metadata),
+                func(key : Text) : Bool {
+                  Metadata.filter_keys_owner((key, state));
+                },
+              )
+            ); // Should always have the "" item and need to remove it
           } else {
-            Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }));
+            Iter.toArray<Text>(
+              Iter.filter<Text>(
+                Map.keys(state.state.nft_ledgers),
+                func(key : Text) : Bool {
+                  Metadata.filter_keys_owner((key, state));
+                },
+              )
+            ); // Should always have the "" item and need to remove it
           };
 
           let keys = let keys = if (NFTUtils.is_owner_manager_network(state, caller) == true) {

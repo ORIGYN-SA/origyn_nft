@@ -170,8 +170,6 @@ shared (deployer) actor class Nft_Canister() = this {
 
   // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
   stable var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
-  
-  
 
   // Let us get the principal of the host gateway canister
   private var canister_principal : ?Principal = null;
@@ -1624,9 +1622,19 @@ shared (deployer) actor class Nft_Canister() = this {
 
     let state = get_state();
     let keys = if (NFTUtils.is_owner_manager_network(state, caller) == true) {
-      Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_metadata),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     } else {
-      Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_ledgers),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     };
 
     let ownerSet = Set.new<MigrationTypes.Current.Account>();
@@ -2962,11 +2970,26 @@ shared (deployer) actor class Nft_Canister() = this {
   public query (msg) func dip721_total_supply() : async Nat {
 
     let state = get_state();
-    let keys = if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == true) {
-      Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" })); // Should always have the "" item and need to remove it
+    let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
+      Iter.toArray<Text>(
+        Iter.filter<Text>(
+          Map.keys(state.state.nft_metadata),
+          func(key : Text) : Bool {
+            Metadata.filter_keys_owner((key, state));
+          },
+        )
+      ); // Should always have the "" item and need to remove it
     } else {
-      Iter.toArray<Text>(Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" })); // Should always have the "" item and need to remove it
+      Iter.toArray<Text>(
+        Iter.filter<Text>(
+          Map.keys(state.state.nft_ledgers),
+          func(key : Text) : Bool {
+            Metadata.filter_keys_owner((key, state));
+          },
+        )
+      ); // Should always have the "" item and need to remove it
     };
+
     return keys.size();
   };
 
@@ -2990,9 +3013,19 @@ shared (deployer) actor class Nft_Canister() = this {
 
     let state = get_state();
     let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_metadata),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     } else {
-      Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_ledgers),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     };
 
     let ownerSet = Set.new<MigrationTypes.Current.Account>();
@@ -3082,9 +3115,19 @@ shared (deployer) actor class Nft_Canister() = this {
     aBuf.add(("icrc7:description", #Text(description)));
 
     let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_metadata),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     } else {
-      Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_ledgers),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the "" item and need to remove it
     };
 
     let name = Option.get<Text>(state.state.collection_data.name, Principal.toText(state.canister()));
@@ -3212,11 +3255,26 @@ shared (deployer) actor class Nft_Canister() = this {
   public query (msg) func icrc7_total_supply() : async Nat {
 
     let state = get_state();
+    D.print("icrc7_total_supply");
 
     let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_metadata),
+        func(key : Text) : Bool {
+          let ret = Metadata.filter_keys_owner((key, state));
+          D.print("key " # debug_show (key) # " ret " # debug_show (ret));
+          ret;
+        },
+      ); // Should always have the " " item and need to remove it
     } else {
-      Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_ledgers),
+        func(key : Text) : Bool {
+          let ret = Metadata.filter_keys_owner((key, state));
+          D.print("key " # debug_show (key) # " ret " # debug_show (ret));
+          ret;
+        },
+      ); // Should always have the " " item and need to remove it
     };
 
     Iter.size(keys);
@@ -3279,7 +3337,7 @@ shared (deployer) actor class Nft_Canister() = this {
         case (#ok(metadata)) {
           let json = JSON.value_to_json(Metadata.get_clean_metadata(metadata, msg.caller));
 
-          aBuf.add(?[("com.origyn.nft.metadata.json", #Text(json))]);
+          aBuf.add(?[("com.origyn.nft.metadata.json ", #Text(json))]);
         };
         case (_) {
           aBuf.add(null);
@@ -3371,9 +3429,19 @@ shared (deployer) actor class Nft_Canister() = this {
     let state = get_state();
 
     let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.filter<Text>(Map.keys(state.state.nft_metadata), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_metadata),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the " " item and need to remove it
     } else {
-      Iter.filter<Text>(Map.keys(state.state.nft_ledgers), func(x : Text) { x != "" }); // Should always have the "" item and need to remove it
+      Iter.filter<Text>(
+        Map.keys(state.state.nft_ledgers),
+        func(key : Text) : Bool {
+          Metadata.filter_keys_owner((key, state));
+        },
+      ); // Should always have the " " item and need to remove it
     };
 
     let result = Iter.map<Text, Nat>(keys, NFTUtils.get_token_id_as_nat);
@@ -3462,14 +3530,17 @@ shared (deployer) actor class Nft_Canister() = this {
 
   public shared func icrc7_approve(request : ICRC7.ApprovalArgs) : async ICRC7.ApprovalResult {
 
-    D.trap("origyn_nft does not support approvals through ICRC7. Approval is provided by precense of an escrow deposit. Use sale_info_nft_origyn(#escrow) to retrieve deposit info");
+    D.trap("origyn_nft does not support approvals through ICRC7.Approval is provided by precense of an escrow deposit.Use sale_info_nft_origyn(#escrow) to retrieve deposit info ");
 
   };
 
   public query func icrc7_supported_standards() : async [ICRC7.SupportedStandard] {
 
     [
-      { name = "ICRC-7"; url = "https://github.com/dfinity/ICRC/ICRCs/ICRC-7" },
+      {
+        name = "ICRC -7 ";
+        url = " https : //github.com/dfinity/ICRC/ICRCs/ICRC-7";
+      },
       { name = "origyn_nft"; url = "https://github.com/origyn_sa/origyn_nft" },
     ];
   };
@@ -3792,12 +3863,9 @@ shared (deployer) actor class Nft_Canister() = this {
     _canistergeekLoggerUD_0_1_4 := ?canistergeekLogger.preupgrade();
     // End Canistergeek
 
-    
-
   };
 
   system func postupgrade() {
-    
 
     // Canistergeek
 
@@ -3805,10 +3873,8 @@ shared (deployer) actor class Nft_Canister() = this {
     _canistergeekMonitorUD_0_1_4 := null;
     //upgrade canister geek data
 
-    
     canistergeekLogger.postupgrade(_canistergeekLoggerUD_0_1_4);
     _canistergeekLoggerUD_0_1_4 := null;
-    
 
     //Optional: override default number of log messages to your value
     canistergeekLogger.setMaxMessagesCount(1000);
@@ -3817,7 +3883,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
     notify_timer := ?Timer.setTimer(#nanoseconds(1), handle_notify);
 
-    nft_library_stable_2 :=[];
+    nft_library_stable_2 := [];
 
     // End Canistergeek
 

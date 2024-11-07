@@ -3113,4 +3113,35 @@ module {
     Buffer.toArray(results);
   };
 
+  public func filter_keys_owner(x : Text, state : Types.State) : Bool {
+    if (x == "") {
+      D.print("filter_keys_owner - empty key");
+      return false;
+    };
+
+    switch (Map.get(state.state.nft_metadata, Map.thash, x)) {
+      case (?val) {
+        switch (get_nft_owner(val)) {
+          case (#ok(val)) {
+            if (MigrationTypes.Current.compare_account(val, #principal(state.canister()))) {
+              D.print("filter_keys_owner - found owner");
+
+              return false;
+            };
+          };
+          case (#err(err)) {
+            D.print("filter_keys_owner - error getting owner");
+            return false;
+          };
+        };
+      };
+      case (null) {
+        D.print("filter_keys_owner - null metadata");
+        return false;
+      };
+    };
+
+    D.print("filter_keys_owner - no owner");
+    return true;
+  };
 };
