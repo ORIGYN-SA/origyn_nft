@@ -1452,6 +1452,7 @@ module {
     __system_wallet_shares : Text;
     __system_physical : Text;
     __system_escrowed : Text;
+    __system_fractionalization_status : Text;
     __apps : Text;
     broker_royalty_dev_fund_override : Text;
     collection_kyc_canister_buyer : Text;
@@ -1498,6 +1499,7 @@ module {
     __system_wallet_shares = "com.origyn.wallet_shares";
     __system_physical = "com.origyn.physical";
     __system_escrowed = "com.origyn.escrow_node";
+    __system_fractionalization_status = "com.origyn.fractionalization_status";
     __apps = "__apps";
     broker_royalty_dev_fund_override = "com.origyn.royalties.broker_dev_fund_override";
     collection_kyc_canister_buyer = "com.origyn.kyc_canister_buyer";

@@ -41,6 +41,7 @@ import CandyTypesOld "mo:candy_0_1_12/types";
 import DIP721 "DIP721";
 import Governance "governance";
 import Market "market";
+import Fractionalize "fractionalize";
 import Royalties "market/royalties";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
