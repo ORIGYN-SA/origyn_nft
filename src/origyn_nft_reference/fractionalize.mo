@@ -57,11 +57,11 @@ module {
   let IC = "aaaaa-aa";
   let ic_management_canister = actor (IC) : Interface.Self;
 
-  type InitFractionalizeRequest = {
+  public type InitFractionalizeRequest = {
     token_id : Text;
   };
 
-  type InitFractionalizeResponse = Result.Result<(), Types.OrigynError>;
+  public type InitFractionalizeResponse = Result.Result<(), Types.OrigynError>;
 
   type CreateSubNftsRequest = {
     token_id : Text;

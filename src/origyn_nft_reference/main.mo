@@ -3798,6 +3798,21 @@ shared (deployer) actor class Nft_Canister() = this {
     accepted;
   };
 
+  // **********************************
+  // ***** FRACTIONALIZATION PART *****
+  // **********************************
+
+  public shared (msg) func init_fractionalization(request : Fractionalize.InitFractionalizeRequest) : async Fractionalize.InitFractionalizeResponse {
+    let state = get_state();
+    let caller = msg.caller;
+
+    return await Fractionalize.init_fractionalization(state, request, caller);
+  };
+
+  // **********************************
+  // ***** END FRACTIONALIZATION  *****
+  // **********************************
+
   // *************************
   // ***** CANISTER GEEK *****
   // *************************

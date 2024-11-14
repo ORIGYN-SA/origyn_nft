@@ -445,7 +445,7 @@ pub struct BalanceResponse {
   pub multi_canister: Option<Vec<Principal>>,
   pub escrow: Vec<EscrowRecord>,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, PartialEq)]
 pub enum Errors {
   #[serde(rename = "nyi")]
   Nyi,
@@ -1126,6 +1126,16 @@ pub struct TransferResultItem {
   pub transfer_result: TransferResultItemTransferResult,
 }
 pub type TransferResult = Vec<Option<TransferResultItem>>;
+#[derive(CandidType, Deserialize, Debug)]
+pub struct InitFractionalizeRequest {
+  pub token_id: String,
+}
+#[derive(CandidType, Deserialize)]
+pub enum InitFractionalizeResponse {
+  #[serde(rename = "ok")]
+  Ok,
+  #[serde(rename = "err")] Err(OrigynError),
+}
 #[derive(CandidType, Deserialize, Debug)]
 pub enum ManageStorageRequestConfigureStorage {
   #[serde(rename = "stableBtree")] StableBtree(Option<candid::Nat>),
@@ -2307,6 +2317,9 @@ candid::define_service!(pub NftCanister : {
     (candid::Nat) -> (Option<candid::Nat>) query
   );
   "icrc7_tx_window" : candid::func!(() -> (Option<candid::Nat>) query);
+  "init_fractionalization" : candid::func!(
+    (InitFractionalizeRequest) -> (InitFractionalizeResponse)
+  );
   "manage_storage_nft_origyn" : candid::func!(
     (ManageStorageRequest) -> (ManageStorageResult)
   );
@@ -2778,6 +2791,12 @@ impl Service {
   }
   pub async fn icrc_7_tx_window(&self) -> Result<(Option<candid::Nat>,)> {
     ic_cdk::call(self.0, "icrc7_tx_window", ()).await
+  }
+  pub async fn init_fractionalization(
+    &self,
+    arg0: InitFractionalizeRequest
+  ) -> Result<(InitFractionalizeResponse,)> {
+    ic_cdk::call(self.0, "init_fractionalization", (arg0,)).await
   }
   pub async fn manage_storage_nft_origyn(
     &self,
