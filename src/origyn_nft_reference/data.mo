@@ -323,6 +323,12 @@ module {
 
                   };
                 };
+
+                // backup, collection owner always have access to the data
+                if (state.state.collection_data.owner == caller) {
+                  b_found := true;
+                };
+
                 if (b_found == false) {
                   return #err(Types.errors(?state.canistergeekLogger, #unauthorized_access, "update_app_nft_origyn - not in allow list", ?caller));
                 };
