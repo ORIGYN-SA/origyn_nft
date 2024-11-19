@@ -51,6 +51,10 @@ pub fn init() -> TestEnv {
   println!("origyn_nft: {:?}", canister_ids.origyn_nft.to_string());
   println!("ogy_ledger: {:?}", canister_ids.ogy_ledger.to_string());
   println!("ldg_ledger: {:?}", canister_ids.ldg_ledger.to_string());
+  println!("controller: {:?}", principal_ids.controller.to_string());
+  println!("net_principal: {:?}", principal_ids.net_principal.to_string());
+  println!("originator: {:?}", principal_ids.originator.to_string());
+  println!("nft_owner: {:?}", principal_ids.nft_owner.to_string());
 
   init_origyn_nft(
     &mut pic,
@@ -134,6 +138,7 @@ fn install_canisters(
   let ldg_ledger_canister_wasm: Vec<u8> = wasms::LDG_LEDGER.clone();
   let notify_canister_wasm: Vec<u8> = wasms::NOTIFY_WASM.clone();
 
+  pic.add_cycles(origyn_nft_canister_id, 100_000_000_000_000_000_000);
   install_canister(pic, controller, origyn_nft_canister_id, origyn_nft_canister_wasm, {});
 
   let ogy_ledger_init_args: icrc_ledger_canister::init::LedgerArgument = icrc_ledger_canister::init::LedgerArgument::Init(

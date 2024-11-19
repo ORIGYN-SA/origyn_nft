@@ -34,6 +34,7 @@ import Cycles "mo:base/ExperimentalCycles";
 import Interface "interface/ic-management-interface";
 import Types "types";
 import MigrationTypes "./migrations/types";
+import NFTUtils "utils";
 
 module {
   let debug_channel = {
@@ -62,6 +63,12 @@ module {
   };
 
   public type InitFractionalizeResponse = Result.Result<(), Types.OrigynError>;
+
+  public type AuthorizeFractionalizeRequest = {
+    token_id : Text;
+  };
+
+  public type AuthorizeFractionalizeResponse = Result.Result<(), Types.OrigynError>;
 
   type CreateSubNftsRequest = {
     token_id : Text;
@@ -119,7 +126,7 @@ module {
   };
 
   // State machine method to change the fractionalization status
-  private func change_fractionalization_status(nft_metadata : CandyTypes.CandyShared, new_status : FractionalizationStatus) : Result.Result<FractionalizationStatus, Text> {
+  private func change_fractionalization_status(state : StateAccess, nft_metadata : CandyTypes.CandyShared, token_id : Text, new_status : FractionalizationStatus) : Result.Result<FractionalizationStatus, Text> {
     var system_node : CandyTypes.CandyShared = switch (Properties.getClassPropertyShared(nft_metadata, Types.metadata.__system)) {
       case (null) {
         // TODO ADD LOGS
@@ -137,7 +144,7 @@ module {
 
     let current_status_variant = switch (textToStatus(current_status)) {
       case (?s) s;
-      case (null) return #err("Invalid current status");
+      case (null) return #err("Not allowed to fractionalize this NFT");
     };
 
     // Define valid state transitions
@@ -163,7 +170,9 @@ module {
 
     if (is_valid_transition) {
       // Update the status in the metadata
-      system_node := Metadata.set_system_var(system_node, Types.metadata.__system_fractionalization_status, #Text(statusToText(new_status)));
+      let new_nft_metadata = Metadata.set_system_var(nft_metadata, Types.metadata.__system_fractionalization_status, #Text(statusToText(new_status)));
+
+      Map.set<Text, CandyTypes.CandyShared>(state.state.nft_metadata, Map.thash, token_id, new_nft_metadata);
 
       return #ok(new_status);
     } else {
@@ -205,7 +214,7 @@ module {
       };
     };
 
-    switch (change_fractionalization_status(this_nft, #FractionalizationInitialized)) {
+    switch (change_fractionalization_status(state, this_nft, request.token_id, #FractionalizationInitialized)) {
       case (#ok(_)) {};
       case (#err(err)) {
         return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "init_fractionalization : " # debug_show (err), ?caller));
@@ -276,7 +285,7 @@ module {
       case (#ok(true)) {};
     };
 
-    switch (change_fractionalization_status(this_nft, #CreatingSubNfts)) {
+    switch (change_fractionalization_status(state, this_nft, request.token_id, #CreatingSubNfts)) {
       case (#ok(_)) {};
       case (#err(err)) {
         return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "create_sub_nfts : " # debug_show (err), ?caller));
@@ -320,7 +329,7 @@ module {
       case (#ok(true)) {};
     };
 
-    switch (change_fractionalization_status(this_nft, #FractionalizationCompleted)) {
+    switch (change_fractionalization_status(state, this_nft, request.token_id, #FractionalizationCompleted)) {
       case (#ok(_)) {};
       case (#err(err)) {
         return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "create_sub_nfts : " # debug_show (err), ?caller));
@@ -332,5 +341,35 @@ module {
     // ...implementation...
 
     return #ok(());
+  };
+
+  // Function to authorize fractionalization of an NFT
+  public func authorize_fractionalization(state : StateAccess, request : AuthorizeFractionalizeRequest, caller : Principal) : async AuthorizeFractionalizeResponse {
+    D.print("authorize_fractionalization" # debug_show (state.state.collection_data.owner));
+    var this_nft = switch (Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
+      case (#err(err)) {
+        return #err(Types.errors(?state.canistergeekLogger, #token_not_found, "authorize_fractionalization token not found" # err.flag_point, ?caller));
+      };
+      case (#ok(val)) {
+        val;
+      };
+    };
+
+    if (NFTUtils.is_owner_network(state, caller) == false) {
+      return #err(Types.errors(?state.canistergeekLogger, #unauthorized_access, "authorize_fractionalization - unauthorized access - only network or collection owner can authorize fractionalization on an nft", ?caller));
+    };
+
+    switch (Properties.getClassPropertyShared(this_nft, Types.metadata.__system_fractionalization_status)) {
+      case (null) {
+        this_nft := Metadata.set_system_var(this_nft, Types.metadata.__system_fractionalization_status, #Text("not_fractionalized"));
+
+        Map.set<Text, CandyTypes.CandyShared>(state.state.nft_metadata, Map.thash, request.token_id, this_nft);
+
+        return #ok(());
+      };
+      case (?found) {
+        return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "authorize_fractionalization : Fractionalization already authorized", ?caller));
+      };
+    };
   };
 };

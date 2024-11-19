@@ -445,6 +445,10 @@ pub struct BalanceResponse {
   pub multi_canister: Option<Vec<Principal>>,
   pub escrow: Vec<EscrowRecord>,
 }
+#[derive(CandidType, Deserialize)]
+pub struct AuthorizeFractionalizeRequest {
+  pub token_id: String,
+}
 #[derive(CandidType, Deserialize, Debug, PartialEq)]
 pub enum Errors {
   #[serde(rename = "nyi")]
@@ -554,6 +558,12 @@ pub struct OrigynError {
   pub error: Errors,
   pub number: u32,
   pub flag_point: String,
+}
+#[derive(CandidType, Deserialize)]
+pub enum AuthorizeFractionalizeResponse {
+  #[serde(rename = "ok")]
+  Ok,
+  #[serde(rename = "err")] Err(OrigynError),
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub enum BalanceResult {
@@ -2139,6 +2149,9 @@ candid::define_service!(pub NftCanister : {
   "__set_time_mode" : candid::func!((NftCanisterSetTimeModeArg) -> (bool));
   "__supports" : candid::func!(() -> (Vec<(String,String,)>) query);
   "__version" : candid::func!(() -> (String) query);
+  "authorize_fractionalization" : candid::func!(
+    (AuthorizeFractionalizeRequest) -> (AuthorizeFractionalizeResponse)
+  );
   "back_up" : candid::func!((candid::Nat) -> (NftCanisterBackUpRet) query);
   "balance" : candid::func!((ExtBalanceRequest) -> (ExtBalanceResult) query);
   "balanceEXT" : candid::func!((ExtBalanceRequest) -> (ExtBalanceResult) query);
@@ -2430,6 +2443,12 @@ impl Service {
   }
   pub async fn version(&self) -> Result<(String,)> {
     ic_cdk::call(self.0, "__version", ()).await
+  }
+  pub async fn authorize_fractionalization(
+    &self,
+    arg0: AuthorizeFractionalizeRequest
+  ) -> Result<(AuthorizeFractionalizeResponse,)> {
+    ic_cdk::call(self.0, "authorize_fractionalization", (arg0,)).await
   }
   pub async fn back_up(&self, arg0: candid::Nat) -> Result<(NftCanisterBackUpRet,)> {
     ic_cdk::call(self.0, "back_up", (arg0,)).await

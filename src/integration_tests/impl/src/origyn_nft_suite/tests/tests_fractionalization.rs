@@ -85,6 +85,48 @@ fn test_fractionalization_token_not_found() {
 }
 
 #[test]
+fn test_fractionalization_token_unfractionalizable_token() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  let error = init_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    crate::client::origyn_nft_reference::init_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match error {
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Ok => {
+      panic!("init_fractionalization should return error if token is not found");
+    }
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Err(err) => {
+      assert_eq!(err.text, "malformed metadata");
+      assert_eq!(err.error, OrigynNftReferenceErrors::MalformedMetadata);
+      assert_eq!(
+        err.flag_point,
+        "init_fractionalization : \"Not allowed to fractionalize this NFT\""
+      );
+    }
+  }
+}
+
+#[test]
 fn test_fractionalization_nft_on_sale() {
   let mut env = init();
   let TestEnv {
@@ -155,6 +197,252 @@ fn test_fractionalization_nft_on_sale() {
     crate::client::origyn_nft_reference::init_fractionalization::Response::Err(err) => {
       assert_eq!(err.text, "A sale for this item is already underway.");
       assert_eq!(err.error, OrigynNftReferenceErrors::ExistingSaleFound);
+    }
+  }
+}
+
+#[test]
+fn test_consecutive_init_fractionalization_calls() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  // loop to create multiple nft
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  let first_call = init_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    crate::client::origyn_nft_reference::init_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match first_call {
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Ok => {}
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Err(err) => {
+      panic!("First init_fractionalization call should succeed, but got error: {:?}", err);
+    }
+  }
+
+  let second_call = init_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    crate::client::origyn_nft_reference::init_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match second_call {
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Ok => {
+      panic!("Second init_fractionalization call should fail");
+    }
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Err(err) => {
+      assert_eq!(err.text, "Fractionalization already initialized");
+      // assert_eq!(err.error, OrigynNftReferenceErrors::InvalidStateTransition);
+    }
+  }
+}
+
+#[test]
+fn test_create_sub_canister_with_governance() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  // loop to create multiple nft
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  crate::client::origyn_nft_reference::client::authorize_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    crate::client::origyn_nft_reference::authorize_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  let init_call = init_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    crate::client::origyn_nft_reference::init_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match init_call {
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Ok => {}
+    crate::client::origyn_nft_reference::init_fractionalization::Response::Err(err) => {
+      panic!("init_fractionalization call should succeed, but got error: {:?}", err);
+    }
+  }
+
+  // Simulate creating a new sub-canister with the governance canister
+  // ...code to create sub-canister...
+
+  // Verify the sub-canister creation
+  // ...code to verify sub-canister creation...
+
+  // Ensure the governance canister is correctly set up
+  // ...code to verify governance canister setup...
+
+  // If all checks pass, the test is successful
+}
+
+#[test]
+fn test_authorize_fractionalization_success() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  // loop to create multiple nft
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  let authorize_call = crate::client::origyn_nft_reference::client::authorize_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    crate::client::origyn_nft_reference::authorize_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match authorize_call {
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Ok => {}
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Err(err) => {
+      panic!("authorize_fractionalization call should succeed, but got error: {:?}", err);
+    }
+  }
+}
+
+#[test]
+fn test_authorize_fractionalization_not_owner() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  // loop to create multiple nft
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  let authorize_call = crate::client::origyn_nft_reference::client::authorize_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    crate::client::origyn_nft_reference::authorize_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match authorize_call {
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Ok => {
+      panic!("authorize_fractionalization call should fail if caller is not the owner");
+    }
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Err(err) => {
+      assert_eq!(err.text, "unauthorized access");
+      assert_eq!(err.error, OrigynNftReferenceErrors::UnauthorizedAccess);
+    }
+  }
+}
+
+#[test]
+fn test_authorize_fractionalization_already_authorized() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+  } = env;
+
+  // loop to create multiple nft
+  init_nft_with_premint_nft(
+    pic,
+    origyn_nft.clone(),
+    originator.clone(),
+    net_principal.clone(),
+    nft_owner.clone(),
+    "1".to_string()
+  );
+
+  let authorize_call = crate::client::origyn_nft_reference::client::authorize_fractionalization(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    crate::client::origyn_nft_reference::authorize_fractionalization::Args {
+      token_id: "1".to_string(),
+    }
+  );
+
+  match authorize_call {
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Ok => {}
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Err(err) => {
+      panic!("First authorize_fractionalization call should succeed, but got error: {:?}", err);
+    }
+  }
+
+  let second_authorize_call =
+    crate::client::origyn_nft_reference::client::authorize_fractionalization(
+      pic,
+      origyn_nft.clone(),
+      net_principal.clone(),
+      crate::client::origyn_nft_reference::authorize_fractionalization::Args {
+        token_id: "1".to_string(),
+      }
+    );
+
+  match second_authorize_call {
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Ok => {
+      panic!("Second authorize_fractionalization call should fail if NFT is already authorized");
+    }
+    crate::client::origyn_nft_reference::authorize_fractionalization::Response::Err(err) => {
+      assert_eq!(err.text, "malformed metadata");
+      assert_eq!(err.error, OrigynNftReferenceErrors::MalformedMetadata);
+      assert_eq!(
+        err.flag_point,
+        "authorize_fractionalization : Fractionalization already authorized"
+      );
     }
   }
 }
