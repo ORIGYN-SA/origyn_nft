@@ -29,7 +29,6 @@ import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import Migrations "migrations/types";
 import Mint "mint";
-import KYC "kyc";
 import NFTUtils "utils";
 import Types "types";
 import Withdraw "./market/withdraw";
@@ -1121,10 +1120,6 @@ module {
         current_sale_state.status := #closed;
         current_sale_state.winner := ?winning_escrow.buyer;
 
-        debug if (debug_channel.kyc) D.print("about to notify of kyc");
-        await* KYC.notify_kyc(state, verified.found_asset.escrow, caller);
-        debug if (debug_channel.end_sale) D.print("kyc notify done");
-
         //log royalties
         //currently for auctions there are only secondary royalties
 
@@ -1595,84 +1590,12 @@ module {
           case (#ok(res)) res;
         };
 
-        var bRevalidate = false;
-
-        //kyc seller
-        let kyc_result_seller = try {
-          await* KYC.pass_kyc_seller(state, verified.found_asset.escrow, caller);
-        } catch (e) {
-          debug if (debug_channel.kyc) D.print("KYC error seller on await* " # Error.message(e));
-          return #err(Types.errors(#kyc_error, "market_transfer_nft_origyn auto try kyc failed seller " # Error.message(e), ?caller));
-        };
-
-        switch (kyc_result_seller) {
-          case (#ok(val)) {
-
-            if (val.result.kyc == #Fail or val.result.aml == #Fail) {
-              //returns the failed escrow to the user
-              //ignore refund_failed_bid(state, verified, escrow);
-              return #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml failed seller " # debug_show (val), ?caller));
-            };
-
-            //amount is ignored for seller
-
-            if (val.did_async) {
-              bRevalidate := true;
-            };
-
-          };
+        verified := switch (Verify.verify_escrow_receipt(state, escrow, ?owner, null)) {
           case (#err(err)) {
-            //ignore refund_failed_bid(state, verified, escrow);
-            debug if (debug_channel.kyc) D.print("KYC error on reading return " # debug_show (err));
-            return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller));
+            //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
+            return #err(Types.errors(?state.canistergeekLogger, err.error, "market_transfer_nft_origyn auto try escrow failed revalidate  " # err.flag_point, ?caller));
           };
-        };
-
-        //kyc buyer
-
-        let kyc_result = try {
-          await* KYC.pass_kyc_buyer(state, verified.found_asset.escrow, caller);
-        } catch (e) {
-          debug if (debug_channel.kyc) D.print("KYC error on await* " # Error.message(e));
-          return #err(Types.errors(#kyc_error, "market_transfer_nft_origyn auto try kyc failed " # Error.message(e), ?caller));
-        };
-
-        switch (kyc_result) {
-          case (#ok(val)) {
-
-            if (val.result.kyc == #Fail or val.result.aml == #Fail) {
-              //returns the failed escrow to the user
-              //ignore refund_failed_bid(state, verified, escrow);
-              return #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml failed buyer " # debug_show (val), ?caller));
-            };
-            let kycamount = Option.get(val.result.amount, 0);
-
-            if ((kycamount > 0) and (escrow.amount > kycamount)) {
-              //ignore refund_failed_bid(state, verified, escrow);
-              return #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml amount too large buyer " # debug_show ((val, kycamount, escrow)), ?caller));
-            };
-
-            if (val.did_async) {
-              bRevalidate := true;
-            };
-
-          };
-          case (#err(err)) {
-            //ignore refund_failed_bid(state, verified, escrow);
-            debug if (debug_channel.kyc) D.print("KYC error on reading return " # debug_show (err));
-            return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed buyer " # err.flag_point, ?caller));
-          };
-        };
-
-        //re verify if we did async
-        if (bRevalidate) {
-          verified := switch (Verify.verify_escrow_receipt(state, escrow, ?owner, null)) {
-            case (#err(err)) {
-              //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
-              return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try escrow failed revalidate  " # err.flag_point, ?caller));
-            };
-            case (#ok(res)) res;
-          };
+          case (#ok(res)) res;
         };
 
         //reentrancy risk so we remove the credit from the escrow
@@ -1988,7 +1911,7 @@ module {
                     lock_to_date = verified.found_asset.escrow.lock_to_date;
                 };
                 Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                }
+                };
               }; */
 
               return async_market_transfer_unlock_fee_account_callback(
@@ -2529,73 +2452,6 @@ module {
       case (_) return #err(Types.errors(#nyi, "market_transfer_nft_origyn nyi pricing type", ?caller));
     };
 
-    let kyc_result = try {
-      await* KYC.pass_kyc_seller(
-        state,
-        {
-          seller = owner;
-          buyer = #extensible(#Option(null));
-          amount = 0;
-          account_hash = null;
-          token_id = request.token_id;
-          lock_to_date = null;
-          sale_id = null;
-          token = token;
-        },
-        caller,
-      );
-    } catch (e) {
-      return market_transfer_unlock_fee_account_callback(
-        state,
-        metadata,
-        {
-          token = token;
-          owner = #account({ owner = caller; sub_account = null });
-          sale_id = sale_id;
-          fee_accounts = fee_accounts;
-          fee_schema = fee_schema;
-        },
-        #err(Types.errors(#kyc_error, "market_transfer_nft_origyn seller kyc failed " # Error.message(e), ?caller)),
-      );
-    };
-
-    switch (kyc_result) {
-      case (#ok(val)) {
-
-        if (val.result.kyc == #Fail or val.result.aml == #Fail) {
-          return market_transfer_unlock_fee_account_callback(
-            state,
-            metadata,
-            {
-              token = token;
-              owner = #account({ owner = caller; sub_account = null });
-              sale_id = sale_id;
-              fee_accounts = fee_accounts;
-              fee_schema = fee_schema;
-            },
-            #err(Types.errors(#kyc_fail, "market_transfer_nft_origyn kyc or aml failed " # debug_show (val), ?caller)),
-          );
-        };
-
-        //amount doesn't matter for seller
-
-      };
-      case (#err(err)) {
-        return market_transfer_unlock_fee_account_callback(
-          state,
-          metadata,
-          {
-            token = token;
-            owner = #account({ owner = caller; sub_account = null });
-            sale_id = sale_id;
-            fee_accounts = fee_accounts;
-            fee_schema = fee_schema;
-          },
-          #err(Types.errors(err.error, "market_transfer_nft_origyn auto try kyc failed " # err.flag_point, ?caller)),
-        );
-      };
-    };
-
     var participants = Map.new<Principal, Int>();
     Map.set<Principal, Int>(participants, Map.phash, caller, _time);
 
@@ -2731,7 +2587,7 @@ module {
     let ask_details = MigrationTypes.Current.features_to_map(val);
 
     let start_date : Int = switch (Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_date)) {
-      case (? #start_date(val)) val;
+      case (?#start_date(val)) val;
       case (_) state.get_time();
     };
 
@@ -2758,7 +2614,7 @@ module {
     };
 
     let start_price : Nat = switch (Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #start_price)) {
-      case (? #start_price(_start_price)) {
+      case (?#start_price(_start_price)) {
         var remaning_fee : Nat = 0;
 
         for (this_item in royalty.vals()) {
@@ -2885,7 +2741,7 @@ module {
     };
 
     let end_date : Int = switch (Map.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)) {
-      case (? #ending(val)) {
+      case (?#ending(val)) {
         switch (val) {
           case (#date(val)) {
             if (val <= start_date) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
@@ -2905,7 +2761,7 @@ module {
     };
 
     let buy_now = switch (Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #buy_now)) {
-      case (? #buy_now(val)) {
+      case (?#buy_now(val)) {
         if (val < start_price) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
         ?val;
       };
@@ -2926,7 +2782,7 @@ module {
     let allow_list : Map.Map<Principal, Bool> = Map.new<Principal, Bool>();
 
     switch (Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #allow_list)) {
-      case (? #allow_list(val)) {
+      case (?#allow_list(val)) {
         for (thisitem in val.vals()) {
           Map.set<Principal, Bool>(allow_list, Map.phash, thisitem, true);
         };
@@ -3234,7 +3090,7 @@ module {
                   //should be unreachable, but lets remove it from the map anyway;
                 ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                 continue search;
-              }
+              };
             };
 
 
@@ -3945,7 +3801,7 @@ module {
             // let bid_pays_fees : ?MigrationTypes.Current.FeeAccountsParams = MigrationTypes.Current.load_fee_accounts_ask_feature(?config);
 
             let min_increase : MigrationTypes.Current.MinIncreaseType = switch (Map.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(config, MigrationTypes.Current.ask_feature_set_tool, #min_increase)) {
-              case (? #min_increase(val)) { val };
+              case (?#min_increase(val)) { val };
               case (_) { #percentage(0.05) };
             };
 
@@ -4224,58 +4080,14 @@ module {
       };
     };
 
-    //kyc
-    debug if (debug_channel.bid) D.print("trying kyc" # debug_show (""));
-
-    var bRevalidate = false;
-
-    let kyc_result = try {
-      await* KYC.pass_kyc_buyer(state, verified.found_asset.escrow, caller);
-    } catch (e) {
-      return #err(#awaited(Types.errors(#kyc_error, "bid_nft_origyn auto try escrow failed " # Error.message(e), ?caller)));
-    };
-
-    switch (kyc_result) {
-      case (#ok(val)) {
-
-        if (val.result.kyc == #Fail or val.result.aml == #Fail) {
-          debug if (debug_channel.bid) D.print("faild...returning bid" # debug_show (val));
-
-          ignore refund_failed_bid(state, verified, request.escrow_record);
-          //last_withdraw_result := ?refund_id;
-
-          return #err(#awaited(Types.errors(#kyc_fail, "bid_nft_origyn kyc or aml failed " # debug_show (val), ?caller)));
-        };
-        let kycamount = Option.get(val.result.amount, 0);
-
-        if ((kycamount > 0) and (request.escrow_record.amount > kycamount)) {
-          ignore refund_failed_bid(state, verified, request.escrow_record);
-
-          return #err(#awaited(Types.errors(#kyc_fail, "bid_nft_origyn kyc or aml amount too large " # debug_show ((val, kycamount, request.escrow_record)), ?caller)));
-        };
-
-        if (val.did_async) {
-          bRevalidate := true;
-        };
-
-      };
+    verified := switch (Verify.verify_escrow_record(state, request.escrow_record, null)) {
       case (#err(err)) {
-        ignore refund_failed_bid(state, verified, request.escrow_record);
+        //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
+        //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
 
-        return #err(#awaited(Types.errors(err.error, "bid_nft_origyn auto try kyc failed " # err.flag_point, ?caller)));
+        return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "bid_nft_origyn revalidate failed " # err.flag_point, ?caller)));
       };
-    };
-
-    if (bRevalidate) {
-      verified := switch (Verify.verify_escrow_record(state, request.escrow_record, null)) {
-        case (#err(err)) {
-          //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
-          //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
-
-          return #err(#awaited(Types.errors(err.error, "bid_nft_origyn revalidate failed " # err.flag_point, ?caller)));
-        };
-        case (#ok(res)) res;
-      };
+      case (#ok(res)) res;
     };
 
     switch (fee_accounts) {

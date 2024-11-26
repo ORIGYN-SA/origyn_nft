@@ -468,7 +468,6 @@ module {
     nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>>;
     refresh_state : () -> State;
     droute_client : DROUTE.Droute;
-    kyc_client : KYC.kyc;
     handle_notify : () -> async ();
     icrc3 : ICRC3.ICRC3;
     notify_timer : {

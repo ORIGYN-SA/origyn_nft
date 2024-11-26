@@ -116,12 +116,6 @@ shared (deployer) actor class Nft_Canister() = this {
 
   debug if (debug_channel.instantiation) D.print("finished migration");
 
-  let kyc_client = MigrationTypes.Current.KYC.kyc({
-    time = null;
-    timeout = ?OneDay;
-    cache = null;
-  });
-
   //let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
 
   debug if (debug_channel.instantiation) D.print("have memory_manager");
@@ -209,8 +203,6 @@ shared (deployer) actor class Nft_Canister() = this {
       refresh_state = get_state;
       //btreemap = btreemap_;
       droute_client = state_current.droute;
-      kyc_client = kyc_client;
-      handle_notify = handle_notify;
       icrc3 = icrc3();
       notify_timer = {
         get = get_notify_timer;
