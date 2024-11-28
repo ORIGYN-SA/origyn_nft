@@ -57,7 +57,6 @@ module {
     notifications = false;
     dutch = false;
     bid = false;
-    kyc = false;
   };
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;

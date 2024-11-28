@@ -849,13 +849,6 @@ module {
             immutable = true;
           });
         };
-        case (#kyc(e)) {
-          candy_buffer.add({
-            name = "kyc";
-            value = #Principal(e);
-            immutable = true;
-          });
-        };
         case (#nifty_settlement(e)) {
           candy_buffer.add({
             name = "nifty_settlement";
@@ -1070,13 +1063,6 @@ module {
               ),
 
             ]);
-            immutable = true;
-          });
-        };
-        case (#kyc(e)) {
-          candy_buffer.add({
-            name = "kyc";
-            value = #Principal(e);
             immutable = true;
           });
         };

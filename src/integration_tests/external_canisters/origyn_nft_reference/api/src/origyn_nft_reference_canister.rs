@@ -139,7 +139,6 @@ pub enum EndingType {
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub enum AskFeature {
-  #[serde(rename = "kyc")] Kyc(Principal),
   #[serde(rename = "start_price")] StartPrice(candid::Nat),
   #[serde(rename = "token")] Token(TokenSpec),
   #[serde(rename = "fee_schema")] FeeSchema(String),
@@ -471,8 +470,6 @@ pub enum Errors {
   SaleIdDoesNotMatch,
   #[serde(rename = "sale_not_found")]
   SaleNotFound,
-  #[serde(rename = "kyc_fail")]
-  KycFail,
   #[serde(rename = "item_not_owned")]
   ItemNotOwned,
   #[serde(rename = "property_not_found")]
@@ -521,8 +518,6 @@ pub enum Errors {
   AppIdNotFound,
   #[serde(rename = "token_non_transferable")]
   TokenNonTransferable,
-  #[serde(rename = "kyc_error")]
-  KycError,
   #[serde(rename = "sale_not_over")]
   SaleNotOver,
   #[serde(rename = "escrow_not_large_enough")]
