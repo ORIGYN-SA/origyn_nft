@@ -138,7 +138,7 @@ fn install_canisters(
   let ldg_ledger_canister_wasm: Vec<u8> = wasms::LDG_LEDGER.clone();
   let notify_canister_wasm: Vec<u8> = wasms::NOTIFY_WASM.clone();
 
-  pic.add_cycles(origyn_nft_canister_id, 100_000_000_000_000_000_000);
+  pic.add_cycles(origyn_nft_canister_id, 100_000_000_000_000_000);
   install_canister(pic, controller, origyn_nft_canister_id, origyn_nft_canister_wasm, {});
 
   let ogy_ledger_init_args: icrc_ledger_canister::init::LedgerArgument = icrc_ledger_canister::init::LedgerArgument::Init(

@@ -21,10 +21,6 @@ import TimerTool "mo:timer-tool";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
-
 import Star "mo:star/star";
 
 import SHA256 "mo:crypto/SHA/SHA256";
@@ -69,6 +65,8 @@ module {
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
+  let Map = MigrationTypes.Current.Map;
+  let Set = MigrationTypes.Current.Set;
 
   let account_handler = MigrationTypes.Current.account_handler;
   let token_handler = MigrationTypes.Current.token_handler;
@@ -2681,7 +2679,7 @@ module {
     //set timer for notify
     if (notify.size() > 0) {
       //handle notify
-      Set.add(state.state.pending_sale_notifications, thash, sale_id);
+      Set.add<Text>(state.state.pending_sale_notifications, thash, sale_id);
       if (state.notify_timer.get() == null) {
         state.notify_timer.set(?Timer.setTimer(#nanoseconds(1), state.handle_notify));
       };
@@ -2886,7 +2884,7 @@ module {
       };
     };
 
-    let end_date : Int = switch (Map.get(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)) {
+    let end_date : Int = switch (Map.get<MigrationTypes.Current.AskFeatureKey, MigrationTypes.Current.AskFeature>(ask_details, MigrationTypes.Current.ask_feature_set_tool, #ending)) {
       case (? #ending(val)) {
         switch (val) {
           case (#date(val)) {
@@ -2972,7 +2970,7 @@ module {
       let { notify; sale; notify_queue } = switch (Map.get<Text, Types.SaleStatus>(state.state.nft_sales, thash, thisItem)) {
         case (null) {
           //should be unreachable, but lets remove it from the map anyway;
-          ignore Set.remove(state.state.pending_sale_notifications, thash, thisItem);
+          ignore Set.remove<Text>(state.state.pending_sale_notifications, thash, thisItem);
           continue search;
         };
         case (?sale) {
@@ -2986,12 +2984,12 @@ module {
 
           let ?notify_queue = sale_type.notify_queue else {
             //should be unreachable, but lets remove it from the map anyway;
-            ignore Set.remove(state.state.pending_sale_notifications, thash, thisItem);
+            ignore Set.remove<Text>(state.state.pending_sale_notifications, thash, thisItem);
             continue search;
           };
 
           if (Deque.isEmpty<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue)) {
-            ignore Set.remove<Text>(state.state.pending_sale_notifications, MapUtil.thash, thisItem);
+            ignore Set.remove<Text>(state.state.pending_sale_notifications, Map.thash, thisItem);
             continue search;
           };
 
@@ -2999,7 +2997,7 @@ module {
 
           let ?item = Deque.popFront<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue) else {
             //should be unreachable, but lets remove it from the map anyway;
-            ignore Set.remove<Text>(state.state.pending_sale_notifications, MapUtil.thash, thisItem);
+            ignore Set.remove<Text>(state.state.pending_sale_notifications, Map.thash, thisItem);
             continue search;
           };
 
@@ -3017,12 +3015,12 @@ module {
 
       let #ok(sale_state) = NFTUtils.get_auction_state_from_status(sale) else {
         //should be unreachable, but lets remove it from the map anyway;
-        ignore Set.remove(state.state.pending_sale_notifications, thash, thisItem);
+        ignore Set.remove<Text>(state.state.pending_sale_notifications, thash, thisItem);
         continue search;
       };
 
       let #ok(owner) = Metadata.get_nft_owner_by_id(state, sale.token_id) else {
-        ignore Set.remove(state.state.pending_sale_notifications, thash, thisItem);
+        ignore Set.remove<Text>(state.state.pending_sale_notifications, thash, thisItem);
         continue search;
       };
 
@@ -3057,7 +3055,7 @@ module {
 
       if (Deque.isEmpty<(Principal, ?MigrationTypes.Current.SubscriptionID)>(notify_queue)) {
         debug if (debug_channel.notifications) D.print("finished with this sale:" # thisItem);
-        ignore Set.remove(state.state.pending_sale_notifications, thash, thisItem);
+        ignore Set.remove<Text>(state.state.pending_sale_notifications, thash, thisItem);
       } else {
         debug if (debug_channel.notifications) D.print("this sale is not finished:" # debug_show (notify_queue));
       };

@@ -16,7 +16,6 @@ import TimerTool "mo:timer-tool";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
 import Map9 "mo:map9/Map";
 import MapUtils "mo:map/utils";
 import StableBTreeTypes "mo:stableBTree/types";
@@ -36,6 +35,7 @@ import ICRC3 "mo:icrc3-mo";
 
 module {
 
+  let Map = MigrationTypes.Current.Map;
   let CandyTypes = MigrationTypes.Current.CandyTypes;
   let Conversions = MigrationTypes.Current.Conversions;
   let SB = MigrationTypes.Current.SB;
@@ -413,9 +413,9 @@ module {
       current_escrow = val.current_escrow;
       wait_for_quiet_count = val.wait_for_quiet_count;
       allow_list = do ? {
-        Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
+        Iter.toArray(Map9.entries<Principal, Bool>(val.allow_list!));
       };
-      participants = Iter.toArray(Map.entries<Principal, Int>(val.participants));
+      participants = Iter.toArray(Map9.entries<Principal, Int>(val.participants));
       status = val.status;
       winner = val.winner;
     };

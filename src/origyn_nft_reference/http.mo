@@ -26,7 +26,6 @@ import Time "mo:base/Time";
 import TrieMap "mo:base/TrieMap";
 
 import CandyHex "mo:candy/hex";
-import Map "mo:map/Map";
 import StableBTreeTypes "mo:stableBTree/types";
 import http "mo:http/Http";
 import httpparser "mo:httpparser/lib";
@@ -51,6 +50,7 @@ module {
   let Conversion = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
   let JSON = MigrationTypes.Current.JSON;
+  let Map = MigrationTypes.Current.Map;
 
   let { ihash; nhash; thash; calcHash } = Map;
 

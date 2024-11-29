@@ -19,10 +19,6 @@ import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
-
 import Star "mo:star/star";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Parser "mo:parser-combinators/Parser";
@@ -47,6 +43,7 @@ module {
   let CandyTypes = MigrationTypes.Current.CandyTypes;
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
+  let Map = MigrationTypes.Current.Map;
 
   type ProcessRoyaltiesRequest = {
     var remaining : Nat;

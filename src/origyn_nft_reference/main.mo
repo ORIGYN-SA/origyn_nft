@@ -6,6 +6,7 @@ import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Int "mo:base/Int";
+import List "mo:base/List";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
@@ -29,8 +30,8 @@ import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import ICRC7 "ICRC7";
 
-import Map "mo:map/Map";
-import Map9 "mo:map9/Map";
+import Map "mo:map9/Map";
+// import Map9 "mo:map9/Map";
 import Set "mo:map/Set";
 
 import Star "mo:star/star";
@@ -130,10 +131,10 @@ shared (deployer) actor class Nft_Canister() = this {
   // Do not forget to change #v0_1_0 when you are adding a new migration
   // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-  migration_state := Migrations.migrate(migration_state, #v0_1_6(#id), { owner = deployer.caller; storage_space = 0 }, deployer.caller);
+  migration_state := Migrations.migrate(migration_state, #v0_1_7(#id), { owner = deployer.caller; storage_space = 0 }, deployer.caller);
 
   // Do not forget to change #v0_1_0 when you are adding a new migration
-  let #v0_1_6(#data(state_current)) = migration_state;
+  let #v0_1_7(#data(state_current)) = migration_state;
 
   debug if (debug_channel.instantiation) D.print("finished migration");
 
@@ -238,6 +239,7 @@ shared (deployer) actor class Nft_Canister() = this {
         get = get_notify_timer;
         set = set_notify_timer;
       };
+      subcanister_state = state_current.subcanister_state;
       timertool = _timertool;
     };
   };
@@ -3819,6 +3821,25 @@ shared (deployer) actor class Nft_Canister() = this {
   // **********************************
   // ***** END FRACTIONALIZATION  *****
   // **********************************
+
+  // ****************************
+  // ***** SUBCANISTER PART *****
+  // ****************************
+
+  public shared (msg) func get_subcanister_info() : async [(Principal, MigrationTypes.Current.SubcanisterState)] {
+    if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false and msg.caller != get_state().canister()) {
+      throw Error.reject("Caller is not the owner or manager of the network");
+    };
+
+    let state = get_state();
+    let caller = msg.caller;
+
+    return Map.toArray(state.state.subcanister_state);
+  };
+
+  // ****************************
+  // ***** END SUBCANISTER  *****
+  // ****************************
 
   // *************************
   // ***** CANISTER GEEK *****

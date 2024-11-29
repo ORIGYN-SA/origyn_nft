@@ -19,9 +19,7 @@ import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
 import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
 
 import Star "mo:star/star";
 
@@ -40,6 +38,7 @@ module {
   type StateAccess = Types.State;
   let account_handler = MigrationTypes.Current.account_handler;
   let token_handler = MigrationTypes.Current.token_handler;
+  let Map = MigrationTypes.Current.Map;
 
   private func _access_fee_balance<T>(
     state : StateAccess,

@@ -266,6 +266,7 @@ fn test_create_sub_canister_with_governance() {
   } = env;
 
   // loop to create multiple nft
+  println!("init done");
   init_nft_with_premint_nft(
     pic,
     origyn_nft.clone(),
@@ -275,6 +276,7 @@ fn test_create_sub_canister_with_governance() {
     "1".to_string()
   );
 
+  println!("init_nft_with_premint_nft done");
   crate::client::origyn_nft_reference::client::authorize_fractionalization(
     pic,
     origyn_nft.clone(),
@@ -284,6 +286,7 @@ fn test_create_sub_canister_with_governance() {
     }
   );
 
+  println!("authorize_fractionalization done");
   let init_call = init_fractionalization(
     pic,
     origyn_nft.clone(),
@@ -292,6 +295,7 @@ fn test_create_sub_canister_with_governance() {
       token_id: "1".to_string(),
     }
   );
+  println!("init_fractionalization done");
 
   match init_call {
     crate::client::origyn_nft_reference::init_fractionalization::Response::Ok => {}

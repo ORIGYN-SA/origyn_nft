@@ -18,16 +18,11 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import CandyTypesOld "mo:candy_0_1_12/types";
 import CandyUpgrade "mo:candy_0_2_0/upgrade";
-import Map9 "mo:map9/Map";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Candy "mo:candy/types";
-//import CandyTypes "mo:candy/types";
-//import Conversions "mo:candy/conversion";
-//import Properties "mo:candy/properties";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Workspace "mo:candy/workspace";
-import Map "mo:map/Map";
 
 import Types "types";
 
@@ -47,6 +42,7 @@ module {
   type StateAccess = Types.State;
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;
+  let Map = MigrationTypes.Current.Map;
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
@@ -185,39 +181,39 @@ module {
     * @returns {TrieMap.TrieMap<Text, TrieMap.TrieMap<Text, CandyTypes.Workspace>>} The resulting TrieMap object.
     */
 
-  public func build_library(items : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])]) : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> {
+  public func build_library(items : [(Text, [(Text, CandyTypesOld.AddressedChunkArray)])]) : Map.Map<Text, Map.Map<Text, CandyTypes.Workspace>> {
 
-    let aMap = Map9.new<Text, Map9.Map<Text, CandyTypes.Workspace>>();
+    let aMap = Map.new<Text, Map.Map<Text, CandyTypes.Workspace>>();
     for (this_item in items.vals()) {
-      let bMap = Map9.new<Text, CandyTypes.Workspace>();
+      let bMap = Map.new<Text, CandyTypes.Workspace>();
       for (thatItem in this_item.1.vals()) {
         //upgrade Addressed chunk array
         let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
         for (thisOldItem in thatItem.1.vals()) {
           newItems.add((thisOldItem.0, thisOldItem.1, CandyUpgrade.upgradeCandyShared(thisOldItem.2)));
         };
-        ignore Map9.put(bMap, Map9.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
+        ignore Map.put(bMap, Map.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
       };
-      ignore Map9.put(aMap, Map9.thash, this_item.0, bMap);
+      ignore Map.put(aMap, Map.thash, this_item.0, bMap);
     };
 
     return aMap;
   };
 
-  public func build_library_new(items : [(Text, [(Text, CandyTypes.AddressedChunkArray)])]) : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> {
+  public func build_library_new(items : [(Text, [(Text, CandyTypes.AddressedChunkArray)])]) : Map.Map<Text, Map.Map<Text, CandyTypes.Workspace>> {
 
-    let aMap = Map9.new<Text, Map9.Map<Text, CandyTypes.Workspace>>();
+    let aMap = Map.new<Text, Map.Map<Text, CandyTypes.Workspace>>();
     for (this_item in items.vals()) {
-      let bMap = Map9.new<Text, CandyTypes.Workspace>();
+      let bMap = Map.new<Text, CandyTypes.Workspace>();
       for (thatItem in this_item.1.vals()) {
         //upgrade Addressed chunk array
         let newItems = Buffer.Buffer<CandyTypes.AddressedChunk>(thatItem.1.size());
         for (thisOldItem in thatItem.1.vals()) {
           newItems.add((thisOldItem.0, thisOldItem.1, thisOldItem.2));
         };
-        ignore Map9.put(bMap, Map9.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
+        ignore Map.put(bMap, Map.thash, thatItem.0, Workspace.fromAddressedChunks(Buffer.toArray(newItems)));
       };
-      ignore Map9.put(aMap, Map9.thash, this_item.0, bMap);
+      ignore Map.put(aMap, Map.thash, this_item.0, bMap);
     };
 
     return aMap;
@@ -492,7 +488,7 @@ module {
 
   } {
 
-    let ?to_list = Map.get(state.state.escrow_balances, account_handler, escrow.buyer) else {
+    let ?to_list = Map.get<MigrationTypes.Current.Account, MigrationTypes.Current.EscrowSellerTrie>(state.state.escrow_balances, account_handler, escrow.buyer) else {
       return {
         to_list = null;
         token_list = null;
@@ -501,7 +497,7 @@ module {
       };
     };
 
-    let ?token_list = Map.get(to_list, account_handler, escrow.seller) else {
+    let ?token_list = Map.get<MigrationTypes.Current.Account, MigrationTypes.Current.EscrowTokenIDTrie>(to_list, account_handler, escrow.seller) else {
       return return {
         to_list = ?to_list;
         token_list = null;
@@ -510,7 +506,7 @@ module {
       };
     };
 
-    let asset_list = switch (Map.get(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")) {
+    let asset_list = switch (Map.get<Text, MigrationTypes.Current.EscrowLedgerTrie>(token_list, Map.thash, escrow.token_id), Map.get(token_list, Map.thash, "")) {
       case (null, null) return {
         to_list = ?to_list;
         token_list = ?token_list;
@@ -526,7 +522,7 @@ module {
       case (?asset_list, _) asset_list;
     };
 
-    let ?balance = Map.get(asset_list, token_handler, escrow.token) else return {
+    let ?balance = Map.get<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(asset_list, token_handler, escrow.token) else return {
       to_list = ?to_list;
       token_list = ?token_list;
       asset_list = ?asset_list;
