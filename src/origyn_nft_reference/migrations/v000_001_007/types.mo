@@ -105,7 +105,6 @@ module {
     #ending;
     #token;
     #dutch;
-    #kyc;
     #nifty_settlement;
     #fee_accounts;
     #fee_schema;
@@ -150,7 +149,6 @@ module {
     #ending : EndingType;
     #token : TokenSpec;
     #dutch : DutchParams;
-    #kyc : Principal;
     #nifty_settlement : NiftySettlementType;
     #fee_accounts : FeeAccountsParams;
     #fee_schema : Text;
@@ -364,9 +362,6 @@ module {
       case (#dutch, #dutch) {
         return true;
       };
-      case (#kyc, #kyc) {
-        return true;
-      };
       case (#nifty_settlement, #nifty_settlement) {
         return true;
       };
@@ -526,18 +521,6 @@ module {
     return ?dutch;
   };
 
-  public func load_kyc_ask_feature(_config : AskConfig) : ?Principal {
-    let config = switch (_config) {
-      case (?config) (config);
-      case (_) (return null);
-    };
-
-    let ?(#kyc(kyc)) = Map.get<AskFeatureKey, AskFeature>(config, ask_feature_set_tool, #kyc) else {
-      return null;
-    };
-    return ?kyc;
-  };
-
   public func load_nifty_ask_settlement_feature(_config : AskConfig) : ?NiftySettlementType {
     let config = switch (_config) {
       case (?config) (config);
@@ -612,9 +595,6 @@ module {
       };
       case (#dutch) {
         return 1266844;
-      };
-      case (#kyc) {
-        return 13345466;
       };
       case (#nifty_settlement) {
         return 14345667;
@@ -790,9 +770,6 @@ module {
       };
       case (#dutch(e)) {
         return #dutch;
-      };
-      case (#kyc(e)) {
-        return #kyc;
       };
       case (#nifty_settlement(e)) {
         return #nifty_settlement;
