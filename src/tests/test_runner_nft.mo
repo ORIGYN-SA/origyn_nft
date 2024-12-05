@@ -2578,7 +2578,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };
@@ -3010,7 +3011,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };
@@ -3366,7 +3368,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(a_wallet); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(a_wallet); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };
@@ -3723,7 +3726,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(a_wallet); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(a_wallet); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };
@@ -3803,7 +3807,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
       };
     };
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount_2)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount_2)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount_2");
       return #fail("failed to get sellerFeeDepositAccount_2");
     };
@@ -4169,7 +4174,8 @@ shared (deployer) actor class test_runner(dfx_ledger : Principal, dfx_ledger2 : 
 
     D.print(debug_show (Principal.fromActor(b_wallet)));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
+    // FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };

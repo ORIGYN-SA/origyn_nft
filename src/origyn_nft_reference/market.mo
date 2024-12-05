@@ -571,7 +571,7 @@ module {
     };
 
     debug if (debug_channel.invoice) D.print("getting info for " # debug_show (request));
-    return #ok(#fee_deposit_info(NFTUtils.get_fee_deposit_account_info(account, state.canister())));
+    return #ok(#fee_deposit(NFTUtils.get_fee_deposit_account_info(account, state.canister())));
   };
 
   /**

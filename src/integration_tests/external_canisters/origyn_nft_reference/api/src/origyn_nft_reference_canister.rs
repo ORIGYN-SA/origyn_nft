@@ -1925,7 +1925,7 @@ pub enum ManageSaleResult {
 #[derive(CandidType, Deserialize, Debug)]
 pub enum SaleInfoRequest {
   #[serde(rename = "status")] Status(String),
-  #[serde(rename = "fee_deposit_info")] FeeDepositInfo(Option<Account>),
+  #[serde(rename = "fee_deposit")] FeeDeposit(Option<Account>),
   #[serde(rename = "active")] Active(Option<(candid::Nat, candid::Nat)>),
   #[serde(rename = "deposit_info")] DepositInfo(Option<Account>),
   #[serde(rename = "history")] History(Option<(candid::Nat, candid::Nat)>),
@@ -1946,7 +1946,8 @@ pub struct SubAccountInfo {
 #[derive(CandidType, Deserialize, Debug)]
 pub enum SaleInfoResponse {
   #[serde(rename = "status")] Status(Option<SaleStatusShared>),
-  #[serde(rename = "fee_deposit_info")] FeeDepositInfo(SubAccountInfo),
+  // FIXME: change to result
+  #[serde(rename = "fee_deposit")] FeeDeposit(SubAccountInfo),
   #[serde(rename = "active")] Active {
     eof: bool,
     records: Vec<(String, Option<SaleStatusShared>)>,

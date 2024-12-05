@@ -1042,7 +1042,8 @@ shared (deployer) actor class test_runner_instant_transfer(dfx_ledger : Principa
 
     D.print("token id = " # debug_show (token_id) # "fee_to_pay = " # debug_show (fee_to_pay));
 
-    let #ok(#fee_deposit_info(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit_info(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
+// FIXME: change to approve
+    let #ok(#fee_deposit(sellerFeeDepositAccount)) = await canister.sale_info_nft_origyn(#fee_deposit(? #account { owner = Principal.fromActor(this); sub_account = null })) else {
       D.print("failed to get sellerFeeDepositAccount");
       return #fail("failed to get sellerFeeDepositAccount");
     };

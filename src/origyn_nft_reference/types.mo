@@ -711,7 +711,7 @@ module {
     #history : ?(Nat, Nat); //skip, take
     #status : Text; //saleID
     #escrow_info : EscrowReceipt;
-    #fee_deposit_info : ?Account;
+    #fee_deposit : ?Account;
     #deposit_info : ?Account;
   };
 
@@ -729,7 +729,8 @@ module {
     #status : ?SaleStatusShared;
     #deposit_info : SubAccountInfo;
     #escrow_info : SubAccountInfo;
-    #fee_deposit_info : SubAccountInfo;
+    // FIXME: change to the result type with possible errors
+    #fee_deposit : Bool; //result
   };
 
   public type GovernanceRequest = {
