@@ -36,6 +36,7 @@ import Verify "./market/verify_reciept";
 import FeeAccount "market/fee_account";
 import PutBalance "market/put_balance";
 import Royalties "market/royalties";
+import ICRC2 "../external_canisters/ICRC2";
 
 module {
 
@@ -571,7 +572,7 @@ module {
     };
 
     debug if (debug_channel.invoice) D.print("getting info for " # debug_show (request));
-    return #ok(#fee_deposit(NFTUtils.get_fee_deposit_account_info(account, state.canister())));
+    return #ok(#fee_deposit_info(NFTUtils.get_fee_deposit_account_info(account, state.canister())));
   };
 
   /**
@@ -2060,6 +2061,7 @@ module {
         for (this_item in royalty.vals()) {
           let loaded_royalty = switch (Royalties._load_royalty(_fee_schema, this_item)) {
             case (#ok(val)) { val };
+            // TODO: cover here more errors
             // case (#err(err)) {
             // Impossible
             // };
@@ -3271,7 +3273,7 @@ module {
     token_id = request.token_id }; balance = escrow_result.amount; transaction = new_trx }));
   };
 
-  //recognizes tokens sent to a fee_deposit account
+  // NOTE: Transfers the OGY tokens using icrc2_transfer_from method
   /**
   * deposit_fee_nft_origyn
   * @param {StateAccess} state - StateAccess object for accessing the canister's state.
@@ -3297,6 +3299,123 @@ module {
 
     debug if (debug_channel.escrow) D.print("verifying the deposit");
 
+    ///
+    /// FIXME
+    /// Added a transfer from (for now the validation process is still left)
+    ///
+
+    // NOTE: get the fee deposit account
+    let feeDepositAccount = switch (request.token) {
+      case (#ic(token)) {
+        switch (token.standard) {
+          case (#Ledger or #ICRC1) {
+            debug if (debug_channel.escrow) D.print("found ledger");
+            NFTUtils.get_fee_deposit_account_info(
+              request.account,
+              state.canister(),
+            );
+          };
+          case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+        };
+      };
+      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+    };
+
+    // TODO: add a check that the balance is 0. We'll need it for the case when the user topped up the balance by himself
+    // let fee_deposit_amount = 200_000;
+
+    let metadata = switch (Metadata.get_metadata_for_token(state, "", caller, ?state.canister(), state.state.collection_data.owner)) {
+      case (#ok(val)) val;
+      case (#err(err)) D.trap("Cannot find metadata for collection " # debug_show (err));
+    };
+    debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : feeDepositAccount " # debug_show (feeDepositAccount));
+    // let _royalties_names = Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
+    let _royalties_names : [Text] = Royalties.royalties_names;
+    let fee_deposit_amount : Nat = Royalties.get_total_amount_fixed_royalties(_royalties_names, metadata);
+
+    let ogy_ledger : ICRC2.Self = actor (MigrationTypes.Current.OGY_LEDGER_CANISTER_ID);
+    let add_fund_to_fees_wallet = await ogy_ledger.icrc2_transfer_from({
+      to = {
+        owner = feeDepositAccount.account.principal;
+        subaccount = ?feeDepositAccount.account.sub_account;
+      };
+      fee = ?200_000;
+      spender_subaccount = null;
+      from = {
+        owner = caller;
+        subaccount = null;
+      };
+      memo = null;
+      created_at_time = null;
+      amount = fee_deposit_amount;
+    });
+
+    // switch (add_fund_to_fees_wallet) {
+    //   case (#Ok(data)) {
+    //     debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : add_fund_to_fees_wallet " # debug_show (add_fund_to_fees_wallet));
+    //   };
+    //   case (#Err(err)) {
+    //     return {
+    //       // TODO: look for TokenAsNat
+    //       token_id = request.token.id;
+    //       transfer_result = #Err(
+    //         #GenericError({
+    //           message = "deposit_fee_nft_origyn : transfer from request failed " # debug_show (add_fund_to_fees_wallet);
+    //           error_code = 3;
+    //         })
+    //       );
+    //     };
+    //   };
+    // };
+        // debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : add_fund_to_fees_wallet " # debug_show (add_fund_to_fees_wallet));
+
+    // let fee_deposit_request : Types.FeeDepositRequest = {
+    //   account = #account({
+    //     owner = caller.owner;
+    //     sub_account = caller.subaccount;
+    //   });
+    //   token = MigrationTypes.Current.OGY();
+    // };
+
+    // let fee_deposit_ret = Star.toResult<Types.ManageSaleResponse, Types.OrigynError>(await* deposit_fee_nft_origyn(state, fee_deposit_request, caller));
+    // debug if (debug_channel.escrow) D.print("fee_deposit_ret = " # debug_show (fee_deposit_ret));
+    // switch (fee_deposit_ret) {
+    //   case (#ok(val)) {
+    //     switch (val) {
+    //       case (#fee_deposit(info)) {
+    //         debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : fee_deposit(info) " # debug_show (info));
+    //       };
+    //       case (_) {
+    //         debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : fee_deposit request failed : Should have returned a #fee_deposit");
+    //         return {
+    //           token_id = request.token.id;
+    //           transfer_result = #Err(
+    //             #GenericError({
+    //               message = "deposit_fee_nft_origyn : fee_deposit request failed : Should have returned a #fee_deposit ";
+    //               error_code = 3;
+    //             })
+    //           );
+    //         };
+
+    //       };
+    //     };
+    //   };
+    //   case (_) {
+    //     debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : fee_deposit request failed : Should have returned a #fee_deposit");
+    //     return {
+    //       token_id = request.token.id;
+    //       transfer_result = #Err(
+    //         #GenericError({
+    //           message = "deposit_fee_nft_origyn : fee_deposit request failed : Should have returned a #fee_deposit ";
+    //           error_code = 3;
+    //         })
+    //       );
+    //     };
+
+    //   };
+    // };
+
+    // NOTE: check that the fee is on its place
     let balance = switch (request.token) {
       case (#ic(token)) {
         switch (token.standard) {
@@ -3316,14 +3435,15 @@ module {
       case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
     };
 
-    //put the fee
+    // put the fee into the state (there is a map here in which all such things are stored)
     debug if (debug_channel.escrow) D.print("putting the escrow");
 
+    // Save in the state
     let deposit_result = PutBalance.put_fee_deposit_balance(state, request, balance);
 
     debug if (debug_channel.escrow) D.print(debug_show (deposit_result));
 
-    //add fee deposit transaction
+    // add fee deposit transaction
     let new_trx = switch (
       Metadata.add_transaction_record<system>(
         state,

@@ -285,8 +285,7 @@ module {
 
     debug if (debug_channel.icrc7) D.print("transferICRC7 : metadata " # debug_show (metadata));
 
-    // Change to approve
-    let #ok(#fee_deposit(feeDepositAccount)) = Market.fee_deposit_info_nft_origyn(state, ? #account({ owner = from.owner; sub_account = from.subaccount }), caller) else {
+    let #ok(#fee_deposit_info(feeDepositAccount)) = Market.fee_deposit_info_nft_origyn(state, ? #account({ owner = from.owner; sub_account = from.subaccount }), caller) else {
       D.print("fail to get origyn internal sellerFeeDepositAccount");
       return {
         token_id = tokenAsNat;

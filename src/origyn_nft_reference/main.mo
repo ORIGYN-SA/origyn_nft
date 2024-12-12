@@ -353,7 +353,7 @@ shared (deployer) actor class Nft_Canister() = this {
         } else {
           #greater;
         };
-      };
+      }
     );
 
     state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
@@ -1285,7 +1285,7 @@ shared (deployer) actor class Nft_Canister() = this {
       case (#escrow_info(val)) {
         Market.escrow_info_nft_origyn(get_state(), val, caller);
       };
-      case (#fee_deposit(val)) {
+      case (#fee_deposit_info(val)) {
         Market.fee_deposit_info_nft_origyn(get_state(), val, caller);
       };
     };
@@ -1320,7 +1320,7 @@ shared (deployer) actor class Nft_Canister() = this {
       case (#status(val)) { "Type : status " # debug_show (val) };
       case (#deposit_info(val)) { "Type : deposit info " # debug_show (val) };
       case (#escrow_info(val)) { "Type : escrow info " # debug_show (val) };
-      case (#fee_deposit(val)) {
+      case (#fee_deposit_info(val)) {
         "Type : fee deposit info " # debug_show (val);
       };
     };
@@ -2857,7 +2857,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
                 allocated_storage = ?get_state().state.collection_data.allocated_storage;
                 available_space = ?get_state().state.collection_data.available_space;
-            };
+            }
         );
 */
 
