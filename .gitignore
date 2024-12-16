@@ -6,6 +6,9 @@
 # Adding mops here
 .mops/
 
+# Adding pocket-ic here
+src/integration_tests/impl/pocket-ic
+
 # Github Access Token
 gittoken.key
 
