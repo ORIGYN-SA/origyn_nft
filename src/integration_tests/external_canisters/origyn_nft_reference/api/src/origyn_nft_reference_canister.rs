@@ -1380,6 +1380,7 @@ pub struct EscrowRequest {
 #[derive(CandidType, Deserialize, Debug)]
 pub struct FeeDepositRequest {
   pub token: TokenSpec,
+  pub token_id: String,
   pub account: Account,
 }
 #[derive(CandidType, Deserialize, Debug)]

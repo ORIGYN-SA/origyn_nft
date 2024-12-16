@@ -255,6 +255,7 @@ module {
   };
 
   public type FeeDepositRequest = {
+    token_id : ?Text; // NOTE: empty for the case when the balances are automatically topped up (like with gldt-swap)
     account : Account;
     token : TokenSpec;
   };
@@ -283,7 +284,7 @@ module {
 
   public type FeeDepositResponse = {
     balance : Nat;
-    transaction : TransactionRecord;
+    transaction : ?TransactionRecord;
   };
 
   public type RecognizeEscrowResponse = {
