@@ -355,7 +355,7 @@ module {
 
     let fee_deposit_request : Types.FeeDepositRequest = {
       account = #account({ owner = from.owner; sub_account = from.subaccount });
-      token_id = ?token_id;
+      token_id = null;
       token = MigrationTypes.Current.OGY();
     };
 

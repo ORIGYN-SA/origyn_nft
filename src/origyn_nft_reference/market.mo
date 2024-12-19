@@ -3461,12 +3461,6 @@ module {
       };
     };
 
-    // // If balance is sufficient, skip the transfer
-    // if (balance >= fee_deposit_amount) {
-    //   debug if (debug_channel.escrow) D.print("Balance is sufficient, no transfer needed.");
-    //   return #awaited(#fee_deposit({ balance = balance; transaction = null }));
-    // };
-
   };
 
   /**

@@ -320,6 +320,7 @@ module {
 
     return feature_set;
   };
+
   public func bidfeaturesmap_to_bidfeaturearray(items : BidFeatureMap) : [BidFeature] {
     let feature_arr = Buffer.Buffer<BidFeature>(3);
 
