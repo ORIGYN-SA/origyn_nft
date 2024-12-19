@@ -41,6 +41,7 @@ import Verify "./market/verify_reciept";
 import FeeAccount "market/fee_account";
 import PutBalance "market/put_balance";
 import Royalties "market/royalties";
+import ICRC2 "../external_canisters/ICRC2";
 
 module {
 
@@ -1990,7 +1991,7 @@ module {
                     lock_to_date = verified.found_asset.escrow.lock_to_date;
                 };
                 Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
-                }
+                };
               }; */
 
               return async_market_transfer_unlock_fee_account_callback(
@@ -3236,7 +3237,7 @@ module {
                   //should be unreachable, but lets remove it from the map anyway;
                 ignore Set.remove(state.state.pending_sale_notifications,thash, thisItem);
                 continue search;
-              }
+              };
             };
 
 
@@ -3363,6 +3364,7 @@ module {
   * @param {Principal} caller - Principal object representing the caller.
   * @returns {Star.Star<Types.ManageSaleResponse, Types.OrigynError>} - A result indicating whether the escrow was created.
   */
+  // FIXME: change here
   public func escrow_nft_origyn(state : StateAccess, request : Types.EscrowRequest, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
     //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
     //we will also allow a canister/canister owner to create escrows for itself
@@ -3375,6 +3377,7 @@ module {
       return #err(#trappable(Types.errors(?state.canistergeekLogger, #unauthorized_access, "escrow_nft_origyn - escrow - buyer and caller do not match", ?caller)));
     };
 
+    // Validate lock_to date
     debug if (debug_channel.escrow) D.print("in escrow");
     debug if (debug_channel.escrow) D.print(debug_show (request));
     switch (request.lock_to_date) {
@@ -3389,7 +3392,7 @@ module {
 
     debug if (debug_channel.escrow) D.print(debug_show (state.canister()));
 
-    //verify the token
+    // Verify token metadata and ownership
     if (request.token_id != "") {
       let metadata = switch (Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
         case (#err(err)) {
@@ -3418,71 +3421,107 @@ module {
     //move the deposit to an escrow account
     debug if (debug_channel.escrow) D.print("verifying the deposit");
 
-    let (trx_id : Types.TransactionID, account_hash : ?Blob) = switch (request.deposit.token) {
-      case (#ic(token)) {
-        switch (token.standard) {
-          case (#Ledger or #ICRC1) {
-            debug if (debug_channel.escrow) D.print("found ledger");
-            let checker = Ledger_Interface.Ledger_Interface();
-            switch (await* checker.transfer_deposit(state.canister(), request, caller)) {
-              case (#ok(val)) (val.transaction_id, ?val.subaccount_info.account.sub_account);
-              case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
-            };
-          };
-          case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
-        };
-      };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
-    };
-
-    //put the escrow
-    debug if (debug_channel.escrow) D.print("putting the escrow");
-    let escrow_result = PutBalance.put_escrow_balance(
-      state,
+    let escrow_account_info : Types.SubAccountInfo = NFTUtils.get_escrow_account_info(
       {
-        request.deposit with
+        amount = request.deposit.amount;
+        buyer = request.deposit.buyer;
+        seller = request.deposit.seller;
+        token = request.deposit.token;
         token_id = request.token_id;
-        trx_id = trx_id;
-        lock_to_date = request.lock_to_date;
-        account_hash = account_hash;
-        balances = null;
       },
-      true,
+      state.canister(),
     );
 
-    debug if (debug_channel.escrow) D.print(debug_show (escrow_result));
+    let ogy_ledger : ICRC2.Self = actor (MigrationTypes.Current.OGY_LEDGER_CANISTER_ID);
+    let transferResult = await ogy_ledger.icrc2_transfer_from({
+      from = {
+        owner = caller;
+        subaccount = null;
+      };
+      to = {
+        owner = escrow_account_info.account.principal;
+        subaccount = ?escrow_account_info.account.sub_account;
+      };
+      amount = request.deposit.amount;
+      fee = null; // Set appropriate fee, if needed
+      memo = null;
+      created_at_time = null;
+      spender_subaccount = null;
+    });
 
-    //add deposit transaction
-    let new_trx = switch (
-      Metadata.add_transaction_record<system>(
-        state,
-        {
-          token_id = request.token_id;
-          index = 0;
-          txn_type = #escrow_deposit {
+    switch (transferResult) {
+      case (#err(err)) {
+        return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "escrow_nft_origyn - transfer failed", ?caller)));
+      };
+      case (#ok(result_block)) {
+        //put the escrow
+        debug if (debug_channel.escrow) D.print("putting the escrow");
+        let escrow_result = PutBalance.put_escrow_balance(
+          state,
+          {
             request.deposit with
             token_id = request.token_id;
-            trx_id = trx_id;
-            extensible = #Option(null);
+            trx_id = result_block;
+            lock_to_date = request.lock_to_date;
+            account_hash = ?escrow_account_info.account.sub_account;
+            balances = null;
+          },
+          true,
+        );
+
+        debug if (debug_channel.escrow) D.print(debug_show (escrow_result));
+
+        //add deposit transaction
+        let new_trx = switch (
+          Metadata.add_transaction_record<system>(
+            state,
+            {
+              token_id = request.token_id;
+              index = 0;
+              txn_type = #escrow_deposit {
+                request.deposit with
+                token_id = request.token_id;
+                trx_id = result_block;
+                extensible = #Option(null);
+              };
+              timestamp = state.get_time();
+            },
+            caller,
+          )
+        ) {
+          case (#err(err)) {
+            debug if (debug_channel.escrow) D.print("in a bad error");
+            debug if (debug_channel.escrow) D.print(debug_show (err));
+            //nyi: this is really bad and will mess up certificatioin later so we should really throw
+            return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
           };
-          timestamp = state.get_time();
-        },
-        caller,
-      )
-    ) {
-      case (#err(err)) {
-        debug if (debug_channel.escrow) D.print("in a bad error");
-        debug if (debug_channel.escrow) D.print(debug_show (err));
-        //nyi: this is really bad and will mess up certificatioin later so we should really throw
-        return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+          case (#ok(new_trx)) new_trx;
+        };
+
+        debug if (debug_channel.escrow) D.print("have the trx");
+        debug if (debug_channel.escrow) D.print(debug_show (new_trx));
+        return #awaited(#escrow_deposit({ receipt = { request.deposit with
+        token_id = request.token_id }; balance = escrow_result.amount; transaction = new_trx }));
       };
-      case (#ok(new_trx)) new_trx;
     };
 
-    debug if (debug_channel.escrow) D.print("have the trx");
-    debug if (debug_channel.escrow) D.print(debug_show (new_trx));
-    return #awaited(#escrow_deposit({ receipt = { request.deposit with
-    token_id = request.token_id }; balance = escrow_result.amount; transaction = new_trx }));
+    // let (trx_id : Types.TransactionID, account_hash : ?Blob) = switch (request.deposit.token) {
+    //   case (#ic(token)) {
+    //     switch (token.standard) {
+    //       case (#Ledger or #ICRC1) {
+    //         debug if (debug_channel.escrow) D.print("found ledger");
+    //         let checker = Ledger_Interface.Ledger_Interface();
+    //         switch (await* checker.transfer_deposit(state.canister(), request, caller)) {
+    //           case (#ok(val)) (val.transaction_id, ?val.subaccount_info.account.sub_account);
+    //           case (#err(err)) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
+    //         };
+    //       };
+    //       case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+    //     };
+    //   };
+    //   case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+    // };
+
   };
 
   //recognizes tokens sent to a fee_deposit account

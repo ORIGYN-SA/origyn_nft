@@ -47,7 +47,7 @@ class Ledger_Interface() {
         };
         case(_){
             return #err(Types.errors(?state.canistergeekLogger,  #improper_interface, "ledger_interface - validate deposit - not ic" # debug_show(deposit), ?caller));
-        }
+        };
     };
      //D.print(debug_show(canister));
      //D.print(debug_show(block));
@@ -91,7 +91,6 @@ class Ledger_Interface() {
     return #ok(true);
   }; */
 
-  //moves a deposit from a deposit subaccount to an escrow subaccount
   /**
   * Moves a deposit from a deposit subaccount to an escrow subaccount
   * @param {Principal} host - The canister ID of the ledger that manages the deposit
