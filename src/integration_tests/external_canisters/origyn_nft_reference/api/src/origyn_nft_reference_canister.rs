@@ -1991,6 +1991,7 @@ pub enum StageLibraryResult {
 pub struct NftCanisterStageNftOrigynArg {
   pub metadata: Box<CandyShared>,
 }
+
 #[derive(CandidType, Deserialize, Debug)]
 pub struct StateSize {
   pub sales_balances: candid::Nat,

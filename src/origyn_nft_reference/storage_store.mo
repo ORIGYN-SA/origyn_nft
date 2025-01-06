@@ -16,6 +16,7 @@ import Metadata "metadata";
 import MigrationTypes "./migrations/types";
 import NFTUtils "utils";
 import Types "types";
+import CanisterManagement "./canister_management/canister_management";
 
 module {
 

@@ -49,6 +49,8 @@ import Mint "mint";
 import NFTUtils "utils";
 import Owner "owner";
 import Types "./types";
+import CanisterManagementTypes "./canister_management/types";
+import CanisterManagement "canister_management/canister_management";
 import data "data";
 import http "http";
 import BlockTypes "ledger/block_types";
@@ -317,6 +319,67 @@ shared (deployer) actor class Nft_Canister() = this {
     await Market.handle_notify(get_state());
   };
 
+  /************************************************
+ *  Start of the management canister interface  *
+ ************************************************/
+
+  // FIXME: fix here logs
+  public shared (msg) func test_canister_creation() : async Result.Result<Principal, CanisterManagementTypes.Error> {
+
+    let hubInstance = await CanisterManagement.hub();
+
+    // Check that we don't have cansiters yet
+    // canistergeekLogger.logMessage("canisters: ", hubInstance.getCanisters(), ?msg.caller);
+
+    // Define the canister deployment args
+    let deployArgs : CanisterManagementTypes.DeployArgs = {
+      name = "Test Canister";
+      description = "A canister created for testing purposes.";
+      settings = null; // Replace with specific canister settings if needed
+      deploy_arguments = null; // Provide deploy arguments if required
+      wasm = null; // Provide the Wasm binary as a [Nat8] array if needed
+      cycle_amount = 100_000_000_000; // Specify the cycles for deployment
+      preserve_wasm = false; // Set to true to preserve the Wasm for later use
+    };
+
+    canistergeekLogger.logMessage(
+      "c",
+      #Text("Starting deployment of canister: " # deployArgs.name # " with description: " # deployArgs.description),
+      ?msg.caller,
+    );
+
+    // Call the deployCanister function
+    let result = await hubInstance.deployCanister(deployArgs);
+
+    switch (result) {
+      case (#ok(principal)) {
+        canistergeekLogger.logMessage(
+          "test_call_create_canister",
+          #Text("Starting deployment of canister: " # Principal.toText(principal)),
+          ?msg.caller,
+        );
+      };
+      case (#err(error)) {
+        canistergeekLogger.logMessage(
+          "test_call_create_canister",
+          #Text("Failed to deploy canister: "),
+          ?msg.caller,
+        );
+      };
+    };
+
+    // Return the result
+    return result;
+
+    // canistergeekLogger.logMessage("stage_nft_origyn", ?msg.caller);
+    // canistergeekMonitor.collectMetrics();
+    // debug if (debug_channel.function_announce) D.print("in stage");
+  };
+
+  /************************************************
+ *    End of the management canister interface    *
+ ************************************************/
+
   // set the `data_havester`
   public shared (msg) func set_data_harvester(_page_size : Nat) : async () {
     if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false) {
@@ -381,7 +444,7 @@ shared (deployer) actor class Nft_Canister() = this {
         } else {
           #greater;
         };
-      }
+      };
     );
 
     state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
@@ -2893,7 +2956,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
                 allocated_storage = ?get_state().state.collection_data.allocated_storage;
                 available_space = ?get_state().state.collection_data.available_space;
-            }
+            };
         );
 */
 

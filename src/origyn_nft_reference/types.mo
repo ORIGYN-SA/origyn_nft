@@ -19,7 +19,6 @@ import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import Map "mo:map/Map";
 import Map9 "mo:map9/Map";
 import MapUtils "mo:map/utils";
-import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
 
 import DIP721 "DIP721";
