@@ -1113,7 +1113,6 @@ module {
     var pending_sale_notifications : Set.Set<Text>;
     var access_tokens : Map.Map<Text, HttpAccess>;
     var droute : Droute.Droute;
-    var kyc_cache : Map.Map<KYCTypes.KYCRequest, KYCTypes.KYCResultFuture>;
     var use_stableBTree : Bool;
     var icrc3_migration_state : ICRC3.State;
     var cert_store : CertTree.Store;

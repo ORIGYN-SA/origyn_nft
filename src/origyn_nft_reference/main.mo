@@ -31,8 +31,7 @@ import EXTCommon "mo:ext/Common";
 import ICRC7 "ICRC7";
 
 import Map "mo:map9/Map";
-// import Map9 "mo:map9/Map";
-import Set "mo:map/Set";
+import Set "mo:map9/Set";
 
 import Star "mo:star/star";
 
@@ -141,7 +140,7 @@ shared (deployer) actor class Nft_Canister() = this {
   let kyc_client = MigrationTypes.Current.KYC.kyc({
     time = null;
     timeout = ?OneDay;
-    cache = ?state_current.kyc_cache;
+    cache = null;
   });
 
   //let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
@@ -171,7 +170,7 @@ shared (deployer) actor class Nft_Canister() = this {
   stable var nft_library_stable_2 : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
 
   // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
-  stable var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
+  stable var nft_library : Map.Map<Text, Map.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
 
   // Let us get the principal of the host gateway canister
   private var canister_principal : ?Principal = null;
@@ -384,7 +383,7 @@ shared (deployer) actor class Nft_Canister() = this {
         } else {
           #greater;
         };
-      }
+      };
     );
 
     state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
@@ -2896,7 +2895,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
                 allocated_storage = ?get_state().state.collection_data.allocated_storage;
                 available_space = ?get_state().state.collection_data.available_space;
-            }
+            };
         );
 */
 
