@@ -1078,24 +1078,6 @@ module {
   public let candySharedToValue = v0_1_6.candySharedToValue;
   public let defaultICRC3Config = v0_1_6.defaultICRC3Config;
 
-  public type SubcanisterType = {
-    #governance;
-    #storage;
-    #none;
-  };
-
-  public type SubcanisterStatus = {
-    #pending;
-    #configured;
-    #initialized;
-    #error;
-  };
-
-  public type SubcanisterState = {
-    canister_type : SubcanisterType;
-    status : SubcanisterStatus;
-  };
-
   public type State = {
     var collection_data : CollectionData;
     var buckets : Map.Map<Principal, BucketData>;
@@ -1117,7 +1099,6 @@ module {
     var icrc3_migration_state : ICRC3.State;
     var cert_store : CertTree.Store;
     var timerState : ?TimerTool.State;
-    var subcanister_state : Map.Map<Principal, SubcanisterState>;
   };
 
   // public let OGY_LEDGER_CANISTER_ID = "lkwrt-vyaaa-aaaaq-aadhq-cai"; // production

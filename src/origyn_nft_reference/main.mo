@@ -41,7 +41,7 @@ import CandyTypesOld "mo:candy_0_1_12/types";
 import DIP721 "DIP721";
 import Governance "governance";
 import Market "market";
-import Fractionalize "fractionalize";
+// import Fractionalize "fractionalize";
 import Royalties "market/royalties";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
@@ -238,7 +238,6 @@ shared (deployer) actor class Nft_Canister() = this {
         get = get_notify_timer;
         set = set_notify_timer;
       };
-      subcanister_state = state_current.subcanister_state;
       timertool = _timertool;
     };
   };
@@ -3769,23 +3768,8 @@ shared (deployer) actor class Nft_Canister() = this {
   // ****** END BACKUP *******
   // *************************
 
-  /**
-    * Returns an array of tuples representing supported interfaces.
-    * @returns {Array<[Text, Text]>} - An array of tuples representing supported interfaces.
-    */
-  public query func __supports() : async [(Text, Text)] {
-    [
-      ("nft_origyn", "v0.1.0"),
-      ("data_nft_origyn", "v0.1.0"),
-      ("collection_nft_origyn", "v0.1.0"),
-      ("mint_nft_origyn", "v0.1.0"),
-      ("owner_nft_origyn", "v0.1.0"),
-      ("market_nft_origyn", "v0.1.0"),
-    ];
-  };
-
   public query func __version() : async Text {
-    "0.1.6";
+    "0.1.7";
   };
 
   /**
@@ -3803,42 +3787,23 @@ shared (deployer) actor class Nft_Canister() = this {
   // ***** FRACTIONALIZATION PART *****
   // **********************************
 
-  public shared (msg) func init_fractionalization(request : Fractionalize.InitFractionalizeRequest) : async Fractionalize.InitFractionalizeResponse {
-    let state = get_state();
-    let caller = msg.caller;
+  // public shared (msg) func init_fractionalization(request : Fractionalize.InitFractionalizeRequest) : async Fractionalize.InitFractionalizeResponse {
+  //   let state = get_state();
+  //   let caller = msg.caller;
 
-    return await Fractionalize.init_fractionalization(state, request, caller);
-  };
+  //   return await Fractionalize.init_fractionalization(state, request, caller);
+  // };
 
-  public shared (msg) func authorize_fractionalization(request : Fractionalize.AuthorizeFractionalizeRequest) : async Fractionalize.AuthorizeFractionalizeResponse {
-    let state = get_state();
-    let caller = msg.caller;
+  // public shared (msg) func authorize_fractionalization(request : Fractionalize.AuthorizeFractionalizeRequest) : async Fractionalize.AuthorizeFractionalizeResponse {
+  //   let state = get_state();
+  //   let caller = msg.caller;
 
-    return await Fractionalize.authorize_fractionalization(state, request, caller);
-  };
+  //   return await Fractionalize.authorize_fractionalization(state, request, caller);
+  // };
 
   // **********************************
   // ***** END FRACTIONALIZATION  *****
   // **********************************
-
-  // ****************************
-  // ***** SUBCANISTER PART *****
-  // ****************************
-
-  public shared (msg) func get_subcanister_info() : async [(Principal, MigrationTypes.Current.SubcanisterState)] {
-    if (NFTUtils.is_owner_manager_network(get_state(), msg.caller) == false and msg.caller != get_state().canister()) {
-      throw Error.reject("Caller is not the owner or manager of the network");
-    };
-
-    let state = get_state();
-    let caller = msg.caller;
-
-    return Map.toArray(state.state.subcanister_state);
-  };
-
-  // ****************************
-  // ***** END SUBCANISTER  *****
-  // ****************************
 
   // *************************
   // ***** CANISTER GEEK *****

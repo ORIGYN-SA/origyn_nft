@@ -46,7 +46,6 @@ module {
     let new_sales_balances = convertSalesBalancesMap7ToMap9(state.sales_balances);
     let new_ledgers = convertLedgersMap7ToMap9(state.nft_ledgers);
     let new_master_ledger = convertMasterLedgerMap7ToMap9(state.master_ledger);
-    let new_subcanister_state = Map.new<Principal, v0_1_7.SubcanisterState>();
 
     return #v0_1_7(
       #data({
@@ -70,7 +69,6 @@ module {
         var icrc3_migration_state = state.icrc3_migration_state;
         var cert_store = state.cert_store;
         var timerState = state.timerState;
-        var subcanister_state = new_subcanister_state;
         /* add certification ref here */
       })
     );
