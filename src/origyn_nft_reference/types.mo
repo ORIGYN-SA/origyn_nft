@@ -25,7 +25,6 @@ import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 import DROUTE "mo:droute_client/Droute";
-import KYC "mo:icrc17_kyc";
 import http "mo:http/Http";
 
 import Star "mo:star/star";
@@ -338,18 +337,6 @@ module {
     token : TokenSpec;
   };
 
-  public type AuctionConfig = MigrationTypes.Current.AuctionConfig;
-
-  public let AuctionConfigDefault = {
-    reserve = null;
-    token = TokenSpecDefault;
-    buy_now = null;
-    start_price = 0;
-    start_date = 0;
-    ending = #date(0);
-    min_increase = #amount(0);
-  };
-
   public type NFTInfoStable = {
     current_sale : ?SaleStatusShared;
     metadata : CandyTypes.CandyShared;
@@ -386,7 +373,6 @@ module {
             };
           };
         };
-        case (#auction(e)) #auction(e);
         case (#ask(e)) {
           switch (e) {
             case (null) #ask(null);
@@ -468,7 +454,6 @@ module {
     nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>>;
     refresh_state : () -> State;
     droute_client : DROUTE.Droute;
-    kyc_client : KYC.kyc;
     handle_notify : () -> async ();
     icrc3 : ICRC3.ICRC3;
     notify_timer : {
@@ -955,8 +940,6 @@ module {
     #withdraw_too_large;
     #nyi;
     #noop;
-    #kyc_error;
-    #kyc_fail;
     #low_fee_balance;
     #no_fee_accounts_provided;
   };
@@ -1392,22 +1375,6 @@ module {
           flag_point = flag_point;
         };
       };
-      case (#kyc_error) {
-        return {
-          number = 4010;
-          text = "kyc error";
-          error = the_error;
-          flag_point = flag_point;
-        };
-      };
-      case (#kyc_fail) {
-        return {
-          number = 4011;
-          text = "kyc fail";
-          error = the_error;
-          flag_point = flag_point;
-        };
-      };
       case (#low_fee_balance) {
         return {
           number = 4012;
@@ -1444,15 +1411,12 @@ module {
     __system_fractionalization_status : Text;
     __apps : Text;
     broker_royalty_dev_fund_override : Text;
-    collection_kyc_canister_buyer : Text;
-    collection_kyc_canister_seller : Text;
     library : Text;
     library_id : Text;
     library_size : Text;
     library_location_type : Text;
     owner : Text;
     id : Text;
-    kyc_collection : Text;
     primary_asset : Text;
     preview_asset : Text;
     experience_asset : Text;
@@ -1491,8 +1455,6 @@ module {
     __system_fractionalization_status = "com.origyn.fractionalization_status";
     __apps = "__apps";
     broker_royalty_dev_fund_override = "com.origyn.royalties.broker_dev_fund_override";
-    collection_kyc_canister_buyer = "com.origyn.kyc_canister_buyer";
-    collection_kyc_canister_seller = "com.origyn.kyc_canister_seller";
     library = "library";
     library_id = "library_id";
     library_size = "size";
@@ -1500,7 +1462,6 @@ module {
     owner = "owner";
     id = "id";
     immutable_library = "com.origyn.immutable_library";
-    kyc_collection = "com.origyn.settings.collection.kyc_canister";
     physical = "com.origyn.physical";
     primary_asset = "primary_asset";
     preview_asset = "preview_asset";

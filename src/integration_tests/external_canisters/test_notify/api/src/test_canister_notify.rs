@@ -175,7 +175,6 @@ pub enum EndingType {
 }
 #[derive(CandidType, Deserialize)]
 pub enum AskFeature {
-  #[serde(rename = "kyc")] Kyc(Principal),
   #[serde(rename = "start_price")] StartPrice(candid::Nat),
   #[serde(rename = "token")] Token(TokenSpec),
   #[serde(rename = "fee_schema")] FeeSchema(String),
