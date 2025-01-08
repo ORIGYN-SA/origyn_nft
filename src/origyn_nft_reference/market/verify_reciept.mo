@@ -19,9 +19,7 @@ import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
 import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
 
 import Star "mo:star/star";
 
@@ -42,6 +40,7 @@ module {
 
   let account_handler = MigrationTypes.Current.account_handler;
   let token_handler = MigrationTypes.Current.token_handler;
+  let Map = MigrationTypes.Current.Map;
 
   public func verify_escrow_record(
     state : StateAccess,
@@ -161,17 +160,17 @@ module {
 
     //only the owner can sell it
 
-    let ?token_list = Map.get(to_list, account_handler, escrow.buyer) else {
+    let ?token_list = Map.get<MigrationTypes.Current.Account, MigrationTypes.Current.SalesTokenIDTrie>(to_list, account_handler, escrow.buyer) else {
       debug if (debug_channel.verify_sale) D.print("sale byer not found");
       return #err(Types.errors(?state.canistergeekLogger, #no_escrow_found, "verify_sales_reciept - escrow buyer not found ", null));
     };
 
-    let ?asset_list = Map.get(token_list, Map.thash, escrow.token_id) else {
+    let ?asset_list = Map.get<Text, MigrationTypes.Current.SalesLedgerTrie>(token_list, Map.thash, escrow.token_id) else {
       debug if (debug_channel.verify_sale) D.print("sale token id not found");
       return #err(Types.errors(?state.canistergeekLogger, #no_escrow_found, "verify_sales_reciept - escrow token_id not found ", null));
     };
 
-    let ?balance = Map.get(asset_list, token_handler, escrow.token) else {
+    let ?balance = Map.get<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(asset_list, token_handler, escrow.token) else {
       debug if (debug_channel.verify_sale) D.print("sale token not found");
       return #err(Types.errors(?state.canistergeekLogger, #no_escrow_found, "verify_sales_reciept - escrow token spec not found ", null));
     };
@@ -222,14 +221,14 @@ module {
           reverify.found_asset.escrow with
           amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
         };
-        Map.set(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        Map.set<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
       };
       case (#err(err)) {
         let target_escrow = {
           found_asset.escrow with
           amount = escrow.amount;
         };
-        Map.set(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        Map.set<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
       };
     };
   };
@@ -262,14 +261,14 @@ module {
           reverify.found_asset.escrow with
           amount = Nat.add(reverify.found_asset.escrow.amount, escrow.amount);
         };
-        Map.set(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        Map.set<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(reverify.found_asset_list, token_handler, found_asset.token_spec, target_escrow);
       };
       case (#err(err)) {
         let target_escrow = {
           found_asset.escrow with
           amount = escrow.amount;
         };
-        Map.set(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
+        Map.set<MigrationTypes.Current.TokenSpec, MigrationTypes.Current.EscrowRecord>(found_asset_list, token_handler, found_asset.token_spec, target_escrow);
       };
     };
   };

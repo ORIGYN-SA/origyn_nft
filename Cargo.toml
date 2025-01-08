@@ -1,0 +1,57 @@
+[workspace]
+members = [
+  "src/integration_tests/impl",
+  "src/integration_tests/libraries/candid_gen",
+  "src/integration_tests/libraries/canister_client",
+  "src/integration_tests/libraries/canister_client_macros",
+  "src/integration_tests/libraries/canister_logger",
+  "src/integration_tests/libraries/canister_state_macros",
+  "src/integration_tests/libraries/canister_time",
+  "src/integration_tests/libraries/canister_tracing_macros",
+  "src/integration_tests/libraries/http_request",
+  "src/integration_tests/libraries/serializer",
+  "src/integration_tests/libraries/stable_memory",
+  "src/integration_tests/libraries/types",
+  "src/integration_tests/libraries/utils",
+  "src/integration_tests/external_canisters/icrc_ledger/api",
+  "src/integration_tests/external_canisters/icrc_ledger/c2c_client",
+]
+resolver = "2"
+
+[profile.release]
+lto = "thin"
+panic = "abort"
+
+[workspace.dependencies]
+candid = { version = "0.10.11", features = ["value"]  }
+ciborium = "0.2.2"
+futures = "0.3.31"
+# Enable `custom` feature of k256's getrandom dependency. See icp_neuron/impl/src/ecdsa.rs for more details.
+getrandom = { version = "0.2.12", features = ["custom"] }
+hex = "0.4.3"
+ic-cdk = "0.17.1"
+ic-cdk-macros = "0.17.1"
+ic-cdk-timers = "0.11.0"
+ic-ledger-types = "0.14.0"
+ic-stable-structures = "0.6.7"
+ic-transport-types = "0.39.2"
+ic0 = "0.23.0"
+icrc-ledger-types = "0.1.6"
+k256 = "0.13.1"
+proc-macro2 = "1.0.92"
+quote = "1.0.38"
+rmp-serde = "1.1.2"
+serde = "1.0.217"
+serde_bytes = "0.11.15"
+serde_cbor = "0.11.2"
+serde_json = "1.0.135"
+serde_with = "3.7.0"
+serde_yaml = "0.9.29"
+sha2 = "0.10.8"
+syn = "2.0.95"
+tracing = "0.1.41"
+tracing-attributes = "0.1.28"
+tracing-subscriber = "0.3.19"
+num-bigint = "0.4.6"
+time = "0.3.37"
+pocket-ic = "6.0.0"

@@ -6,6 +6,7 @@ import Cycles "mo:base/ExperimentalCycles";
 import D "mo:base/Debug";
 import Error "mo:base/Error";
 import Int "mo:base/Int";
+import List "mo:base/List";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
@@ -29,9 +30,8 @@ import EXT "mo:ext/Core";
 import EXTCommon "mo:ext/Common";
 import ICRC7 "ICRC7";
 
-import Map "mo:map/Map";
-import Map9 "mo:map9/Map";
-import Set "mo:map/Set";
+import Map "mo:map9/Map";
+import Set "mo:map9/Set";
 
 import Star "mo:star/star";
 
@@ -41,6 +41,7 @@ import CandyTypesOld "mo:candy_0_1_12/types";
 import DIP721 "DIP721";
 import Governance "governance";
 import Market "market";
+// import Fractionalize "fractionalize";
 import Royalties "market/royalties";
 import Metadata "metadata";
 import MigrationTypes "./migrations/types";
@@ -129,17 +130,17 @@ shared (deployer) actor class Nft_Canister() = this {
   // Do not forget to change #v0_1_0 when you are adding a new migration
   // If you use one previous state in place of #v0_1_0 it will run downgrade methods instead
 
-  migration_state := Migrations.migrate(migration_state, #v0_1_6(#id), { owner = deployer.caller; storage_space = 0 }, deployer.caller);
+  migration_state := Migrations.migrate(migration_state, #v0_1_7(#id), { owner = deployer.caller; storage_space = 0 }, deployer.caller);
 
   // Do not forget to change #v0_1_0 when you are adding a new migration
-  let #v0_1_6(#data(state_current)) = migration_state;
+  let #v0_1_7(#data(state_current)) = migration_state;
 
   debug if (debug_channel.instantiation) D.print("finished migration");
 
   let kyc_client = MigrationTypes.Current.KYC.kyc({
     time = null;
     timeout = ?OneDay;
-    cache = ?state_current.kyc_cache;
+    cache = null;
   });
 
   //let memory_manager = MemoryManager.init(Memory.STABLE_MEMORY);
@@ -169,7 +170,7 @@ shared (deployer) actor class Nft_Canister() = this {
   stable var nft_library_stable_2 : [(Text, [(Text, CandyTypes.AddressedChunkArray)])] = [];
 
   // Stores data for a library - unstable because it uses Candy Workspaces to hold active and maleable bits of data that can be manipulated in real time
-  stable var nft_library : Map9.Map<Text, Map9.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
+  stable var nft_library : Map.Map<Text, Map.Map<Text, CandyTypes.Workspace>> = NFTUtils.build_library_new(nft_library_stable_2);
 
   // Let us get the principal of the host gateway canister
   private var canister_principal : ?Principal = null;
@@ -381,7 +382,7 @@ shared (deployer) actor class Nft_Canister() = this {
         } else {
           #greater;
         };
-      }
+      };
     );
 
     state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
@@ -2893,7 +2894,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 metadata = Map.get(state.state.nft_metadata, Map.thash, "");
                 allocated_storage = ?get_state().state.collection_data.allocated_storage;
                 available_space = ?get_state().state.collection_data.available_space;
-            }
+            };
         );
 */
 
@@ -3767,23 +3768,8 @@ shared (deployer) actor class Nft_Canister() = this {
   // ****** END BACKUP *******
   // *************************
 
-  /**
-    * Returns an array of tuples representing supported interfaces.
-    * @returns {Array<[Text, Text]>} - An array of tuples representing supported interfaces.
-    */
-  public query func __supports() : async [(Text, Text)] {
-    [
-      ("nft_origyn", "v0.1.0"),
-      ("data_nft_origyn", "v0.1.0"),
-      ("collection_nft_origyn", "v0.1.0"),
-      ("mint_nft_origyn", "v0.1.0"),
-      ("owner_nft_origyn", "v0.1.0"),
-      ("market_nft_origyn", "v0.1.0"),
-    ];
-  };
-
   public query func __version() : async Text {
-    "0.1.6";
+    "0.1.7";
   };
 
   /**
@@ -3796,6 +3782,28 @@ shared (deployer) actor class Nft_Canister() = this {
     ignore Cycles.accept(accepted);
     accepted;
   };
+
+  // **********************************
+  // ***** FRACTIONALIZATION PART *****
+  // **********************************
+
+  // public shared (msg) func init_fractionalization(request : Fractionalize.InitFractionalizeRequest) : async Fractionalize.InitFractionalizeResponse {
+  //   let state = get_state();
+  //   let caller = msg.caller;
+
+  //   return await Fractionalize.init_fractionalization(state, request, caller);
+  // };
+
+  // public shared (msg) func authorize_fractionalization(request : Fractionalize.AuthorizeFractionalizeRequest) : async Fractionalize.AuthorizeFractionalizeResponse {
+  //   let state = get_state();
+  //   let caller = msg.caller;
+
+  //   return await Fractionalize.authorize_fractionalization(state, request, caller);
+  // };
+
+  // **********************************
+  // ***** END FRACTIONALIZATION  *****
+  // **********************************
 
   // *************************
   // ***** CANISTER GEEK *****

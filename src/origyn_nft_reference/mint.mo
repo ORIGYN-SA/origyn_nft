@@ -9,9 +9,6 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
-import Map "mo:map/Map";
-import Map9 "mo:map9/Map";
-
 import Metadata "metadata";
 import NFTUtils "utils";
 import Types "types";
@@ -24,6 +21,7 @@ module {
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
   let SB = MigrationTypes.Current.SB;
+  let Map = MigrationTypes.Current.Map;
 
   //lets user turn debug messages on and off for local replica
   let debug_channel = {
@@ -1011,7 +1009,7 @@ module {
         //the chunk goes on this canister
 
         debug if (debug_channel.stage) D.print("looking for workspace");
-        var found_workspace : CandyTypes.Workspace = switch (Map9.get(state.nft_library, Map9.thash, chunk.token_id)) {
+        var found_workspace : CandyTypes.Workspace = switch (Map.get(state.nft_library, Map.thash, chunk.token_id)) {
           case (null) {
             if (bDelete == true or content_size == 0) {
               //this was never allocated; return;
@@ -1031,16 +1029,16 @@ module {
             SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
             debug if (debug_channel.stage) D.print("put the zone");
-            let new_library = Map9.new<Text, CandyTypes.Workspace>();
+            let new_library = Map.new<Text, CandyTypes.Workspace>();
             debug if (debug_channel.stage) D.print("putting workspace");
-            ignore Map9.put(new_library, Map9.thash, chunk.library_id, new_workspace);
+            ignore Map.put(new_library, Map.thash, chunk.library_id, new_workspace);
             debug if (debug_channel.stage) D.print("putting library");
-            ignore Map9.put(state.nft_library, Map9.thash, chunk.token_id, new_library);
+            ignore Map.put(state.nft_library, Map.thash, chunk.token_id, new_library);
             new_workspace;
           };
           case (?library) {
 
-            switch (Map9.get(library, Map9.thash, chunk.library_id)) {
+            switch (Map.get(library, Map.thash, chunk.library_id)) {
               case (null) {
                 if (bDelete == true or content_size == 0) {
                   //this was never allocated; return;
@@ -1057,12 +1055,12 @@ module {
 
                 SB.add(new_workspace, Workspace.initDataZone(CandyTypes.unshare(chunk.filedata)));
 
-                ignore Map9.put(library, Map9.thash, chunk.library_id, new_workspace);
+                ignore Map.put(library, Map.thash, chunk.library_id, new_workspace);
                 new_workspace;
               };
               case (?workspace) {
                 if (bDelete == true) {
-                  ignore Map9.remove(library, Map9.thash, chunk.library_id);
+                  ignore Map.remove(library, Map.thash, chunk.library_id);
                 };
                 debug if (debug_channel.stage) D.print("found workspace");
                 workspace;
@@ -1102,10 +1100,10 @@ module {
             case (null) {};
           };
           Map.delete<(Text, Text), Types.AllocationRecord>(state.state.allocations, (NFTUtils.library_hash, NFTUtils.library_equal), (chunk.token_id, chunk.library_id));
-          switch (Map9.get(state.nft_library, Map9.thash, chunk.token_id)) {
+          switch (Map.get(state.nft_library, Map.thash, chunk.token_id)) {
             case (null) {};
             case (?library) {
-              ignore Map9.remove(library, Map9.thash, chunk.library_id);
+              ignore Map.remove(library, Map.thash, chunk.library_id);
             };
           };
 

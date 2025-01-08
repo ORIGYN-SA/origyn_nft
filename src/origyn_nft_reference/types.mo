@@ -16,7 +16,6 @@ import TimerTool "mo:timer-tool";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
 import Map9 "mo:map9/Map";
 import MapUtils "mo:map/utils";
 import StableBTreeTypes "mo:stableBTree/types";
@@ -36,6 +35,7 @@ import ICRC3 "mo:icrc3-mo";
 
 module {
 
+  let Map = MigrationTypes.Current.Map;
   let CandyTypes = MigrationTypes.Current.CandyTypes;
   let Conversions = MigrationTypes.Current.Conversions;
   let SB = MigrationTypes.Current.SB;
@@ -413,9 +413,9 @@ module {
       current_escrow = val.current_escrow;
       wait_for_quiet_count = val.wait_for_quiet_count;
       allow_list = do ? {
-        Iter.toArray(Map.entries<Principal, Bool>(val.allow_list!));
+        Iter.toArray(Map9.entries<Principal, Bool>(val.allow_list!));
       };
-      participants = Iter.toArray(Map.entries<Principal, Int>(val.participants));
+      participants = Iter.toArray(Map9.entries<Principal, Int>(val.participants));
       status = val.status;
       winner = val.winner;
     };
@@ -1452,6 +1452,7 @@ module {
     __system_wallet_shares : Text;
     __system_physical : Text;
     __system_escrowed : Text;
+    __system_fractionalization_status : Text;
     __apps : Text;
     broker_royalty_dev_fund_override : Text;
     collection_kyc_canister_buyer : Text;
@@ -1498,6 +1499,7 @@ module {
     __system_wallet_shares = "com.origyn.wallet_shares";
     __system_physical = "com.origyn.physical";
     __system_escrowed = "com.origyn.escrow_node";
+    __system_fractionalization_status = "com.origyn.fractionalization_status";
     __apps = "__apps";
     broker_royalty_dev_fund_override = "com.origyn.royalties.broker_dev_fund_override";
     collection_kyc_canister_buyer = "com.origyn.kyc_canister_buyer";
