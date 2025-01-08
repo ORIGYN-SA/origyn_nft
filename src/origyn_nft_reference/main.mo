@@ -3803,57 +3803,9 @@ shared (deployer) actor class Nft_Canister() = this {
     nft_library_stable := [];
     nft_library_stable_2 := [];
 
-    // Canistergeek
-
-    canistergeekMonitor.postupgrade(_canistergeekMonitorUD);
-    _canistergeekMonitorUD := null;
-    //upgrade canister geek data
-
-    if (_canistergeekLoggerUD != null) {
-      let newData = switch (_canistergeekLoggerUD) {
-        case (null) {
-          null;
-        };
-        case (?upgradeData) {
-          switch (upgradeData) {
-            case (#v1(data)) {
-              let newLogBuffer = Buffer.Buffer<{ timeNanos : Nat64; message : Text; data : CandyTypes.CandyShared; caller : ?Principal }>(data.queue.size());
-
-              for (thisItem in data.queue.vals()) {
-                newLogBuffer.add({
-                  timeNanos = thisItem.timeNanos;
-                  message = thisItem.message;
-                  caller = thisItem.caller;
-                  data = CandyUpgrade.upgradeCandyShared(thisItem.data);
-                });
-              };
-
-              ?#v1({
-                queue = Buffer.toArray(newLogBuffer);
-                maxCount = data.maxCount;
-                next = data.next;
-                full = data.full;
-              });
-            };
-          };
-        };
-      };
-
-      canistergeekLogger.postupgrade(newData);
-      _canistergeekLoggerUD := null;
-    } else {
-      canistergeekLogger.postupgrade(_canistergeekLoggerUD_0_1_4);
-      _canistergeekLoggerUD_0_1_4 := null;
-    };
-
-    //Optional: override default number of log messages to your value
-    canistergeekLogger.setMaxMessagesCount(3000);
-
     upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
 
     notify_timer := ?Timer.setTimer(#nanoseconds(1), handle_notify);
-
-    // End Canistergeek
 
     if (icrc3().stats().lastIndex == 0) {
       ignore __implement_icrc3();
