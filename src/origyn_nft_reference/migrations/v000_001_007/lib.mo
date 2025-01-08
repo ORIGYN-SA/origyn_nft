@@ -1,5 +1,6 @@
 import D "mo:base/Debug";
 import Deque "mo:base/Deque";
+import Array "mo:base/Array";
 
 import CandyTypes = "mo:candy/types";
 
@@ -208,7 +209,7 @@ module {
               case (#mint(e)) { #mint(e) };
               case (#sale_ended(e)) { #sale_ended(e) };
               case (#royalty_paid(e)) { #royalty_paid(e) };
-              case (#sale_opened(e)) { #sale_opened(e) };
+              case (#sale_opened(e)) { #sale_opened(convertSaleOpened7To9(e)) };
               case (#owner_transfer(e)) { #owner_transfer(e) };
               case (#escrow_deposit(e)) { #escrow_deposit(e) };
               case (#escrow_withdraw(e)) { #escrow_withdraw(e) };
@@ -249,7 +250,7 @@ module {
             case (#mint(e)) { #mint(e) };
             case (#sale_ended(e)) { #sale_ended(e) };
             case (#royalty_paid(e)) { #royalty_paid(e) };
-            case (#sale_opened(e)) { #sale_opened(e) };
+            case (#sale_opened(e)) { #sale_opened(convertSaleOpened7To9(e)) };
             case (#owner_transfer(e)) { #owner_transfer(e) };
             case (#escrow_deposit(e)) { #escrow_deposit(e) };
             case (#escrow_withdraw(e)) { #escrow_withdraw(e) };
@@ -272,11 +273,46 @@ module {
     return buffer9;
   };
 
+  public func convertPricingConfigShared7To9(pricing7 : v0_1_6.PricingConfigShared) : v0_1_7.PricingConfigShared {
+    switch (pricing7) {
+      case (#instant(config)) {
+        #instant(convertInstantConfigShared7To9(config));
+      };
+      case (#auction(config)) {
+        // TODO logs errors ?
+        #extensible(#Option(null));
+      };
+      case (#ask(config)) { #ask(convertAskConfigShared7To9(config)) };
+      case (#extensible(ext)) { #extensible(ext) };
+    };
+  };
+
+  public func convertSaleOpened7To9(
+    saleOpened7 : {
+      pricing : v0_1_6.PricingConfigShared;
+      sale_id : Text;
+      extensible : v0_1_6.CandyTypes.CandyShared;
+    }
+  ) : {
+    pricing : v0_1_7.PricingConfigShared;
+    sale_id : Text;
+    extensible : v0_1_7.CandyTypes.CandyShared;
+  } {
+    {
+      pricing = convertPricingConfigShared7To9(saleOpened7.pricing);
+      sale_id = saleOpened7.sale_id;
+      extensible = saleOpened7.extensible;
+    };
+  };
+
   public func convertAuctionState7To9(state7 : v0_1_6.AuctionState) : v0_1_7.AuctionState {
     {
       config = switch (state7.config) {
         case (#ask(ask_config)) { #ask(convertAskState7To9(ask_config)) };
-        case (#auction(auction_config)) { #auction(auction_config) };
+        case (#auction(auction_config)) {
+          // TODO logs errors ?
+          #extensible(#Option(null));
+        };
         case (#instant(instant_config)) {
           #instant(convertInstantConfig7To9(instant_config));
         };
@@ -324,27 +360,92 @@ module {
       case (?val) {
         let innerMap = Map.new<v0_1_7.AskFeatureKey, v0_1_7.AskFeature>();
         for ((innerKey, innerValue) in Map_lib.entries(val)) {
-          let newValue = switch (innerValue) {
-            case (#atomic) { #atomic };
-            case (#buy_now(e)) { #buy_now(e) };
-            case (#wait_for_quiet(e)) { #wait_for_quiet(e) };
-            case (#allow_list(e)) { #allow_list(e) };
-            case (#notify(e)) { #notify(e) };
-            case (#reserve(e)) { #reserve(e) };
-            case (#start_date(e)) { #start_date(e) };
-            case (#start_price(e)) { #start_price(e) };
-            case (#min_increase(e)) { #min_increase(e) };
-            case (#ending(e)) { #ending(e) };
-            case (#token(e)) { #token(e) };
-            case (#dutch(e)) { #dutch(e) };
-            case (#kyc(e)) { #kyc(e) };
-            case (#nifty_settlement(e)) { #nifty_settlement(e) };
-            case (#fee_accounts(e)) { #fee_accounts(e) };
-            case (#fee_schema(e)) { #fee_schema(e) };
+          switch (innerValue) {
+            case (#atomic) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #atomic, #atomic);
+            };
+            case (#buy_now(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #buy_now, #buy_now(e));
+            };
+            case (#wait_for_quiet(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #wait_for_quiet, #wait_for_quiet(e));
+            };
+            case (#allow_list(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #allow_list, #allow_list(e));
+            };
+            case (#notify(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #notify, #notify(e));
+            };
+            case (#reserve(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #reserve, #reserve(e));
+            };
+            case (#start_date(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #start_date, #start_date(e));
+            };
+            case (#start_price(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #start_price, #start_price(e));
+            };
+            case (#min_increase(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #min_increase, #min_increase(e));
+            };
+            case (#ending(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #ending, #ending(e));
+            };
+            case (#token(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #token, #token(e));
+            };
+            case (#dutch(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #dutch, #dutch(e));
+            };
+            case (#kyc(e)) {};
+            case (#nifty_settlement(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #nifty_settlement, #nifty_settlement(e));
+            };
+            case (#fee_accounts(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #fee_accounts, #fee_accounts(e));
+            };
+            case (#fee_schema(e)) {
+              Map.set(innerMap, v0_1_7.ask_feature_set_tool, #fee_schema, #fee_schema(e));
+            };
           };
-          Map.set(innerMap, v0_1_7.ask_feature_set_tool, innerKey, newValue);
+
         };
         ?innerMap;
+      };
+      case (null) { null };
+    };
+  };
+
+  public func convertAskConfigShared7To9(ask6 : v0_1_6.AskConfigShared) : v0_1_7.AskConfigShared {
+    switch (ask6) {
+      case (?val) {
+        let buffer9 = Buffer.Buffer<v0_1_7.AskFeature>(Array.size(val));
+        for (feature in Array.vals(val)) {
+          let newFeature = switch (feature) {
+            case (#atomic) { buffer9.add(#atomic) };
+            case (#buy_now(e)) { buffer9.add(#buy_now(e)) };
+            case (#wait_for_quiet(e)) {
+              buffer9.add(#wait_for_quiet(e));
+            };
+            case (#allow_list(e)) { buffer9.add(#allow_list(e)) };
+            case (#notify(e)) { buffer9.add(#notify(e)) };
+            case (#reserve(e)) { buffer9.add(#reserve(e)) };
+            case (#start_date(e)) { buffer9.add(#start_date(e)) };
+            case (#start_price(e)) { buffer9.add(#start_price(e)) };
+            case (#min_increase(e)) { buffer9.add(#min_increase(e)) };
+            case (#ending(e)) { buffer9.add(#ending(e)) };
+            case (#token(e)) { buffer9.add(#token(e)) };
+            case (#dutch(e)) { buffer9.add(#dutch(e)) };
+            case (#kyc(e)) {};
+            case (#nifty_settlement(e)) {
+              buffer9.add(#nifty_settlement(e));
+            };
+            case (#fee_accounts(e)) { buffer9.add(#fee_accounts(e)) };
+            case (#fee_schema(e)) { buffer9.add(#fee_schema(e)) };
+          };
+
+        };
+        ?Buffer.toArray<v0_1_7.AskFeature>(buffer9);
       };
       case (null) { null };
     };
@@ -363,6 +464,24 @@ module {
           Map.set(innerMap, v0_1_7.instant_feature_set_tool, innerKey, newValue);
         };
         ?innerMap;
+      };
+      case (null) { null };
+    };
+  };
+
+  public func convertInstantConfigShared7To9(instant6 : v0_1_6.InstantConfigShared) : v0_1_7.InstantConfigShared {
+    switch (instant6) {
+      case (?val) {
+        let buffer9 = Buffer.Buffer<v0_1_7.InstantFeature>(Array.size(val));
+        for (feature in Array.vals(val)) {
+          let newFeature = switch (feature) {
+            case (#fee_schema(e)) { #fee_schema(e) };
+            case (#fee_accounts(e)) { #fee_accounts(e) };
+            case (#transfer) { #transfer };
+          };
+          buffer9.add(newFeature);
+        };
+        ?Buffer.toArray<v0_1_7.InstantFeature>(buffer9);
       };
       case (null) { null };
     };
