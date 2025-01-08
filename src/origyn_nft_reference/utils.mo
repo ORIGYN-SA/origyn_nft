@@ -545,11 +545,15 @@ module {
   } {
     return { owner = principal; sub_account = null };
   };
-  << << << <HEAD == == == =
 
-  public func logDirectly(prefix : Text, logData : CandyTypesOld.CandyValue, caller : ?Principal) : () { /* Convert `caller` to text, handling if it's null */
-  let callerText = switch (caller) { case (?c) { debug_show (c) }; case null { "unknown caller" } };
+  public func logDirectly(prefix : Text, logData : CandyTypesOld.CandyValue, caller : ?Principal) : () {
+    /* Convert `caller` to text, handling if it's null */
+    let callerText = switch (caller) {
+      case (?c) { debug_show (c) };
+      case null { "unknown caller" };
+    };
 
-  /* Print the combined log message */
-  D.print(prefix # ": " # " by caller " # callerText) }>>>>>>> 3 a3d4ea(feat : working solution with logs(with old candy));
+    /* Print the combined log message */
+    D.print(prefix # ": " # " by caller " # callerText);
+  };
 };
