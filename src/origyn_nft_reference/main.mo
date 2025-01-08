@@ -3800,7 +3800,6 @@ shared (deployer) actor class Nft_Canister() = this {
   };
 
   system func postupgrade() {
-    nft_library_stable := [];
     nft_library_stable_2 := [];
 
     upgraded_at := Nat64.fromNat(Int.abs(Time.now()));
