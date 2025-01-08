@@ -2153,6 +2153,7 @@ prptl.io/_/canister_id/_/token_id/preview - Returns the preview asset
 prptl.io/_/canister_id/_/token_id/ex - Origyn NFTs are self contained internet addressable objects. All the data for rendering is contained inside the NFT (authors can choose to host data on other platforms). Returns an HTML interface that displays the NFT according to the NFT authors specification. 
 
 prptl.io/_/canister_id/_/token_id/_/library_id - Returns the asset in the library
+7ilpe-waaaa-aaaap-ahq7a-cai
 
 prptl.io/_/canister_id/_/token_id/_/library_id/info - Returns a json representation of assets in the library
 

@@ -29,6 +29,7 @@ import Types "types";
 import MigrationTypes "./migrations/types";
 
 import StableBTreeTypes "mo:stableBTree/types";
+import Prim "mo:prim";
 
 module {
 
@@ -61,7 +62,7 @@ module {
     */
   public func get_nat_as_token_id(tokenNat : Nat) : Result.Result<Text, Types.OrigynError> {
     if (tokenNat > MigrationTypes.Current.MAX_NAT()) {
-      return #err(Types.errors(null, #token_not_found, "get_nat_as_token_id - tokenNat is too large", null));
+      return #err(Types.errors(#token_not_found, "get_nat_as_token_id - tokenNat is too large", null));
     };
 
     debug if (debug_channel.announce) D.print("nat as token");
@@ -153,7 +154,7 @@ module {
         #ok(state);
       };
       /* case(_){
-                return #err(Types.errors(null, #nyi, "get_auction_state_from_status - not an auction type " # current_sale.sale_id, null));
+                return #err( Types.errors( #nyi, "get_auction_state_from_status - not an auction type " # current_sale.sale_id, null));
             }; */
     };
   };
@@ -170,7 +171,7 @@ module {
         #ok(state);
       };
       case (_) {
-        return #err(Types.errors(null, #nyi, "get_auction_state_from_statusStable - not an auction state " # current_sale.sale_id, null));
+        return #err(Types.errors(#nyi, "get_auction_state_from_statusStable - not an auction state " # current_sale.sale_id, null));
       };
     };
   };
@@ -543,5 +544,16 @@ module {
     sub_account : ?Blob;
   } {
     return { owner = principal; sub_account = null };
+  };
+
+  public func logDirectly(prefix : Text, logData : CandyTypesOld.CandyValue, caller : ?Principal) : () {
+    /* Convert `caller` to text, handling if it's null */
+    let callerText = switch (caller) {
+      case (?c) { debug_show (c) };
+      case null { "unknown caller" };
+    };
+
+    /* Print the combined log message */
+    D.print(prefix # ": " # " by caller " # callerText);
   };
 };
