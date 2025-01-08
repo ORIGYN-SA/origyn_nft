@@ -203,6 +203,7 @@ shared (deployer) actor class Nft_Canister() = this {
       refresh_state = get_state;
       //btreemap = btreemap_;
       droute_client = state_current.droute;
+      handle_notify = handle_notify;
       icrc3 = icrc3();
       notify_timer = {
         get = get_notify_timer;

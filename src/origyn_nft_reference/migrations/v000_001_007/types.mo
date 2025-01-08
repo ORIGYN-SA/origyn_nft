@@ -48,7 +48,6 @@ module {
   public let Properties = v0_1_6.Properties;
   public let JSON = v0_1_6.JSON;
   public let Workspace = v0_1_6.Workspace;
-  public let KYCTypes = v0_1_6.KYCTypes;
 
   public type CollectionData = v0_1_6.CollectionData;
 
@@ -63,7 +62,134 @@ module {
     var allocations : Map.Map<(Text, Text), Int>; // (token_id, library_id), Timestamp
   };
 
-  public type TransactionRecord = v0_1_6.TransactionRecord;
+  public type TransactionRecord = {
+    token_id : Text;
+    index : Nat;
+    txn_type : {
+      #auction_bid : {
+        buyer : Account;
+        amount : Nat;
+        token : TokenSpec;
+        sale_id : Text;
+        extensible : CandyTypes.CandyShared;
+      };
+      #mint : {
+        from : Account;
+        to : Account;
+        //nyi: metadata hash
+        sale : ?{
+          token : TokenSpec;
+          amount : Nat; //Nat to support cycles
+        };
+        extensible : CandyTypes.CandyShared;
+      };
+      #sale_ended : {
+        seller : Account;
+        buyer : Account;
+
+        token : TokenSpec;
+        sale_id : ?Text;
+        amount : Nat; //Nat to support cycles
+        extensible : CandyTypes.CandyShared;
+      };
+      #royalty_paid : {
+        seller : Account;
+        buyer : Account;
+        receiver : Account;
+        tag : Text;
+        token : TokenSpec;
+        sale_id : ?Text;
+        amount : Nat; //Nat to support cycles
+        extensible : CandyTypes.CandyShared;
+      };
+      #sale_opened : {
+        pricing : PricingConfigShared;
+        sale_id : Text;
+        extensible : CandyTypes.CandyShared;
+      };
+      #owner_transfer : {
+        from : Account;
+        to : Account;
+        extensible : CandyTypes.CandyShared;
+      };
+      #escrow_deposit : {
+        seller : Account;
+        buyer : Account;
+        token : TokenSpec;
+        token_id : Text;
+        amount : Nat; //Nat to support cycles
+        trx_id : TransactionID;
+        extensible : CandyTypes.CandyShared;
+      };
+      #escrow_withdraw : {
+        seller : Account;
+        buyer : Account;
+        token : TokenSpec;
+        token_id : Text;
+        amount : Nat; //Nat to support cycles
+        fee : Nat;
+        trx_id : TransactionID;
+        extensible : CandyTypes.CandyShared;
+      };
+      #deposit_withdraw : {
+        buyer : Account;
+        token : TokenSpec;
+        amount : Nat; //Nat to support cycles
+        fee : Nat;
+        trx_id : TransactionID;
+        extensible : CandyTypes.CandyShared;
+      };
+      #fee_deposit : {
+        amount : Nat;
+        account : Account;
+        extensible : CandyTypes.CandyShared;
+        token : TokenSpec;
+      };
+      #fee_deposit_withdraw : {
+        amount : Nat;
+        account : Account;
+        extensible : CandyTypes.CandyShared;
+        fee : Nat;
+        token : TokenSpec;
+        trx_id : TransactionID;
+      };
+      #sale_withdraw : {
+        seller : Account;
+        buyer : Account;
+        token : TokenSpec;
+        token_id : Text;
+        amount : Nat; //Nat to support cycles
+        fee : Nat;
+        trx_id : TransactionID;
+        extensible : CandyTypes.CandyShared;
+      };
+      #canister_owner_updated : {
+        owner : Principal;
+        extensible : CandyTypes.CandyShared;
+      };
+      #canister_managers_updated : {
+        managers : [Principal];
+        extensible : CandyTypes.CandyShared;
+      };
+      #canister_network_updated : {
+        network : Principal;
+        extensible : CandyTypes.CandyShared;
+      };
+      #data : {
+        data_dapp : ?Text;
+        data_path : ?Text;
+        hash : ?[Nat8];
+        extensible : CandyTypes.CandyShared;
+      }; //nyi
+      #burn : {
+        from : ?Account;
+        extensible : CandyTypes.CandyShared;
+      };
+      #extensible : CandyTypes.CandyShared;
+
+    };
+    timestamp : Int;
+  };
 
   public type SaleStatus = {
     sale_id : Text; //sha256?;
@@ -89,8 +215,6 @@ module {
   public let compare_account = v0_1_6.compare_account;
 
   public type TransactionID = v0_1_6.TransactionID;
-
-  public type AuctionConfig = v0_1_6.AuctionConfig;
 
   public type AskFeatureKey = {
     #atomic;
@@ -155,11 +279,11 @@ module {
   };
 
   public type AskFeatureMap = Map.Map<AskFeatureKey, AskFeature>;
-  public type AskFeatureArray = v0_1_6.AskFeatureArray;
+  public type AskFeatureArray = [AskFeature];
 
   public type AskConfig = ?AskFeatureMap;
 
-  public type AskConfigShared = v0_1_6.AskConfigShared;
+  public type AskConfigShared = ?AskFeatureArray;
 
   public type FeeName = v0_1_6.FeeName;
 
@@ -789,16 +913,12 @@ module {
 
   public type PricingConfig = {
     #instant : InstantConfig; //executes an escrow recipt transfer -only available for non-marketable NFTs
-    //below have not been signficantly desinged or vetted
-    #auction : AuctionConfig; //depricated - use ask
     #ask : AskConfig;
     #extensible : CandyTypes.CandyShared;
   };
 
   public type PricingConfigShared = {
     #instant : InstantConfigShared; //executes an escrow recipt transfer -only available for non-marketable NFTs
-    //below have not been signficantly desinged or vetted
-    #auction : AuctionConfig; //depricated - use ask
     #ask : AskConfigShared;
     #extensible : CandyTypes.CandyShared;
   };
@@ -817,8 +937,6 @@ module {
   public func pricing_shared_to_pricing(request : PricingConfigShared) : PricingConfig {
     switch (request) {
       case (#instant(val)) #instant(?instantfeatures_to_map(Option.get(val, []))); //executes an escrow recipt transfer -only available for non-marketable NFTs
-      //below have not been signficantly desinged or vetted
-      case (#auction(val)) #auction(val); //depricated - use ask
       case (#ask(val)) { #ask(?features_to_map(Option.get(val, []))) };
       case (#extensible(e)) #extensible(e);
     };
@@ -1027,14 +1145,6 @@ module {
   };
 
   public let token_handler = (token_hash, token_eq);
-
-  public type KYCRequest = KYCTypes.KYCRequest;
-  public type KYCResult = KYCTypes.KYCResult;
-  public type RunKYCResult = KYCTypes.RunKYCResult;
-  public type KYCTokenSpec = KYCTypes.TokenSpec;
-  public type KYCCacheMap = KYCTypes.CacheMap;
-
-  public let KYC = v0_1_6.KYC;
 
   public type VerifiedReciept = {
     found_asset : { token_spec : TokenSpec; escrow : EscrowRecord };

@@ -337,18 +337,6 @@ module {
     token : TokenSpec;
   };
 
-  public type AuctionConfig = MigrationTypes.Current.AuctionConfig;
-
-  public let AuctionConfigDefault = {
-    reserve = null;
-    token = TokenSpecDefault;
-    buy_now = null;
-    start_price = 0;
-    start_date = 0;
-    ending = #date(0);
-    min_increase = #amount(0);
-  };
-
   public type NFTInfoStable = {
     current_sale : ?SaleStatusShared;
     metadata : CandyTypes.CandyShared;
@@ -385,7 +373,6 @@ module {
             };
           };
         };
-        case (#auction(e)) #auction(e);
         case (#ask(e)) {
           switch (e) {
             case (null) #ask(null);

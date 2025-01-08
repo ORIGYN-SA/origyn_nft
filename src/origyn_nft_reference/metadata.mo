@@ -258,7 +258,7 @@ module {
   public func get_library_meta(metadata : CandyTypes.CandyShared, library_id : Text) : Result.Result<CandyTypes.CandyShared, Types.OrigynError> {
     switch (Properties.getClassPropertyShared(metadata, Types.metadata.library)) {
       case (null) {
-        return #err(Types.errors( #library_not_found, "get_library_meta - cannot find library in metadata", null));
+        return #err(Types.errors(#library_not_found, "get_library_meta - cannot find library in metadata", null));
       };
       case (?val) {
         for (this_item in Conversions.candySharedToValueArray(val.value).vals()) {
@@ -273,7 +273,7 @@ module {
             };
           };
         };
-        return #err(Types.errors( #property_not_found, "get_library_meta - cannot find library id in library", null));
+        return #err(Types.errors(#property_not_found, "get_library_meta - cannot find library id in library", null));
       };
     };
   };
@@ -288,14 +288,14 @@ module {
   public func get_nft_text_property(metadata : CandyTypes.CandyShared, prop : Text) : Types.OrigynTextResult {
     switch (Properties.getClassPropertyShared(metadata, prop)) {
       case (null) {
-        return #err(Types.errors( #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case (?val) {
         return #ok(
           switch (val.value) {
             case (#Text(val)) { return #ok(val) };
             case (_) {
-              return #err(Types.errors( #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+              return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
             };
           }
         );
@@ -313,14 +313,14 @@ module {
   public func get_nft_principal_property(metadata : CandyTypes.CandyShared, prop : Text) : Result.Result<Principal, Types.OrigynError> {
     switch (Properties.getClassPropertyShared(metadata, prop)) {
       case (null) {
-        return #err(Types.errors( #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case (?val) {
         return #ok(
           switch (val.value) {
             case (#Principal(val)) { return #ok(val) };
             case (_) {
-              return #err(Types.errors( #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+              return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
             };
           }
         );
@@ -339,14 +339,14 @@ module {
   public func get_nft_bool_property(metadata : CandyTypes.CandyShared, prop : Text) : Types.OrigynBoolResult {
     switch (Properties.getClassPropertyShared(metadata, prop)) {
       case (null) {
-        return #err(Types.errors( #property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(#property_not_found, "getNFTProperty - cannot find " # prop # " in metadata", null));
       };
       case (?val) {
         return #ok(
           switch (val.value) {
             case (#Bool(val)) { return #ok(val) };
             case (_) {
-              return #err(Types.errors( #property_not_found, "getNFTProperty - unknown " # prop # " type", null));
+              return #err(Types.errors(#property_not_found, "getNFTProperty - unknown " # prop # " type", null));
             };
           }
         );
@@ -365,14 +365,14 @@ module {
   public func get_nft_nat_property(metadata : CandyTypes.CandyShared, prop : Text) : Result.Result<Nat, Types.OrigynError> {
     switch (Properties.getClassPropertyShared(metadata, prop)) {
       case (null) {
-        return #err(Types.errors( #property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
+        return #err(Types.errors(#property_not_found, "get_nft_nat_property - cannot find " # prop # " in metadata", null));
       };
       case (?val) {
         return #ok(
           switch (val.value) {
             case (#Nat(val)) { return #ok(val) };
             case (_) {
-              return #err(Types.errors( #property_not_found, "get_nft_nat_property - unknown " # prop # " type", null));
+              return #err(Types.errors(#property_not_found, "get_nft_nat_property - unknown " # prop # " type", null));
             };
           }
         );
@@ -484,7 +484,7 @@ module {
       case (null) {
         //no library exists
         if (debug_channel.update_metadata) D.print("token id empty");
-        return #err(Types.errors( #library_not_found, "getLibraryStore - cannot find token_id in library store", null));
+        return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find token_id in library store", null));
       };
       case (?token) {
         if (debug_channel.update_metadata) D.print("looking for token" # debug_show (Iter.toArray<Text>(Map9.keys(token))));
@@ -492,7 +492,7 @@ module {
           case (null) {
             //no libaray exists
             if (debug_channel.update_metadata) D.print("no libaray exists");
-            return #err(Types.errors( #library_not_found, "getLibraryStore - cannot find library_id in library store", null));
+            return #err(Types.errors(#library_not_found, "getLibraryStore - cannot find library_id in library store", null));
           };
           case (?item) {
             //if(debug_channel.update_metadata) D.print("ok..found item" # debug_show(item));
@@ -518,7 +518,7 @@ module {
           #Principal(buyer.owner),
           switch (buyer.sub_account) {
             case (null) { #Option(null) };
-            case (?val) { #Option(? #Blob(val)) };
+            case (?val) { #Option(?#Blob(val)) };
           },
         ]);
       };
@@ -591,7 +591,6 @@ module {
     switch (val) {
       case (#instant(val)) { #Text("instant") };
       case (#ask(val)) { ask_config_to_candy(val) };
-      case (#auction(val)) { auction_config_to_candy(val) };
       case (_) { #Text("NYI") };
     };
   };
@@ -605,85 +604,8 @@ module {
     switch (val) {
       case (#instant(val)) { #Text("instant") };
       case (#ask(val)) { ask_config_shared_to_candy(val) };
-      case (#auction(val)) { auction_config_to_candy(val) };
       case (_) { #Text("NYI") };
     };
-  };
-
-  /**
-  * Converts an auction configuration to a CandyShared.
-  * @param {Types.AuctionConfig} val - The auction configuration to convert.
-  * @returns {CandyTypes.CandyShared} The converted CandyShared.
-  */
-  public func auction_config_to_candy(val : Types.AuctionConfig) : CandyTypes.CandyShared {
-
-    #Class([
-      {
-        name = "reserve";
-        value = switch (val.reserve) {
-          case (null) { #Option(null) };
-          case (?val) { #Nat(val) };
-
-        };
-        immutable = true;
-      },
-      {
-        name = "token";
-        value = token_spec_to_candy(val.token);
-        immutable = true;
-      },
-      {
-        name = "buy_now";
-        value = switch (val.buy_now) {
-          case (null) { #Option(null) };
-          case (?val) { #Nat(val) };
-
-        };
-        immutable = true;
-      },
-      { name = "start_price"; value = #Nat(val.start_price); immutable = true },
-      { name = "start_date"; value = #Int(val.start_date); immutable = true },
-      {
-        name = "ending";
-        value = switch (val.ending) {
-          case (#date(val)) { #Int(val) };
-          case (#wait_for_quiet(val)) {
-            #Class([
-              { name = "date"; value = #Int(val.date); immutable = true },
-              {
-                name = "extension";
-                value = #Nat64(val.extension);
-                immutable = true;
-              },
-              { name = "fade"; value = #Float(val.fade); immutable = true },
-              { name = "max"; value = #Nat(val.max); immutable = true },
-            ]);
-          };
-
-        };
-        immutable = true;
-      },
-      {
-        name = "min_increase";
-        value = switch (val.min_increase) {
-          case (#percentage(val)) { #Float(val) };
-          case (#amount(val)) { #Nat(val) };
-        };
-        immutable = true;
-      },
-      {
-        name = "allow_list";
-        value = switch (val.allow_list) {
-          case (null) { #Option(null) };
-          case (?val) {
-            #Array(Array.map<Principal, CandyTypes.CandyShared>(val, func(x : Principal) { #Principal(x) }));
-          };
-        };
-        immutable = true;
-      },
-
-    ]);
-
   };
 
   /**
@@ -1136,7 +1058,7 @@ module {
               owner = switch (items[0]) {
                 case (#Principal(val)) { val };
                 case (_) {
-                  return #err(Types.errors( #improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
+                  return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
                 };
               };
               sub_account = if (items.size() > 1) {
@@ -1145,13 +1067,13 @@ module {
                     switch (val) {
                       case (#Blob(bval)) { ?bval };
                       case (_) {
-                        return #err(Types.errors( #improper_interface, "candy_to_account -  improper interface, not a ?blob at 1 ", null));
+                        return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a ?blob at 1 ", null));
                       };
                     };
                   };
                   case (#Option(null)) { null };
                   case (_) {
-                    return #err(Types.errors( #improper_interface, "candy_to_account -  improper interface, not an Option at 1 ", null));
+                    return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not an Option at 1 ", null));
                   };
                 };
               } else {
@@ -1160,11 +1082,11 @@ module {
             })
           );
         } else {
-          return #err(Types.errors( #improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show (items), null));
+          return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show (items), null));
         };
       };
       case (_) {
-        return #err(Types.errors( #improper_interface, "candy_to_account - send payment - improper interface, not an array ", null));
+        return #err(Types.errors(#improper_interface, "candy_to_account - send payment - improper interface, not an array ", null));
       };
     };
   };
@@ -1179,7 +1101,7 @@ module {
   public func get_nft_owner(metadata : CandyTypes.CandyShared) : Types.BearerResult {
     switch (Properties.getClassPropertyShared(metadata, Types.metadata.owner)) {
       case (null) {
-        return #err(Types.errors( #owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
+        return #err(Types.errors(#owner_not_found, "get_nft_owner - cannot find owner id in metadata", null));
       };
       case (?val) {
         return candy_to_account(val.value);
@@ -1203,7 +1125,7 @@ module {
 
     switch (Properties.getClassPropertyShared(metadata, Types.metadata.owner)) {
       case (null) {
-        return #err(Types.errors( #owner_not_found, "get_nft_owner_by_id - cannot find owner id in metadata", null));
+        return #err(Types.errors(#owner_not_found, "get_nft_owner_by_id - cannot find owner id in metadata", null));
       };
       case (?val) {
         return candy_to_account(val.value);
@@ -1251,7 +1173,7 @@ module {
                   #Option(
                     switch (buyer.sub_account) {
                       case (null) { null };
-                      case (?val) { ? #Blob(val) };
+                      case (?val) { ?#Blob(val) };
                     }
                   ),
                 ]);
@@ -1288,7 +1210,7 @@ module {
 
     let owner = switch (get_nft_owner(metadata)) {
       case (#err(err)) {
-        return #err(Types.errors( err.error, "is_nft_owner check owner" # err.flag_point, null));
+        return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case (#ok(val)) {
         switch (val) {
@@ -1316,7 +1238,7 @@ module {
           let anAccount = switch (candy_to_account(thisItem)) {
             case (#ok(val)) { val };
             case (#err(err)) {
-              return #err(Types.errors( err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
+              return #err(Types.errors(err.error, "is_nft_owner thawed array account interface " # err.flag_point, null));
 
             };
           };
@@ -1325,7 +1247,7 @@ module {
         result;
       };
       case (_) {
-        return #err(Types.errors( #improper_interface, "share_nft_origyn - wallet_share not an array", null));
+        return #err(Types.errors(#improper_interface, "share_nft_origyn - wallet_share not an array", null));
       };
     };
 
@@ -2180,7 +2102,7 @@ module {
   public func get_nft_library(metadata : CandyTypes.CandyShared, caller : ?Principal) : Result.Result<CandyTypes.CandyShared, Types.OrigynError> {
     switch (Properties.getClassPropertyShared(metadata, Types.metadata.library)) {
       case (null) {
-        return #err(Types.errors( #library_not_found, "get_library_meta - cannot find library in metadata", caller));
+        return #err(Types.errors(#library_not_found, "get_library_meta - cannot find library in metadata", caller));
       };
       case (?val) {
         return #ok(val.value);
@@ -2197,7 +2119,7 @@ module {
   public func get_nft_library_array(metadata : CandyTypes.CandyShared, caller : ?Principal) : Result.Result<[CandyTypes.CandyShared], Types.OrigynError> {
     switch (Properties.getClassPropertyShared(metadata, Types.metadata.library)) {
       case (null) {
-        return #err(Types.errors( #library_not_found, "get_nft_library_array - cannot find library in metadata", caller));
+        return #err(Types.errors(#library_not_found, "get_nft_library_array - cannot find library in metadata", caller));
       };
       case (?val) {
         switch (val.value) {
@@ -2207,7 +2129,7 @@ module {
 
           };
           case (_) {
-            return #err(Types.errors( #library_not_found, "get_nft_library_array - cannot find library in metadata not array", caller));
+            return #err(Types.errors(#library_not_found, "get_nft_library_array - cannot find library in metadata not array", caller));
 
           };
         };

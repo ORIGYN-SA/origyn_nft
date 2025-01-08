@@ -1592,7 +1592,7 @@ module {
         verified := switch (Verify.verify_escrow_receipt(state, escrow, ?owner, null)) {
           case (#err(err)) {
             //we can't inline here becase the buyer isn't the caller and a malicious collection owner could sell a depositor something they did not want.
-            return #err(Types.errors(?state.canistergeekLogger, err.error, "market_transfer_nft_origyn auto try escrow failed revalidate  " # err.flag_point, ?caller));
+            return #err(Types.errors(err.error, "market_transfer_nft_origyn auto try escrow failed revalidate  " # err.flag_point, ?caller));
           };
           case (#ok(res)) res;
         };
@@ -2315,73 +2315,6 @@ module {
       fee_accounts : ?MigrationTypes.Current.FeeAccountsParams;
       fee_schema : ?Text;
     } = switch (request.sales_config.pricing) {
-      case (#auction(auction_details)) {
-
-        let start_date : Int = if (auction_details.start_date > 0) {
-          auction_details.start_date;
-        } else {
-          _time;
-        };
-
-        switch (auction_details.ending) {
-          case (#date(val)) {
-            if (val <= auction_details.start_date) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
-          };
-          case (#wait_for_quiet(val)) {
-            if (val.date <= auction_details.start_date) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - end date cannot be before start date", ?caller));
-          };
-        };
-
-        let start_price : Nat = if (auction_details.start_price == 0) {
-          1;
-        } else {
-          auction_details.start_price;
-        };
-
-        switch (auction_details.buy_now) {
-          case (?buy_now) {
-            if (buy_now < start_price) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - buy now cannot be less than start price", ?caller));
-          };
-          case (_) {};
-        };
-
-        switch (auction_details.buy_now, auction_details.reserve) {
-          case (?buy_now, ?reserve) {
-            if (buy_now < reserve) return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn - buy now cannot be less than reserve", ?caller));
-          };
-          case (_) {};
-        };
-
-        var allow_list : ?Map.Map<Principal, Bool> = null;
-        switch (auction_details.allow_list) {
-          case (null) {};
-          case (?val) {
-            var new_list = Map.new<Principal, Bool>();
-
-            for (thisitem in val.vals()) {
-              Map.set<Principal, Bool>(new_list, Map.phash, thisitem, true);
-            };
-            allow_list := ?new_list;
-          };
-        };
-
-        {
-          reserve = auction_details.reserve;
-          buy_now = auction_details.buy_now;
-          token : MigrationTypes.Current.TokenSpec = auction_details.token;
-          start_date : Int = start_date;
-          start_price : Nat = start_price;
-          end_date : Int = switch (auction_details.ending) {
-            case (#date(theDate)) { theDate : Int };
-            case (#wait_for_quiet(details)) { details.date : Int };
-          };
-          allow_list = allow_list;
-          dutch = null;
-          notify = [];
-          fee_accounts = null;
-          fee_schema = null;
-        };
-      };
       case (#ask(null)) {
         {
           reserve = null;
@@ -4084,7 +4017,7 @@ module {
         //we could not verify the escrow, so we're going to try to claim it here as if escrow_nft_origyn was called first.
         //this adds an additional await to each item not already claimed, so it could get expensive in batch scenarios.
 
-        return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "bid_nft_origyn revalidate failed " # err.flag_point, ?caller)));
+        return #err(#awaited(Types.errors(err.error, "bid_nft_origyn revalidate failed " # err.flag_point, ?caller)));
       };
       case (#ok(res)) res;
     };
