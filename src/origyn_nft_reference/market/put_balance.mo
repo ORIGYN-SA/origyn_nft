@@ -91,7 +91,7 @@ module {
       };
 
       if (balance < total_locked) {
-        return #err(Types.errors(?state.canistergeekLogger, #low_fee_balance, "put_fee_deposit_balance new balance value is below tokens locks value. total_locked : " # debug_show (total_locked), null));
+        return #err(Types.errors(#low_fee_balance, "put_fee_deposit_balance new balance value is below tokens locks value. total_locked : " # debug_show (total_locked), null));
       };
 
       Map.set(a_from, token_handler, request.token, { total_balance = balance; locks = a_token.locks });

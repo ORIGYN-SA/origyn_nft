@@ -57,7 +57,7 @@ module {
 
     var metadata = switch (Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
       case (#err(err)) {
-        return #err(Types.errors(?state.canistergeekLogger, #token_not_found, "share_nft_origyn token not found" # err.flag_point, ?caller));
+        return #err(Types.errors(#token_not_found, "share_nft_origyn token not found" # err.flag_point, ?caller));
       };
       case (#ok(val)) {
         val;
@@ -66,12 +66,12 @@ module {
 
     //can't owner transfer if token is soulbound
     if (Metadata.is_soulbound(metadata)) {
-      return #err(Types.errors(?state.canistergeekLogger, #token_non_transferable, "share_nft_origyn ", ?caller));
+      return #err(Types.errors(#token_non_transferable, "share_nft_origyn ", ?caller));
     };
 
     let owner = switch (Metadata.get_nft_owner(metadata)) {
       case (#err(err)) {
-        return #err(Types.errors(?state.canistergeekLogger, err.error, "share_nft_origyn " # err.flag_point, ?caller));
+        return #err(Types.errors(err.error, "share_nft_origyn " # err.flag_point, ?caller));
       };
       case (#ok(val)) {
         val;
@@ -81,17 +81,17 @@ module {
     if (Types.account_eq(owner, #principal(caller)) == false) {
       //cant transfer something you dont own;
       debug if (debug_channel.owner) D.print("should be returning item not owned");
-      return #err(Types.errors(?state.canistergeekLogger, #item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+      return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
     };
 
     //look for an existing sale
     switch (Market.is_token_on_sale(state, metadata, caller)) {
       case (#err(err)) {
-        return #err(Types.errors(?state.canistergeekLogger, err.error, "share_nft_origyn ensure_no_sale " # err.flag_point, ?caller));
+        return #err(Types.errors(err.error, "share_nft_origyn ensure_no_sale " # err.flag_point, ?caller));
       };
       case (#ok(val)) {
         if (val == true) {
-          return #err(Types.errors(?state.canistergeekLogger, #existing_sale_found, "share_nft_origyn - sale exists " # request.token_id, ?caller));
+          return #err(Types.errors(#existing_sale_found, "share_nft_origyn - sale exists " # request.token_id, ?caller));
         };
       };
     };
@@ -101,7 +101,7 @@ module {
     if (Types.account_eq(owner, request.from) == false) {
       //cant transfer something you dont own;
       debug if (debug_channel.owner) D.print("should be returning item not owned");
-      return #err(Types.errors(?state.canistergeekLogger, #item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
+      return #err(Types.errors(#item_not_owned, "share_nft_origyn cannot transfer item from does not own", ?caller));
     };
 
     //set new owner
@@ -112,7 +112,7 @@ module {
       };
       case (#err(err)) {
         //maybe the owner is immutable
-        return #err(Types.errors(?state.canistergeekLogger, #update_class_error, "share_nft_origyn - error setting owner " # request.token_id, ?caller));
+        return #err(Types.errors(#update_class_error, "share_nft_origyn - error setting owner " # request.token_id, ?caller));
       };
     };
 
@@ -127,7 +127,7 @@ module {
         };
       };
       case (_) {
-        return #err(Types.errors(?state.canistergeekLogger, #improper_interface, "share_nft_origyn - wallet_share not an array", null));
+        return #err(Types.errors(#improper_interface, "share_nft_origyn - wallet_share not an array", null));
       };
     };
 
@@ -158,7 +158,7 @@ module {
     ) {
       case (#err(err)) {
         //potentially big error once certified data is in place...may need to throw
-        return #err(Types.errors(?state.canistergeekLogger, err.error, "share_nft_origyn add_transaction_record" # err.flag_point, ?caller));
+        return #err(Types.errors(err.error, "share_nft_origyn add_transaction_record" # err.flag_point, ?caller));
       };
       case (#ok(val)) { val };
     };
@@ -299,14 +299,14 @@ module {
     };
 
     let ?collection = Map.get(state.state.nft_metadata, Map.thash, "") else {
-      state.canistergeekLogger.logMessage("transferICRC7 cannot find collection metatdata. this should not happene" # debug_show (tokenAsNat), #Bool(false), null);
+      // NFTUtils.logDirectly("transferICRC7 cannot find collection metatdata. this should not happene" # debug_show (tokenAsNat), #Bool(false), null);
       D.trap("transferICRC7 cannot find collection metatdata. this should not happen");
     };
 
     let override = switch (Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)) {
       case (#ok(val)) val;
       case (_) {
-        state.canistergeekLogger.logMessage("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (tokenAsNat), #Bool(false), null);
+        // NFTUtils.logDirectly("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (tokenAsNat), #Bool(false), null);
         false;
       };
     };
@@ -613,7 +613,7 @@ module {
       };
 
     };
-    return #err(Types.errors(?state.canistergeekLogger, #token_not_found, "getNFTForTokenIdentifier", null));
+    return #err(Types.errors(#token_not_found, "getNFTForTokenIdentifier", null));
   };
 
   /**
