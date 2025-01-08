@@ -3775,45 +3775,6 @@ shared (deployer) actor class Nft_Canister() = this {
   // ***** END FRACTIONALIZATION  *****
   // **********************************
 
-  // *************************
-  // ***** CANISTER GEEK *****
-  // *************************
-
-  // METRICS
-
-  /**
-    * Returns canister metrics.
-    * @param {Canistergeek.GetMetricsParameters} parameters - Parameters for getting canister metrics.
-    * @returns {?Canistergeek.CanisterMetrics} - Canister metrics or null if not found.
-    */
-  public query func getCanisterMetrics(parameters : Types.Canistergeek.GetMetricsParameters) : async ?Types.Canistergeek.CanisterMetrics {
-
-    canistergeekMonitor.getMetrics(parameters);
-  };
-
-  /**
-    * Collects canister metrics.
-    * @returns {null}
-    */
-  public query func collectCanisterMetrics() : async () {
-    canistergeekMonitor.collectMetrics();
-  };
-
-  // LOGGER
-  /**
-    * Returns canister log.
-    * @param {?Canistergeek.CanisterLogRequest} request - A request object for getting canister log.
-    * @returns {?Canistergeek.CanisterLogResponse} - Canister log or null if not found.
-    */
-  public query func getCanisterLog(request : ?Types.Canistergeek.CanisterLogRequest) : async ?Types.Canistergeek.CanisterLogResponse {
-
-    canistergeekLogger.getLog(request);
-  };
-
-  // *************************
-  // *** END CANISTER GEEK ***
-  // *************************
-
   /**
     * Returns an array of tuples representing the nft library.
     * @returns {Future<Array<[Text, Array<[Text, CandyTypes.AddressedChunkArray]>]>>} - A promise that resolves to an array of tuples representing the nft library.
