@@ -3309,10 +3309,10 @@ module {
             debug if (debug_channel.escrow) D.print("found ledger");
             NFTUtils.get_fee_deposit_account_info(request.account, state.canister());
           };
-          case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+          case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
         };
       };
-      case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
     };
 
     // // Retrieve metadata
@@ -3336,14 +3336,14 @@ module {
                     switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
                       case (#trappable(val)) (val.balance);
                       case (#awaited(val)) (val.balance);
-                      case (#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                      case (#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                      case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                      case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
                     };
                   };
-                  case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+                  case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
                 };
               };
-              case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+              case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
             };
 
             // Calculate the required fee deposit amount
@@ -3390,7 +3390,7 @@ module {
                 debug if (debug_channel.escrow) D.print("in a bad error");
                 debug if (debug_channel.escrow) D.print(debug_show (err));
                 //nyi: this is really bad and will mess up certificatioin later so we should really throw
-                return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+                return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
               };
               case (#ok(old_trx)) old_trx;
             };
@@ -3413,14 +3413,14 @@ module {
                 switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
                   case (#trappable(val)) (val.balance);
                   case (#awaited(val)) (val.balance);
-                  case (#err(#awaited(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                  case (#err(#trappable(err))) return #err(#awaited(Types.errors(?state.canistergeekLogger, err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                  case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+                  case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
                 };
               };
-              case (_) return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+              case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
             };
           };
-          case (#extensible(val)) return #err(#trappable(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+          case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
         };
 
         // put the fee into the state (there is a map here in which all such things are stored)
@@ -3452,7 +3452,7 @@ module {
             debug if (debug_channel.escrow) D.print("in a bad error");
             debug if (debug_channel.escrow) D.print(debug_show (err));
             //nyi: this is really bad and will mess up certificatioin later so we should really throw
-            return #err(#awaited(Types.errors(?state.canistergeekLogger, #nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+            return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
           };
           case (#ok(new_trx)) new_trx;
         };
