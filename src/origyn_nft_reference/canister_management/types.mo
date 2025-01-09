@@ -89,9 +89,8 @@ module {
 
   /// Management Types
 
-  public type canister_id = Principal;
-
-  public type wasm_module = [Nat8];
+  public type CanisterId = Principal;
+  public type WasmModule = [Nat8];
 
   public type canister_settings = {
     freezing_threshold : ?Nat;
@@ -116,24 +115,24 @@ module {
   };
 
   public type Management = actor {
-    delete_canister : shared { canister_id : canister_id } -> async ();
-    deposit_cycles : shared { canister_id : canister_id } -> async ();
-    start_canister : shared { canister_id : canister_id } -> async ();
-    stop_canister : shared { canister_id : canister_id } -> async ();
+    delete_canister : shared { canister_id : CanisterId } -> async ();
+    deposit_cycles : shared { canister_id : CanisterId } -> async ();
+    start_canister : shared { canister_id : CanisterId } -> async ();
+    stop_canister : shared { canister_id : CanisterId } -> async ();
     install_code : shared {
       arg : [Nat8];
-      wasm_module : wasm_module;
+      wasm_module : WasmModule;
       mode : { #reinstall; #upgrade; #install };
-      canister_id : canister_id;
+      canister_id : CanisterId;
     } -> async ();
     create_canister : shared { settings : ?canister_settings } -> async {
-      canister_id : canister_id;
+      canister_id : CanisterId;
     };
     update_settings : ({
       canister_id : Principal;
       settings : canister_settings;
     }) -> async ();
-    canister_status : ({ canister_id : canister_id }) -> async ({
+    canister_status : ({ canister_id : CanisterId }) -> async ({
       status : { #running; #stopping; #stopped };
       settings : definite_canister_settings;
       module_hash : ?Blob;

@@ -325,11 +325,15 @@ shared (deployer) actor class Nft_Canister() = this {
 
   // FIXME: fix here logs
   public shared (msg) func test_canister_creation() : async Result.Result<Principal, CanisterManagementTypes.Error> {
+    // public shared (msg) func test_canister_creation() : async () {
 
-    let hubInstance = await CanisterManagement.hub();
+    Cycles.add(1_000_000_000_000);
+    let canisterManagerInstance = await CanisterManagement.CanistersManager();
 
-    // Check that we don't have cansiters yet
-    // canistergeekLogger.logMessage("canisters: ", hubInstance.getCanisters(), ?msg.caller);
+    let is_owner = await canisterManagerInstance.isOwner();
+    if (not is_owner) {
+      return #err(#Invalid_Caller);
+    };
 
     // Define the canister deployment args
     let deployArgs : CanisterManagementTypes.DeployArgs = {
@@ -349,7 +353,7 @@ shared (deployer) actor class Nft_Canister() = this {
     );
 
     // Call the deployCanister function
-    let result = await hubInstance.deployCanister(deployArgs);
+    let result = await canisterManagerInstance.deployCanister(deployArgs);
 
     switch (result) {
       case (#ok(principal)) {
@@ -370,10 +374,54 @@ shared (deployer) actor class Nft_Canister() = this {
 
     // Return the result
     return result;
+  };
 
-    // canistergeekLogger.logMessage("stage_nft_origyn", ?msg.caller);
-    // canistergeekMonitor.collectMetrics();
-    // debug if (debug_channel.function_announce) D.print("in stage");
+  // FIXME: fix here logs
+  public shared (msg) func test_canister_top_up() : async Result.Result<(), CanisterManagementTypes.Error> {
+    // public shared (msg) func test_canister_creation() : async () {
+
+    Cycles.add(1_000_000_000_000);
+    let canisterManagerInstance = await CanisterManagement.CanistersManager();
+
+    let is_owner = await canisterManagerInstance.isOwner();
+    if (not is_owner) {
+      return #err(#Invalid_Caller);
+    };
+
+    // Define the canister deployment args
+    let deployArgs : CanisterManagementTypes.DeployArgs = {
+      name = "Test Canister";
+      description = "A canister created for testing purposes.";
+      settings = null; // Replace with specific canister settings if needed
+      deploy_arguments = null; // Provide deploy arguments if required
+      wasm = null; // Provide the Wasm binary as a [Nat8] array if needed
+      cycle_amount = 100_000_000_000; // Specify the cycles for deployment
+      preserve_wasm = false; // Set to true to preserve the Wasm for later use
+    };
+
+    canistergeekLogger.logMessage(
+      "c",
+      #Text("Starting deployment of canister: " # deployArgs.name # " with description: " # deployArgs.description),
+      ?msg.caller,
+    );
+
+    // Call the deployCanister function
+    let result = await canisterManagerInstance.deployCanister(deployArgs);
+
+    switch (result) {
+      case (#ok(principal)) {
+        let topup_result = await canisterManagerInstance.cycles_manager_transferCycles(principal, 100_000_000_000);
+      };
+      case (#err(error)) {
+        canistergeekLogger.logMessage(
+          "test_call_create_canister",
+          #Text("Failed to deploy canister: "),
+          ?msg.caller,
+        );
+      };
+    };
+
+    return #ok(());
   };
 
   /************************************************

@@ -43,6 +43,13 @@ pub fn init() -> TestEnv {
         originator: random_principal(),
         nft_owner: random_principal(),
     };
+    println!(
+        "net_principal: {:?}",
+        principal_ids.net_principal.to_string()
+    );
+    println!("controller: {:?}", principal_ids.controller.to_string());
+    println!("originator: {:?}", principal_ids.originator.to_string());
+    println!("nft_owner: {:?}", principal_ids.nft_owner.to_string());
     let canister_ids: CanisterIds =
         install_canisters(&mut pic, principal_ids.controller, principal_ids.nft_owner);
     println!("origyn_nft: {:?}", canister_ids.origyn_nft.to_string());

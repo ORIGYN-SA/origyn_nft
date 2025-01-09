@@ -9,19 +9,22 @@ import TrieMap "mo:base/TrieMap";
 import Cycles "mo:base/ExperimentalCycles";
 import Prim "mo:⛔";
 import Buffer "mo:base/Buffer";
-import D "mo:base/Debug";
+import { endsWith; size } "mo:base/Text";
+import { trap } "mo:base/Debug";
+
+import CyclesManager "mo:cycles-manager/CyclesManager";
 
 import Types "types";
 
-shared (installer) actor class hub() = this {
+shared (installer) actor class CanistersManager() = this {
 
   type Error = Types.Error;
   type Canister = Types.Canister;
   type CanisterStatus = Types.CanisterStatus;
   type Status = Types.Status;
   type Record = Types.Record;
-  type canister_id = Types.canister_id;
-  type wasm_module = Types.wasm_module;
+  type CanisterId = Types.CanisterId;
+  type WasmModule = Types.WasmModule;
   type Management = Types.Management;
   type Ledger = Types.Ledger;
   type DeployArgs = Types.DeployArgs;
@@ -30,7 +33,7 @@ shared (installer) actor class hub() = this {
   type InstallArgs = Types.InstallArgs;
 
   stable var owners : TrieSet.Set<Principal> = TrieSet.fromArray<Principal>([installer.caller], Principal.hash, Principal.equal);
-  stable var cycle_wasm : [Nat8] = [];
+  stable var cycle_wasm : WasmModule = [];
   stable var canisters_entries : [(Principal, Canister)] = [];
   stable var record_entries : [(Principal, [Record])] = [];
 
@@ -127,7 +130,7 @@ shared (installer) actor class hub() = this {
     #ok(Array.freeze<Canister>(res));
   };
 
-  public query ({ caller }) func getWasm(canister_id : Principal) : async Result.Result<[Nat8], Error> {
+  public query ({ caller }) func getWasm(canister_id : CanisterId) : async Result.Result<[Nat8], Error> {
     if (not TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal)) {
       return #err(#Invalid_Caller);
     };
@@ -166,12 +169,12 @@ shared (installer) actor class hub() = this {
     if (not TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal)) {
       return #err(#Invalid_Caller);
     };
-    let balance = Cycles.balance();
+
     // 100 000 000 000 Cycle (0.1 T) is used to keep hub available
     if (args.cycle_amount + 100_000_000_000 >= Cycles.balance() or args.cycle_amount < 200_000_000_000) {
       return #err(#Insufficient_Cycles);
     };
-        Cycles.add<system>(args.cycle_amount + 100_000_000_000);
+        Cycles.add<system>( 1_000_000_000_000);
 
         let _canister_id = try {
             (await management.create_canister({settings = null})).canister_id;
@@ -180,52 +183,53 @@ shared (installer) actor class hub() = this {
         };
 
 
-    // canisters.put(
-    //   _canister_id,
-    //   {
-    //     name = args.name;
-    //     description = args.description;
-    //     canister_id = _canister_id;
-    //     wasm = if (args.preserve_wasm) { args.wasm } else { null };
-    //   },
-    // );
-    // ignore do ? {
-    //   if (args.wasm!.size() != 0) {
-    //     switch (args.deploy_arguments) {
-    //       case null {
-    //         ignore management.install_code({
-    //           arg = [];
-    //           wasm_module = args.wasm!;
-    //           mode = #install;
-    //           canister_id = _canister_id;
-    //         });
-    //       };
-    //       case (?_arg) {
-    //         ignore management.install_code({
-    //           arg = _arg;
-    //           wasm_module = args.wasm!;
-    //           mode = #install;
-    //           canister_id = _canister_id;
-    //         });
-    //       };
-    //     };
-    //   };
-    // };
-    // let record = {
-    //   caller = caller;
-    //   canister_id = _canister_id;
-    //   method = #deploy;
-    //   amount = args.cycle_amount;
-    //   times = Time.now();
-    // };
-    // switch (records.get(record.canister_id)) {
-    //   case (null) { records.put(record.canister_id, [record]) };
-    //   case (?r) {
-    //             let buffer = Buffer.fromArray<Record>(r);
-    //     buffer.add(record);
-    //     records.put(record.canister_id, Buffer.toArray(buffer));
-    //   };
-    // };
+    canisters.put(
+      _canister_id,
+      {
+        name = args.name;
+        description = args.description;
+        canister_id = _canister_id;
+        wasm = if (args.preserve_wasm) { args.wasm } else { null };
+      },
+    );
+    ignore do ? {
+      if (args.wasm!.size() != 0) {
+        switch (args.deploy_arguments) {
+          case null {
+            ignore management.install_code({
+              arg = [];
+              wasm_module = args.wasm!;
+              mode = #install;
+              canister_id = _canister_id;
+            });
+          };
+          case (?_arg) {
+            ignore management.install_code({
+              arg = _arg;
+              wasm_module = args.wasm!;
+              mode = #install;
+              canister_id = _canister_id;
+            });
+          };
+        };
+      };
+    };
+    let record = {
+      caller = caller;
+      canister_id = _canister_id;
+      method = #deploy;
+      amount = args.cycle_amount;
+      times = Time.now();
+    };
+    switch (records.get(record.canister_id)) {
+      case (null) { records.put(record.canister_id, [record]) };
+      case (?r) {
+                let buffer = Buffer.fromArray<Record>(r);
+        buffer.add(record);
+        records.put(record.canister_id, Buffer.toArray(buffer));
+      };
+    };
+
     #ok(_canister_id);
   };
 
@@ -392,7 +396,7 @@ shared (installer) actor class hub() = this {
     #ok(());
   };
 
-  public shared ({ caller }) func installCycleWasm(wasm : [Nat8]) : async Result.Result<(), Error> {
+  public shared ({ caller }) func installCycleWasm(wasm : WasmModule) : async Result.Result<(), Error> {
     if (not TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal)) {
       return #err(#Invalid_Caller);
     };
@@ -466,7 +470,7 @@ shared (installer) actor class hub() = this {
   };
 
   // ican calls this function when creating this hub
-  public shared ({ caller }) func init(owner : Principal, _cycle_wasm : [Nat8]) : async () {
+  public shared ({ caller }) func init(owner : Principal, _cycle_wasm : WasmModule) : async () {
     assert (TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal));
     owners := TrieSet.fromArray<Principal>([owner], Principal.hash, Principal.equal);
     cycle_wasm := _cycle_wasm;
@@ -485,6 +489,94 @@ shared (installer) actor class hub() = this {
   system func postupgrade() {
     canisters_entries := [];
     record_entries := [];
+  };
+
+// *****************************************************************
+// ** Cycles Management Section **
+// This section handles monitoring and topping up cycles for 
+// target canisters. It ensures canisters maintain a sufficient 
+// cycle balance to perform their operations.
+// *****************************************************************
+
+  // Initializes a cycles manager
+  stable let cyclesManager = CyclesManager.init({
+    // By default, with each transfer request 500 billion cycles will be transferred
+    // to the requesting canister, provided they are permitted to request cycles
+    //
+    // This means that if a canister is added with no quota, it will default to the quota of #fixedAmount(500)
+    defaultCyclesSettings = {
+      quota = #fixedAmount(500_000_000_000);
+    };
+    // Allow an aggregate of 10 trillion cycles to be transferred every 24 hours 
+    aggregateSettings = {
+      quota = #rate({
+        maxAmount = 10_000_000_000_000;
+        durationInSeconds = 24 * 60 * 60;
+      });
+    };
+    // 50 billion is a good default minimum for most low use canisters
+    minCyclesPerTopup = ?50_000_000_000;
+  });
+
+  // @required - IMPORTANT!!!
+  // Allows canisters to request cycles from this "battery canister" that implements
+  // the cycles manager
+  public shared ({ caller }) func cycles_manager_requestCycles(
+    cyclesRequested: Nat
+  ): async CyclesManager.TransferCyclesResult {
+    if (not isCanister(caller)) trap("Calling principal must be a canister");
+    
+    let result = await* CyclesManager.transferCycles({
+      cyclesManager;
+      canister = caller;
+      cyclesRequested;
+    });
+    result;
+  };
+
+    // @required - IMPORTANT!!!
+  // Allows canisters to send cycles from this "battery canister" that implements
+  // the cycles manager
+  public shared func cycles_manager_transferCycles(canisterToTopUp: CanisterId,
+    cyclesToTransfer: Nat
+  ): async CyclesManager.TransferCyclesResult {
+    
+    let result = await* CyclesManager.transferCycles({
+      cyclesManager;
+      canister = canisterToTopUp;
+      cyclesRequested = cyclesToTransfer;
+    });
+    result;
+  };
+
+  // A very basic example of adding a canister to the cycles manager
+  // This adds a canister with a 1 trillion cycles allowed per 24 hours cycles quota
+  //
+  // IMPORTANT: Add authoriation for production implementation so that not just any canister
+  // can add themself
+  public shared func addCanisterWith1TrillionPer24HoursLimit(canisterId: Principal) {
+    CyclesManager.addChildCanister(cyclesManager, canisterId, {
+      // This topup rule all1 Trillion every 24 hours
+      quota = ?(#rate({
+        maxAmount = 1_000_000_000_000;
+        durationInSeconds = 24 * 60 * 60;
+      }));
+    })
+  };
+
+  // **DO NOT USE IN PRODUCTION** - for developer debugging and testing purposes only
+  public func toText() : async Text {
+    let result = CyclesManager.toText(cyclesManager);
+    result;
+  };
+
+  func isCanister(p : Principal) : Bool {
+    let principal_text = Principal.toText(p);
+    // Canister principals have 27 characters
+    size(principal_text) == 27
+    and
+    // Canister principals end with "-cai"
+    endsWith(principal_text, #text "-cai");
   };
 
 };

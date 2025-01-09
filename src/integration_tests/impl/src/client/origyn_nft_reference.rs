@@ -13,6 +13,7 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
 
 // FIXME: delete this one after testing
 generate_update_call!(test_canister_creation);
+generate_update_call!(test_canister_top_up);
 
 generate_update_call!(stage_nft_origyn);
 generate_update_call!(stage_library_nft_origyn);
@@ -71,6 +72,39 @@ pub mod test_canister_creation {
     pub enum CanisterManagementResponse {
         #[serde(rename = "ok")]
         Ok(Principal),
+        #[serde(rename = "err")]
+        Err(CanisterManagementError),
+    }
+
+    #[derive(CandidType, Deserialize, Debug)]
+    pub enum CanisterManagementError {
+        Invalid_Caller,
+        Nonexistent_Caller,
+        Invalid_CanisterId,
+        No_Wasm,
+        No_Record,
+        Insufficient_Cycles,
+        Ledger_Transfer_Failed(Nat),
+        Create_Canister_Failed(Nat),
+        Delete_Hub_Failed,
+    }
+}
+
+pub mod test_canister_top_up {
+    use super::*;
+
+    pub type Args = ();
+    pub type Response = CanisterManagementResponse;
+
+    use candid::CandidType;
+    use candid::Nat;
+    use candid::Principal;
+    use serde::Deserialize;
+    // Result.Result<Principal, CanisterManagementTypes.Error>
+    #[derive(CandidType, Deserialize, Debug)]
+    pub enum CanisterManagementResponse {
+        #[serde(rename = "ok")]
+        Ok(()),
         #[serde(rename = "err")]
         Err(CanisterManagementError),
     }
@@ -353,6 +387,16 @@ pub mod client {
         args: test_canister_creation::Args,
     ) -> test_canister_creation::Response {
         crate::client::origyn_nft_reference::test_canister_creation(pic, sender, canister_id, &args)
+    }
+
+    // FIXME: clean up after testing
+    pub fn test_canister_top_up(
+        pic: &mut PocketIc,
+        canister_id: CanisterId,
+        sender: Principal,
+        args: test_canister_top_up::Args,
+    ) -> test_canister_top_up::Response {
+        crate::client::origyn_nft_reference::test_canister_top_up(pic, sender, canister_id, &args)
     }
 
     pub fn stage_nft_origyn(
