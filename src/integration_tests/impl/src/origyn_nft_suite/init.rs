@@ -42,11 +42,13 @@ pub fn init() -> TestEnv {
     controller: random_principal(),
     originator: random_principal(),
     nft_owner: random_principal(),
+    nft_buyer: random_principal(),
   };
   let canister_ids: CanisterIds = install_canisters(
     &mut pic,
     principal_ids.controller,
-    principal_ids.nft_owner
+    principal_ids.nft_owner,
+    principal_ids.nft_buyer
   );
   println!("origyn_nft: {:?}", canister_ids.origyn_nft.to_string());
   println!("ogy_ledger: {:?}", canister_ids.ogy_ledger.to_string());
@@ -55,6 +57,7 @@ pub fn init() -> TestEnv {
   println!("net_principal: {:?}", principal_ids.net_principal.to_string());
   println!("originator: {:?}", principal_ids.originator.to_string());
   println!("nft_owner: {:?}", principal_ids.nft_owner.to_string());
+  println!("nft_buyer: {:?}", principal_ids.nft_buyer.to_string());
 
   init_origyn_nft(
     &mut pic,
@@ -122,7 +125,8 @@ fn init_origyn_nft(
 fn install_canisters(
   pic: &mut PocketIc,
   controller: Principal,
-  nft_owner: Principal
+  nft_owner: Principal,
+  nft_buyer: Principal
 ) -> CanisterIds {
   let origyn_nft_canister_id: Principal = create_canister(pic, controller);
   let ogy_ledger_canister_id: Principal = create_canister_with_id(
@@ -147,7 +151,8 @@ fn install_canisters(
       initial_balances: vec![
         (Account::from(controller), Nat::from(18_446_744_073_709 as u64)),
         (Account::from(origyn_nft_canister_id), Nat::from(18_446_744_073_709 as u64)),
-        (Account::from(nft_owner), Nat::from(18_446_744_073_709 as u64))
+        (Account::from(nft_owner), Nat::from(18_446_744_073_709 as u64)),
+        (Account::from(nft_buyer), Nat::from(18_446_744_073_709 as u64))
       ],
       archive_options: icrc_ledger_canister::init::ArchiveOptions {
         trigger_threshold: 2000,

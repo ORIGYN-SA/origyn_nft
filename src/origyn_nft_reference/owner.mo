@@ -29,7 +29,7 @@ module {
 
   let debug_channel = {
     owner = false;
-    icrc7 = false;
+    icrc7 = true;
   };
 
   let CandyTypes = MigrationTypes.Current.CandyTypes;
@@ -285,19 +285,6 @@ module {
 
     debug if (debug_channel.icrc7) D.print("transferICRC7 : metadata " # debug_show (metadata));
 
-    let #ok(#fee_deposit_info(feeDepositAccount)) = Market.fee_deposit_info_nft_origyn(state, ? #account({ owner = from.owner; sub_account = from.subaccount }), caller) else {
-      D.print("fail to get origyn internal sellerFeeDepositAccount");
-      return {
-        token_id = tokenAsNat;
-        transfer_result = #Err(
-          #GenericError({
-            message = "fail to get origyn internal sellerFeeDepositAccount ";
-            error_code = 3;
-          })
-        );
-      };
-    };
-
     let ?collection = Map.get(state.state.nft_metadata, Map.thash, "") else {
       // NFTUtils.logDirectly("transferICRC7 cannot find collection metatdata. this should not happene" # debug_show (tokenAsNat), #Bool(false), null);
       D.trap("transferICRC7 cannot find collection metatdata. this should not happen");
@@ -311,52 +298,17 @@ module {
       };
     };
 
-    debug if (debug_channel.icrc7) D.print("transferICRC7 : feeDepositAccount " # debug_show (feeDepositAccount));
     let _royalties_names = Array.filter<Text>(Royalties.royalties_names, func x = x != "com.origyn.royalty.broker");
-
     let fee_deposit_amount : Nat = Royalties.get_total_amount_fixed_royalties(_royalties_names, metadata);
 
     let ogy_ledger : ICRC2.Self = actor (MigrationTypes.Current.OGY_LEDGER_CANISTER_ID);
 
     debug if (debug_channel.icrc7) D.print("transferICRC7 : fee_deposit_amount " # debug_show (fee_deposit_amount));
-    debug if (debug_channel.icrc7) D.print("transferICRC7 : icrc2 parameter " # debug_show ({ to = { owner = feeDepositAccount.account.principal; subaccount = ?feeDepositAccount.account.sub_account }; fee = ?200_000; spender_subaccount = null; from = from; memo = null; created_at_time = null; amount = fee_deposit_amount }));
-
-    let add_fund_to_fees_wallet = await ogy_ledger.icrc2_transfer_from({
-      to = {
-        owner = feeDepositAccount.account.principal;
-        subaccount = ?feeDepositAccount.account.sub_account;
-      };
-      fee = ?200_000;
-      spender_subaccount = null;
-      from = from;
-      memo = null;
-      created_at_time = null;
-      amount = fee_deposit_amount;
-    });
-
-    switch (add_fund_to_fees_wallet) {
-      case (#Ok(data)) {
-        debug if (debug_channel.icrc7) D.print("transferICRC7 : add_fund_to_fees_wallet " # debug_show (add_fund_to_fees_wallet));
-      };
-      case (#Err(err)) {
-        return {
-          token_id = tokenAsNat;
-          transfer_result = #Err(
-            #GenericError({
-              message = "transferICRC7 : transfer from request failed " # debug_show (add_fund_to_fees_wallet);
-              error_code = 3;
-            })
-          );
-        };
-      };
-    };
-
-    debug if (debug_channel.icrc7) D.print("transferICRC7 : add_fund_to_fees_wallet " # debug_show (add_fund_to_fees_wallet));
 
     let fee_deposit_request : Types.FeeDepositRequest = {
       account = #account({ owner = from.owner; sub_account = from.subaccount });
-      token_id = null;
       token = MigrationTypes.Current.OGY();
+      amount = fee_deposit_amount;
     };
 
     let fee_deposit_ret = Star.toResult<Types.ManageSaleResponse, Types.OrigynError>(await* Market.deposit_fee_nft_origyn(state, fee_deposit_request, caller));

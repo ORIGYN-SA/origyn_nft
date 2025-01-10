@@ -49,7 +49,7 @@ module {
     market = false;
     royalties = false;
     offers = false;
-    escrow = false;
+    escrow = true;
     withdraw_escrow = false;
     withdraw_sale = false;
     withdraw_reject = false;
@@ -3315,124 +3315,40 @@ module {
       case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
     };
 
-    // // Retrieve metadata
-    // let metadata = switch (Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
-    //   case (#ok(val)) val;
-    //   case (#err(err)) D.trap("Cannot find metadata for collection " # debug_show (err));
-    // };
+    debug if (debug_channel.escrow) D.print("feeDepositAccount " # debug_show (feeDepositAccount));
 
-    // Retrieve metadata only if token_id is provided
-    switch (request.token_id) {
-      case (?id) {
-        switch (Metadata.get_metadata_for_token(state, id, caller, ?state.canister(), state.state.collection_data.owner)) {
-          case (#ok(metadata)) {
-            // Check current balance
-            let balance : Nat = switch (request.token) {
-              case (#ic(token)) {
-                switch (token.standard) {
-                  case (#Ledger or #ICRC1) {
-                    debug if (debug_channel.escrow) D.print("found ledger");
-                    let checker = Ledger_Interface.Ledger_Interface();
-                    switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
-                      case (#trappable(val)) (val.balance);
-                      case (#awaited(val)) (val.balance);
-                      case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                      case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                    };
-                  };
-                  case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
-                };
-              };
-              case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
-            };
-
-            // Calculate the required fee deposit amount
-            let _royalties_names : [Text] = Royalties.royalties_names;
-            let fee_deposit_amount : Nat = Royalties.get_total_amount_fixed_royalties(_royalties_names, metadata);
-
-            debug if (debug_channel.escrow) D.print("deposit_fee_nft_origyn : feeDepositAccount " # debug_show (feeDepositAccount));
-
-            debug if (debug_channel.escrow) D.print("Balance is insufficient, performing transfer to top-up fee deposit account.");
-            let ogy_ledger : ICRC2.Self = actor (MigrationTypes.Current.OGY_LEDGER_CANISTER_ID);
-            let add_fund_to_fees_wallet = await ogy_ledger.icrc2_transfer_from({
-              to = {
-                owner = feeDepositAccount.account.principal;
-                subaccount = ?feeDepositAccount.account.sub_account;
-              };
-              fee = ?200_000;
-              spender_subaccount = null;
-              from = {
-                owner = caller;
-                subaccount = null;
-              };
-              memo = null;
-              created_at_time = null;
-              amount = fee_deposit_amount;
-            });
-
-            let old_trx = switch (
-              Metadata.add_transaction_record<system>(
-                state,
-                {
-                  token_id = "";
-                  index = 0;
-                  txn_type = #fee_deposit {
-                    request with
-                    amount = balance;
-                    extensible = #Option(null);
-                  };
-                  timestamp = state.get_time();
-                },
-                caller,
-              )
-            ) {
-              case (#err(err)) {
-                debug if (debug_channel.escrow) D.print("in a bad error");
-                debug if (debug_channel.escrow) D.print(debug_show (err));
-                //nyi: this is really bad and will mess up certificatioin later so we should really throw
-                return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
-              };
-              case (#ok(old_trx)) old_trx;
-            };
-
-            return #awaited(#fee_deposit({ balance = balance; transaction = ?old_trx }));
-          };
-          case (#err(err)) D.trap("Cannot find metadata for collection " # debug_show (err));
-        };
-      };
-      case null {
-        // Token ID is not provided, skip metadata retrieval
-        debug if (debug_channel.escrow) D.print("Token ID is null, skipping metadata retrieval.");
-
-        let balance_doublecheck = switch (request.token) {
-          case (#ic(token)) {
-            switch (token.standard) {
-              case (#Ledger or #ICRC1) {
-                debug if (debug_channel.escrow) D.print("found ledger");
-                let checker = Ledger_Interface.Ledger_Interface();
-                switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
-                  case (#trappable(val)) (val.balance);
-                  case (#awaited(val)) (val.balance);
-                  case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                  case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
-                };
-              };
-              case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+    switch (request.token) {
+      case (#ic(token)) {
+        let balance : Nat = switch (token.standard) {
+          case (#Ledger or #ICRC1) {
+            debug if (debug_channel.escrow) D.print("found ledger");
+            let checker = Ledger_Interface.Ledger_Interface();
+            switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
+              case (#trappable(val)) (val.balance);
+              case (#awaited(val)) (val.balance);
+              case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+              case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
             };
           };
-          case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+          case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
         };
 
-        // put the fee into the state (there is a map here in which all such things are stored)
-        debug if (debug_channel.escrow) D.print("putting the escrow");
+        debug if (debug_channel.escrow) D.print("previous balance  " # debug_show (balance));
+        let token_ledger : ICRC2.Self = actor (Principal.toText(token.canister));
+        debug if (debug_channel.escrow) D.print("Principal.toText(token.canister)  " # debug_show (Principal.toText(token.canister)));
 
-        // Save in the state
-        let deposit_result = PutBalance.put_fee_deposit_balance(state, request, balance_doublecheck);
+        let add_fund_to_fees_wallet = switch (await token_ledger.icrc2_transfer_from({ to = { owner = feeDepositAccount.account.principal; subaccount = ?feeDepositAccount.account.sub_account }; fee = token.fee; spender_subaccount = null; from = { owner = caller; subaccount = null }; memo = null; created_at_time = null; amount = request.amount })) {
+          case (#Ok(val)) val;
+          case (#Err(err)) {
+            return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - transfer from request failed " # debug_show (err), ?caller)));
+          };
+        };
 
-        debug if (debug_channel.escrow) D.print(debug_show (deposit_result));
+        debug if (debug_channel.escrow) D.print("add_fund_to_fees_wallet  " # debug_show (add_fund_to_fees_wallet));
+        let deposit_result = PutBalance.put_fee_deposit_balance(state, request, balance + request.amount);
+        debug if (debug_channel.escrow) D.print("deposit_result  " # debug_show (deposit_result));
 
-        // add fee deposit transaction
-        let new_trx = switch (
+        let old_trx = switch (
           Metadata.add_transaction_record<system>(
             state,
             {
@@ -3440,7 +3356,7 @@ module {
               index = 0;
               txn_type = #fee_deposit {
                 request with
-                amount = balance_doublecheck;
+                amount = balance;
                 extensible = #Option(null);
               };
               timestamp = state.get_time();
@@ -3454,13 +3370,13 @@ module {
             //nyi: this is really bad and will mess up certificatioin later so we should really throw
             return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
           };
-          case (#ok(new_trx)) new_trx;
+          case (#ok(old_trx)) old_trx;
         };
 
-        return #awaited(#fee_deposit({ balance = balance_doublecheck; transaction = ?new_trx }));
+        return #awaited(#fee_deposit({ balance = balance; transaction = ?old_trx }));
       };
+      case _ return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
     };
-
   };
 
   /**

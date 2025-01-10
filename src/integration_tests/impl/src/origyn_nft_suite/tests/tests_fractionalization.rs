@@ -20,7 +20,7 @@ fn test_fractionalization_error() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -61,7 +61,7 @@ fn test_fractionalization_token_not_found() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   let error = init_fractionalization(
@@ -90,7 +90,7 @@ fn test_fractionalization_token_unfractionalizable_token() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   init_nft_with_premint_nft(
@@ -132,7 +132,7 @@ fn test_fractionalization_nft_on_sale() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -207,7 +207,7 @@ fn test_consecutive_init_fractionalization_calls() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -262,7 +262,7 @@ fn test_create_sub_canister_with_governance() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -322,7 +322,7 @@ fn test_authorize_fractionalization_success() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -358,7 +358,7 @@ fn test_authorize_fractionalization_not_owner() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft
@@ -397,7 +397,7 @@ fn test_authorize_fractionalization_already_authorized() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   // loop to create multiple nft

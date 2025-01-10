@@ -18,6 +18,7 @@ pub struct PrincipalIds {
   controller: Principal,
   originator: Principal,
   nft_owner: Principal,
+  nft_buyer: Principal,
 }
 
 #[derive(Debug, Clone)]
