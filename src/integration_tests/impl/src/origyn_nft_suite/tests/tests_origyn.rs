@@ -601,10 +601,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid() {
     SaleInfoRequest::EscrowInfo(EscrowReceipt {
       token: TokenSpec::Ic(IcTokenSpec {
         id: None,
-        fee: None,
+        fee: Some(Nat::from(8 as u32)),
         decimals: Nat::from(8 as u32),
         canister: Principal::from_text("j5naj-nqaaa-aaaal-ajc7q-cai").unwrap(),
-        standard: IcTokenSpecStandard::Icrc1,
+        standard: IcTokenSpecStandard::Ledger,
         symbol: "OGY".to_string(),
       }),
       token_id: "0".to_string(),
@@ -616,7 +616,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid() {
         owner: nft_buyer.clone(),
         sub_account: None,
       },
-      amount: Nat::from(100 as u32),
+      amount: Nat::from(100_000_000 as u32),
     })
   );
 
@@ -644,7 +644,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid() {
     deposit_account_info.account.sub_account
   );
 
-  let balance = icrc1_icrc2_token::client::transfer(
+  let transfer_ret = icrc1_icrc2_token::client::transfer(
     pic,
     nft_buyer.clone(),
     ogy_ledger.clone(),
@@ -658,22 +658,24 @@ fn test_market_transfer_nft_origyn_fee_account_bid() {
           .expect("slice with incorrect length")
       ),
     },
-    Nat::from(100 as u32)
+    Nat::from(100_000_000 as u32)
   );
+
+  println!("transfer_ret {:?}", transfer_ret);
 
   let bid_ret = sale_nft_origyn(
     pic,
     origyn_nft.clone(),
-    fee_account.clone(),
+    nft_buyer.clone(),
     ManageSaleRequest::Bid(BidRequest {
       config: None,
       escrow_record: EscrowRecord {
         token: TokenSpec::Ic(IcTokenSpec {
           id: None,
-          fee: None,
+          fee: Some(Nat::from(8 as u32)),
           decimals: Nat::from(8 as u32),
           canister: Principal::from_text("j5naj-nqaaa-aaaal-ajc7q-cai").unwrap(),
-          standard: IcTokenSpecStandard::Icrc1,
+          standard: IcTokenSpecStandard::Ledger,
           symbol: "OGY".to_string(),
         }),
         token_id: "0".to_string(),
@@ -686,7 +688,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid() {
           owner: nft_buyer.clone(),
           sub_account: None,
         },
-        amount: Nat::from(100 as u32),
+        amount: Nat::from(100_000_000 as u32),
         sale_id: Some(sale_id.clone()),
         account_hash: None,
       },

@@ -35,7 +35,7 @@ pub mod icrc1_transfer {
   use super::*;
 
   pub type Args = TransferArg;
-  #[derive(CandidType, Deserialize)]
+  #[derive(CandidType, Deserialize, Debug)]
   pub enum Response {
     Ok(Nat),
     Err(TransferError),
