@@ -1,0 +1,66 @@
+stages:
+  # - prettier
+  - build
+  - test
+
+variables:
+  NODE_VERSION: "16" # Specify the Node.js version
+  DFX_IDENTITY: "gitlab-action" # Specify the identity for deployment, if needed
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+
+cache:
+  paths:
+    - node_modules/
+    - src/declarations/
+
+npm-outdated:
+  stage: build
+  script:
+    - npm install
+    - npm outdated
+  allow_failure: true
+
+
+before_script:
+  - dfx --version
+  - apt-get update && apt-get install -y curl
+  - curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION.x | bash -
+  - apt-get install -y nodejs
+  - npm install
+
+
+# prettier:
+#   stage: prettier
+#   image: node:${NODE_VERSION}
+#   script:
+#     - npm install -g npm
+#     - npm install prettier pretty-quick
+#     - npm run prettier:check
+#   allow_failure: false
+
+build:
+  stage: build
+  script:
+    - echo "Building the project..."
+    - npm run build
+  artifacts:
+    paths:
+      - dist/ # Adjust to your build output directory
+    expire_in: 1 week
+
+test:
+  stage: test
+  script:
+    - echo "Running integration tests..."
+    - npm run integration_test
+  dependencies:
+    - build
+  artifacts:
+    reports:
+      junit: reports/test-results.xml # Optional: store test results for reporting
+
+
