@@ -37,7 +37,7 @@ shared (installer) actor class CanistersManager() = this {
   stable var canisters_entries : [(Principal, Canister)] = [];
   stable var record_entries : [(Principal, [Record])] = [];
 
-// TODO: it's posible that the canister after spawning another one just sends a request to cycle-ops to add the new canister into the list of tracked ones
+// TODO: those consts could be needed if the canister would manage the cycles by itself (not using the CycleOps)
   let CYCLE_MINTING_CANISTER = Principal.fromText("rkp4c-7iaaa-aaaaa-aaaca-cai");
   let ICP_LEDGER : Ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
   let management : Management = actor ("aaaaa-aa");
@@ -157,7 +157,7 @@ shared (installer) actor class CanistersManager() = this {
     if (not TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal)) {
       return #err(#Invalid_Caller);
     };
-    // inspect if hub canister is one of the controllers
+    // inspect if canister manager canister is one of the controllers
     ignore await management.canister_status({ canister_id = c.canister_id });
     canisters.put(c.canister_id, c);
     #ok(());
@@ -170,7 +170,7 @@ shared (installer) actor class CanistersManager() = this {
       return #err(#Invalid_Caller);
     };
 
-    // 100 000 000 000 Cycle (0.1 T) is used to keep hub available
+    // 100 000 000 000 Cycle (0.1 T) is used to keep canister manager available
     if (args.cycle_amount + 100_000_000_000 >= Cycles.balance() or args.cycle_amount < 200_000_000_000) {
       return #err(#Insufficient_Cycles);
     };
@@ -469,7 +469,6 @@ shared (installer) actor class CanistersManager() = this {
     #ok(());
   };
 
-  // ican calls this function when creating this hub
   public shared ({ caller }) func init(owner : Principal, _cycle_wasm : WasmModule) : async () {
     assert (TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal));
     owners := TrieSet.fromArray<Principal>([owner], Principal.hash, Principal.equal);
@@ -507,7 +506,7 @@ shared (installer) actor class CanistersManager() = this {
     defaultCyclesSettings = {
       quota = #fixedAmount(500_000_000_000);
     };
-    // Allow an aggregate of 10 trillion cycles to be transferred every 24 hours 
+    // In total 10 trillion cycles are allowed to be transferred every 24 hours 
     aggregateSettings = {
       quota = #rate({
         maxAmount = 10_000_000_000_000;
@@ -521,7 +520,7 @@ shared (installer) actor class CanistersManager() = this {
   // @required - IMPORTANT!!!
   // Allows canisters to request cycles from this "battery canister" that implements
   // the cycles manager
-  public shared ({ caller }) func cycles_manager_requestCycles(
+  public shared ({ caller }) func requestCycles(
     cyclesRequested: Nat
   ): async CyclesManager.TransferCyclesResult {
     if (not isCanister(caller)) trap("Calling principal must be a canister");
@@ -537,7 +536,7 @@ shared (installer) actor class CanistersManager() = this {
     // @required - IMPORTANT!!!
   // Allows canisters to send cycles from this "battery canister" that implements
   // the cycles manager
-  public shared func cycles_manager_transferCycles(canisterToTopUp: CanisterId,
+  public shared func transferCycles(canisterToTopUp: CanisterId,
     cyclesToTransfer: Nat
   ): async CyclesManager.TransferCyclesResult {
     
@@ -562,12 +561,6 @@ shared (installer) actor class CanistersManager() = this {
         durationInSeconds = 24 * 60 * 60;
       }));
     })
-  };
-
-  // **DO NOT USE IN PRODUCTION** - for developer debugging and testing purposes only
-  public func toText() : async Text {
-    let result = CyclesManager.toText(cyclesManager);
-    result;
   };
 
   func isCanister(p : Principal) : Bool {

@@ -3,8 +3,6 @@ import Result "mo:base/Result";
 
 module {
 
-  /// iCAN Types
-
   public type Error = {
     #Invalid_Caller;
     #Nonexistent_Caller;
@@ -14,7 +12,7 @@ module {
     #Insufficient_Cycles;
     #Ledger_Transfer_Failed : Nat; // value : log id
     #Create_Canister_Failed : Nat;
-    #Delete_Hub_Failed;
+    #Delete_Canister_Manager_Failed;
   };
 
   public type Record = {
@@ -60,9 +58,7 @@ module {
     to_canister_id : Principal;
   };
 
-  /// Hub Types
-
-  public type HubInterface = actor {
+  public type Canister_Manager_Interface = actor {
     init : (owner : Principal, cycle_wasm : [Nat8]) -> async ();
   };
 

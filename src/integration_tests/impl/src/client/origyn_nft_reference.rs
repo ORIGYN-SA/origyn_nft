@@ -104,7 +104,7 @@ pub mod test_canister_top_up {
     #[derive(CandidType, Deserialize, Debug)]
     pub enum CanisterManagementResponse {
         #[serde(rename = "ok")]
-        Ok(()),
+        Ok(Principal),
         #[serde(rename = "err")]
         Err(CanisterManagementError),
     }

@@ -28,7 +28,13 @@ fn test_canister_deployment() {
 
     let response = test_canister_creation(pic, origyn_nft.clone(), controller.clone(), ());
 
-    println!("Result: {:?}", response);
+    match response {
+        crate::client::origyn_nft_reference::test_canister_creation::CanisterManagementResponse::Ok(ok) => {
+            // 1999992924286171
+            println!("Result: {:?}", pic.cycle_balance(ok));
+        }
+        crate::client::origyn_nft_reference::test_canister_creation::CanisterManagementResponse::Err(err) => (),
+    }
 }
 
 #[test]
@@ -57,5 +63,11 @@ fn test_canister_topping_up() {
 
     let response = test_canister_top_up(pic, origyn_nft.clone(), controller.clone(), ());
 
-    println!("Result: {:?}", response);
+    match response {
+        crate::client::origyn_nft_reference::test_canister_top_up::CanisterManagementResponse::Ok(ok) => {
+            // 1999992924286171
+            println!("Result: {:?}", pic.cycle_balance(ok));
+        }
+        crate::client::origyn_nft_reference::test_canister_top_up::CanisterManagementResponse::Err(err) => (),
+    }
 }

@@ -377,7 +377,7 @@ shared (deployer) actor class Nft_Canister() = this {
   };
 
   // FIXME: fix here logs
-  public shared (msg) func test_canister_top_up() : async Result.Result<(), CanisterManagementTypes.Error> {
+  public shared (msg) func test_canister_top_up() : async Result.Result<Principal, CanisterManagementTypes.Error> {
     // public shared (msg) func test_canister_creation() : async () {
 
     Cycles.add(1_000_000_000_000);
@@ -410,7 +410,8 @@ shared (deployer) actor class Nft_Canister() = this {
 
     switch (result) {
       case (#ok(principal)) {
-        let topup_result = await canisterManagerInstance.cycles_manager_transferCycles(principal, 100_000_000_000);
+        let topup_result = await canisterManagerInstance.transferCycles(principal, 100_000_000_000);
+        return #ok(principal);
       };
       case (#err(error)) {
         canistergeekLogger.logMessage(
@@ -418,10 +419,10 @@ shared (deployer) actor class Nft_Canister() = this {
           #Text("Failed to deploy canister: "),
           ?msg.caller,
         );
+        return #err(#No_Record);
       };
     };
 
-    return #ok(());
   };
 
   /************************************************
