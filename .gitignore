@@ -6,6 +6,9 @@
 # Adding mops here
 .mops/
 
+# Rust build
+target
+
 # Github Access Token
 gittoken.key
 

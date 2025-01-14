@@ -36,6 +36,7 @@ import Verify "./market/verify_reciept";
 import FeeAccount "market/fee_account";
 import PutBalance "market/put_balance";
 import Royalties "market/royalties";
+import ICRC2 "../external_canisters/ICRC2";
 
 module {
 
@@ -1911,6 +1912,7 @@ module {
                 };
                 Map.set(verified.found_asset_list, token_handler, verified.found_asset.token_spec, target_escrow);
                 };
+                };
               }; */
 
               return async_market_transfer_unlock_fee_account_callback(
@@ -3149,6 +3151,7 @@ module {
   * @param {Principal} caller - Principal object representing the caller.
   * @returns {Star.Star<Types.ManageSaleResponse, Types.OrigynError>} - A result indicating whether the escrow was created.
   */
+  // FIXME: change here
   public func escrow_nft_origyn(state : StateAccess, request : Types.EscrowRequest, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
     //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
     //we will also allow a canister/canister owner to create escrows for itself
@@ -3161,13 +3164,14 @@ module {
       return #err(#trappable(Types.errors(#unauthorized_access, "escrow_nft_origyn - escrow - buyer and caller do not match", ?caller)));
     };
 
+    // Validate lock_to date
     debug if (debug_channel.escrow) D.print("in escrow");
     debug if (debug_channel.escrow) D.print(debug_show (request));
     switch (request.lock_to_date) {
       case (?val) {
         if (val > state.get_time() * 10) {
           // if an extra digit is fat fingered this will trip....gives 474 years in the future as the max
-          return #err(#trappable(Types.errors(#improper_interface, "escrow_nft_origyn time lock should not be that far in the future", ?caller)));
+          return #err(#trappable(Types.errors(#improper_interface, "deposit_escrow_nft_origyn time lock should not be that far in the future", ?caller)));
         };
       };
       case (null) {};
@@ -3175,11 +3179,11 @@ module {
 
     debug if (debug_channel.escrow) D.print(debug_show (state.canister()));
 
-    //verify the token
+    // Verify token metadata and ownership
     if (request.token_id != "") {
       let metadata = switch (Metadata.get_metadata_for_token(state, request.token_id, caller, ?state.canister(), state.state.collection_data.owner)) {
         case (#err(err)) {
-          return #err(#trappable(Types.errors(#token_not_found, "escrow_nft_origyn " # err.flag_point, ?caller)));
+          return #err(#trappable(Types.errors(#token_not_found, "deposit_escrow_nft_origyn " # err.flag_point, ?caller)));
         };
         case (#ok(val)) { val };
       };
@@ -3187,88 +3191,96 @@ module {
       let this_is_minted = Metadata.is_minted(metadata);
       if (this_is_minted == false) {
         //cant escrow for an unminted item
-        return #err(#trappable(Types.errors(#token_not_found, "escrow_nft_origyn ", ?caller)));
+        return #err(#trappable(Types.errors(#token_not_found, "deposit_escrow_nft_origyn ", ?caller)));
       };
 
       let owner = switch (Metadata.get_nft_owner(metadata)) {
-        case (#err(err)) return #err(#trappable(Types.errors(err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
+        case (#err(err)) return #err(#trappable(Types.errors(err.error, "deposit_escrow_nft_origyn " # err.flag_point, ?caller)));
         case (#ok(val)) val;
       };
 
       //cant escrow for an owner that doesn't own the token
       debug if (debug_channel.escrow) D.print(debug_show ("owner " # debug_show (owner) # " request.deposit.seller = " # debug_show (request.deposit.seller)));
       debug if (debug_channel.escrow) D.print(debug_show ("owner account_to_owner_subaccount " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(owner)) # " MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller)  = " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller))));
-      if (MigrationTypes.Current.compare_account(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
+      if (MigrationTypes.Current.compare_account(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "deposit_escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
     };
 
     //move the deposit to an escrow account
     debug if (debug_channel.escrow) D.print("verifying the deposit");
 
-    let (trx_id : Types.TransactionID, account_hash : ?Blob) = switch (request.deposit.token) {
+    let escrowDepositAccount : Types.SubAccountInfo = NFTUtils.get_escrow_account_info(
+      {
+        amount = request.deposit.amount;
+        buyer = request.deposit.buyer;
+        seller = request.deposit.seller;
+        token = request.deposit.token;
+        token_id = request.token_id;
+      },
+      state.canister(),
+    );
+
+    switch (request.deposit.token) {
       case (#ic(token)) {
-        switch (token.standard) {
+        let balance : Nat = switch (token.standard) {
           case (#Ledger or #ICRC1) {
             debug if (debug_channel.escrow) D.print("found ledger");
             let checker = Ledger_Interface.Ledger_Interface();
-            switch (await* checker.transfer_deposit(state.canister(), request, caller)) {
-              case (#ok(val)) (val.transaction_id, ?val.subaccount_info.account.sub_account);
-              case (#err(err)) return #err(#awaited(Types.errors(err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
+            switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
+              case (#trappable(val)) (val.balance);
+              case (#awaited(val)) (val.balance);
+              case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_escrow_nft_origyn " # err.flag_point, ?caller)));
+              case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_escrow_nft_origyn " # err.flag_point, ?caller)));
             };
           };
-          case (_) return #err(#awaited(Types.errors(#nyi, "escrow_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+          case (_) return #err(#awaited(Types.errors(#nyi, "deposit_escrow_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
         };
-      };
-      case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
-    };
 
-    //put the escrow
-    debug if (debug_channel.escrow) D.print("putting the escrow");
-    let escrow_result = PutBalance.put_escrow_balance(
-      state,
-      {
-        request.deposit with
-        token_id = request.token_id;
-        trx_id = trx_id;
-        lock_to_date = request.lock_to_date;
-        account_hash = account_hash;
-        balances = null;
-      },
-      true,
-    );
+        debug if (debug_channel.escrow) D.print("previous balance  " # debug_show (balance));
+        let token_ledger : ICRC2.Self = actor (Principal.toText(token.canister));
+        debug if (debug_channel.escrow) D.print("Principal.toText(token.canister)  " # debug_show (Principal.toText(token.canister)));
 
-    debug if (debug_channel.escrow) D.print(debug_show (escrow_result));
-
-    //add deposit transaction
-    let new_trx = switch (
-      Metadata.add_transaction_record<system>(
-        state,
-        {
-          token_id = request.token_id;
-          index = 0;
-          txn_type = #escrow_deposit {
-            request.deposit with
-            token_id = request.token_id;
-            trx_id = trx_id;
-            extensible = #Option(null);
+        let add_fund_to_escrow_wallet = switch (await token_ledger.icrc2_transfer_from({ to = { owner = feeDepositAccount.account.principal; subaccount = ?feeDepositAccount.account.sub_account }; fee = token.fee; spender_subaccount = null; from = { owner = caller; subaccount = null }; memo = null; created_at_time = null; amount = request.amount })) {
+          case (#Ok(val)) val;
+          case (#Err(err)) {
+            return #err(#awaited(Types.errors(#nyi, "deposit_escrow_nft_origyn - transfer from request failed " # debug_show (err), ?caller)));
           };
-          timestamp = state.get_time();
-        },
-        caller,
-      )
-    ) {
-      case (#err(err)) {
-        debug if (debug_channel.escrow) D.print("in a bad error");
-        debug if (debug_channel.escrow) D.print(debug_show (err));
-        //nyi: this is really bad and will mess up certificatioin later so we should really throw
-        return #err(#awaited(Types.errors(#nyi, "escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
-      };
-      case (#ok(new_trx)) new_trx;
-    };
+        };
 
-    debug if (debug_channel.escrow) D.print("have the trx");
-    debug if (debug_channel.escrow) D.print(debug_show (new_trx));
-    return #awaited(#escrow_deposit({ receipt = { request.deposit with
-    token_id = request.token_id }; balance = escrow_result.amount; transaction = new_trx }));
+        debug if (debug_channel.escrow) D.print("add_fund_to_escrow_wallet  " # debug_show (add_fund_to_escrow_wallet));
+        let deposit_result = PutBalance.put_fee_deposit_balance(state, request, balance + request.amount);
+        debug if (debug_channel.escrow) D.print("deposit_result  " # debug_show (deposit_result));
+
+        let old_trx = switch (
+          Metadata.add_transaction_record<system>(
+            state,
+            {
+              token_id = "";
+              index = 0;
+              txn_type = #fee_deposit {
+                request with
+                amount = balance;
+                extensible = #Option(null);
+              };
+              timestamp = state.get_time();
+            },
+            caller,
+          )
+        ) {
+          case (#err(err)) {
+            debug if (debug_channel.escrow) D.print("in a bad error");
+            debug if (debug_channel.escrow) D.print(debug_show (err));
+            //nyi: this is really bad and will mess up certificatioin later so we should really throw
+            return #err(#awaited(Types.errors(#nyi, "deposit_escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+          };
+          case (#ok(old_trx)) old_trx;
+        };
+
+        // return #awaited(#fee_deposit({ balance = balance; transaction = ?old_trx }));
+        return #awaited(#escrow_deposit({ receipt = { request.deposit with
+        token_id = request.token_id }; balance = escrow_result.amount; transaction = old_trx }));
+      };
+      case _ return #err(#trappable(Types.errors(#nyi, "deposit_escrow_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
+    };
   };
 
   //recognizes tokens sent to a fee_deposit account
