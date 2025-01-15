@@ -6,6 +6,12 @@
 # Adding mops here
 .mops/
 
+# Rust build
+target
+
+# Origyn_nft canister build
+src/integration_tests/external_canisters/origyn_nft_reference/wasm/origyn_nft_reference_canister.wasm.gz
+
 # Adding pocket-ic here
 src/integration_tests/impl/pocket-ic
 
