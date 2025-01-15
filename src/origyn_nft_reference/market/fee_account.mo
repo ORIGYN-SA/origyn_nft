@@ -32,7 +32,7 @@ import Types "../types";
 
 module {
   let debug_channel = {
-    market = false;
+    market = true;
   };
 
   type StateAccess = Types.State;

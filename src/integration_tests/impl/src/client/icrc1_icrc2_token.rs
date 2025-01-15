@@ -56,7 +56,7 @@ pub mod icrc2_approve {
   use super::*;
 
   pub type Args = ApproveArgs;
-  #[derive(CandidType, Deserialize)]
+  #[derive(CandidType, Deserialize, Debug)]
   pub enum Response {
     Ok(Nat),
     Err(ApproveError),

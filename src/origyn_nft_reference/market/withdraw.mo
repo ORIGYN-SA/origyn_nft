@@ -32,11 +32,11 @@ import Verify "./verify_reciept";
 
 module {
   let debug_channel = {
-    withdraw_escrow = false;
-    withdraw_sale = false;
-    withdraw_reject = false;
-    withdraw_deposit = false;
-    withdraw_fee_deposit = false;
+    withdraw_escrow = true;
+    withdraw_sale = true;
+    withdraw_reject = true;
+    withdraw_deposit = true;
+    withdraw_fee_deposit = true;
   };
 
   type StateAccess = Types.State;
@@ -551,6 +551,9 @@ module {
           case (#Ledger or #ICRC1) {
             debug if (debug_channel.withdraw_sale) D.print("found ledger sale withdraw");
             let checker = Ledger_Interface.Ledger_Interface();
+
+            debug if (debug_channel.withdraw_sale) D.print("returning amount " # debug_show (details.amount, token.fee));
+
             //if this fails we need to put the escrow back
             try {
               switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, a_ledger.account_hash, caller)) {
@@ -564,12 +567,14 @@ module {
                 };
               };
             } catch (e) {
+              debug if (debug_channel.withdraw_sale) D.print("withdraw_nft_origyn - sales ledger payment failed catch branch " # Error.message(e));
               //put the escrow back
               Verify.handle_sale_update_error(state, details, null, verified.found_asset, verified.found_asset_list);
               return #err(#awaited(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales ledger payment failed catch branch" # Error.message(e), ?caller)));
             };
           };
           case (_) {
+            debug if (debug_channel.withdraw_sale) D.print("withdraw_nft_origyn - sales - ledger type nyi ");
             return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - sales - ledger type nyi - " # debug_show (details), ?caller)));
           };
         };
@@ -577,7 +582,7 @@ module {
       case (#extensible(val)) return #err(#trappable(Types.errors(#nyi, "withdraw_nft_origyn - sales - extensible token nyi - " # debug_show (details), ?caller)));
     };
 
-    //D.print("have a transactionid and will crate a transaction");
+    debug if (debug_channel.withdraw_sale) D.print("have a transactionid and will crate a transaction " # debug_show (transaction_id));
     switch (transaction_id) {
       case (null) return #err(#awaited(Types.errors(#sales_withdraw_payment_failed, "withdraw_nft_origyn - sales  payment failed txid null", ?caller)));
       case (?transaction_id) {

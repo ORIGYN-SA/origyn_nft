@@ -3373,7 +3373,7 @@ module {
           case (#ok(old_trx)) old_trx;
         };
 
-        return #awaited(#fee_deposit({ balance = balance; transaction = ?old_trx }));
+        return #awaited(#fee_deposit({ balance = balance; transaction = old_trx }));
       };
       case _ return #err(#trappable(Types.errors(#nyi, "deposit_fee_nft_origyn - extensible token nyi - " # debug_show (request), ?caller)));
     };

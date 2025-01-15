@@ -33,7 +33,7 @@ import Verify "./verify_reciept";
 
 module {
   let debug_channel = {
-    royalties = false;
+    royalties = true;
   };
 
   type StateAccess = Types.State;

@@ -284,7 +284,7 @@ module {
 
   public type FeeDepositResponse = {
     balance : Nat;
-    transaction : ?TransactionRecord;
+    transaction : TransactionRecord;
   };
 
   public type RecognizeEscrowResponse = {

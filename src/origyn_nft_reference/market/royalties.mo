@@ -35,7 +35,7 @@ import Verify "./verify_reciept";
 
 module {
   let debug_channel = {
-    royalties = false;
+    royalties = true;
   };
 
   type StateAccess = Types.State;
@@ -241,7 +241,7 @@ module {
       let token : ?Types.TokenSpec = if (tokenCanister != null and tokenSymbol != null and tokenDecimals != null and tokenFee != null) {
         switch (tokenCanister) {
           case (?canisterId) {
-            ? #ic({
+            ?#ic({
               canister = canisterId;
               decimals = Option.get<Nat>(tokenDecimals, 0);
               fee = tokenFee;

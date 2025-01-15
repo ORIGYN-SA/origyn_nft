@@ -11,13 +11,13 @@ pub enum NftCanisterSetTimeModeArg {
   #[serde(rename = "standard")]
   Standard,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct PropertyShared {
   pub value: Box<CandyShared>,
   pub name: String,
   pub immutable: bool,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum CandyShared {
   Int(candid::Int),
   Map(Vec<(Box<CandyShared>, Box<CandyShared>)>),
@@ -59,7 +59,7 @@ pub struct StableCollectionData {
   pub symbol: Option<String>,
   pub allocated_storage: candid::Nat,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum IcTokenSpecStandard {
   #[serde(rename = "ICRC1")]
   Icrc1,
@@ -70,7 +70,7 @@ pub enum IcTokenSpecStandard {
   Other(Box<CandyShared>),
   Ledger,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct IcTokenSpec {
   pub id: Option<candid::Nat>,
   pub fee: Option<candid::Nat>,
@@ -79,7 +79,7 @@ pub struct IcTokenSpec {
   pub standard: IcTokenSpecStandard,
   pub symbol: String,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum TokenSpec {
   #[serde(rename = "ic")] Ic(IcTokenSpec),
   #[serde(rename = "extensible")] Extensible(Box<CandyShared>),
@@ -1044,7 +1044,7 @@ pub struct BlockType {
   pub block_type: String,
 }
 pub type Subaccount = serde_bytes::ByteBuf;
-#[derive(CandidType, Deserialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub struct Account3 {
   pub owner: Principal,
   pub subaccount: Option<Subaccount>,
@@ -1380,8 +1380,8 @@ pub struct EscrowRequest {
 #[derive(CandidType, Deserialize, Debug)]
 pub struct FeeDepositRequest {
   pub token: TokenSpec,
-  pub token_id: String,
   pub account: Account,
+  pub amount: candid::Nat,
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub struct RejectDescription {
