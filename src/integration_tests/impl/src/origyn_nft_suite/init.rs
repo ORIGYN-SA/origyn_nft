@@ -181,7 +181,9 @@ fn install_canisters(
       minting_account: Account::from(controller),
       initial_balances: vec![
         (Account::from(controller), Nat::from(18_446_744_073_709 as u64)),
-        (Account::from(origyn_nft_canister_id), Nat::from(18_446_744_073_709 as u64))
+        (Account::from(origyn_nft_canister_id), Nat::from(18_446_744_073_709 as u64)),
+        (Account::from(nft_owner), Nat::from(18_446_744_073_709 as u64)),
+        (Account::from(nft_buyer), Nat::from(18_446_744_073_709 as u64))
       ],
       archive_options: icrc_ledger_canister::init::ArchiveOptions {
         trigger_threshold: 2000,

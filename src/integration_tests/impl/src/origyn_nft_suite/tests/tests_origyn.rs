@@ -527,7 +527,7 @@ fn test_update_metadata_node() {
 }
 
 #[test]
-fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account() {
+fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
   let mut env = init();
   let TestEnv {
     ref mut pic,
@@ -542,7 +542,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account() {
     id: None,
     fee: Some(Nat::from(200_000 as u32)),
     decimals: Nat::from(8 as u32),
-    canister: Principal::from_text("j5naj-nqaaa-aaaal-ajc7q-cai").unwrap(),
+    canister: ogy_ledger,
     standard: IcTokenSpecStandard::Ledger,
     symbol: "OGY".to_string(),
   });
@@ -859,7 +859,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account() {
 }
 
 #[test]
-fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account() {
+fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
   let mut env = init();
   let TestEnv {
     ref mut pic,
@@ -874,7 +874,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account() {
     id: None,
     fee: Some(Nat::from(200_000 as u32)),
     decimals: Nat::from(8 as u32),
-    canister: Principal::from_text("j5naj-nqaaa-aaaal-ajc7q-cai").unwrap(),
+    canister: ogy_ledger,
     standard: IcTokenSpecStandard::Ledger,
     symbol: "OGY".to_string(),
   });
@@ -1175,6 +1175,674 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account() {
       Nat::from(100_000_000_000 as u64) -
       Nat::from(2 as u32) * Nat::from(200_000 as u32) -
       Nat::from(2 as u32) * Nat::from(1_000_000 as u32)
+  );
+
+  assert_eq!(
+    owner_of,
+    vec![
+      Some(Account3 {
+        owner: nft_buyer.clone(),
+        subaccount: None,
+      })
+    ]
+  );
+}
+
+#[test]
+fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
+  } = env;
+
+  let MAX_NFTS = 1;
+
+  let fee_account = net_principal.clone();
+  let ogy_token_spec = TokenSpec::Ic(IcTokenSpec {
+    id: None,
+    fee: Some(Nat::from(200_000 as u32)),
+    decimals: Nat::from(8 as u32),
+    canister: ogy_ledger,
+    standard: IcTokenSpecStandard::Ledger,
+    symbol: "OGY".to_string(),
+  });
+
+  // loop to create multiple nft
+  for i in 0..MAX_NFTS {
+    init_nft_with_premint_nft(
+      pic,
+      origyn_nft.clone(),
+      originator.clone(),
+      net_principal.clone(),
+      nft_owner.clone(),
+      i.to_string()
+    );
+  }
+
+  pic.set_time(SystemTime::now());
+
+  let res_fee_info = sale_info_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    SaleInfoRequest::FeeDepositInfo(
+      Some(Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      })
+    )
+  );
+
+  let fee_info = match res_fee_info {
+    SaleInfoResult::Ok(sale_return) => {
+      match sale_return {
+        SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
+          println!("fee_deposit_info {:?}", fee_deposit_info);
+          Icrc1Account {
+            owner: fee_deposit_info.account.principal,
+            subaccount: Some(
+              fee_deposit_info.account.sub_account
+                .into_vec()
+                .try_into()
+                .expect("slice with incorrect length")
+            ),
+          }
+        }
+        _ => {
+          panic!("fee_info failed: {:?}", sale_return);
+        }
+      }
+    }
+    SaleInfoResult::Err(err) => {
+      panic!("fee_info failed: {:?}", err);
+    }
+  };
+
+  let fee_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    fee_info
+  );
+
+  let approve_res: icrc1_icrc2_token::icrc2_approve::Response = icrc1_icrc2_token::client::approve(
+    pic,
+    nft_owner.clone(),
+    ogy_ledger.clone(),
+    origyn_nft.clone(),
+    None,
+    Nat::from(100_000_000_000 as u64) + Nat::from(200_000 as u32)
+  );
+
+  match approve_res {
+    icrc1_icrc2_token::icrc2_approve::Response::Ok(_) => (),
+    icrc1_icrc2_token::icrc2_approve::Response::Err(err) => {
+      panic!("approve failed: {:?}", err);
+    }
+  }
+
+  let deposit_res = sale_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    ManageSaleRequest::FeeDeposit(FeeDepositRequest {
+      token: ogy_token_spec.clone(),
+      account: Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      },
+      amount: Nat::from(100_000_000_000 as u64),
+    })
+  );
+
+  let owner_ogy_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    Icrc1Account {
+      owner: nft_owner,
+      subaccount: None,
+    }
+  );
+
+  let buyer_ogy_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    Icrc1Account {
+      owner: nft_buyer,
+      subaccount: None,
+    }
+  );
+
+  let ret: origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult = market_transfer_nft_origyn_client(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    market_transfer_nft_origynArgs {
+      token_id: '0'.to_string(),
+      sales_config: SalesConfig {
+        broker_id: None,
+        pricing: PricingConfigShared::Ask(
+          Some(
+            vec![
+              AskFeature::StartPrice(Nat::from(100_000_000_000 as u64)),
+              AskFeature::BuyNow(Nat::from(100_000_000_000 as u64))
+            ]
+          )
+        ),
+        escrow_receipt: None,
+      },
+    }
+  );
+
+  let sale_id: String = match ret {
+    origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult::Ok(val) => {
+      match val.txn_type {
+        origyn_nft_reference::origyn_nft_reference_canister::MarketTransferRequestReponseTxnType::SaleOpened {
+          pricing,
+          extensible,
+          sale_id,
+        } => {
+          sale_id
+        }
+        _ => {
+          panic!("TransactionType::Sale not found");
+        }
+      }
+    }
+    origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult::Err(err) => {
+      panic!("MarketTransferResult::Err: {:?}", err);
+    }
+  };
+
+  let fee_balance_before = icrc1_icrc2_token::client::balance_of(pic, ogy_ledger.clone(), fee_info);
+
+  let deposit_info = sale_info_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    SaleInfoRequest::EscrowInfo(EscrowReceipt {
+      token: ogy_token_spec.clone(),
+      token_id: "0".to_string(),
+      seller: Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      },
+      buyer: Account::Account {
+        owner: nft_buyer.clone(),
+        sub_account: None,
+      },
+      amount: Nat::from(100_000_000_000 as u64),
+    })
+  );
+
+  let deposit_account_info = match deposit_info {
+    SaleInfoResult::Ok(sale_return) =>
+      match sale_return {
+        SaleInfoResponse::EscrowInfo(escrow_info) => {
+          println!("escrow_info {:?}", escrow_info);
+          escrow_info
+        }
+        _ => {
+          panic!("deposit_info failed: {:?}", sale_return);
+        }
+      }
+    SaleInfoResult::Err(err) => {
+      panic!("deposit_info failed: {:?}", err);
+    }
+  };
+
+  let transfer_ret = icrc1_icrc2_token::client::transfer(
+    pic,
+    nft_buyer.clone(),
+    ogy_ledger.clone(),
+    None,
+    icrc_ledger_types::icrc1::account::Account {
+      owner: deposit_account_info.account.principal.clone(),
+      subaccount: Some(
+        deposit_account_info.account.sub_account
+          .into_vec()
+          .try_into()
+          .expect("slice with incorrect length")
+      ),
+    },
+    Nat::from(100_000_000_000 as u64)
+  );
+
+  let bid_ret = sale_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_buyer.clone(),
+    ManageSaleRequest::Bid(BidRequest {
+      config: None,
+      escrow_record: EscrowRecord {
+        token: ogy_token_spec.clone(),
+        token_id: "0".to_string(),
+        seller: Account::Account {
+          owner: nft_owner.clone(),
+          sub_account: None,
+        },
+        lock_to_date: None,
+        buyer: Account::Account {
+          owner: nft_buyer.clone(),
+          sub_account: None,
+        },
+        amount: Nat::from(100_000_000_000 as u64),
+        sale_id: Some(sale_id.clone()),
+        account_hash: None,
+      },
+    })
+  );
+
+  let token_id_as_nat = crate::client::origyn_nft_reference::client::get_token_id_as_nat(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    "0".to_string()
+  );
+
+  let owner_of = crate::client::origyn_nft_reference::client::icrc7_owner_of(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    vec![token_id_as_nat.clone()]
+  );
+
+  pic.tick();
+  pic.tick();
+  pic.tick();
+  pic.tick();
+  pic.tick();
+
+  let fee_balance_after = icrc1_icrc2_token::client::balance_of(pic, ogy_ledger.clone(), fee_info);
+
+  let buyer_ogy_balance_after = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    Icrc1Account {
+      owner: nft_buyer,
+      subaccount: None,
+    }
+  );
+
+  let owner_ogy_balance_after = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    Icrc1Account {
+      owner: nft_owner,
+      subaccount: None,
+    }
+  );
+
+  // paying for, with each at 1_000_000
+  // "com.origyn.royalty.network".to_string(),
+  // "com.origyn.royalty.node".to_string(),
+  // "com.origyn.royalty.broker".to_string(),
+  // "com.origyn.royalty.originator".to_string(),
+  // "com.origyn.royalty.custom".to_string()
+  // but no broker set, so broker fee is 0 and not paid
+  // so 4_000_000 should be paid
+  assert_eq!(fee_balance_after, fee_balance_before);
+
+  assert_eq!(
+    buyer_ogy_balance_after,
+    buyer_ogy_balance_initial - Nat::from(100_000_000_000 as u64) - Nat::from(200_000 as u64)
+  );
+
+  assert_eq!(
+    owner_ogy_balance_after,
+    owner_ogy_balance_initial +
+      Nat::from(100_000_000_000 as u64) -
+      Nat::from(499_999_000 as u64) - // 0.5% of 100_000_000_000 -> network fee
+      // Nat::from(999_998_000 as u32) - // no broker fee
+      Nat::from(1_999_996_000 as u32) - // 2% of 100_000_000_000 -> node fee
+      Nat::from(2_999_994_000 as u32) - // 3% of 100_000_000_000 -> originator fee
+      Nat::from(3_999_992_000 as u32) - // 4% of 100_000_000_000 -> custom fee
+      Nat::from(2 as u32) * Nat::from(200_000 as u32) // 200_000 -> fixed fee
+  );
+
+  assert_eq!(
+    owner_of,
+    vec![
+      Some(Account3 {
+        owner: nft_buyer.clone(),
+        subaccount: None,
+      })
+    ]
+  );
+}
+
+#[test]
+fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_account_fixed() {
+  let mut env = init();
+  let TestEnv {
+    ref mut pic,
+    canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
+  } = env;
+
+  let MAX_NFTS = 1;
+
+  let fee_account = net_principal.clone();
+  let ogy_token_spec = TokenSpec::Ic(IcTokenSpec {
+    id: None,
+    fee: Some(Nat::from(200_000 as u32)),
+    decimals: Nat::from(8 as u32),
+    canister: ogy_ledger,
+    standard: IcTokenSpecStandard::Ledger,
+    symbol: "OGY".to_string(),
+  });
+
+  let ldg_token_spec = TokenSpec::Ic(IcTokenSpec {
+    id: None,
+    fee: Some(Nat::from(200_000 as u32)),
+    decimals: Nat::from(8 as u32),
+    canister: ldg_ledger,
+    standard: IcTokenSpecStandard::Ledger,
+    symbol: "LDG".to_string(),
+  });
+
+  // loop to create multiple nft
+  for i in 0..MAX_NFTS {
+    init_nft_with_premint_nft(
+      pic,
+      origyn_nft.clone(),
+      originator.clone(),
+      net_principal.clone(),
+      nft_owner.clone(),
+      i.to_string()
+    );
+  }
+
+  pic.set_time(SystemTime::now());
+
+  let res_fee_info = sale_info_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    SaleInfoRequest::FeeDepositInfo(
+      Some(Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      })
+    )
+  );
+
+  let fee_info = match res_fee_info {
+    SaleInfoResult::Ok(sale_return) => {
+      match sale_return {
+        SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
+          println!("fee_deposit_info {:?}", fee_deposit_info);
+          Icrc1Account {
+            owner: fee_deposit_info.account.principal,
+            subaccount: Some(
+              fee_deposit_info.account.sub_account
+                .into_vec()
+                .try_into()
+                .expect("slice with incorrect length")
+            ),
+          }
+        }
+        _ => {
+          panic!("fee_info failed: {:?}", sale_return);
+        }
+      }
+    }
+    SaleInfoResult::Err(err) => {
+      panic!("fee_info failed: {:?}", err);
+    }
+  };
+
+  let fee_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ogy_ledger.clone(),
+    fee_info
+  );
+
+  let approve_res: icrc1_icrc2_token::icrc2_approve::Response = icrc1_icrc2_token::client::approve(
+    pic,
+    nft_owner.clone(),
+    ogy_ledger.clone(),
+    origyn_nft.clone(),
+    None,
+    Nat::from(100_000_000_000 as u64) + Nat::from(200_000 as u32)
+  );
+
+  match approve_res {
+    icrc1_icrc2_token::icrc2_approve::Response::Ok(_) => (),
+    icrc1_icrc2_token::icrc2_approve::Response::Err(err) => {
+      panic!("approve failed: {:?}", err);
+    }
+  }
+
+  let deposit_res = sale_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    ManageSaleRequest::FeeDeposit(FeeDepositRequest {
+      token: ogy_token_spec.clone(),
+      account: Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      },
+      amount: Nat::from(100_000_000_000 as u64),
+    })
+  );
+
+  pic.tick();
+
+  let owner_ldg_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ldg_ledger.clone(),
+    Icrc1Account {
+      owner: nft_owner,
+      subaccount: None,
+    }
+  );
+
+  let buyer_ldg_balance_initial = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ldg_ledger.clone(),
+    Icrc1Account {
+      owner: nft_buyer,
+      subaccount: None,
+    }
+  );
+
+  let ret: origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult = market_transfer_nft_origyn_client(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    market_transfer_nft_origynArgs {
+      token_id: '0'.to_string(),
+      sales_config: SalesConfig {
+        broker_id: None,
+        pricing: PricingConfigShared::Ask(
+          Some(
+            vec![
+              AskFeature::StartPrice(Nat::from(100_000_000_000 as u64)),
+              AskFeature::BuyNow(Nat::from(100_000_000_000 as u64)),
+              AskFeature::FeeSchema("com.origyn.royalties.fixed".to_string()),
+              AskFeature::Token(ldg_token_spec.clone()),
+              AskFeature::FeeAccounts(
+                vec![
+                  "com.origyn.royalty.network".to_string(),
+                  "com.origyn.royalty.node".to_string(),
+                  "com.origyn.royalty.broker".to_string(),
+                  "com.origyn.royalty.originator".to_string(),
+                  "com.origyn.royalty.custom".to_string()
+                ]
+              )
+            ]
+          )
+        ),
+        escrow_receipt: None,
+      },
+    }
+  );
+
+  let sale_id: String = match ret {
+    origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult::Ok(val) => {
+      match val.txn_type {
+        origyn_nft_reference::origyn_nft_reference_canister::MarketTransferRequestReponseTxnType::SaleOpened {
+          pricing,
+          extensible,
+          sale_id,
+        } => {
+          sale_id
+        }
+        _ => {
+          panic!("TransactionType::Sale not found");
+        }
+      }
+    }
+    origyn_nft_reference::origyn_nft_reference_canister::MarketTransferResult::Err(err) => {
+      panic!("MarketTransferResult::Err: {:?}", err);
+    }
+  };
+
+  let fee_balance_before = icrc1_icrc2_token::client::balance_of(pic, ogy_ledger.clone(), fee_info);
+
+  let deposit_info = sale_info_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_owner.clone(),
+    SaleInfoRequest::EscrowInfo(EscrowReceipt {
+      token: ldg_token_spec.clone(),
+      token_id: "0".to_string(),
+      seller: Account::Account {
+        owner: nft_owner.clone(),
+        sub_account: None,
+      },
+      buyer: Account::Account {
+        owner: nft_buyer.clone(),
+        sub_account: None,
+      },
+      amount: Nat::from(100_000_000_000 as u64),
+    })
+  );
+
+  let deposit_account_info = match deposit_info {
+    SaleInfoResult::Ok(sale_return) =>
+      match sale_return {
+        SaleInfoResponse::EscrowInfo(escrow_info) => {
+          println!("escrow_info {:?}", escrow_info);
+          escrow_info
+        }
+        _ => {
+          panic!("deposit_info failed: {:?}", sale_return);
+        }
+      }
+    SaleInfoResult::Err(err) => {
+      panic!("deposit_info failed: {:?}", err);
+    }
+  };
+
+  let transfer_ret = icrc1_icrc2_token::client::transfer(
+    pic,
+    nft_buyer.clone(),
+    ldg_ledger.clone(),
+    None,
+    icrc_ledger_types::icrc1::account::Account {
+      owner: deposit_account_info.account.principal.clone(),
+      subaccount: Some(
+        deposit_account_info.account.sub_account
+          .into_vec()
+          .try_into()
+          .expect("slice with incorrect length")
+      ),
+    },
+    Nat::from(100_000_000_000 as u64)
+  );
+
+  let bid_ret = sale_nft_origyn(
+    pic,
+    origyn_nft.clone(),
+    nft_buyer.clone(),
+    ManageSaleRequest::Bid(BidRequest {
+      config: None,
+      escrow_record: EscrowRecord {
+        token: ldg_token_spec.clone(),
+        token_id: "0".to_string(),
+        seller: Account::Account {
+          owner: nft_owner.clone(),
+          sub_account: None,
+        },
+        lock_to_date: None,
+        buyer: Account::Account {
+          owner: nft_buyer.clone(),
+          sub_account: None,
+        },
+        amount: Nat::from(100_000_000_000 as u64),
+        sale_id: Some(sale_id.clone()),
+        account_hash: None,
+      },
+    })
+  );
+
+  let token_id_as_nat = crate::client::origyn_nft_reference::client::get_token_id_as_nat(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    "0".to_string()
+  );
+
+  let owner_of = crate::client::origyn_nft_reference::client::icrc7_owner_of(
+    pic,
+    origyn_nft.clone(),
+    net_principal.clone(),
+    vec![token_id_as_nat.clone()]
+  );
+
+  pic.tick();
+  pic.tick();
+  pic.tick();
+  pic.tick();
+  pic.tick();
+
+  let fee_balance_after = icrc1_icrc2_token::client::balance_of(pic, ogy_ledger.clone(), fee_info);
+
+  let buyer_ldg_balance_after = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ldg_ledger.clone(),
+    Icrc1Account {
+      owner: nft_buyer,
+      subaccount: None,
+    }
+  );
+
+  let owner_ldg_balance_after = icrc1_icrc2_token::client::balance_of(
+    pic,
+    ldg_ledger.clone(),
+    Icrc1Account {
+      owner: nft_owner,
+      subaccount: None,
+    }
+  );
+
+  // paying for, with each at 1_000_000
+  // "com.origyn.royalty.network".to_string(),
+  // "com.origyn.royalty.node".to_string(),
+  // "com.origyn.royalty.broker".to_string(),
+  // "com.origyn.royalty.originator".to_string(),
+  // "com.origyn.royalty.custom".to_string()
+  // but no broker set, so broker fee is 0 and not paid
+  // so 4_000_000 should be paid
+  assert_eq!(
+    fee_balance_after,
+    fee_balance_before - Nat::from(4 as u32) * Nat::from(1_000_000 as u32)
+  );
+
+  assert_eq!(
+    buyer_ldg_balance_after,
+    buyer_ldg_balance_initial - Nat::from(100_000_000_000 as u64) - Nat::from(200_000 as u64)
+  );
+
+  assert_eq!(
+    owner_ldg_balance_after,
+    owner_ldg_balance_initial +
+      Nat::from(100_000_000_000 as u64) -
+      Nat::from(2 as u32) * Nat::from(200_000 as u32)
   );
 
   assert_eq!(
