@@ -31,7 +31,7 @@ import Droute "mo:droute_client/Droute";
 
 import Set "mo:map_7_0_0/Set";
 
-import KYCTypes "mo:icrc17_kyc/types";
+import KYCTypes17 "mo:icrc17_kyc/types";
 
 import CertTree "mo:cert/CertTree";
 
@@ -51,6 +51,7 @@ module {
   public let Properties = v0_1_5.Properties;
   public let JSON = v0_1_5.JSON;
   public let Workspace = v0_1_5.Workspace;
+  public let KYCTypes = KYCTypes17;
 
   public type CollectionData = v0_1_5.CollectionData;
 

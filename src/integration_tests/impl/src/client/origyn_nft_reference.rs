@@ -33,6 +33,10 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
   HistoryResult,
   ManageSaleRequest,
   ManageSaleResult,
+  InitFractionalizeRequest,
+  InitFractionalizeResponse,
+  AuthorizeFractionalizeRequest,
+  AuthorizeFractionalizeResponse,
 };
 
 generate_update_call!(stage_nft_origyn);
@@ -76,6 +80,8 @@ generate_query_call!(sale_info_nft_origyn);
 generate_update_call!(update_metadata_node);
 generate_query_call_encoded_args!(history_nft_origyn);
 generate_update_call!(sale_nft_origyn);
+generate_update_call!(init_fractionalization);
+generate_update_call!(authorize_fractionalization);
 
 pub mod stage_nft_origyn {
   use super::*;
@@ -326,10 +332,23 @@ pub mod sale_nft_origyn {
   pub type Response = ManageSaleResult;
 }
 
+pub mod init_fractionalization {
+  use super::*;
+
+  pub type Args = InitFractionalizeRequest;
+  pub type Response = InitFractionalizeResponse;
+}
+
+pub mod authorize_fractionalization {
+  use super::*;
+
+  pub type Args = AuthorizeFractionalizeRequest;
+  pub type Response = AuthorizeFractionalizeResponse;
+}
+
 pub mod client {
   use super::*;
   use candid::Principal;
-  use icrc_ledger_types::icrc;
   use pocket_ic::PocketIc;
   use types::CanisterId;
 
@@ -777,5 +796,28 @@ pub mod client {
     args: sale_nft_origyn::Args
   ) -> sale_nft_origyn::Response {
     crate::client::origyn_nft_reference::sale_nft_origyn(pic, sender, canister_id, &args)
+  }
+
+  pub fn init_fractionalization(
+    pic: &mut PocketIc,
+    canister_id: CanisterId,
+    sender: Principal,
+    args: init_fractionalization::Args
+  ) -> init_fractionalization::Response {
+    crate::client::origyn_nft_reference::init_fractionalization(pic, sender, canister_id, &args)
+  }
+
+  pub fn authorize_fractionalization(
+    pic: &mut PocketIc,
+    canister_id: CanisterId,
+    sender: Principal,
+    args: authorize_fractionalization::Args
+  ) -> authorize_fractionalization::Response {
+    crate::client::origyn_nft_reference::authorize_fractionalization(
+      pic,
+      sender,
+      canister_id,
+      &args
+    )
   }
 }

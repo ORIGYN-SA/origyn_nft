@@ -1,3 +1,5 @@
+use candid::types::value::IDLValue;
+use candid::{ Nat, Principal };
 use origyn_nft_reference::origyn_nft_reference_canister::{
   CandyShared,
   NftCanisterStageNftOrigynArg,
@@ -7,10 +9,8 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
   StageChunkArg,
   StageLibraryResult,
 };
-use candid::{ Nat, Principal };
-use candid::types::value::IDLValue;
-use serde_bytes::ByteBuf;
 use pocket_ic::PocketIc;
+use serde_bytes::ByteBuf;
 use types::CanisterId;
 
 pub enum TokenStandard {
@@ -50,15 +50,12 @@ pub struct MetadataStruct {
   __system_escrowed: &'static str,
   __apps: &'static str,
   broker_royalty_dev_fund_override: &'static str,
-  collection_kyc_canister_buyer: &'static str,
-  collection_kyc_canister_seller: &'static str,
   library: &'static str,
   library_id: &'static str,
   library_size: &'static str,
   library_location_type: &'static str,
   owner: &'static str,
   id: &'static str,
-  kyc_collection: &'static str,
   primary_asset: &'static str,
   preview_asset: &'static str,
   experience_asset: &'static str,
@@ -96,8 +93,6 @@ const metadata: MetadataStruct = MetadataStruct {
   __system_escrowed: "com.origyn.escrow_node",
   __apps: "__apps",
   broker_royalty_dev_fund_override: "com.origyn.royalties.broker_dev_fund_override",
-  collection_kyc_canister_buyer: "com.origyn.kyc_canister_buyer",
-  collection_kyc_canister_seller: "com.origyn.kyc_canister_seller",
   library: "library",
   library_id: "library_id",
   library_size: "size",
@@ -105,7 +100,6 @@ const metadata: MetadataStruct = MetadataStruct {
   owner: "owner",
   id: "id",
   immutable_library: "com.origyn.immutable_library",
-  kyc_collection: "com.origyn.settings.collection.kyc_canister",
   physical: "com.origyn.physical",
   primary_asset: "primary_asset",
   preview_asset: "preview_asset",
@@ -217,24 +211,24 @@ pub fn build_standard_nft(
 
   let ret_stage = {
     match stage {
-      OrigynTextResult::Ok(response) => { Ok(response) }
-      OrigynTextResult::Err(error) => { Err(error) }
+      OrigynTextResult::Ok(response) => Ok(response),
+      OrigynTextResult::Err(error) => Err(error),
     }
   };
 
   let ret_filestage: Result<Principal, OrigynError> = match filestage {
-    StageLibraryResult::Ok(response) => { Ok(response.canister) }
-    StageLibraryResult::Err(error) => { Err(error) }
+    StageLibraryResult::Ok(response) => Ok(response.canister),
+    StageLibraryResult::Err(error) => Err(error),
   };
 
   let ret_previewstage = match previewstage {
-    StageLibraryResult::Ok(response) => { Ok(response.canister) }
-    StageLibraryResult::Err(error) => { Err(error) }
+    StageLibraryResult::Ok(response) => Ok(response.canister),
+    StageLibraryResult::Err(error) => Err(error),
   };
 
   let ret_hiddenstage = match hiddenstage {
-    StageLibraryResult::Ok(response) => { Ok(response.canister) }
-    StageLibraryResult::Err(error) => { Err(error) }
+    StageLibraryResult::Ok(response) => Ok(response.canister),
+    StageLibraryResult::Err(error) => Err(error),
   };
 
   return BuildStandardNftReturns {
@@ -294,14 +288,14 @@ pub fn build_standard_collection(
 
   let ret_stage = {
     match stage {
-      OrigynTextResult::Ok(response) => { Ok(response) }
-      OrigynTextResult::Err(error) => { Err(error) }
+      OrigynTextResult::Ok(response) => Ok(response),
+      OrigynTextResult::Err(error) => Err(error),
     }
   };
 
   let ret_filestage: Result<Principal, OrigynError> = match file_stage {
-    StageLibraryResult::Ok(response) => { Ok(response.canister) }
-    StageLibraryResult::Err(error) => { Err(error) }
+    StageLibraryResult::Ok(response) => Ok(response.canister),
+    StageLibraryResult::Err(error) => Err(error),
   };
 
   return BuildStandardCollectionReturns {
@@ -1281,7 +1275,7 @@ fn standard_collection(
                         },
                         PropertyShared {
                           name: "rate".to_string(),
-                          value: Box::new(CandyShared::Float(0.03333333333)),
+                          value: Box::new(CandyShared::Float(0.03)),
                           immutable: true,
                         }
                       ]
@@ -1436,7 +1430,7 @@ fn standard_collection(
                           name: "tokenFee".to_string(),
                           value: Box::new(match ledger_token.fee.clone() {
                             None => CandyShared::Option(None),
-                            Some(val) => CandyShared::Option(Some(Box::new(CandyShared::Nat(val)))),
+                            Some(val) => CandyShared::Nat(val),
                           }),
                           immutable: true,
                         }
@@ -1477,7 +1471,7 @@ fn standard_collection(
                           name: "tokenFee".to_string(),
                           value: Box::new(match ledger_token.fee.clone() {
                             None => CandyShared::Option(None),
-                            Some(val) => CandyShared::Option(Some(Box::new(CandyShared::Nat(val)))),
+                            Some(val) => CandyShared::Nat(val),
                           }),
                           immutable: true,
                         }
@@ -1520,7 +1514,7 @@ fn standard_collection(
                           name: "tokenFee".to_string(),
                           value: Box::new(match ledger_token.fee.clone() {
                             None => CandyShared::Option(None),
-                            Some(val) => CandyShared::Option(Some(Box::new(CandyShared::Nat(val)))),
+                            Some(val) => CandyShared::Nat(val),
                           }),
                           immutable: true,
                         }
@@ -1563,7 +1557,7 @@ fn standard_collection(
                           name: "tokenFee".to_string(),
                           value: Box::new(match ledger_token.fee.clone() {
                             None => CandyShared::Option(None),
-                            Some(val) => CandyShared::Option(Some(Box::new(CandyShared::Nat(val)))),
+                            Some(val) => CandyShared::Nat(val),
                           }),
                           immutable: true,
                         },
@@ -1611,7 +1605,7 @@ fn standard_collection(
                           name: "tokenFee".to_string(),
                           value: Box::new(match ledger_token.fee.clone() {
                             None => CandyShared::Option(None),
-                            Some(val) => CandyShared::Option(Some(Box::new(CandyShared::Nat(val)))),
+                            Some(val) => CandyShared::Nat(val),
                           }),
                           immutable: true,
                         }

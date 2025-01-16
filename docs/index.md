@@ -7,7 +7,7 @@
 * [origyn_nft_reference/dfxtypes](origyn_nft_reference/dfxtypes.md) 
 * [origyn_nft_reference/governance](origyn_nft_reference/governance.md) 
 * [origyn_nft_reference/http](origyn_nft_reference/http.md) 
-* [origyn_nft_reference/kyc](origyn_nft_reference/kyc.md) 
+* [origyn_nft_reference/kyc](origyn_nft_reference/kyc.md)
 * [origyn_nft_reference/ledger/block_types](origyn_nft_reference/ledger/block_types.md) 
 * [origyn_nft_reference/ledger_interface](origyn_nft_reference/ledger_interface.md) 
 * [origyn_nft_reference/market](origyn_nft_reference/market.md) 

@@ -19,10 +19,6 @@ import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
-
 import Star "mo:star/star";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Parser "mo:parser-combinators/Parser";
@@ -47,6 +43,7 @@ module {
   let CandyTypes = MigrationTypes.Current.CandyTypes;
   let Conversions = MigrationTypes.Current.Conversions;
   let Properties = MigrationTypes.Current.Properties;
+  let Map = MigrationTypes.Current.Map;
 
   type ProcessRoyaltiesRequest = {
     var remaining : Nat;
@@ -194,12 +191,12 @@ module {
   public func _load_royalty(fee_schema : Text, royalty : CandyTypes.CandyShared) : Result.Result<MigrationTypes.Current.Royalty, Types.OrigynError> {
     debug if (debug_channel.royalties) D.print("_load_royalty" # debug_show (royalty));
 
-    let ?properties : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "tag") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
-    let #Text(tag) = properties.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
+    let ?properties : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "tag") else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
+    let #Text(tag) = properties.value else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing tag in royalty  ", null));
 
     if (fee_schema == Types.metadata.__system_fixed_royalty) {
-      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "fixedXDR") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
-      let #Float(fixedXDR) = properties_2.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
+      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "fixedXDR") else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
+      let #Float(fixedXDR) = properties_2.value else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing fixedXDR in fixed royalty  ", null));
 
       let tokenCanister : ?Principal = switch (Properties.getClassPropertyShared(royalty, "tokenCanister")) {
         case (null) { null };
@@ -261,8 +258,8 @@ module {
 
       return #ok(#fixed({ tag = tag; fixedXDR = fixedXDR; token = token }));
     } else {
-      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "rate") else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
-      let #Float(rate) = properties_2.value else return #err(Types.errors(null, #malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
+      let ?properties_2 : ?CandyTypes.PropertyShared = Properties.getClassPropertyShared(royalty, "rate") else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
+      let #Float(rate) = properties_2.value else return #err(Types.errors(#malformed_metadata, "_load_royalty - missing rate in dynamic royalty  ", null));
 
       return #ok(#dynamic({ tag = tag; rate = rate }));
     };
@@ -287,7 +284,7 @@ module {
           // should never happen and been check before processing royalties.
           debug if (debug_channel.royalties) D.print("_process_royalties - error _load_royalty - this path should never happened.");
           return (request.remaining, []);
-          // return #err(Types.errors(?state.canistergeekLogger, #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller));
+          // return #err(Types.errors( #malformed_metadata, "_process_royalties - error _load_royalty ", ?caller));
         };
       };
 
@@ -558,23 +555,23 @@ module {
     switch (request.broker_id, request.original_broker_id) {
       case (null, null) {
         let ?collection = Map.get(state.state.nft_metadata, Map.thash, "") else {
-          state.canistergeekLogger.logMessage("_build_royalties_broker_account cannot find collection metatdata. this should not happene" # debug_show (request.token_id), #Bool(false), null);
+          // NFTUtils.logDirectly("_build_royalties_broker_account cannot find collection metatdata. this should not happene" # debug_show (request.token_id), #Bool(false), null);
           D.trap("_build_royalties_broker_account cannot find collection metatdata. this should not happen");
         };
 
         let override = switch (Metadata.get_nft_bool_property(collection, Types.metadata.broker_royalty_dev_fund_override)) {
           case (#ok(val)) val;
           case (_) {
-            state.canistergeekLogger.logMessage("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (request.token_id), #Bool(false), null);
+            // NFTUtils.logDirectly("_build_royalties_broker_account overriding error candy type" # debug_show (collection) # debug_show (request.token_id), #Bool(false), null);
             false;
           };
         };
 
         if (override) {
-          state.canistergeekLogger.logMessage("_build_royalties_broker_account overriding " # debug_show (request.token_id), #Bool(override), null);
+          // NFTUtils.logDirectly("_build_royalties_broker_account overriding " # debug_show (request.token_id), #Bool(override), null);
           return [];
         } else {
-          state.canistergeekLogger.logMessage("_build_royalties_broker_account override result using dev fund" # debug_show (request.token_id), #Bool(override), null);
+          // NFTUtils.logDirectly("_build_royalties_broker_account override result using dev fund" # debug_show (request.token_id), #Bool(override), null);
           [dev_fund()];
         };
       }; //dev fund

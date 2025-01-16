@@ -243,7 +243,7 @@ use candid::types::value::IDLValue;
 //   let TestEnv {
 //     ref mut pic,
 //     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger },
-//     principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+//     principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
 //   } = env;
 
 //   init_nft_with_premint_nft(
@@ -285,7 +285,7 @@ fn icrc7_transfer_one() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   init_nft_with_premint_nft(
@@ -400,7 +400,7 @@ fn icrc7_transfer_multiple() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   let MAX_NFTS = 3;
@@ -539,7 +539,7 @@ fn icrc7_transfer_multiple_same_call_simple() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   let MAX_NFTS = 1;
@@ -700,7 +700,7 @@ fn icrc7_transfer_multiple_same_call_complex() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   let MAX_NFTS = 1;
@@ -875,7 +875,7 @@ fn market_transfer_nft_origyn_test() {
   let TestEnv {
     ref mut pic,
     canister_ids: CanisterIds { origyn_nft, ogy_ledger, ldg_ledger, notify },
-    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner },
+    principal_ids: PrincipalIds { net_principal, controller, originator, nft_owner, nft_buyer },
   } = env;
 
   init_nft_with_premint_nft(

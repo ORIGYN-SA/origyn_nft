@@ -113,7 +113,7 @@ module {
 
         let _config = switch (val.current_broker_id) {
           case (?_broker) {
-            ?MigrationTypes.Current.bidfeatures_to_map([#broker(#principal(_broker))]);
+            ?v0_1_6.bidfeatures_to_map([#broker(#principal(_broker))]);
           };
           case (null) {
             null;
@@ -145,7 +145,7 @@ module {
               var participants = val.participants;
               var status = val.status;
               var winner = val.winner;
-              var notify_queue = ?(Deque.empty<(Principal, ?MigrationTypes.Current.SubscriptionID)>());
+              var notify_queue = ?(Deque.empty<(Principal, ?v0_1_6.SubscriptionID)>());
             };
 
           };
@@ -164,7 +164,7 @@ module {
               var participants = val.participants;
               var status = val.status;
               var winner = val.winner;
-              var notify_queue = ?(Deque.empty<(Principal, ?MigrationTypes.Current.SubscriptionID)>());
+              var notify_queue = ?(Deque.empty<(Principal, ?v0_1_6.SubscriptionID)>());
             };
           };
         };
@@ -220,7 +220,7 @@ module {
                   case (#kyc(e)) { #kyc(e) };
                   case (#nifty_settlement(e)) { #nifty_settlement(e) };
                 };
-                Map.set<v0_1_6.AskFeatureKey, v0_1_6.AskFeature>(m, MigrationTypes.Current.ask_feature_set_tool, key, updatedValue);
+                Map.set<v0_1_6.AskFeatureKey, v0_1_6.AskFeature>(m, v0_1_6.ask_feature_set_tool, key, updatedValue);
               };
 
               #ask(?m);

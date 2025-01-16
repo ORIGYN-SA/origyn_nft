@@ -16,25 +16,20 @@ dfx canister create test_storage_factory
 dfx canister create dfxledger
 dfx canister create dfxledger2
 
-
-
-
 DFX_LEDGER_CANISTER_ID=$(dfx canister id dfxledger)
-DFX_LEDGER_ACCOUNT_ID=$(python3 principal_to_accountid.py $DFX_LEDGER_CANISTER_ID)
+DFX_LEDGER_ACCOUNT_ID=$(dfx ledger account-id --of-principal $DFX_LEDGER_CANISTER_ID)
 
 DFX_LEDGER_CANISTER2_ID=$(dfx canister id dfxledger2)
-DFX_LEDGER_ACCOUNT2_ID=$(python3 principal_to_accountid.py $DFX_LEDGER_CANISTER2_ID)
+DFX_LEDGER_ACCOUNT2_ID=$(dfx ledger account-id --of-principal $DFX_LEDGER_CANISTER2_ID)
 
 TEST_RUNNER_CANISTER_ID=$(dfx canister id test_runner)
-TEST_RUNNER_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_CANISTER_ID)
+TEST_RUNNER_ACCOUNT_ID=$(dfx ledger account-id --of-principal $TEST_RUNNER_CANISTER_ID)
 
 TEST_RUNNER_NFT_CANISTER_ID=$(dfx canister id test_runner_nft)
-TEST_RUNNER_NFT_ACCOUNT_ID=$(python3 principal_to_accountid.py $TEST_RUNNER_NFT_CANISTER_ID)
-
+TEST_RUNNER_NFT_ACCOUNT_ID=$(dfx ledger account-id --of-principal $TEST_RUNNER_NFT_CANISTER_ID)
 
 TEST_CANISTER_FACTORY_ID=$(dfx canister id test_canister_factory)
 TEST_STORAGE_FACTORY_ID=$(dfx canister id test_storage_factory)
-
 
 dfx build test_runner
 dfx build test_runner_nft
@@ -50,13 +45,13 @@ gzip ./.dfx/local/canisters/test_runner_nft/test_runner_nft.wasm -f
 
 dfx canister install test_canister_factory --mode=reinstall --wasm ./.dfx/local/canisters/test_canister_factory/test_canister_factory.wasm.gz
 
-dfx canister install test_storage_factory --mode=reinstall  --wasm ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm.gz
+dfx canister install test_storage_factory --mode=reinstall --wasm ./.dfx/local/canisters/test_storage_factory/test_storage_factory.wasm.gz
 
 dfx canister install test_runner --mode=reinstall --wasm ./.dfx/local/canisters/test_runner/test_runner.wasm.gz --argument "(record { canister_factory = principal \"$TEST_CANISTER_FACTORY_ID\"; storage_factory = principal \"$TEST_STORAGE_FACTORY_ID\";dfx_ledger = opt principal \"$DFX_LEDGER_CANISTER_ID\"; test_runner_nft = opt principal \"$TEST_RUNNER_NFT_CANISTER_ID\"; test_runner_nft_2 = null; test_runner_instant = null; test_runner_data = null; test_runner_utils = null; test_runner_collection = null;test_runner_storage = null;})"
 
 dfx canister install test_runner_nft --wasm ./.dfx/local/canisters/test_runner_nft/test_runner_nft.wasm.gz --mode=reinstall --argument "(principal  \"$DFX_LEDGER_CANISTER_ID\", principal  \"$DFX_LEDGER_CANISTER2_ID\")"
 
-dfx canister install dfxledger  --mode=reinstall --argument '(
+dfx canister install dfxledger --mode=reinstall --argument '(
   variant {
     Init = record {
       decimals = null;
@@ -135,6 +130,4 @@ dfx canister install dfxledger2 --mode=reinstall --argument '(
   },
 )'
 
-
 dfx canister call test_runner test
-

@@ -11,13 +11,13 @@ pub enum NftCanisterSetTimeModeArg {
   #[serde(rename = "standard")]
   Standard,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct PropertyShared {
   pub value: Box<CandyShared>,
   pub name: String,
   pub immutable: bool,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum CandyShared {
   Int(candid::Int),
   Map(Vec<(Box<CandyShared>, Box<CandyShared>)>),
@@ -59,7 +59,7 @@ pub struct StableCollectionData {
   pub symbol: Option<String>,
   pub allocated_storage: candid::Nat,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum IcTokenSpecStandard {
   #[serde(rename = "ICRC1")]
   Icrc1,
@@ -70,7 +70,7 @@ pub enum IcTokenSpecStandard {
   Other(Box<CandyShared>),
   Ledger,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct IcTokenSpec {
   pub id: Option<candid::Nat>,
   pub fee: Option<candid::Nat>,
@@ -79,7 +79,7 @@ pub struct IcTokenSpec {
   pub standard: IcTokenSpecStandard,
   pub symbol: String,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum TokenSpec {
   #[serde(rename = "ic")] Ic(IcTokenSpec),
   #[serde(rename = "extensible")] Extensible(Box<CandyShared>),
@@ -139,7 +139,6 @@ pub enum EndingType {
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub enum AskFeature {
-  #[serde(rename = "kyc")] Kyc(Principal),
   #[serde(rename = "start_price")] StartPrice(candid::Nat),
   #[serde(rename = "token")] Token(TokenSpec),
   #[serde(rename = "fee_schema")] FeeSchema(String),
@@ -445,7 +444,11 @@ pub struct BalanceResponse {
   pub multi_canister: Option<Vec<Principal>>,
   pub escrow: Vec<EscrowRecord>,
 }
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, Deserialize)]
+pub struct AuthorizeFractionalizeRequest {
+  pub token_id: String,
+}
+#[derive(CandidType, Deserialize, Debug, PartialEq)]
 pub enum Errors {
   #[serde(rename = "nyi")]
   Nyi,
@@ -467,8 +470,6 @@ pub enum Errors {
   SaleIdDoesNotMatch,
   #[serde(rename = "sale_not_found")]
   SaleNotFound,
-  #[serde(rename = "kyc_fail")]
-  KycFail,
   #[serde(rename = "item_not_owned")]
   ItemNotOwned,
   #[serde(rename = "property_not_found")]
@@ -517,8 +518,6 @@ pub enum Errors {
   AppIdNotFound,
   #[serde(rename = "token_non_transferable")]
   TokenNonTransferable,
-  #[serde(rename = "kyc_error")]
-  KycError,
   #[serde(rename = "sale_not_over")]
   SaleNotOver,
   #[serde(rename = "escrow_not_large_enough")]
@@ -554,6 +553,12 @@ pub struct OrigynError {
   pub error: Errors,
   pub number: u32,
   pub flag_point: String,
+}
+#[derive(CandidType, Deserialize)]
+pub enum AuthorizeFractionalizeResponse {
+  #[serde(rename = "ok")]
+  Ok,
+  #[serde(rename = "err")] Err(OrigynError),
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub enum BalanceResult {
@@ -1039,7 +1044,7 @@ pub struct BlockType {
   pub block_type: String,
 }
 pub type Subaccount = serde_bytes::ByteBuf;
-#[derive(CandidType, Deserialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub struct Account3 {
   pub owner: Principal,
   pub subaccount: Option<Subaccount>,
@@ -1126,6 +1131,16 @@ pub struct TransferResultItem {
   pub transfer_result: TransferResultItemTransferResult,
 }
 pub type TransferResult = Vec<Option<TransferResultItem>>;
+#[derive(CandidType, Deserialize, Debug)]
+pub struct InitFractionalizeRequest {
+  pub token_id: String,
+}
+#[derive(CandidType, Deserialize)]
+pub enum InitFractionalizeResponse {
+  #[serde(rename = "ok")]
+  Ok,
+  #[serde(rename = "err")] Err(OrigynError),
+}
 #[derive(CandidType, Deserialize, Debug)]
 pub enum ManageStorageRequestConfigureStorage {
   #[serde(rename = "stableBtree")] StableBtree(Option<candid::Nat>),
@@ -1366,6 +1381,7 @@ pub struct EscrowRequest {
 pub struct FeeDepositRequest {
   pub token: TokenSpec,
   pub account: Account,
+  pub amount: candid::Nat,
 }
 #[derive(CandidType, Deserialize, Debug)]
 pub struct RejectDescription {
@@ -2129,6 +2145,9 @@ candid::define_service!(pub NftCanister : {
   "__set_time_mode" : candid::func!((NftCanisterSetTimeModeArg) -> (bool));
   "__supports" : candid::func!(() -> (Vec<(String,String,)>) query);
   "__version" : candid::func!(() -> (String) query);
+  "authorize_fractionalization" : candid::func!(
+    (AuthorizeFractionalizeRequest) -> (AuthorizeFractionalizeResponse)
+  );
   "back_up" : candid::func!((candid::Nat) -> (NftCanisterBackUpRet) query);
   "balance" : candid::func!((ExtBalanceRequest) -> (ExtBalanceResult) query);
   "balanceEXT" : candid::func!((ExtBalanceRequest) -> (ExtBalanceResult) query);
@@ -2307,6 +2326,9 @@ candid::define_service!(pub NftCanister : {
     (candid::Nat) -> (Option<candid::Nat>) query
   );
   "icrc7_tx_window" : candid::func!(() -> (Option<candid::Nat>) query);
+  "init_fractionalization" : candid::func!(
+    (InitFractionalizeRequest) -> (InitFractionalizeResponse)
+  );
   "manage_storage_nft_origyn" : candid::func!(
     (ManageStorageRequest) -> (ManageStorageResult)
   );
@@ -2417,6 +2439,12 @@ impl Service {
   }
   pub async fn version(&self) -> Result<(String,)> {
     ic_cdk::call(self.0, "__version", ()).await
+  }
+  pub async fn authorize_fractionalization(
+    &self,
+    arg0: AuthorizeFractionalizeRequest
+  ) -> Result<(AuthorizeFractionalizeResponse,)> {
+    ic_cdk::call(self.0, "authorize_fractionalization", (arg0,)).await
   }
   pub async fn back_up(&self, arg0: candid::Nat) -> Result<(NftCanisterBackUpRet,)> {
     ic_cdk::call(self.0, "back_up", (arg0,)).await
@@ -2778,6 +2806,12 @@ impl Service {
   }
   pub async fn icrc_7_tx_window(&self) -> Result<(Option<candid::Nat>,)> {
     ic_cdk::call(self.0, "icrc7_tx_window", ()).await
+  }
+  pub async fn init_fractionalization(
+    &self,
+    arg0: InitFractionalizeRequest
+  ) -> Result<(InitFractionalizeResponse,)> {
+    ic_cdk::call(self.0, "init_fractionalization", (arg0,)).await
   }
   pub async fn manage_storage_nft_origyn(
     &self,

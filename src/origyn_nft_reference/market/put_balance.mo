@@ -19,10 +19,6 @@ import Timer "mo:base/Timer";
 
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 
-import Map "mo:map/Map";
-import Set "mo:map/Set";
-import MapUtil "mo:map/utils";
-
 import Star "mo:star/star";
 
 import SHA256 "mo:crypto/SHA/SHA256";
@@ -44,6 +40,7 @@ module {
 
   let account_handler = MigrationTypes.Current.account_handler;
   let token_handler = MigrationTypes.Current.token_handler;
+  let Map = MigrationTypes.Current.Map;
 
   /**
     * Processes a change in fee_deposit balance.
@@ -94,7 +91,7 @@ module {
       };
 
       if (balance < total_locked) {
-        return #err(Types.errors(?state.canistergeekLogger, #low_fee_balance, "put_fee_deposit_balance new balance value is below tokens locks value. total_locked : " # debug_show (total_locked), null));
+        return #err(Types.errors(#low_fee_balance, "put_fee_deposit_balance new balance value is below tokens locks value. total_locked : " # debug_show (total_locked), null));
       };
 
       Map.set(a_from, token_handler, request.token, { total_balance = balance; locks = a_token.locks });
