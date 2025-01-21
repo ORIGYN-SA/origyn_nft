@@ -1216,7 +1216,7 @@ module {
     let owner : Types.Account = switch (Metadata.get_nft_owner(metadata)) {
       case (#err(err)) {
         //default is the canister
-        #principal(state.canister());
+        { owner = state.canister(); subaccount = null };
       };
       case (#ok(val)) {
         val;
@@ -1306,16 +1306,15 @@ module {
           {
             name = Types.metadata.owner;
             mode = #Set(
-              switch (newOwner) {
-                case (#principal(newOwner)) {
-                  #Principal(newOwner);
-                };
-                case (#account_id(newOwner)) { #Text(newOwner) };
-                case (#extensible(newOwner)) { newOwner };
-                case (#account(buyer)) {
-                  #Array([#Principal(buyer.owner), #Option(switch (buyer.sub_account) { case (null) { null }; case (?val) { ? #Blob(val) } })]);
-                };
-              }
+              #Array([
+                #Principal(newOwner.owner),
+                #Option(
+                  switch (newOwner.subaccount) {
+                    case (null) { null };
+                    case (?val) { ?#Blob(val) };
+                  }
+                ),
+              ])
             );
           },
         ],

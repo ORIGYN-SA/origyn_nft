@@ -177,7 +177,7 @@ module {
     };
 
     var rEnd = switch (end) {
-      case (null) { size -1 : Nat };
+      case (null) { size - 1 : Nat };
       case (?v) { v };
     };
 
@@ -214,7 +214,7 @@ module {
         streaming_strategy = switch (cbt.callback) {
           case (null) { null };
           case (?tk) {
-            ? #Callback({
+            ?#Callback({
               token = tk;
               callback = canister.nftStreamingCallback;
             });
@@ -293,7 +293,7 @@ module {
       streaming_strategy = switch (result.callback) {
         case (null) { null };
         case (?tk) {
-          ? #Callback({
+          ?#Callback({
             token = tk;
             callback = canister.nftStreamingCallback;
           });
@@ -1509,7 +1509,7 @@ module {
 
     let { identity; expires } = info;
 
-    switch (Metadata.is_nft_owner(metadata, #principal(identity))) {
+    switch (Metadata.is_nft_owner(metadata, { owner = identity; subaccount = null })) {
       case (#ok(val)) {
         if (val == false) return #err("not an owner");
       };

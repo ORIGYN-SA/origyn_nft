@@ -529,7 +529,9 @@ module {
     debug if (debug_channel.invoice) D.print("in deposit info nft origyn.");
 
     let account = switch (request) {
-      case (null) #principal(caller);
+      case (null) {
+        { owner = caller; subaccount = null };
+      };
       case (?val) val;
     };
 
@@ -567,7 +569,9 @@ module {
     debug if (debug_channel.invoice) D.print("in fee deposit info nft origyn.");
 
     let account = switch (request) {
-      case (null) #principal(caller);
+      case (null) {
+        { owner = caller; subaccount = null };
+      };
       case (?val) val;
     };
 
@@ -776,7 +780,7 @@ module {
         //only the canister can end a buy now
       } else {
 
-        if ((Types.account_eq(#principal(caller), owner) == true or caller == state.canister()) and current_sale_state.current_escrow == null) {
+        if ((caller == owner.owner or caller == state.canister()) and current_sale_state.current_escrow == null) {
           //an owner can cancel an auction that has no bids yet.
           //useful for buy it now sales with a long out end date.
 
@@ -984,7 +988,7 @@ module {
         };
 
         //reentancy risk so change the owner to inflight
-        metadata := switch (Metadata.set_nft_owner(state, token_id, #extensible(#Text("trx in flight")), caller)) {
+        metadata := switch (Metadata.set_nft_owner(state, token_id, { owner = Principal.fromText("aaaaa-aa"); subaccount = null }, caller)) {
           case (#err(err)) return #err(#trappable(Types.errors(err.error, "market_transfer_nft_origyn can't set inflight owner " # err.flag_point, ?caller)));
           case (#ok(new_metadata)) new_metadata;
         };
@@ -1002,7 +1006,7 @@ module {
                   try {
                     switch (Star.toResult(await* checker.transfer_sale(state.canister(), winning_escrow, token_id, caller))) {
                       case (#ok(val)) {
-                        (?val.0, ?val.1.account.sub_account, token.fee);
+                        (?val.0, val.1.subaccount, token.fee);
                       };
                       case (#err(err)) {
                         //put the escrow back because the payment failed
@@ -1435,7 +1439,7 @@ module {
       if (Metadata.is_soulbound(metadata)) return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
 
       //this is a minted NFT - only the nft owner
-      switch (Metadata.is_nft_owner(metadata, #principal(caller))) {
+      switch (Metadata.is_nft_owner(metadata, { owner = caller; subaccount = null })) {
         case (#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller));
         case (#ok(val)) {
           if (val == false) {
@@ -1445,15 +1449,9 @@ module {
       };
     } else {
       //this is a staged NFT it can be sold by the canister owner or the canister manager
-      switch (owner) {
-        case (#extensible(ex)) {
-          if (Conversions.candySharedToText(ex) == "trx in flight") {
-            return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn - not an owner of the canister - staged sale - trx in flight", ?caller));
-          };
-        };
-        case (_) {};
+      if (owner.owner == Principal.fromText("aaaaa-aa")) {
+        return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn - not an owner of the canister - staged sale - trx in flight", ?caller));
       };
-
     };
 
     debug if (debug_channel.market) D.print("have minted " # debug_show (this_is_minted));
@@ -1572,7 +1570,7 @@ module {
                       lock_to_date = null;
                       token_id = escrow.token_id;
                     },
-                    MigrationTypes.Current.account_to_principal(escrow.buyer),
+                    escrow.buyer.owner,
                   )
                 )
               ) {
@@ -1652,7 +1650,7 @@ module {
         };
 
         //reentrancy risk so set the owner to a black hole while transaction is in flight
-        metadata := switch (Metadata.set_nft_owner(state, request.token_id, #extensible(#Text("trx in flight")), caller)) {
+        metadata := switch (Metadata.set_nft_owner(state, request.token_id, { owner = Principal.fromText("aaaaa-aa"); subaccount = null }, caller)) {
           case (#err(err)) return async_market_transfer_unlock_fee_account_callback(
             state,
             metadata,
@@ -1678,7 +1676,7 @@ module {
                   try {
                     switch (Star.toResult(await* checker.transfer_sale(state.canister(), escrow, request.token_id, caller))) {
                       case (#ok(val)) {
-                        (?val.0, ?val.1.account.sub_account, ?val.2);
+                        (?val.0, val.1.subaccount, ?val.2);
                       };
                       case (#err(err)) {
                         //put the escrow back because the payment failed
@@ -2258,7 +2256,7 @@ module {
       if (Metadata.is_soulbound(metadata)) return #err(Types.errors(#token_non_transferable, "market_transfer_nft_origyn ", ?caller));
 
       //this is a minted NFT - only the nft owner or nft manager can sell it
-      switch (Metadata.is_nft_owner(metadata, #principal(caller))) {
+      switch (Metadata.is_nft_owner(metadata, { owner = caller; subaccount = null })) {
         case (#err(err)) return #err(Types.errors(err.error, "market_transfer_nft_origyn - not an owner of the NFT - minted sale" # err.flag_point, ?caller));
         case (#ok(val)) {
           if (val == false) return #err(Types.errors(#unauthorized_access, "market_transfer_nft_origyn - not an owner of the NFT - minted sale", ?caller));
@@ -2368,7 +2366,7 @@ module {
                 state,
                 metadata,
                 ret.token,
-                #account({ owner = caller; sub_account = null }),
+                { owner = caller; subaccount = null },
                 sale_id,
                 broker_set,
                 fee_schema,
@@ -2434,9 +2432,7 @@ module {
       {
         sale_id = sale_id;
         original_broker_id = switch (request.sales_config.broker_id) {
-          case (?_broker_id) {
-            ?MigrationTypes.Current.account_to_principal(_broker_id);
-          };
+          case (?_broker_id) { ?_broker_id.owner };
           case (null) { null };
         };
         broker_id = null; //currently the broker id for a auction doesn't do much. perhaps it should split the broker reward?
@@ -2821,7 +2817,7 @@ module {
           {
             amount = sale_state.min_next_bid;
             seller = owner;
-            buyer = #principal(notify.0);
+            buyer = { owner = notify.0; subaccount = null };
             token_id = sale.token_id;
             token = sale_state.token;
           },
@@ -3087,10 +3083,12 @@ module {
 
     let seller = switch (request) {
       case (null) {
-        #principal(caller);
+        { owner = caller; subaccount = null };
       };
       case (?val) {
-        if (Types.account_eq(#principal(caller), val)) { val } else {
+        if (Types.account_eq({ owner = caller; subaccount = null }, val)) {
+          val;
+        } else {
           if (NFTUtils.is_owner_manager_network(state, caller) == false) {
             return #err(Types.errors(#unauthorized_access, "refresh_offerns_nft_origyn - not an owner", ?caller));
           };
@@ -3155,9 +3153,9 @@ module {
     //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
     //we will also allow a canister/canister owner to create escrows for itself
     if (
-      Types.account_eq(#principal(caller), request.deposit.buyer) == false and
-      Types.account_eq(#principal(caller), #principal(state.canister())) == false and
-      Types.account_eq(#principal(caller), #principal(state.state.collection_data.owner)) == false and
+      caller != request.deposit.buyer.owner and
+      caller != state.canister() and
+      caller != state.state.collection_data.owner and
       Array.filter<Principal>(state.state.collection_data.managers, func(item : Principal) { item == caller }).size() == 0
     ) {
       return #err(#trappable(Types.errors(#unauthorized_access, "escrow_nft_origyn - escrow - buyer and caller do not match", ?caller)));
@@ -3199,8 +3197,7 @@ module {
 
       //cant escrow for an owner that doesn't own the token
       debug if (debug_channel.escrow) D.print(debug_show ("owner " # debug_show (owner) # " request.deposit.seller = " # debug_show (request.deposit.seller)));
-      debug if (debug_channel.escrow) D.print(debug_show ("owner account_to_owner_subaccount " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(owner)) # " MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller)  = " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller))));
-      if (MigrationTypes.Current.compare_account(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
+      if (Types.account_eq(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
     };
 
     //move the deposit to an escrow account
@@ -3213,7 +3210,7 @@ module {
             debug if (debug_channel.escrow) D.print("found ledger");
             let checker = Ledger_Interface.Ledger_Interface();
             switch (await* checker.transfer_deposit(state.canister(), request, caller)) {
-              case (#ok(val)) (val.transaction_id, ?val.subaccount_info.account.sub_account);
+              case (#ok(val)) (val.transaction_id, val.subaccount_info.subaccount);
               case (#err(err)) return #err(#awaited(Types.errors(err.error, "escrow_nft_origyn " # err.flag_point, ?caller)));
             };
           };
@@ -3285,9 +3282,9 @@ module {
   public func deposit_fee_nft_origyn(state : StateAccess, request : Types.FeeDepositRequest, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
     // Ensure the caller is authorized (account owner, canister, manager, collection owner)
     if (
-      Types.account_eq(#principal(caller), request.account) == false and
-      Types.account_eq(#principal(caller), #principal(state.canister())) == false and
-      Types.account_eq(#principal(caller), #principal(state.state.collection_data.owner)) == false and
+      caller != request.account.owner and
+      caller != state.canister() and
+      caller != state.state.collection_data.owner and
       Array.filter<Principal>(state.state.collection_data.managers, func(item : Principal) { item == caller }).size() == 0
     ) {
       return #err(#trappable(Types.errors(#unauthorized_access, "deposit_fee_nft_origyn - escrow - account and caller do not match", ?caller)));
@@ -3337,7 +3334,7 @@ module {
         let token_ledger : ICRC2.Self = actor (Principal.toText(token.canister));
         debug if (debug_channel.escrow) D.print("Principal.toText(token.canister)  " # debug_show (Principal.toText(token.canister)));
 
-        let add_fund_to_fees_wallet = switch (await token_ledger.icrc2_transfer_from({ to = { owner = feeDepositAccount.account.principal; subaccount = ?feeDepositAccount.account.sub_account }; fee = token.fee; spender_subaccount = null; from = { owner = caller; subaccount = null }; memo = null; created_at_time = null; amount = request.amount })) {
+        let add_fund_to_fees_wallet = switch (await token_ledger.icrc2_transfer_from({ to = { owner = feeDepositAccount.owner; subaccount = feeDepositAccount.subaccount }; fee = token.fee; spender_subaccount = null; from = { owner = caller; subaccount = null }; memo = null; created_at_time = null; amount = request.amount })) {
           case (#Ok(val)) val;
           case (#Err(err)) {
             return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - transfer from request failed " # debug_show (err), ?caller)));
@@ -3404,9 +3401,9 @@ module {
     //can someone escrow for someone else? No. Only a buyer can create an escrow for themselves for now
     //we will also allow a canister/canister owner to create escrows for itself
     if (
-      MigrationTypes.Current.compare_account(#principal(caller), request.deposit.buyer) == false and
-      Types.account_eq(#principal(caller), #principal(state.canister())) == false and
-      Types.account_eq(#principal(caller), #principal(state.state.collection_data.owner)) == false and
+      caller != request.deposit.buyer.owner and
+      caller != state.canister() and
+      caller != state.state.collection_data.owner and
       Array.filter<Principal>(state.state.collection_data.managers, func(item : Principal) { item == caller }).size() == 0
     ) {
       return #err(#trappable(Types.errors(#unauthorized_access, "recognize_escrow_nft_origyn - escrow - buyer and caller do not match", ?caller)));
@@ -3454,8 +3451,7 @@ module {
 
       //cant escrow for an owner that doesn't own the token
       debug if (debug_channel.escrow) D.print(debug_show ("owner " # debug_show (owner) # " request.deposit.seller = " # debug_show (request.deposit.seller)));
-      debug if (debug_channel.escrow) D.print(debug_show ("owner account_to_owner_subaccount " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(owner)) # " MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller)  = " # debug_show (MigrationTypes.Current.account_to_owner_subaccount(request.deposit.seller))));
-      if (MigrationTypes.Current.compare_account(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "recognize_escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
+      if (Types.account_eq(owner, request.deposit.seller) == false) return #err(#trappable(Types.errors(#escrow_owner_not_the_owner, "recognize_escrow_nft_origyn cannot create escrow for item someone does not own", ?caller)));
     };
 
     let search = NFTUtils.find_escrow_asset_map(state, { request.deposit with token_id = request.token_id });
@@ -3489,10 +3485,10 @@ module {
           case (#Ledger or #ICRC1) {
             debug if (debug_channel.escrow) D.print("found ledger");
             let checker = Ledger_Interface.Ledger_Interface();
-            switch (Star.toResult<{ balance : Nat; subaccount_info : Types.SubAccountInfo }, Types.OrigynError>(await* checker.escrow_balance(state.canister(), request, caller))) {
+            switch (Star.toResult<{ balance : Nat; subaccount_info : Types.Account }, Types.OrigynError>(await* checker.escrow_balance(state.canister(), request, caller))) {
               case (#ok(val)) {
                 debug if (debug_channel.escrow) D.print("found balance" # debug_show (val));
-                (val.balance, ?val.subaccount_info.account.sub_account);
+                (val.balance, val.subaccount_info.subaccount);
               };
               case (#err(err)) {
                 //this has failed so put the old escrow back if it existed;
@@ -3900,7 +3896,7 @@ module {
     if (Types.account_eq(owner, request.escrow_record.seller) == false) return #err(#trappable(Types.errors(#receipt_data_mismatch, "bid_nft_origyn - owner and seller do not match " # debug_show (request.escrow_record.token) # debug_show (_get_token_from_sales_status(current_sale)), ?caller)));
 
     //make sure buyers match
-    if (Types.account_eq(#principal(caller), request.escrow_record.buyer) == false) return #err(#trappable(Types.errors(#receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show (request.escrow_record.token) # debug_show (_get_token_from_sales_status(current_sale)), ?caller)));
+    if (caller != request.escrow_record.buyer.owner) return #err(#trappable(Types.errors(#receipt_data_mismatch, "bid_nft_origyn - caller and buyer do not match " # debug_show (request.escrow_record.token) # debug_show (_get_token_from_sales_status(current_sale)), ?caller)));
 
     debug if (debug_channel.bid) D.print(" about to verify escrow " # debug_show (request.escrow_record));
 
@@ -4057,7 +4053,7 @@ module {
             state,
             metadata,
             current_sale_state.token,
-            #account({ owner = caller; sub_account = null }),
+            { owner = caller; subaccount = null },
             sale_id,
             broker_set,
             fee_schema,
@@ -4131,7 +4127,7 @@ module {
                   sale_id = sale_id;
                   fee_accounts = MigrationTypes.Current.load_fee_accounts_bid_feature(current_sale_state.current_config);
                   fee_schema = ?fee_schema;
-                  owner = #account({ owner = caller; sub_account = null });
+                  owner = { owner = caller; subaccount = null };
                 },
               )
             ) {
@@ -4283,10 +4279,47 @@ module {
       let tmp_locked_fees = Buffer.Buffer<(MigrationTypes.Current.TokenSpec, Nat)>(5);
       var found = false;
       let royalties_names : [Text] = Royalties.royalties_names;
-      // let account : MigrationTypes.Current.Account = #account({
-      //   owner = caller;
-      //   sub_account = null;
-      // });
+      // var total_fees = 0;
+
+      // for (royalties_name in fee_accounts.vals()) {
+      //   switch (Array.find<Text>(royalties_names, func(val) { return val == royalties_name })) {
+      //     case (?val) {};
+      //     case (null) {
+      //       debug if (debug_channel.market) D.print("bad royalty name = " # debug_show (royalties_name) # " and should be one of " # debug_show (royalties_names));
+      //       return #err(Types.errors(#improper_interface, "market_transfer_nft_origyn bad royalty name = " # debug_show (royalties_name) # " and should be one of " # debug_show (royalties_names), null));
+      //     };
+      //   };
+      //   debug if (debug_channel.market) D.print("loaded_royalty.tag = " # debug_show (loaded_royalty.tag) # " royalties_name = " # debug_show (royalties_name) # " broker_set " # debug_show (broker_set));
+      //   if ((broker_set == true or (broker_set == false and loaded_royalty.tag != "com.origyn.royalty.broker"))) {
+      //     if (royalties_name == loaded_royalty.tag) {
+      //       let fees : Nat = Int.abs(Float.toInt(Float.ceil(loaded_royalty.fixedXDR)));
+      //       total_fees := total_fees + fees;
+      //     };
+      //   };
+      // };
+
+      // let balance : Nat = switch (token.standard) {
+      //   case (#Ledger or #ICRC1) {
+      //     debug if (debug_channel.escrow) D.print("found ledger");
+      //     let checker = Ledger_Interface.Ledger_Interface();
+      //     switch (await* checker.fee_deposit_balance(state.canister(), request, caller)) {
+      //       case (#trappable(val)) (val.balance);
+      //       case (#awaited(val)) (val.balance);
+      //       case (#err(#awaited(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+      //       case (#err(#trappable(err))) return #err(#awaited(Types.errors(err.error, "deposit_fee_nft_origyn " # err.flag_point, ?caller)));
+      //     };
+      //   };
+      //   case (_) return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - ic type nyi - " # debug_show (request), ?caller)));
+      // };
+
+      // let add_fund_to_fees_wallet = switch (await token_ledger.icrc2_transfer_from({ to = { owner = account.principal; subaccount = ?subaccount }; fee = token.fee; spender_subaccount = null; from = { owner = caller; subaccount = null }; memo = null; created_at_time = null; amount = total_fees })) {
+      //   case (#Ok(val)) val;
+      //   case (#Err(err)) {
+      //     return #err(#awaited(Types.errors(#nyi, "deposit_fee_nft_origyn - transfer from request failed " # debug_show (err), ?caller)));
+      //   };
+      // };
+
+      // let deposit_result = PutBalance.put_fee_deposit_balance(state, request, balance + total_fees);
 
       // check if fund are provisioned by #fee_deposit
       for (royalties_name in fee_accounts.vals()) {
@@ -4431,6 +4464,7 @@ module {
               ) {
                 case (#ok(val)) {
                   debug if (debug_channel.market) D.print("Successfully unlocked token");
+                  // TODO gwojda automaticly try to withdraw fee tokens from the account
                 };
                 case (#err(val)) {
                   // TODO Not critical so no error reported. In futur we will add a garbage collector for this case.

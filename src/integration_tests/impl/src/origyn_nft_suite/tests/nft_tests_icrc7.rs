@@ -4,7 +4,7 @@ use crate::client::pocket::unwrap_response;
 use crate::origyn_nft_suite::{ CanisterIds, PrincipalIds };
 use crate::origyn_nft_suite::{ init::init, TestEnv };
 use origyn_nft_reference::origyn_nft_reference_canister::{
-  Account3,
+  Account,
   SalesConfig,
   PricingConfigShared,
   AskFeature,
@@ -356,7 +356,7 @@ fn icrc7_transfer_one() {
         memo: None,
         from_subaccount: None,
         created_at_time: None,
-        to: Account3 { owner: controller, subaccount: None },
+        to: Account { owner: controller, subaccount: None },
         token_id: token_id_as_nat.clone(),
       };
 
@@ -484,7 +484,7 @@ fn icrc7_transfer_multiple() {
       memo: None,
       from_subaccount: None,
       created_at_time: None,
-      to: Account3 { owner: controller, subaccount: None },
+      to: Account { owner: controller, subaccount: None },
       token_id: i.clone(),
     };
 
@@ -625,7 +625,7 @@ fn icrc7_transfer_multiple_same_call_simple() {
       memo: None,
       from_subaccount: None,
       created_at_time: None,
-      to: Account3 { owner: controller, subaccount: None },
+      to: Account { owner: controller, subaccount: None },
       token_id: i.clone(),
     };
 
@@ -787,7 +787,7 @@ fn icrc7_transfer_multiple_same_call_complex() {
       memo: None,
       from_subaccount: None,
       created_at_time: None,
-      to: Account3 { owner: controller, subaccount: None },
+      to: Account { owner: controller, subaccount: None },
       token_id: i.clone(),
     };
 

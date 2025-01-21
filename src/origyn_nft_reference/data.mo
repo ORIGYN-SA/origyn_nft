@@ -281,7 +281,7 @@ module {
                   //nyi: anyone can write. Maybe an error?
                   return #err(Types.errors(#improper_interface, "update_app_nft_origyn - write node cannot be public - this isn't a bathroom stall", ?caller));
                 } else if (write_detail == "nft_owner") {
-                  if (Metadata.is_owner(this_metadata, #principal(caller)) == false) return #err(Types.errors(#unauthorized_access, "update_app_nft_origyn - write is nft_owner - must own this NFT", ?caller));
+                  if (Metadata.is_owner(this_metadata, { owner = caller; subaccount = null }) == false) return #err(Types.errors(#unauthorized_access, "update_app_nft_origyn - write is nft_owner - must own this NFT", ?caller));
                 } else if (write_detail == "collection_owner") {
                   if (state.state.collection_data.owner != caller) return #err(Types.errors(#unauthorized_access, "update_app_nft_origyn - write is nft_owner - must own this NFT", ?caller));
                 } else {

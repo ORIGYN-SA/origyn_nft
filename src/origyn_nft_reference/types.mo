@@ -21,7 +21,6 @@ import MapUtils "mo:map/utils";
 import StableBTreeTypes "mo:stableBTree/types";
 import hex "mo:encoding/Hex";
 
-import DIP721 "DIP721";
 import MigrationTypes "./migrations/types";
 import StorageMigrationTypes "./migrations_storage/types";
 import DROUTE "mo:droute_client/Droute";
@@ -165,7 +164,7 @@ module {
   };
 
   public type SubscriberNotification = {
-    escrow_info : SubAccountInfo;
+    escrow_info : Account;
     sale : SaleStatusShared;
     seller : Account;
     collection : Principal;
@@ -236,16 +235,6 @@ module {
   public let TokenSpecDefault = #extensible(#Option(null));
 
   //nyi: anywhere a deposit address is used, check blob for size in inspect message
-  public type SubAccountInfo = {
-    principal : Principal;
-    account_id : Blob;
-    account_id_text : Text;
-    account : {
-      principal : Principal;
-      sub_account : Blob;
-    };
-  };
-
   public type EscrowReceipt = MigrationTypes.Current.EscrowReceipt;
 
   public type EscrowRequest = {
@@ -728,9 +717,9 @@ module {
       count : Nat;
     };
     #status : ?SaleStatusShared;
-    #deposit_info : SubAccountInfo;
-    #escrow_info : SubAccountInfo;
-    #fee_deposit_info : SubAccountInfo;
+    #deposit_info : Account;
+    #escrow_info : Account;
+    #fee_deposit_info : Account;
   };
 
   public type GovernanceRequest = {
@@ -1487,76 +1476,7 @@ module {
   };
 
   public func account_eq(a : Account, b : Account) : Bool {
-    switch (a) {
-      case (#principal(a_principal)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return a_principal == b_principal;
-          };
-          case (#account_id(b_account_id)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == b_account_id;
-          };
-          case (#account(b_account)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch (b_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#account_id(a_account_id)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal, null));
-          };
-          case (#account_id(b_account_id)) {
-            return a_account_id == b_account_id;
-          };
-          case (#account(b_account)) {
-            return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch (b_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#extensible(a_extensible)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return false;
-          };
-          case (#account_id(b_account_id)) {
-            return false;
-          };
-          case (#account(b_account_id)) {
-            return false;
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#account(a_account)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal, null));
-          };
-          case (#account_id(b_account_id)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })) == b_account_id;
-          };
-          case (#account(b_account)) {
-            return a_account.owner == b_account.owner and a_account.sub_account == b_account.sub_account;
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-    };
+    return a.owner == b.owner and a.subaccount == b.subaccount;
   };
 
   public func token_compare(a : TokenSpec, b : TokenSpec) : Order.Order {
@@ -1636,62 +1556,19 @@ module {
   };
 
   public func account_hash(a : Account) : Nat {
-    switch (a) {
-      case (#principal(a_principal)) {
-        Nat32.toNat(Principal.hash(a_principal));
-      };
-      case (#account_id(a_account_id)) {
-        Nat32.toNat(Text.hash(a_account_id));
+    Nat32.toNat(Text.hash(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a.owner, switch (a.subaccount) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }))));
 
-      };
-      case (#account(a_account)) {
-        Nat32.toNat(Text.hash(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }))));
-
-      };
-      case (#extensible(a_extensible)) {
-        //unimplemnted; unsafe; probably dont use
-        //until a reliable valueToHash function is written
-        //if any redenring of classes changes the whole hash
-        //will change
-        Nat32.toNat(Text.hash(Conversions.candySharedToText(a_extensible)));
-
-      };
-    };
   };
 
   public func account_hash_uncompressed(a : Account) : Nat {
-    switch (a) {
-      case (#principal(a_principal)) {
-        MapUtils.hashBlob(Principal.toBlob(a_principal));
-      };
-      case (#account_id(a_account_id)) {
-
-        let accountBlob = switch (hex.decode(a_account_id)) {
-          case (#ok(item)) { Blob.fromArray(item) };
-          case (#err(err)) {
-            D.trap("Not a valid hex");
-          };
-        };
-        MapUtils.hashBlob(accountBlob);
-      };
-      case (#account(a_account)) {
-        let account_id = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
-        let accountBlob = switch (hex.decode(account_id)) {
-          case (#ok(item)) { Blob.fromArray(item) };
-          case (#err(err)) {
-            D.trap("Not a valid hex");
-          };
-        };
-        MapUtils.hashBlob(accountBlob);
-      };
-      case (#extensible(a_extensible)) {
-        //unimplemnted; unsafe; probably dont use
-        //until a reliable valueToHash function is written
-        //if any redenring of classes changes the whole hash
-        //will change
-        MapUtils.hashBlob(Conversions.candySharedToBlob(#Text(Conversions.candySharedToText(a_extensible))));
+    let account_id = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a.owner, switch (a.subaccount) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
+    let accountBlob = switch (hex.decode(account_id)) {
+      case (#ok(item)) { Blob.fromArray(item) };
+      case (#err(err)) {
+        D.trap("Not a valid hex");
       };
     };
+    MapUtils.hashBlob(accountBlob);
   };
 
   public func token_hash(a : TokenSpec) : Nat {
@@ -1780,65 +1657,8 @@ module {
     refresh_metadata_nft_origyn : (token_id : Text, metadata : CandyTypes.CandyShared) -> async Result.Result<Bool, OrigynError>;
   };
 
-  public func force_account_to_account_id(request : Account) : Result.Result<Account, OrigynError> {
-    switch (request) {
-      case (#principal(principal)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(principal, null))));
-      case (#account(account)) #ok(#account_id(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(account.owner, null))));
-      case (#account_id(account_id)) #ok(request);
-      case (#extensible(ex)) return #err(errors(#nyi, "force_account_to_account_id", null));
-    };
-  };
-
-  //the following types are included to provde stable .did creations. Please do not remove them even if they
-  //seem like they ocould be refactored.
-
-  public type EXTAccountIdentifier = Text;
-  public type EXTBalance = Nat;
-  public type EXTTokenIdentifier = Text;
-  public type EXTCommonError = {
-    #InvalidToken : EXTTokenIdentifier;
-    #Other : Text;
-  };
-  public type EXTBalanceResult = Result.Result<EXTBalance, EXTCommonError>;
-  public type EXTBalanceRequest = {
-    user : EXTUser;
-    token : EXTTokenIdentifier;
-  };
-  public type EXTUser = {
-    #address : Text; //No notification
-    #principal : Principal; //defaults to sub account 0
-  };
-  public type EXTMemo = Blob;
-  public type EXTSubAccount = [Nat8];
-  public type EXTTransferRequest = {
-    from : EXTUser;
-    to : EXTUser;
-    token : EXTTokenIdentifier;
-    amount : EXTBalance;
-    memo : EXTMemo;
-    notify : Bool;
-    subaccount : ?EXTSubAccount;
-  };
-  public type EXTTransferResponse = Result.Result<EXTBalance, { #Unauthorized : EXTAccountIdentifier; #InsufficientBalance; #Rejected; /* Rejected by canister */
-  #InvalidToken : EXTTokenIdentifier; #CannotNotify : EXTAccountIdentifier; #Other : Text }>;
-
-  public type EXTMetadata = {
-    #fungible : {
-      name : Text;
-      symbol : Text;
-      decimals : Nat8;
-      metadata : ?Blob;
-    };
-    #nonfungible : {
-      metadata : ?Blob;
-    };
-  };
-  public type EXTMetadataResult = Result.Result<EXTMetadata, EXTCommonError>;
-  public type EXTTokensResult = Result.Result<[EXTTokensResponse], EXTCommonError>;
-
   public type BalanceResult = Result.Result<BalanceResponse, OrigynError>;
   public type BearerResult = Result.Result<Account, OrigynError>;
-  public type EXTBearerResult = Result.Result<EXTAccountIdentifier, EXTCommonError>;
   public type ChunkResult = Result.Result<ChunkContent, OrigynError>;
   public type CollectionResult = Result.Result<CollectionInfo, OrigynError>;
   public type OrigynBoolResult = Result.Result<Bool, OrigynError>;
@@ -1861,13 +1681,8 @@ module {
   public type Service = actor {
     __advance_time : shared Int -> async Int;
     __set_time_mode : shared { #test; #standard } -> async Bool;
-    balance : shared query EXTBalanceRequest -> async EXTBalanceResult;
-    balanceEXT : shared query EXTBalanceRequest -> async EXTBalanceResult;
-    balanceOfDip721 : shared query Principal -> async Nat;
     balance_of_nft_origyn : shared query Account -> async BalanceResult;
     balance_of_secure_nft_origyn : shared (account : Account) -> async BalanceResult;
-    bearer : shared query EXTTokenIdentifier -> async EXTBearerResult;
-    bearerEXT : shared query EXTTokenIdentifier -> async EXTBearerResult;
     bearer_nft_origyn : shared query Text -> async BearerResult;
     bearer_batch_nft_origyn : shared query (tokens : [Text]) -> async [BearerResult];
     bearer_secure_nft_origyn : shared (token_id : Text) -> async BearerResult;
@@ -1884,7 +1699,6 @@ module {
     collection_update_batch_nft_origyn : ([ManageCollectionCommand]) -> async [OrigynBoolResult];
     cycles : shared query () -> async Nat;
     get_access_key : shared () -> async OrigynTextResult;
-    getEXTTokenIdentifier : shared query Text -> async Text;
     get_nat_as_token_id : shared query Nat -> async Text;
     get_token_id_as_nat : shared query Text -> async Nat;
     governance_nft_origyn : shared (request : GovernanceRequest) -> async GovernanceResult;
@@ -1898,8 +1712,6 @@ module {
     manage_storage_nft_origyn : shared ManageStorageRequest -> async ManageStorageResult;
     market_transfer_nft_origyn : shared MarketTransferRequest -> async MarketTransferResult;
     market_transfer_batch_nft_origyn : shared [MarketTransferRequest] -> async [MarketTransferResult];
-    metadata : shared query () -> async DIP721.DIP721Metadata;
-    metadataExt : shared query (EXTTokenIdentifier) -> async EXTMetadataResult;
     mint_nft_origyn : shared (Text, Account) -> async OrigynTextResult;
     mint_batch_nft_origyn : shared (tokens : [(Text, Account)]) -> async [OrigynTextResult];
     nftStreamingCallback : shared query StreamingCallbackToken -> async StreamingCallbackResponse;
@@ -1908,8 +1720,6 @@ module {
     nft_batch_secure_origyn : shared (token_ids : [Text]) -> async [NFTInfoResult];
     nft_secure_origyn : shared (token_id : Text) -> async NFTInfoResult;
     update_app_nft_origyn : shared NFTUpdateRequest -> async NFTUpdateResult;
-    ownerOf : shared query Nat -> async DIP721.OwnerOfResponse;
-    ownerOfDIP721 : shared query Nat -> async DIP721.OwnerOfResponse;
     share_wallet_nft_origyn : shared ShareWalletRequest -> async OwnerUpdateResult;
     sale_nft_origyn : shared ManageSaleRequest -> async ManageSaleResult;
     sale_batch_nft_origyn : shared (requests : [ManageSaleRequest]) -> async [ManageSaleResult];
@@ -1923,10 +1733,6 @@ module {
     stage_batch_nft_origyn : shared (request : [{ metadata : CandyTypes.CandyShared }]) -> async [OrigynTextResult];
     storage_info_nft_origyn : shared query () -> async StorageMetricsResult;
     storage_info_secure_nft_origyn : shared () -> async StorageMetricsResult;
-    transfer : shared EXTTransferRequest -> async EXTTransferResponse;
-    transferEXT : shared EXTTransferRequest -> async EXTTransferResponse;
-    transferFrom : shared (Principal, Principal, Nat) -> async DIP721.DIP721NatResult;
-    transferFromDip721 : shared (Principal, Principal, Nat) -> async DIP721.DIP721NatResult;
     whoami : shared query () -> async Principal;
   };
 

@@ -1,6 +1,7 @@
 import D "mo:base/Debug";
 import Deque "mo:base/Deque";
 import Array "mo:base/Array";
+import Principal "mo:base/Principal";
 
 import CandyTypes = "mo:candy/types";
 
@@ -125,14 +126,32 @@ module {
     return map9;
   };
 
+  public func convertOldAccountToIcrc1Account(old_account : v0_1_6.Account) : v0_1_7.Account {
+    switch (old_account) {
+      case (#account(account)) {
+        { owner = account.owner; subaccount = account.sub_account };
+      };
+      case (#principal(principal)) {
+        { owner = principal; subaccount = null };
+      };
+      case (#account_id(account_id)) {
+        { owner = Principal.fromText("aaaaa-aa"); subaccount = null };
+
+      };
+      case (#extensible(ext)) {
+        { owner = Principal.fromText("aaaaa-aa"); subaccount = null };
+      };
+    };
+  };
+
   public func convertOffersMap7ToMap9(map7 : Map_lib.Map<v0_1_6.Account, Map_lib.Map<v0_1_6.Account, Int>>) : Map.Map<v0_1_7.Account, Map.Map<v0_1_7.Account, Int>> {
     let map9 = Map.new<v0_1_7.Account, Map.Map<v0_1_7.Account, Int>>();
     for ((key, value) in Map_lib.entries(map7)) {
       let innerMap = Map.new<v0_1_7.Account, Int>();
       for ((innerKey, innerValue) in Map_lib.entries(value)) {
-        Map.set(innerMap, v0_1_7.account_handler, innerKey, innerValue);
+        Map.set(innerMap, v0_1_7.account_handler, convertOldAccountToIcrc1Account(innerKey), innerValue);
       };
-      Map.set(map9, v0_1_7.account_handler, key, innerMap);
+      Map.set(map9, v0_1_7.account_handler, convertOldAccountToIcrc1Account(key), innerMap);
     };
     return map9;
   };
@@ -162,13 +181,23 @@ module {
         for ((innerKey2, innerValue2) in Map_lib.entries(innerValue1)) {
           let innerMap3 = Map.new<v0_1_7.TokenSpec, v0_1_7.EscrowRecord>();
           for ((innerKey3, innerValue3) in Map_lib.entries(innerValue2)) {
-            Map.set(innerMap3, v0_1_7.token_handler, innerKey3, innerValue3);
+            let new_escrow_record : v0_1_7.EscrowRecord = {
+              amount = innerValue3.amount;
+              buyer = convertOldAccountToIcrc1Account(innerValue3.buyer);
+              seller = convertOldAccountToIcrc1Account(innerValue3.seller);
+              token_id = innerValue3.token_id;
+              token = innerValue3.token;
+              sale_id = innerValue3.sale_id;
+              lock_to_date = innerValue3.lock_to_date;
+              account_hash = innerValue3.account_hash;
+            };
+            Map.set(innerMap3, v0_1_7.token_handler, innerKey3, new_escrow_record);
           };
           Map.set(innerMap2, Map.thash, innerKey2, innerMap3);
         };
-        Map.set(innerMap1, v0_1_7.account_handler, innerKey1, innerMap2);
+        Map.set(innerMap1, v0_1_7.account_handler, convertOldAccountToIcrc1Account(innerKey1), innerMap2);
       };
-      Map.set(map9, v0_1_7.account_handler, key, innerMap1);
+      Map.set(map9, v0_1_7.account_handler, convertOldAccountToIcrc1Account(key), innerMap1);
     };
     return map9;
   };
@@ -182,13 +211,24 @@ module {
         for ((innerKey2, innerValue2) in Map_lib.entries(innerValue1)) {
           let innerMap3 = Map.new<v0_1_7.TokenSpec, v0_1_7.EscrowRecord>();
           for ((innerKey3, innerValue3) in Map_lib.entries(innerValue2)) {
-            Map.set(innerMap3, v0_1_7.token_handler, innerKey3, innerValue3);
+            let new_escrow_record : v0_1_7.EscrowRecord = {
+              amount = innerValue3.amount;
+              buyer = convertOldAccountToIcrc1Account(innerValue3.buyer);
+              seller = convertOldAccountToIcrc1Account(innerValue3.seller);
+              token_id = innerValue3.token_id;
+              token = innerValue3.token;
+              sale_id = innerValue3.sale_id;
+              lock_to_date = innerValue3.lock_to_date;
+              account_hash = innerValue3.account_hash;
+            };
+
+            Map.set(innerMap3, v0_1_7.token_handler, innerKey3, new_escrow_record);
           };
           Map.set(innerMap2, Map.thash, innerKey2, innerMap3);
         };
-        Map.set(innerMap1, v0_1_7.account_handler, innerKey1, innerMap2);
+        Map.set(innerMap1, v0_1_7.account_handler, convertOldAccountToIcrc1Account(innerKey1), innerMap2);
       };
-      Map.set(map9, v0_1_7.account_handler, key, innerMap1);
+      Map.set(map9, v0_1_7.account_handler, convertOldAccountToIcrc1Account(key), innerMap1);
     };
     return map9;
   };
@@ -205,16 +245,106 @@ module {
             index = thisItem.index;
             timestamp = thisItem.timestamp;
             txn_type = switch (thisItem.txn_type) {
-              case (#auction_bid(e)) { #auction_bid(e) };
-              case (#mint(e)) { #mint(e) };
-              case (#sale_ended(e)) { #sale_ended(e) };
-              case (#royalty_paid(e)) { #royalty_paid(e) };
+              case (#auction_bid(e)) {
+                #auction_bid({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  sale_id = e.sale_id;
+                  token = e.token;
+                });
+              };
+              case (#mint(e)) {
+                #mint({
+                  extensible = e.extensible;
+                  from = convertOldAccountToIcrc1Account(e.from);
+                  sale = switch (e.sale) {
+                    case (?sale) {
+                      ?{
+                        amount = sale.amount;
+                        token = sale.token;
+                      };
+                    };
+                    case (null) { null };
+                  };
+                  to = convertOldAccountToIcrc1Account(e.to);
+                });
+              };
+              case (#sale_ended(e)) {
+                #sale_ended({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  sale_id = e.sale_id;
+                  seller = convertOldAccountToIcrc1Account(e.seller);
+                  token = e.token;
+                });
+              };
+              case (#royalty_paid(e)) {
+                #royalty_paid({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  receiver = convertOldAccountToIcrc1Account(e.receiver);
+                  sale_id = e.sale_id;
+                  seller = convertOldAccountToIcrc1Account(e.seller);
+                  tag = e.tag;
+                  token = e.token;
+                });
+              };
               case (#sale_opened(e)) { #sale_opened(convertSaleOpened7To9(e)) };
-              case (#owner_transfer(e)) { #owner_transfer(e) };
-              case (#escrow_deposit(e)) { #escrow_deposit(e) };
-              case (#escrow_withdraw(e)) { #escrow_withdraw(e) };
-              case (#deposit_withdraw(e)) { #deposit_withdraw(e) };
-              case (#sale_withdraw(e)) { #sale_withdraw(e) };
+              case (#owner_transfer(e)) {
+                #owner_transfer({
+                  extensible = e.extensible;
+                  from = convertOldAccountToIcrc1Account(e.from);
+                  to = convertOldAccountToIcrc1Account(e.to);
+                });
+              };
+              case (#escrow_deposit(e)) {
+                #escrow_deposit({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  seller = convertOldAccountToIcrc1Account(e.seller);
+                  token = e.token;
+                  token_id = e.token_id;
+                  trx_id = e.trx_id;
+                });
+              };
+              case (#escrow_withdraw(e)) {
+                #escrow_withdraw({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  fee = e.fee;
+                  seller = convertOldAccountToIcrc1Account(e.seller);
+                  token = e.token;
+                  token_id = e.token_id;
+                  trx_id = e.trx_id;
+                });
+              };
+              case (#deposit_withdraw(e)) {
+                #deposit_withdraw({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  fee = e.fee;
+                  token = e.token;
+                  trx_id = e.trx_id;
+                });
+              };
+              case (#sale_withdraw(e)) {
+                #sale_withdraw({
+                  amount = e.amount;
+                  buyer = convertOldAccountToIcrc1Account(e.buyer);
+                  extensible = e.extensible;
+                  fee = e.fee;
+                  seller = convertOldAccountToIcrc1Account(e.seller);
+                  token = e.token;
+                  token_id = e.token_id;
+                  trx_id = e.trx_id;
+                });
+              };
               case (#canister_owner_updated(e)) { #canister_owner_updated(e) };
               case (#canister_managers_updated(e)) {
                 #canister_managers_updated(e);
@@ -223,9 +353,36 @@ module {
                 #canister_network_updated(e);
               };
               case (#data(e)) { #data(e) };
-              case (#burn(e)) { #burn(e) };
-              case (#fee_deposit(e)) { #fee_deposit(e) };
-              case (#fee_deposit_withdraw(e)) { #fee_deposit_withdraw(e) };
+              case (#burn(e)) {
+                switch (e.from) {
+                  case (null) #burn({
+                    extensible = e.extensible;
+                    from = null;
+                  });
+                  case (?account) #burn({
+                    extensible = e.extensible;
+                    from = ?convertOldAccountToIcrc1Account(account);
+                  });
+                };
+              };
+              case (#fee_deposit(e)) {
+                #fee_deposit({
+                  account = convertOldAccountToIcrc1Account(e.account);
+                  amount = e.amount;
+                  extensible = e.extensible;
+                  token = e.token;
+                });
+              };
+              case (#fee_deposit_withdraw(e)) {
+                #fee_deposit_withdraw({
+                  account = convertOldAccountToIcrc1Account(e.account);
+                  amount = e.amount;
+                  extensible = e.extensible;
+                  fee = e.fee;
+                  token = e.token;
+                  trx_id = e.trx_id;
+                });
+              };
               case (#extensible(e)) { #extensible(e) };
             };
           },
@@ -246,25 +403,139 @@ module {
           index = thisItem.index;
           timestamp = thisItem.timestamp;
           txn_type = switch (thisItem.txn_type) {
-            case (#auction_bid(e)) { #auction_bid(e) };
-            case (#mint(e)) { #mint(e) };
-            case (#sale_ended(e)) { #sale_ended(e) };
-            case (#royalty_paid(e)) { #royalty_paid(e) };
+            case (#auction_bid(e)) {
+              #auction_bid({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                sale_id = e.sale_id;
+                token = e.token;
+              });
+            };
+            case (#mint(e)) {
+              #mint({
+                extensible = e.extensible;
+                from = convertOldAccountToIcrc1Account(e.from);
+                sale = switch (e.sale) {
+                  case (?sale) {
+                    ?{
+                      amount = sale.amount;
+                      token = sale.token;
+                    };
+                  };
+                  case (null) { null };
+                };
+                to = convertOldAccountToIcrc1Account(e.to);
+              });
+            };
+            case (#sale_ended(e)) {
+              #sale_ended({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                sale_id = e.sale_id;
+                seller = convertOldAccountToIcrc1Account(e.seller);
+                token = e.token;
+              });
+            };
+            case (#royalty_paid(e)) {
+              #royalty_paid({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                receiver = convertOldAccountToIcrc1Account(e.receiver);
+                sale_id = e.sale_id;
+                seller = convertOldAccountToIcrc1Account(e.seller);
+                tag = e.tag;
+                token = e.token;
+              });
+            };
             case (#sale_opened(e)) { #sale_opened(convertSaleOpened7To9(e)) };
-            case (#owner_transfer(e)) { #owner_transfer(e) };
-            case (#escrow_deposit(e)) { #escrow_deposit(e) };
-            case (#escrow_withdraw(e)) { #escrow_withdraw(e) };
-            case (#deposit_withdraw(e)) { #deposit_withdraw(e) };
-            case (#sale_withdraw(e)) { #sale_withdraw(e) };
+            case (#owner_transfer(e)) {
+              #owner_transfer({
+                extensible = e.extensible;
+                from = convertOldAccountToIcrc1Account(e.from);
+                to = convertOldAccountToIcrc1Account(e.to);
+              });
+            };
+            case (#escrow_deposit(e)) {
+              #escrow_deposit({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                seller = convertOldAccountToIcrc1Account(e.seller);
+                token = e.token;
+                token_id = e.token_id;
+                trx_id = e.trx_id;
+              });
+            };
+            case (#escrow_withdraw(e)) {
+              #escrow_withdraw({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                fee = e.fee;
+                seller = convertOldAccountToIcrc1Account(e.seller);
+                token = e.token;
+                token_id = e.token_id;
+                trx_id = e.trx_id;
+              });
+            };
+            case (#deposit_withdraw(e)) {
+              #deposit_withdraw({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                fee = e.fee;
+                token = e.token;
+                trx_id = e.trx_id;
+              });
+            };
+            case (#sale_withdraw(e)) {
+              #sale_withdraw({
+                amount = e.amount;
+                buyer = convertOldAccountToIcrc1Account(e.buyer);
+                extensible = e.extensible;
+                fee = e.fee;
+                seller = convertOldAccountToIcrc1Account(e.seller);
+                token = e.token;
+                token_id = e.token_id;
+                trx_id = e.trx_id;
+              });
+            };
             case (#canister_owner_updated(e)) { #canister_owner_updated(e) };
             case (#canister_managers_updated(e)) {
               #canister_managers_updated(e);
             };
             case (#canister_network_updated(e)) { #canister_network_updated(e) };
             case (#data(e)) { #data(e) };
-            case (#burn(e)) { #burn(e) };
-            case (#fee_deposit(e)) { #fee_deposit(e) };
-            case (#fee_deposit_withdraw(e)) { #fee_deposit_withdraw(e) };
+            case (#burn(e)) {
+              #burn({
+                extensible = e.extensible;
+                from = switch (e.from) {
+                  case (?account) ?convertOldAccountToIcrc1Account(account);
+                  case (null) null;
+                };
+              });
+            };
+            case (#fee_deposit(e)) {
+              #fee_deposit({
+                account = convertOldAccountToIcrc1Account(e.account);
+                amount = e.amount;
+                extensible = e.extensible;
+                token = e.token;
+              });
+            };
+            case (#fee_deposit_withdraw(e)) {
+              #fee_deposit_withdraw({
+                account = convertOldAccountToIcrc1Account(e.account);
+                amount = e.amount;
+                extensible = e.extensible;
+                fee = e.fee;
+                token = e.token;
+                trx_id = e.trx_id;
+              });
+            };
             case (#extensible(e)) { #extensible(e) };
           };
         },
@@ -306,6 +577,29 @@ module {
   };
 
   public func convertAuctionState7To9(state7 : v0_1_6.AuctionState) : v0_1_7.AuctionState {
+    let new_escrow_record : ?v0_1_7.EscrowRecord = switch (state7.current_escrow) {
+      case (?escrow) {
+        ?{
+          amount = escrow.amount;
+          buyer = convertOldAccountToIcrc1Account(escrow.buyer);
+          seller = convertOldAccountToIcrc1Account(escrow.seller);
+          token_id = escrow.token_id;
+          token = escrow.token;
+          sale_id = escrow.sale_id;
+          lock_to_date = escrow.lock_to_date;
+          account_hash = escrow.account_hash;
+        };
+      };
+      case (null) { null };
+    };
+
+    let new_winner : ?v0_1_7.Account = switch (state7.winner) {
+      case (?winner) {
+        ?convertOldAccountToIcrc1Account(winner);
+      };
+      case (null) { null };
+    };
+
     {
       config = switch (state7.config) {
         case (#ask(ask_config)) { #ask(convertAskState7To9(ask_config)) };
@@ -320,7 +614,7 @@ module {
       };
       var current_bid_amount = state7.current_bid_amount;
       var current_config = convertBidConfig7To9(state7.current_config);
-      var current_escrow = state7.current_escrow;
+      var current_escrow = new_escrow_record;
       var end_date = state7.end_date;
       var start_date = state7.start_date;
       token = state7.token;
@@ -330,7 +624,7 @@ module {
       var participants = convertParticipantsMap7ToMap9(state7.participants);
       var status = state7.status;
       var notify_queue = state7.notify_queue;
-      var winner = state7.winner;
+      var winner = new_winner;
     };
   };
 
@@ -493,7 +787,9 @@ module {
         let innerMap : v0_1_7.BidFeatureMap = Map.new<v0_1_7.BidFeatureKey, v0_1_7.BidFeature>();
         for ((innerKey, innerValue) in Map_lib.entries(val)) {
           let newValue = switch (innerValue) {
-            case (#broker(e)) { #broker(e) };
+            case (#broker(e)) {
+              #broker(convertOldAccountToIcrc1Account(e));
+            };
             case (#fee_schema(e)) { #fee_schema(e) };
             case (#fee_accounts(e)) { #fee_accounts(e) };
           };

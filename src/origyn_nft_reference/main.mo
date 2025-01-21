@@ -24,8 +24,6 @@ import BytesConverter "mo:stableBTree/bytesConverter";
 import CandyUpgrade "mo:candy_0_2_0/upgrade";
 
 import Droute "mo:droute_client/Droute";
-import EXT "mo:ext/Core";
-import EXTCommon "mo:ext/Common";
 import ICRC7 "ICRC7";
 
 import Map "mo:map9/Map";
@@ -36,7 +34,6 @@ import Star "mo:star/star";
 //todo: remove in 0.1.5
 import CandyTypesOld "mo:candy_0_1_12/types";
 
-import DIP721 "DIP721";
 import Governance "governance";
 import Market "market";
 // import Fractionalize "fractionalize";
@@ -80,6 +77,7 @@ shared (deployer) actor class Nft_Canister() = this {
   let Properties = MigrationTypes.Current.Properties;
   let Workspace = MigrationTypes.Current.Workspace;
   let JSON = MigrationTypes.Current.JSON;
+  let account_handler = MigrationTypes.Current.account_handler;
 
   debug if (debug_channel.instantiation) D.print("creating a canister");
 
@@ -353,7 +351,7 @@ shared (deployer) actor class Nft_Canister() = this {
         } else {
           #greater;
         };
-      }
+      };
     );
 
     state_current.master_ledger := SB.fromArray<MigrationTypes.Current.TransactionRecord>(Buffer.toArray(master_ledger));
@@ -573,22 +571,9 @@ shared (deployer) actor class Nft_Canister() = this {
     if (halt == true) {
       throw Error.reject("canister is in maintenance mode");
     };
-    switch (new_owner) {
-      case (#account(val)) {
-        let a = Principal.toText(val.owner);
-        NFTUtils.logDirectly("mint_nft_origyn", #Text(token_id # " new owner : " # a), ?msg.caller);
-      };
-      case (#account_id(val)) {
-        NFTUtils.logDirectly("mint_nft_origyn", #Text(token_id # " new owner : " # val), ?msg.caller);
-      };
-      case (#extensible(val)) {
-        // NFTUtils.logDirectly("mint_nft_origyn", val, ?msg.caller);
-      };
-      case (#principal(val)) {
-        let p = Principal.toText(val);
-        NFTUtils.logDirectly("mint_nft_origyn", #Text(token_id # " new owner : " # p), ?msg.caller);
-      };
-    };
+
+    let a = Principal.toText(new_owner.owner);
+    NFTUtils.logDirectly("mint_nft_origyn", #Text(token_id # " new owner : " # a), ?msg.caller);
 
     debug if (debug_channel.function_announce) D.print("in mint");
     return await* Mint.mint_nft_origyn(get_state(), token_id, new_owner, msg.caller);
@@ -716,181 +701,8 @@ shared (deployer) actor class Nft_Canister() = this {
     return Buffer.toArray(results);
   };
 
-  /**
-    * Dip721 transferFrom - must have a valid escrow
-    *
-    * @param {Principal} from - The principal to transfer the token from
-    * @param {Principal} to - The principal to transfer the token to
-    * @param {Nat} tokenAsNat - The token to be transferred
-    *
-    * @return {DIP721.Result} A result object indicating success or failure
-    *
-    * @throws {Error} Throws an error if the canister is in maintenance mode
-    */
-  public shared (msg) func transferFromDip721(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-
-    return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
-    /* if (halt == true) {
-            throw Error.reject("canister is in maintenance mode");
-        };
-        D.trap("transferFrom not supported in origyn_nft.  Use market_transfer_nft_origyn(#auction(X)).");
-        let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
-        NFTUtils.logDirectly("transferFromDip721", #Text(log_data), ?msg.caller);
-
-        debug if (debug_channel.function_announce) D.print("in transferFromDip721");
-        // Existing escrow acts as approval
-        if (msg.caller != to) {
-            return #Err(#UnauthorizedOperator);
-        };
-        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, msg.caller); */
-  };
-
-  /**
-    * Transfers the specified token from the caller to the given principal using DIP-721 standard.
-    *
-    * @param {Principal} caller - The caller principal initiating the transfer.
-    * @param {Principal} to - The principal to transfer the token to.
-    * @param {Nat} tokenAsNat - The token to transfer represented as a Nat.
-    * @returns {async DIP721.Result} - Result of the transfer operation.
-    */
-  private func _dip_721_transfer(caller : Principal, to : Principal, tokenAsNat : Nat) : async* DIP721.DIP721NatResult {
-
-    let log_data : Text = "To :" # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
-    NFTUtils.logDirectly("transferDip721", #Text("transferDip721"), ?caller);
-
-    debug if (debug_channel.function_announce) D.print("in transferFromDip721");
-    // Existing escrow acts as approval
-    return await* Owner.transferDip721(get_state(), caller, to, tokenAsNat, caller);
-  };
-
-  /**
-    * Transfers a Dip721 token to another account.
-    *
-    * @param {Principal} to - The principal of the account to transfer the token to.
-    * @param {Nat} tokenAsNat - The ID of the token to transfer.
-    * @returns {Promise<DIP721.Result>} - The result of the transfer operation.
-    * @throws {Error} - If the canister is in maintenance mode.
-    */
-  public shared (msg) func transferDip721(to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-    if (halt == true) {
-      throw Error.reject("canister is in maintenance mode");
-    };
-    await* _dip_721_transfer(msg.caller, to, tokenAsNat);
-  };
-
-  /**
-    * Transfer a DIP-721 token to a specified principal. Escrow must exist.
-    * @param {Principal} to - The principal to transfer the token to.
-    * @param {Nat} tokenAsNat - The token identifier as a natural number.
-    * @returns {DIP721.Result} A result indicating whether the transfer was successful or not.
-    * @throws {Error} If the canister is in maintenance mode.
-    */
-  public shared (msg) func dip721_transfer(to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-    if (halt == true) {
-      throw Error.reject("canister is in maintenance mode");
-    };
-    await* _dip_721_transfer(msg.caller, to, tokenAsNat);
-  };
-
-  /**
-    * Transfers a DIP721 token from a specified owner to another account, if the transfer is authorized by the owner or the operator.
-    * @param {Principal} caller - The principal that is calling this function.
-    * @param {Principal} from - The principal of the token's current owner.
-    * @param {Principal} to - The principal of the account that will receive the token.
-    * @param {Nat} tokenAsNat - The ID of the token to be transferred, represented as a natural number.
-    * @returns {async DIP721.Result} - Result indicating if the transfer was successful or not.
-    */
-  private func _dip_721_transferFrom(caller : Principal, from : Principal, to : Principal, tokenAsNat : Nat) : async* DIP721.DIP721NatResult {
-    return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
-    /*  let log_data : Text = "From : " # Principal.toText(from) # " to " # Principal.toText(to) # " - Token : " # Nat.toText(tokenAsNat);
-        NFTUtils.logDirectly("transferFrom", #Text("transferFrom"), ?caller);
-
-        debug if (debug_channel.function_announce) D.print("in transferFrom");
-        if (caller != to) {
-            return #Err(#UnauthorizedOperator);
-        };
-        // Existing escrow acts as approval
-        return await* Owner.transferDip721(get_state(), from, to, tokenAsNat, caller); */
-  };
-
-  /**
-    * Performs a Dip721 transferFrom of a token from one wallet to another.
-    * @param {Principal} from - The wallet address to transfer from.
-    * @param {Principal} to - The wallet address to transfer to.
-    * @param {Nat} tokenAsNat - The token to be transferred represented as a natural number.
-    * @returns {Promise<DIP721.Result>} - Result of the transfer operation.
-    * @throws {Error} - Throws an error if the canister is in maintenance mode.
-    */
-  public shared (msg) func transferFrom(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-    return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead."));
-    /* if (halt == true) {
-            throw Error.reject("canister is in maintenance mode");
-        };
-        await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat); */
-  };
-
-  /**
-    * Performs a transfer of a DIP-721 token from one account to another, provided that the `from` account has previously granted permission to the `caller` account to perform this transfer.
-    *
-    * @param {Principal} from - The account that currently owns the token being transferred.
-    * @param {Principal} to - The account to which the token is being transferred.
-    * @param {Nat} tokenAsNat - The token ID being transferred.
-    *
-    * @returns {async DIP721.Result} - The result of the transfer operation, which could be an error or success.
-    *
-    * @throws {Error} - If the canister is currently in maintenance mode.
-    */
-  public shared (msg) func dip721_transfer_from(from : Principal, to : Principal, tokenAsNat : Nat) : async DIP721.DIP721NatResult {
-    return #Err(#Other("transferFrom is not supported by origyn_nft.  Create a market ask using market_transfer_nft_origyn(#ask(X)) instead.")); /**
-        if (halt == true) {
-            throw Error.reject("canister is in maintenance mode");
-        };
-        return await* _dip_721_transferFrom(msg.caller, from, to, tokenAsNat); */
-  };
-
-  /**
-    * Transfer an external token from one account to another, must have a valid escrow.
-    * @param request - The transfer request object containing the token and recipient details
-    * @returns The transfer response object containing the transaction status and details
-    * @throws {Error} Throws an error if the canister is in maintenance mode
-    */
-  public shared (msg) func transferEXT(request : Types.EXTTransferRequest) : async Types.EXTTransferResponse {
-    if (halt == true) {
-      throw Error.reject("canister is in maintenance mode");
-    };
-    NFTUtils.logDirectly("transferEXT", #Text("transferEXT"), ?msg.caller);
-
-    debug if (debug_channel.function_announce) D.print("in transfer ext");
-    // Existing escrow is approval
-    return await* Owner.transferExt(get_state(), request, msg.caller);
-  };
-
-  /**
-    * Performs a legacy EXT transfer, which requires a valid escrow.
-    *
-    * @param {object} request - The transfer request object.
-    * @param {Nat} request.amount - The amount of the transfer.
-    * @param {Text} request.token_id - The ID of the token to transfer.
-    * @param {Principal} request.to - The principal to transfer the token to.
-    * @param {Principal} request.from - The principal initiating the transfer.
-    * @param {Nat} request.fee - The fee for the transfer.
-    *
-    * @returns {Promise<Types.EXTTransferResponse>} A promise that resolves to an EXT transfer response object.
-    * @throws Will throw an error if the canister is in maintenance mode.
-    */
-  public shared (msg) func transfer(request : Types.EXTTransferRequest) : async Types.EXTTransferResponse {
-    if (halt == true) {
-      throw Error.reject("canister is in maintenance mode");
-    };
-    NFTUtils.logDirectly("transfer", #Text("transfer"), ?msg.caller);
-
-    debug if (debug_channel.function_announce) D.print("in transfer");
-    // Existing escrow is approval
-    return await* Owner.transferExt(get_state(), request, msg.caller);
-  };
-
   public shared query (msg) func unlisted_tokens_of(account : ICRC7.Account, prev : ?Nat, take : ?Nat32) : async [Nat] {
-    let list = Metadata.get_NFTs_for_user(get_state(), #account({ owner = account.owner; sub_account = account.subaccount }));
+    let list = Metadata.get_NFTs_for_user(get_state(), { owner = account.owner; subaccount = account.subaccount });
     let start : Nat = Option.get<Nat>(prev, 0);
     var limit : Nat = Nat32.toNat(Option.get<Nat32>(take, 100)); // Default limit to 100 if not provided
     if (limit > 1000) {
@@ -928,7 +740,7 @@ shared (deployer) actor class Nft_Canister() = this {
 
   public shared query (msg) func count_unlisted_tokens_of(account : ICRC7.Account) : async Nat {
     let state = get_state();
-    let list = Metadata.get_NFTs_for_user(state, #account({ owner = account.owner; sub_account = account.subaccount }));
+    let list = Metadata.get_NFTs_for_user(state, { owner = account.owner; subaccount = account.subaccount });
     var count = 0;
 
     label search for (nft_id in list.vals()) {
@@ -1819,113 +1631,6 @@ shared (deployer) actor class Nft_Canister() = this {
   };
 
   /**
-    * Returns the balance of a Dip721 token for a given user.
-    * @param {Object} request - Therequest.
-    * @returns {Nat} -  Dip721 balance for the user.
-    */
-  public query (msg) func dip721_balance_of(user : Principal) : async Nat {
-
-    debug if (debug_channel.function_announce) D.print("in balanceOfDip721");
-    return (Metadata.get_NFTs_for_user(get_state(), #principal(user))).size();
-  };
-
-  /**
-    * Returns the balance of a Dip721 token for a given user.
-    * @param {Object} request - Therequest.
-    * @returns {Types.EXTBalanceResult} -  Dip721 balance for the user.
-    */
-  public query (msg) func balance(request : Types.EXTBalanceRequest) : async Types.EXTBalanceResult {
-    //legacy ext
-
-    debug if (debug_channel.function_announce) D.print("in balance");
-    return _getEXTBalance(request);
-  };
-
-  /**
-    * Provides the external balance of a given token holder.
-    * @param {Object} request - The request object containing the parameters for the balance request.
-    */
-  public query (msg) func balanceEXT(request : Types.EXTBalanceRequest) : async Types.EXTBalanceResult {
-
-    debug if (debug_channel.function_announce) D.print("in balanceEXT");
-    return _getEXTBalance(request);
-  };
-
-  /**
-    * Queries the tokens for a given request.
-    * @param {Text} request - The request for which to retrieve the tokens.
-    * @returns {Promise<Result.Result<[Types.EXTTokensResult], Types.EXTCommonError>>} The tokens result or an error.
-    */
-  public query (msg) func tokens_ext(request : Text) : async Types.EXTTokensResult {
-
-    debug if (debug_channel.function_announce) D.print("in tokens_ext");
-    let state = get_state();
-
-    let request_account = #account_id(request);
-
-    let result = Buffer.Buffer<Types.EXTTokensResponse>(0);
-
-    // nyi: check the mint status and compare to msg.caller
-    // nyi: indexing of NFTs, Escrows, Sales, Offers if this is a performance drain
-    label search for (this_nft in Map.entries(state.state.nft_metadata)) {
-
-      if (this_nft.0 == "") continue search;
-
-      let owner = switch (Metadata.get_nft_owner(this_nft.1)) {
-        case (#err(err)) { #account_id("00") };
-        case (#ok(val)) val;
-      };
-      let force_account_id = switch (Types.force_account_to_account_id(owner)) {
-        case (#ok(val)) val;
-        case (_) { continue search };
-      };
-      if (Types.account_eq(request_account, force_account_id)) {
-        result.add((Text.hash(this_nft.0), null, null));
-      };
-    };
-    return #ok(Buffer.toArray(result));
-  };
-
-  /**
-    * Gets the EXT balance for a given request.
-    * @param {Types.EXTBalanceRequest} request - The request for which to retrieve the balance.
-    * @returns {Types.EXTBalanceResult} The balance response.
-    */
-  private func _getEXTBalance(request : Types.EXTBalanceRequest) : Types.EXTBalanceResult {
-    let thisCollection = Metadata.get_NFTs_for_user(
-      get_state(),
-      switch (request.user) {
-        case (#address(data)) {
-          #account_id(data);
-        };
-        case (#principal(data)) {
-          #principal(data);
-        };
-      },
-    );
-    for (this_item in thisCollection.vals()) {
-      if (Types._getEXTTokenIdentifier(this_item, Principal.fromActor(this)) == request.token) {
-
-        return #ok(1 : Nat);
-      };
-    };
-    return #ok(0 : Nat);
-  };
-
-  /**
-    * Retrieves the EXT token identifier for a given token ID.
-    * @param {Text} token_id - The ID of the token to retrieve the EXT token identifier for.
-    * @returns {Promise<Text>} The EXT token identifier for the given token ID.
-    */
-  public query (msg) func getEXTTokenIdentifier(token_id : Text) : async Text {
-    debug if (debug_channel.function_announce) D.print("in getEXTTokenIdentifier");
-    return Types._getEXTTokenIdentifier(token_id, Principal.fromActor(this));
-
-  };
-
-  let account_handler = MigrationTypes.Current.account_handler;
-
-  /**
     * Builds the balance object showing what resources an account holds on the server.
     * @param {Types.Account} account - The account to retrieve the balance for.
     * @param {Principal} caller - The principal making the request.
@@ -2074,22 +1779,9 @@ shared (deployer) actor class Nft_Canister() = this {
     if (halt == true) {
       throw Error.reject("canister is in maintenance mode");
     };
-    switch (account) {
-      case (#account(val)) {
-        let a = Principal.toText(val.owner);
-        NFTUtils.logDirectly("balance_of_secure_nft_origyn", #Text("Type - account : " # a), ?msg.caller);
-      };
-      case (#account_id(val)) {
-        NFTUtils.logDirectly("balance_of_secure_nft_origyn", #Text("Type - account id : " # val), ?msg.caller);
-      };
-      case (#extensible(val)) {
-        NFTUtils.logDirectly("balance_of_secure_nft_origyn", #Text("Type - extensible"), ?msg.caller);
-      };
-      case (#principal(val)) {
-        let p = Principal.toText(val);
-        NFTUtils.logDirectly("balance_of_secure_nft_origyn", #Text("Type - principal : " # p), ?msg.caller);
-      };
-    };
+
+    let a = Principal.toText(account.owner);
+    NFTUtils.logDirectly("balance_of_secure_nft_origyn", #Text("Type - account : " # a), ?msg.caller);
 
     return _balance_of_nft_origyn(account, msg.caller);
   };
@@ -2233,97 +1925,6 @@ shared (deployer) actor class Nft_Canister() = this {
   };
 
   /**
-    * Returns the owner of a DIP721 token.
-    * @param {Nat} tokenAsNat - The DIP721 token as a Nat.
-    * @param {Principal} caller - The caller Principal.
-    * @returns {DIP721.OwnerOfResponse} - The owner of the DIP721 token.
-    */
-  private func _ownerOfDip721(tokenAsNat : Nat, caller : Principal) : DIP721.OwnerOfResponse {
-    let token_id = switch (NFTUtils.get_nat_as_token_id(tokenAsNat)) {
-      case (#ok(val)) val;
-      case (#err(err)) return #Err(#Other("ownerOfDIP721 - token_id not found"));
-    };
-
-    let foundVal = switch (
-      Metadata.get_nft_owner(
-        switch (
-          Metadata.get_metadata_for_token(
-            get_state(),
-            token_id,
-            caller,
-            null,
-            state_current.collection_data.owner,
-          )
-        ) {
-          case (#err(err)) {
-            return #Err(#TokenNotFound);
-          };
-          case (#ok(val)) {
-            val;
-          };
-        }
-      )
-    ) {
-      case (#err(err)) {
-        return #Err(#Other("ownerOf " # err.flag_point));
-      };
-      case (#ok(val)) {
-        switch (val) {
-          case (#principal(data)) {
-            return #Ok(?data);
-          };
-          case (_) {
-            return #Err(#Other("ownerOf unsupported owner type by DIP721" # debug_show (val)));
-          };
-        };
-      };
-    };
-  };
-
-  /**
-    * Returns the owner of the DIP721 token indicated by tokenAsNat.
-    * @param {Nat} tokenAsNat - The token identifier as a Nat.
-    * @returns {async DIP721.OwnerOfResponse} The owner of the DIP721 token.
-    */
-  public query (msg) func dip721_owner_of(tokenAsNat : Nat) : async DIP721.OwnerOfResponse {
-
-    debug if (debug_channel.function_announce) D.print("in ownerOfDIP721");
-    return _ownerOfDip721(tokenAsNat, msg.caller);
-  };
-
-  /**
-    * For dip721 legacy
-    * @param {Nat} tokenAsNat - The token ID as a Nat.
-    * @returns {Promise<DIP721.OwnerOfResponse>} The owner of the DIP721 token.
-    */
-  public query (msg) func ownerOf(tokenAsNat : Nat) : async DIP721.OwnerOfResponse {
-    debug if (debug_channel.function_announce) D.print("in ownerOf");
-    return _ownerOfDip721(tokenAsNat, msg.caller);
-  };
-
-  /**
-    * Supports EXT Bearer
-    * @param {Types.EXTTokenIdentifier} tokenIdentifier - The token identifier.
-    * @returns {Promise<Types.EXTBearerResult>} The bearer account identifier.
-    */
-  public query (msg) func bearerEXT(tokenIdentifier : Types.EXTTokenIdentifier) : async Types.EXTBearerResult {
-
-    debug if (debug_channel.function_announce) D.print("in bearerEXT");
-    return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
-  };
-
-  /**
-    * Supports EXT Bearer legacy
-    * @param {Types.EXTTokenIdentifier} tokenIdentifier - The token identifier.
-    * @returns {Promise<Types.EXTBearerResult>} The bearer account identifier.
-    */
-  public query (msg) func bearer(tokenIdentifier : Types.EXTTokenIdentifier) : async Types.EXTBearerResult {
-
-    debug if (debug_channel.function_announce) D.print("in bearer");
-    return Owner.bearerEXT(get_state(), tokenIdentifier, msg.caller);
-  };
-
-  /**
     * Returns metadata about an NFT
     * @param {Text} token_id - The id of the NFT to retrieve metadata for
     * @param {Principal} caller - the identity asking for metadata
@@ -2430,190 +2031,6 @@ shared (deployer) actor class Nft_Canister() = this {
     };
 
     return Buffer.toArray(results);
-  };
-
-  /**
-    * Retrieves the DIP721 metadata for a given token ID
-    * @param {Principal} caller - The principal of the caller
-    * @param {Nat} token_id - The token ID as a Nat
-    * @returns {async} Result.Result<DIP721.Metadata_3, Types.OrigynError>
-    */
-  private func _dip_721_metadata(caller : Principal, token_id : Nat) : DIP721.DIP721TokenMetadata {
-    let token_id_raw = switch (NFTUtils.get_nat_as_token_id(token_id)) {
-      case (#ok(val)) val;
-      case (#err(err)) return #Err(#Other("ownerOfDIP721 - token_id not found"));
-    };
-
-    let nft = switch (_nft_origyn(token_id_raw, caller)) {
-      case (#ok(nft)) nft;
-      case (#err(e)) return #Err(#TokenNotFound);
-    };
-
-    let state = get_state();
-
-    let owner = switch (Metadata.get_nft_owner(nft.metadata)) {
-      case (#ok(owner)) {
-        switch (owner) {
-          case (#principal(p)) ?p;
-          case (#account_id(a)) null;
-          case (#account(a)) ?a.owner;
-          case (#extensible(e)) null;
-        };
-      };
-      case (#err(e)) null;
-    };
-
-    return #Ok({
-      transferred_at = null;
-      transferred_by = null;
-      owner = owner;
-      operator = owner;
-      approved_at = null;
-      approved_by = null;
-      properties = [
-        ("location", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.icp0.io/-/" # token_id_raw)),
-        ("thumbnail", #TextContent("https://" # Principal.toText(state.canister()) # ".raw.icp0.io/-/" # token_id_raw # "/preview")),
-        ("com.origyn.data", #TextContent(JSON.value_to_json(nft.metadata))),
-      ];
-      is_burned = false;
-      token_identifier = token_id;
-      burned_at = null;
-      burned_by = null;
-      minted_at = 0;
-      minted_by = state.state.collection_data.owner;
-    });
-  };
-
-  /**
-    * Retrieves the DIP721 metadata for a given principal
-    * @param {Principal} caller - The principal of the caller
-    * @param {Principal} principal - The principal for which to retrieve metadata
-    * @returns {async} Result.Result<Array<DIP721.Metadata_2>, Types.OrigynError>
-    */
-  private func _dip_721_metadata_for_principal(caller : Principal, principal : Principal) : DIP721.DIP721TokensMetadata {
-    // D.print("nft origyn :" # debug_show(token_id));
-
-    debug if (debug_channel.function_announce) D.print("in nft_origyn");
-    let resultBuffer = Buffer.Buffer<DIP721.TokenMetadata>(1);
-    let state = get_state();
-
-    for (this_nft in Map.entries(state.state.nft_metadata)) {
-      switch (Metadata.is_nft_owner(this_nft.1, #principal(principal))) {
-        case (#ok(val)) {
-          if (val == true and this_nft.0 != "") {
-            let thismetadata = _dip_721_metadata(caller, NFTUtils.get_token_id_as_nat(this_nft.0));
-            switch (thismetadata) {
-              case (#Ok(data)) { resultBuffer.add(data) };
-              case (#Err(err)) { return #Err(err) };
-            };
-          };
-        };
-        case (#err(err)) {
-
-        };
-      };
-    };
-
-    return #Ok(Buffer.toArray(resultBuffer));
-  };
-
-  /**
-    * Returns the metadata of all tokens owned by a given owner.
-    * @param {Principal} owner - The principal of the owner whose tokens' metadata will be returned.
-    * @returns {DIP721.Metadata_2} The metadata of all tokens owned by the specified owner.
-    */
-  public query (msg) func dip721_owner_token_metadata(owner : Principal) : async DIP721.DIP721TokensMetadata {
-
-    _dip_721_metadata_for_principal(msg.caller, owner);
-  };
-
-  /**
-    * Returns the metadata of all tokens for which a given principal is the operator.
-    * @param {Principal} operator - The principal of the operator whose tokens' metadata will be returned.
-    * @returns {DIP721.Metadata_2} The metadata of all tokens for which the specified principal is the operator.
-    */
-  public query (msg) func dip721_operator_token_metadata(operator : Principal) : async DIP721.DIP721TokensMetadata {
-
-    _dip_721_metadata_for_principal(msg.caller, operator);
-  };
-
-  /**
-    * Returns the metadata of all tokens owned by a given owner.
-    * @param {Principal} owner - The principal of the owner whose tokens' metadata will be returned.
-    * @returns {DIP721.Metadata_2} The metadata of all tokens owned by the specified owner.
-    */
-  public query (msg) func ownerTokenMetadata(owner : Principal) : async DIP721.DIP721TokensMetadata {
-
-    _dip_721_metadata_for_principal(msg.caller, owner);
-  };
-
-  /**
-    * Returns the metadata of all tokens for which a given principal is the operator.
-    * @param {Principal} operator - The principal of the operator whose tokens' metadata will be returned.
-    * @returns {DIP721.Metadata_2} The metadata of all tokens for which the specified principal is the operator.
-    */
-  public query (msg) func operaterTokenMetadata(operator : Principal) : async DIP721.DIP721TokensMetadata {
-
-    _dip_721_metadata_for_principal(msg.caller, operator);
-  };
-
-  /**
-    * Returns the metadata of a given token.
-    * @param {Nat} token_id - The id of the token whose metadata will be returned.
-    * @returns {DIP721.Metadata_3} The metadata of the specified token.
-    */
-  public query (msg) func dip721_token_metadata(token_id : Nat) : async DIP721.DIP721TokenMetadata {
-
-    _dip_721_metadata(msg.caller, token_id);
-  };
-
-  /**
-    * Determines if a given operator is approved for all tokens owned by a given owner.
-    * @param {Principal} owner - The principal of the owner of the tokens.
-    * @param {Principal} operator - The principal of the operator to be checked.
-    * @returns {DIP721.Result_1} A result indicating whether the operator is approved for all tokens.
-    */
-  public query func dip721_is_approved_for_all(owner : Principal, operator : Principal) : async DIP721.DIP721BoolResult {
-    return (#Ok(false));
-  };
-
-  private func _dip_721_get_tokens(caller : Principal, owner : Principal) : DIP721.DIP721TokensListMetadata {
-    let nft_results = Buffer.Buffer<Text>(1);
-    let state = get_state();
-
-    // nyi: check the mint status and compare to msg.caller
-    // nyi: indexing of NFTs, Escrows, Sales, Offers if this is a performance drain
-    for (this_nft in Map.entries(state.state.nft_metadata)) {
-      switch (Metadata.is_nft_owner(this_nft.1, #principal(owner))) {
-        case (#ok(val)) {
-          if (val == true and this_nft.0 != "") {
-            nft_results.add(this_nft.0);
-          };
-        };
-        case (_) {};
-      };
-
-    };
-
-    #Ok(Iter.toArray<Nat>(Iter.map<Text, Nat>(nft_results.vals(), func(x) { NFTUtils.get_token_id_as_nat(x) })));
-  };
-
-  /**
-    * Returns the token identifiers of all tokens owned by a given owner.
-    * @param {Principal} owner - The principal of the owner whose token identifiers will be returned.
-    * @returns {DIP721.Metadata_1} The token identifiers of all tokens owned by the specified owner.
-    */
-  public query (msg) func dip721_owner_token_identifiers(owner : Principal) : async DIP721.DIP721TokensListMetadata {
-    _dip_721_get_tokens(msg.caller, owner);
-  };
-
-  /**
-    * Returns the token identifiers of all tokens for which a given principal is the operator.
-    * @param {Principal} operator - The principal of the operator whose token identifiers will be returned.
-    * @returns {DIP721.Metadata_1} The token identifiers of all tokens for which the specified principal is the operator.
-    */
-  public query (msg) func dip721_operator_token_identifiers(operator : Principal) : async DIP721.DIP721TokensListMetadata {
-    _dip_721_get_tokens(msg.caller, operator);
   };
 
   // Pull a chunk of a nft library
@@ -2818,213 +2235,6 @@ shared (deployer) actor class Nft_Canister() = this {
     };
     debug if (debug_channel.function_announce) D.print("in storage_info_secure_nft_origyn");
     return await storage_info_nft_origyn();
-  };
-
-  /**
-    * Returns metadata for ext
-    * @param token - The token identifier
-    * @returns The metadata for ext
-    */
-  public query func metadataExt(token : Types.EXTTokenIdentifier) : async Types.EXTMetadataResult {
-
-    debug if (debug_channel.function_announce) D.print("in metadata");
-
-    let token_id = switch (Owner.getNFTForTokenIdentifier(get_state(), token)) {
-      case (#ok(data)) {
-        data;
-      };
-      case (#err(err)) {
-        return #err(#InvalidToken(token));
-      };
-    };
-
-    return #ok(#nonfungible({ metadata = ?Text.encodeUtf8("https://prptl.io/-/" # Principal.toText(get_canister()) # "/-/" # token_id) }));
-  };
-  /**
-    return #ok({
-                fields = fields;
-                logo = state.state.collection_data.logo;
-                name =
-                symbol = state.state.collection_data.symbol;
-                total_supply = ?keys.size();
-                owner = ?get_state().state.collection_data.owner;
-                managers = ?get_state().state.collection_data.managers;
-                network = state.state.collection_data.network;
-                token_ids = ?keys;
-                token_ids_count = ?keys.size();
-                multi_canister = ?multi_canister;
-                multi_canister_count = ?multi_canister.size();
-                metadata = Map.get(state.state.nft_metadata, Map.thash, "");
-                allocated_storage = ?get_state().state.collection_data.allocated_storage;
-                available_space = ?get_state().state.collection_data.available_space;
-            }
-        );
-*/
-
-  //metadata for DIP721
-
-  /**
-    * Returns the name of the DIP721 collection.
-    * @returns {?Text} The name of the DIP721 collection.
-    */
-  public query func dip721_name() : async ?Text {
-    return get_state().state.collection_data.name;
-  };
-
-  /**
-    * Returns the logo of the DIP721 collection.
-    * @returns {?Text} The logo of the DIP721 collection.
-    */
-  public query func dip721_logo() : async ?Text {
-    return get_state().state.collection_data.logo;
-  };
-
-  /**
-    * Returns the symbol of the DIP721 collection.
-    * @returns {?Text} The symbol of the DIP721 collection.
-    */
-  public query func dip721_symbol() : async ?Text {
-    return get_state().state.collection_data.symbol;
-  };
-
-  /**
-    * Returns the list of custodians for the DIP721 collection.
-    * @returns {[Principal]} The list of custodians for the DIP721 collection.
-    */
-  public query func dip721_custodians() : async [Principal] {
-    return get_state().state.collection_data.managers;
-  };
-
-  /**
-    * Returns the metadata of the DIP721 collection.
-    * @returns {DIP721.Metadata} The metadata of the DIP721 collection.
-    */
-  public query func metadata() : async DIP721.DIP721Metadata {
-    let state = get_state();
-    return {
-      logo = state.state.collection_data.logo;
-      name = state.state.collection_data.name;
-      created_at = created_at;
-      upgraded_at = upgraded_at;
-      custodians = state.state.collection_data.managers;
-      symbol = state.state.collection_data.symbol;
-    };
-  };
-
-  /**
-    * Returns the metadata of the DIP721 collection.
-    * @returns {DIP721.Metadata} The metadata of the DIP721 collection.
-    */
-  public query func dip721_metadata() : async DIP721.DIP721Metadata {
-    let state = get_state();
-    return {
-      logo = state.state.collection_data.logo;
-      name = state.state.collection_data.name;
-      created_at = created_at;
-      upgraded_at = upgraded_at;
-      custodians = state.state.collection_data.managers;
-      symbol = state.state.collection_data.symbol;
-    };
-  };
-
-  /**
-    * Returns the total supply of the DIP721 collection.
-    * @returns {Nat} The total supply of the DIP721 collection.
-    */
-  public query (msg) func dip721_total_supply() : async Nat {
-
-    let state = get_state();
-    let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.toArray<Text>(
-        Iter.filter<Text>(
-          Map.keys(state.state.nft_metadata),
-          func(key : Text) : Bool {
-            Metadata.filter_keys_owner((key, state));
-          },
-        )
-      ); // Should always have the "" item and need to remove it
-    } else {
-      Iter.toArray<Text>(
-        Iter.filter<Text>(
-          Map.keys(state.state.nft_ledgers),
-          func(key : Text) : Bool {
-            Metadata.filter_keys_owner((key, state));
-          },
-        )
-      ); // Should always have the "" item and need to remove it
-    };
-
-    return keys.size();
-  };
-
-  /**
-    * Returns the total number of transactions of the DIP721 collection.
-    * @returns {Nat} The total number of transactions of the DIP721 collection.
-    */
-  public query (msg) func dip721_total_transactions() : async Nat {
-    let state = get_state();
-    let count = SB.size(state_current.master_ledger);
-    return count;
-  };
-
-  /**
-    * Returns the statistics of the DIP721 collection.
-    * @returns {DIP721.Stats} The statistics of the DIP721 collection.
-    */
-  public query (msg) func dip721_stats() : async DIP721.DIP721Stats {
-
-    debug if (debug_channel.function_announce) D.print("in collection_nft_origyn");
-
-    let state = get_state();
-    let keys = if (NFTUtils.is_owner_manager_network(state, msg.caller) == true) {
-      Iter.filter<Text>(
-        Map.keys(state.state.nft_metadata),
-        func(key : Text) : Bool {
-          Metadata.filter_keys_owner((key, state));
-        },
-      ); // Should always have the "" item and need to remove it
-    } else {
-      Iter.filter<Text>(
-        Map.keys(state.state.nft_ledgers),
-        func(key : Text) : Bool {
-          Metadata.filter_keys_owner((key, state));
-        },
-      ); // Should always have the "" item and need to remove it
-    };
-
-    let ownerSet = Set.new<MigrationTypes.Current.Account>();
-    let keysBuffer = Buffer.Buffer<Text>(Map.size(state.state.nft_metadata));
-    for (thisItem in keys) {
-      keysBuffer.add(thisItem);
-      let entry = switch (Map.get<Text, CandyTypes.CandyShared>(state.state.nft_metadata, thash, thisItem)) {
-        case (?val) val;
-        case (null) #Option(null);
-      };
-
-      switch (Metadata.get_nft_owner(entry)) {
-        case (#ok(account)) {
-          Set.add<MigrationTypes.Current.Account>(ownerSet, (MigrationTypes.Current.account_hash, MigrationTypes.Current.account_eq), account);
-        };
-        case (#err(err)) {};
-      };
-    };
-
-    let keysArray = Buffer.toArray(keysBuffer);
-
-    return {
-      cycles = Cycles.balance();
-      total_supply = keysArray.size();
-      total_unique_holders = Set.size(ownerSet);
-      total_transactions = SB.size(state.state.master_ledger);
-    };
-  };
-
-  /**
-    * Returns the list of supported interfaces for the DIP721 collection.
-    * @returns {[DIP721.SupportedInterface]} The list of supported interfaces for the DIP721 collection.
-    */
-  public query func dip721_supported_interfaces() : async [DIP721.DIP721SupportedInterface] {
-    return [#TransactionHistory];
   };
 
   /// *************************
@@ -3337,29 +2547,12 @@ shared (deployer) actor class Nft_Canister() = this {
               aBuf.add(null);
             };
             case (#ok(val)) {
-              switch (val) {
-                case (#principal(data)) {
-                  aBuf.add(
-                    ?{
-                      owner = data;
-                      subaccount = null;
-                    }
-                  );
-                };
-                case (#account(data)) {
-                  aBuf.add(
-                    ?{
-                      owner = data.owner;
-                      subaccount = data.sub_account;
-                    }
-                  );
-                };
-                case (_) {
-                  debug if (debug_channel.icrc7) D.print("icrc7_owner_of : not account or principal ");
-
-                  aBuf.add(null);
-                };
-              };
+              aBuf.add(
+                ?{
+                  owner = val.owner;
+                  subaccount = val.subaccount;
+                }
+              );
             };
           };
         };
@@ -3380,7 +2573,7 @@ shared (deployer) actor class Nft_Canister() = this {
     let state = get_state();
     let aBuf = Buffer.Buffer<Nat>(items.size());
     for (thisItem in items.vals()) {
-      let balance : Nat = Metadata.get_NFTs_for_user(get_state(), #account({ owner = thisItem.owner; sub_account = thisItem.subaccount })).size();
+      let balance : Nat = Metadata.get_NFTs_for_user(get_state(), { owner = thisItem.owner; subaccount = thisItem.subaccount }).size();
       aBuf.add(balance);
     };
 
@@ -3420,7 +2613,7 @@ shared (deployer) actor class Nft_Canister() = this {
       limit := 1000;
     };
 
-    let list = Metadata.get_NFTs_for_user(get_state(), #account({ owner = account.owner; sub_account = account.subaccount }));
+    let list = Metadata.get_NFTs_for_user(get_state(), { owner = account.owner; subaccount = account.subaccount });
 
     var count = 0;
     let results = Buffer.Buffer<Nat>(1);
@@ -3831,7 +3024,7 @@ shared (deployer) actor class Nft_Canister() = this {
                 };
               };
 
-              let ret = await* Market.end_sale_nft_origyn(get_state(), status.token_id, MigrationTypes.Current.account_to_principal(owner));
+              let ret = await* Market.end_sale_nft_origyn(get_state(), status.token_id, owner.owner);
               switch (ret) {
                 case (#err(err)) {
                   return #err(#trappable({ error_code = 3; message = "close_sale_timeouted_nft_origyn - could not end sale " # status.token_id }));

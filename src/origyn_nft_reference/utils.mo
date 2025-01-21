@@ -230,9 +230,9 @@ module {
     * Retrieves information about a depositor account for the Origyn NFT deposit contract.
     * @param {Types.Account} depositor_account - The account of the depositor.
     * @param {Principal} host - The host of the sub-account.
-    * @returns {Types.SubAccountInfo} An object containing information about the depositor sub-account.
+    * @returns {Types.Account} An object containing information about the depositor sub-account.
     */
-  public func get_deposit_info(depositor_account : Types.Account, host : Principal) : Types.SubAccountInfo {
+  public func get_deposit_info(depositor_account : Types.Account, host : Principal) : Types.Account {
     debug if (debug_channel.announce) D.print("getting deposit info");
     get_subaccount_info("com.origyn.nft.deposit", depositor_account, host);
   };
@@ -241,9 +241,9 @@ module {
     * Retrieves information about an escrow account for an Origyn NFT transaction.
     * @param {Types.EscrowReceipt} request - The request object containing transaction details.
     * @param {Principal} host - The host of the sub-account.
-    * @returns {Types.SubAccountInfo} An object containing information about the escrow sub-account.
+    * @returns {Types.Account} An object containing information about the escrow sub-account.
     */
-  public func get_escrow_account_info(request : MigrationTypes.Current.EscrowReceipt, host : Principal) : Types.SubAccountInfo {
+  public func get_escrow_account_info(request : MigrationTypes.Current.EscrowReceipt, host : Principal) : Types.Account {
 
     debug if (debug_channel.announce) D.print("Getting escrow account");
     let h = SHA256.New();
@@ -261,21 +261,16 @@ module {
     let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
 
     return {
-      principal = host;
-      account_id_text = Hex.encode(to);
-      account_id = Blob.fromArray(to);
-      account = {
-        principal = host;
-        sub_account = (Blob.fromArray(sub_hash));
-      };
+      owner = host;
+      subaccount = ?Blob.fromArray(sub_hash);
     };
   };
 
   /**
     * Retrieves information about a phantom account to return for icrc7 royalties.
-    * @returns {Types.SubAccountInfo} An object containing information about the sub-account.
+    * @returns {Types.Account} An object containing information about the sub-account.
     */
-  public func get_icrc7_royalty_account(host : Principal) : Types.SubAccountInfo {
+  public func get_icrc7_royalty_account(host : Principal) : Types.Account {
 
     debug if (debug_channel.announce) D.print("Getting icrc7 account");
     let h = SHA256.New();
@@ -285,13 +280,8 @@ module {
     let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
 
     return {
-      principal = host;
-      account_id_text = Hex.encode(to);
-      account_id = Blob.fromArray(to);
-      account = {
-        principal = host;
-        sub_account = (Blob.fromArray(sub_hash));
-      };
+      owner = host;
+      subaccount = ?Blob.fromArray(sub_hash);
     };
   };
 
@@ -311,9 +301,9 @@ module {
     * Retrieves information about a sale account for an Origyn NFT transaction.
     * @param {Types.EscrowReceipt} request - The request object containing transaction details.
     * @param {Principal} host - The host of the sub-account.
-    * @returns {Types.SubAccountInfo} An object containing information about the sale sub-account.
+    * @returns {Types.Account} An object containing information about the sale sub-account.
     */
-  public func get_sale_account_info(request : Types.EscrowReceipt, host : Principal) : Types.SubAccountInfo {
+  public func get_sale_account_info(request : Types.EscrowReceipt, host : Principal) : Types.Account {
 
     let h = SHA256.New();
     h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.sale"))));
@@ -330,13 +320,8 @@ module {
     let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
 
     return {
-      principal = host;
-      account_id_text = Hex.encode(to);
-      account_id = Blob.fromArray(to);
-      account = {
-        principal = host;
-        sub_account = (Blob.fromArray(sub_hash));
-      };
+      owner = host;
+      subaccount = ?Blob.fromArray(sub_hash);
     };
   };
 
@@ -344,9 +329,9 @@ module {
     * Retrieves information about a fee deposit account for an Origyn NFT transaction.
     * @param {Types.Account} request - The request object containing transaction details.
     * @param {Principal} host - The host of the sub-account.
-    * @returns {Types.SubAccountInfo} An object containing information about the fee deposit sub-account.
+    * @returns {Types.Account} An object containing information about the fee deposit sub-account.
     */
-  public func get_fee_deposit_account_info(request : Types.Account, host : Principal) : Types.SubAccountInfo {
+  public func get_fee_deposit_account_info(request : Types.Account, host : Principal) : Types.Account {
 
     let h = SHA256.New();
     h.write(Conversions.candySharedToBytes(#Nat32(Text.hash("com.origyn.nft.fee_deposit"))));
@@ -357,13 +342,8 @@ module {
     let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sub_hash));
 
     return {
-      principal = host;
-      account_id_text = Hex.encode(to);
-      account_id = Blob.fromArray(to);
-      account = {
-        principal = host;
-        sub_account = (Blob.fromArray(sub_hash));
-      };
+      owner = host;
+      subaccount = ?Blob.fromArray(sub_hash);
     };
   };
 
@@ -392,89 +372,29 @@ module {
     * @param {Text} prefix - The prefix of the subaccount
     * @param {Types.Account} account - The account to get subaccount info for
     * @param {Principal} host - The host principal to generate the subaccount info for
-    * @returns {Types.SubAccountInfo} Returns subaccount info containing principal, account_id_text, account_id and account
+    * @returns {Types.Account} Returns subaccount info containing principal, account_id_text, account_id and account
     */
-  private func get_subaccount_info(prefix : Text, account : Types.Account, host : Principal) : Types.SubAccountInfo {
+  private func get_subaccount_info(prefix : Text, account : Types.Account, host : Principal) : Types.Account {
     debug if (debug_channel.announce) D.print("in get subaccount");
-    switch (account) {
-      case (#principal(principal)) {
-        let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".principal")));
-        SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(principal))));
+    let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".account")));
+    SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(account.owner))));
+    switch (account.subaccount) {
+      case (null) {};
+      case (?val) {
+        SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(val)));
 
-        let h = SHA256.New();
-        h.write(SB.toArray(buffer));
-        let sha = h.sum([]);
-
-        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sha));
-
-        return {
-          principal = host;
-          account_id_text = Hex.encode(to);
-          account_id = Blob.fromArray(to);
-          account = {
-            principal = host;
-            sub_account = Blob.fromArray(sha);
-          };
-        };
       };
-      case (#account(account)) {
-        let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".account")));
-        SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(Principal.toBlob(account.owner))));
-        switch (account.sub_account) {
-          case (null) {};
-          case (?val) {
-            SB.append(buffer, CandyTypes.toBuffer<Nat8>(Blob.toArray(val)));
+    };
 
-          };
-        };
+    let h = SHA256.New();
+    h.write(SB.toArray(buffer));
+    let sha = h.sum([]);
 
-        let h = SHA256.New();
-        h.write(SB.toArray(buffer));
-        let sha = h.sum([]);
+    let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sha));
 
-        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sha));
-
-        return {
-          principal = host;
-          account_id_text = Hex.encode(to);
-          account_id = Blob.fromArray(to);
-          account = {
-            principal = host;
-            sub_account = Blob.fromArray(sha);
-          };
-        };
-      };
-      case (#account_id(account_id)) {
-        let buffer = CandyTypes.toBuffer<Nat8>(Blob.toArray(Text.encodeUtf8(prefix # ".accountid")));
-        switch (AccountIdentifier.fromText(account_id)) {
-          case (#ok(accountblob)) {
-            SB.append(buffer, CandyTypes.toBuffer<Nat8>((AccountIdentifier.addHash(accountblob))));
-
-          };
-          case (#err(err)) {
-
-          };
-        };
-
-        let h = SHA256.New();
-        h.write(SB.toArray(buffer));
-        let sha = h.sum([]);
-
-        let to = AccountIdentifier.addHash(AccountIdentifier.fromPrincipal(host, ?sha));
-
-        return {
-          principal = host;
-          account_id_text = Hex.encode(to);
-          account_id = Blob.fromArray(to);
-          account = {
-            principal = host;
-            sub_account = Blob.fromArray(sha);
-          };
-        };
-      };
-      case (#extensible(data)) {
-        return Prelude.nyi(); //cant implement until candy has stable hash
-      };
+    return {
+      owner = host;
+      subaccount = ?Blob.fromArray(sha);
     };
   };
 
@@ -537,13 +457,6 @@ module {
       balance = ?balance;
     };
 
-  };
-
-  public func create_principal_with_no_subaccount(principal : Principal) : {
-    owner : Principal;
-    sub_account : ?Blob;
-  } {
-    return { owner = principal; sub_account = null };
   };
 
   public func logDirectly(prefix : Text, logData : CandyTypesOld.CandyValue, caller : ?Principal) : () {

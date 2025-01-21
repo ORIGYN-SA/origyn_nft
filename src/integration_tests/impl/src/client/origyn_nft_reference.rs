@@ -16,7 +16,6 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
   Account,
   ApprovalArgs,
   ApprovalResult,
-  Account3,
   CollectionMetadata,
   SupportedStandard,
   TransferArgs,
@@ -33,10 +32,10 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
   HistoryResult,
   ManageSaleRequest,
   ManageSaleResult,
-  InitFractionalizeRequest,
-  InitFractionalizeResponse,
-  AuthorizeFractionalizeRequest,
-  AuthorizeFractionalizeResponse,
+  // InitFractionalizeRequest,
+  // InitFractionalizeResponse,
+  // AuthorizeFractionalizeRequest,
+  // AuthorizeFractionalizeResponse,
 };
 
 generate_update_call!(stage_nft_origyn);
@@ -80,8 +79,8 @@ generate_query_call!(sale_info_nft_origyn);
 generate_update_call!(update_metadata_node);
 generate_query_call_encoded_args!(history_nft_origyn);
 generate_update_call!(sale_nft_origyn);
-generate_update_call!(init_fractionalization);
-generate_update_call!(authorize_fractionalization);
+// generate_update_call!(init_fractionalization);
+// generate_update_call!(authorize_fractionalization);
 
 pub mod stage_nft_origyn {
   use super::*;
@@ -133,7 +132,7 @@ pub mod icrc7_atomic_batch_transfers {
 pub mod icrc7_balance_of {
   use super::*;
 
-  pub type Args = Vec<Account3>;
+  pub type Args = Vec<Account>;
   pub type Response = Vec<candid::Nat>;
 }
 
@@ -198,7 +197,7 @@ pub mod icrc7_owner_of {
   use super::*;
 
   pub type Args = Vec<candid::Nat>;
-  pub type Response = Vec<Option<Account3>>;
+  pub type Response = Vec<Option<Account>>;
 }
 
 pub mod icrc7_permitted_drift {
@@ -238,7 +237,7 @@ pub mod icrc7_tokens {
 pub mod icrc7_tokens_of {
   use super::*;
 
-  pub type Args = (Account3, Option<candid::Nat>, Option<u32>);
+  pub type Args = (Account, Option<candid::Nat>, Option<u32>);
   pub type Response = Vec<candid::Nat>;
 }
 
@@ -332,19 +331,19 @@ pub mod sale_nft_origyn {
   pub type Response = ManageSaleResult;
 }
 
-pub mod init_fractionalization {
-  use super::*;
+// pub mod init_fractionalization {
+//   use super::*;
 
-  pub type Args = InitFractionalizeRequest;
-  pub type Response = InitFractionalizeResponse;
-}
+//   pub type Args = InitFractionalizeRequest;
+//   pub type Response = InitFractionalizeResponse;
+// }
 
-pub mod authorize_fractionalization {
-  use super::*;
+// pub mod authorize_fractionalization {
+//   use super::*;
 
-  pub type Args = AuthorizeFractionalizeRequest;
-  pub type Response = AuthorizeFractionalizeResponse;
-}
+//   pub type Args = AuthorizeFractionalizeRequest;
+//   pub type Response = AuthorizeFractionalizeResponse;
+// }
 
 pub mod client {
   use super::*;
@@ -798,26 +797,26 @@ pub mod client {
     crate::client::origyn_nft_reference::sale_nft_origyn(pic, sender, canister_id, &args)
   }
 
-  pub fn init_fractionalization(
-    pic: &mut PocketIc,
-    canister_id: CanisterId,
-    sender: Principal,
-    args: init_fractionalization::Args
-  ) -> init_fractionalization::Response {
-    crate::client::origyn_nft_reference::init_fractionalization(pic, sender, canister_id, &args)
-  }
+  // pub fn init_fractionalization(
+  //   pic: &mut PocketIc,
+  //   canister_id: CanisterId,
+  //   sender: Principal,
+  //   args: init_fractionalization::Args
+  // ) -> init_fractionalization::Response {
+  //   crate::client::origyn_nft_reference::init_fractionalization(pic, sender, canister_id, &args)
+  // }
 
-  pub fn authorize_fractionalization(
-    pic: &mut PocketIc,
-    canister_id: CanisterId,
-    sender: Principal,
-    args: authorize_fractionalization::Args
-  ) -> authorize_fractionalization::Response {
-    crate::client::origyn_nft_reference::authorize_fractionalization(
-      pic,
-      sender,
-      canister_id,
-      &args
-    )
-  }
+  // pub fn authorize_fractionalization(
+  //   pic: &mut PocketIc,
+  //   canister_id: CanisterId,
+  //   sender: Principal,
+  //   args: authorize_fractionalization::Args
+  // ) -> authorize_fractionalization::Response {
+  //   crate::client::origyn_nft_reference::authorize_fractionalization(
+  //     pic,
+  //     sender,
+  //     canister_id,
+  //     &args
+  //   )
+  // }
 }

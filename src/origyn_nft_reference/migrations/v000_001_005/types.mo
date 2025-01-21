@@ -773,7 +773,7 @@ module {
                 #Ledger;
                 #EXTFungible;
                 #ICRC1;
-            }
+            };
         };
         #extensible : CandyTypes.CandyShared; //#Class*/
     switch (a) {

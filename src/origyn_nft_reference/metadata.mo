@@ -509,20 +509,13 @@ module {
   * @returns {CandyTypes.CandyShared} The converted CandyShared.
   */
   public func account_to_candy(val : Types.Account) : CandyTypes.CandyShared {
-    switch (val) {
-      case (#principal(newOwner)) { #Principal(newOwner) };
-      case (#account_id(newOwner)) { #Text(newOwner) };
-      case (#extensible(newOwner)) { newOwner };
-      case (#account(buyer)) {
-        #Array([
-          #Principal(buyer.owner),
-          switch (buyer.sub_account) {
-            case (null) { #Option(null) };
-            case (?val) { #Option(?#Blob(val)) };
-          },
-        ]);
-      };
-    };
+    #Array([
+      #Principal(val.owner),
+      switch (val.subaccount) {
+        case (null) { #Option(null) };
+        case (?val) { #Option(?#Blob(val)) };
+      },
+    ]);
   };
 
   /**
@@ -1048,39 +1041,41 @@ module {
   */
   public func candy_to_account(val : CandyTypes.CandyShared) : Types.BearerResult {
     switch (val) {
-      case (#Principal(val)) { #ok(#principal(val)) };
-      case (#Text(val)) { #ok(#account_id(val)) };
-      case (#Class(val)) { #ok(#extensible(#Class(val))) };
+      case (#Principal(val)) { #ok({ owner = val; subaccount = null }) };
+      case (#Text(val)) {
+        return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a Principal or an Array ", null));
+      };
+      case (#Class(val)) {
+        return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a Principal or an Array ", null));
+      };
       case (#Array(items)) {
         if (items.size() > 0) {
-          #ok(
-            #account({
-              owner = switch (items[0]) {
-                case (#Principal(val)) { val };
-                case (_) {
-                  return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
-                };
+          #ok({
+            owner = switch (items[0]) {
+              case (#Principal(val)) { val };
+              case (_) {
+                return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a principal at 0 ", null));
               };
-              sub_account = if (items.size() > 1) {
-                switch (items[1]) {
-                  case (#Option(?val)) {
-                    switch (val) {
-                      case (#Blob(bval)) { ?bval };
-                      case (_) {
-                        return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a ?blob at 1 ", null));
-                      };
+            };
+            subaccount = if (items.size() > 1) {
+              switch (items[1]) {
+                case (#Option(?val)) {
+                  switch (val) {
+                    case (#Blob(bval)) { ?bval };
+                    case (_) {
+                      return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not a ?blob at 1 ", null));
                     };
                   };
-                  case (#Option(null)) { null };
-                  case (_) {
-                    return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not an Option at 1 ", null));
-                  };
                 };
-              } else {
-                null;
+                case (#Option(null)) { null };
+                case (_) {
+                  return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not an Option at 1 ", null));
+                };
               };
-            })
-          );
+            } else {
+              null;
+            };
+          });
         } else {
           return #err(Types.errors(#improper_interface, "candy_to_account -  improper interface, not enough items " # debug_show (items), null));
         };
@@ -1163,22 +1158,15 @@ module {
         [{
           name = Types.metadata.owner;
           mode = #Set(
-            switch (new_owner) {
-              case (#principal(buyer)) { #Principal(buyer) };
-              case (#account_id(buyer)) { #Text(buyer) };
-              case (#extensible(buyer)) { buyer };
-              case (#account(buyer)) {
-                #Array([
-                  #Principal(buyer.owner),
-                  #Option(
-                    switch (buyer.sub_account) {
-                      case (null) { null };
-                      case (?val) { ?#Blob(val) };
-                    }
-                  ),
-                ]);
-              };
-            }
+            #Array([
+              #Principal(new_owner.owner),
+              #Option(
+                switch (new_owner.subaccount) {
+                  case (null) { null };
+                  case (?val) { ?#Blob(val) };
+                }
+              ),
+            ])
           );
         }],
       )
@@ -1213,13 +1201,8 @@ module {
         return #err(Types.errors(err.error, "is_nft_owner check owner" # err.flag_point, null));
       };
       case (#ok(val)) {
-        switch (val) {
-          case (#extensible(ex)) {
-            if (Conversions.candySharedToText(ex) == "trx in flight") {
-              return (#ok(false));
-            };
-          };
-          case (_) {};
+        if (val.owner == Principal.fromText("aaaaa-aa")) {
+          return (#ok(false));
         };
         val;
 
@@ -1544,7 +1527,9 @@ module {
                     case (null) { return #Option(null) };
                     case (?owner) {
                       if (
-                        switch (is_nft_owner(root_class, #principal(caller))) {
+                        switch (
+                          is_nft_owner(root_class, { owner = caller; subaccount = null })
+                        ) {
                           case (#ok(result)) result;
                           case (#err(err)) false;
                         }
@@ -1707,7 +1692,9 @@ module {
                     case (null) { return #Option(null) };
                     case (?owner) {
                       if (
-                        switch (is_nft_owner(root_class, #principal(caller))) {
+                        switch (
+                          is_nft_owner(root_class, { owner = caller; subaccount = null })
+                        ) {
                           case (#ok(result)) result;
                           case (#err(err)) false;
                         }
@@ -1977,7 +1964,7 @@ module {
               //D.print(debug_show(val));
               //D.print(debug_show(caller));
               //D.print(debug_show(canister));
-              if (Types.account_eq(#principal(caller), val) == false and (canister == null or Types.account_eq(#principal(Option.get(canister, Principal.fromText("2vxsx-fae"))), #principal(caller))) and NFTUtils.is_owner_manager_network(state, caller) == false) {
+              if (Types.account_eq({ owner = caller; subaccount = null }, val) == false and (canister == null or Types.account_eq({ owner = Option.get(canister, Principal.fromText("2vxsx-fae")); subaccount = null }, { owner = caller; subaccount = null })) and NFTUtils.is_owner_manager_network(state, caller) == false) {
                 return #err(Types.errors(#token_not_found, "get_metadata_for_token - cannot find token id in metadata - owners not equal" # token_id, ?caller));
               };
             };
@@ -3031,7 +3018,7 @@ module {
       case (?val) {
         switch (get_nft_owner(val)) {
           case (#ok(val)) {
-            if (MigrationTypes.Current.compare_account(val, #principal(state.canister()))) {
+            if (Types.account_eq(val, { owner = state.canister(); subaccount = null }) == true) {
               D.print("filter_keys_owner - found owner");
 
               return false;

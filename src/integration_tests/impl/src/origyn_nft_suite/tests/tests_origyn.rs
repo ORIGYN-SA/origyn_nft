@@ -17,7 +17,6 @@ use crate::origyn_nft_suite::{ CanisterIds, PrincipalIds };
 use canister_time::{ MINUTE_IN_MS, NANOS_PER_MILLISECOND };
 use num_bigint::BigUint;
 use origyn_nft_reference::origyn_nft_reference_canister::{
-  Account3,
   Account,
   AskFeature,
   CandyShared,
@@ -566,9 +565,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
     origyn_nft.clone(),
     nft_owner.clone(),
     SaleInfoRequest::FeeDepositInfo(
-      Some(Account::Account {
+      Some(Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       })
     )
   );
@@ -579,9 +578,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
         SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
           println!("fee_deposit_info {:?}", fee_deposit_info);
           Icrc1Account {
-            owner: fee_deposit_info.account.principal,
+            owner: fee_deposit_info.owner,
             subaccount: Some(
-              fee_deposit_info.account.sub_account
+              fee_deposit_info.subaccount
+                .unwrap()
                 .into_vec()
                 .try_into()
                 .expect("slice with incorrect length")
@@ -626,9 +626,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
     nft_owner.clone(),
     ManageSaleRequest::FeeDeposit(FeeDepositRequest {
       token: ogy_token_spec.clone(),
-      account: Account::Account {
+      account: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -712,13 +712,13 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
     SaleInfoRequest::EscrowInfo(EscrowReceipt {
       token: ogy_token_spec.clone(),
       token_id: "0".to_string(),
-      seller: Account::Account {
+      seller: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
-      buyer: Account::Account {
+      buyer: Account {
         owner: nft_buyer.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -746,9 +746,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
     ogy_ledger.clone(),
     None,
     icrc_ledger_types::icrc1::account::Account {
-      owner: deposit_account_info.account.principal.clone(),
+      owner: deposit_account_info.owner.clone(),
       subaccount: Some(
-        deposit_account_info.account.sub_account
+        deposit_account_info.subaccount
+          .unwrap()
           .into_vec()
           .try_into()
           .expect("slice with incorrect length")
@@ -766,14 +767,14 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
       escrow_record: EscrowRecord {
         token: ogy_token_spec.clone(),
         token_id: "0".to_string(),
-        seller: Account::Account {
+        seller: Account {
           owner: nft_owner.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         lock_to_date: None,
-        buyer: Account::Account {
+        buyer: Account {
           owner: nft_buyer.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         amount: Nat::from(100_000_000_000 as u64),
         sale_id: Some(sale_id.clone()),
@@ -850,7 +851,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_fixed() {
   assert_eq!(
     owner_of,
     vec![
-      Some(Account3 {
+      Some(Account {
         owner: nft_buyer.clone(),
         subaccount: None,
       })
@@ -898,9 +899,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
     origyn_nft.clone(),
     nft_owner.clone(),
     SaleInfoRequest::FeeDepositInfo(
-      Some(Account::Account {
+      Some(Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       })
     )
   );
@@ -911,9 +912,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
         SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
           println!("fee_deposit_info {:?}", fee_deposit_info);
           Icrc1Account {
-            owner: fee_deposit_info.account.principal,
+            owner: fee_deposit_info.owner,
             subaccount: Some(
-              fee_deposit_info.account.sub_account
+              fee_deposit_info.subaccount
+                .unwrap()
                 .into_vec()
                 .try_into()
                 .expect("slice with incorrect length")
@@ -958,9 +960,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
     nft_owner.clone(),
     ManageSaleRequest::FeeDeposit(FeeDepositRequest {
       token: ogy_token_spec.clone(),
-      account: Account::Account {
+      account: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1041,13 +1043,13 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
     SaleInfoRequest::EscrowInfo(EscrowReceipt {
       token: ogy_token_spec.clone(),
       token_id: "0".to_string(),
-      seller: Account::Account {
+      seller: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
-      buyer: Account::Account {
+      buyer: Account {
         owner: nft_buyer.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1075,9 +1077,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
     ogy_ledger.clone(),
     None,
     icrc_ledger_types::icrc1::account::Account {
-      owner: deposit_account_info.account.principal.clone(),
+      owner: deposit_account_info.owner.clone(),
       subaccount: Some(
-        deposit_account_info.account.sub_account
+        deposit_account_info.subaccount
+          .unwrap()
           .into_vec()
           .try_into()
           .expect("slice with incorrect length")
@@ -1095,14 +1098,14 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
       escrow_record: EscrowRecord {
         token: ogy_token_spec.clone(),
         token_id: "0".to_string(),
-        seller: Account::Account {
+        seller: Account {
           owner: nft_owner.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         lock_to_date: None,
-        buyer: Account::Account {
+        buyer: Account {
           owner: nft_buyer.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         amount: Nat::from(100_000_000_000 as u64),
         sale_id: Some(sale_id.clone()),
@@ -1180,7 +1183,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_partial_fee_account_fixed() {
   assert_eq!(
     owner_of,
     vec![
-      Some(Account3 {
+      Some(Account {
         owner: nft_buyer.clone(),
         subaccount: None,
       })
@@ -1228,9 +1231,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
     origyn_nft.clone(),
     nft_owner.clone(),
     SaleInfoRequest::FeeDepositInfo(
-      Some(Account::Account {
+      Some(Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       })
     )
   );
@@ -1241,9 +1244,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
         SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
           println!("fee_deposit_info {:?}", fee_deposit_info);
           Icrc1Account {
-            owner: fee_deposit_info.account.principal,
+            owner: fee_deposit_info.owner,
             subaccount: Some(
-              fee_deposit_info.account.sub_account
+              fee_deposit_info.subaccount
+                .unwrap()
                 .into_vec()
                 .try_into()
                 .expect("slice with incorrect length")
@@ -1288,9 +1292,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
     nft_owner.clone(),
     ManageSaleRequest::FeeDeposit(FeeDepositRequest {
       token: ogy_token_spec.clone(),
-      account: Account::Account {
+      account: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1364,13 +1368,13 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
     SaleInfoRequest::EscrowInfo(EscrowReceipt {
       token: ogy_token_spec.clone(),
       token_id: "0".to_string(),
-      seller: Account::Account {
+      seller: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
-      buyer: Account::Account {
+      buyer: Account {
         owner: nft_buyer.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1398,9 +1402,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
     ogy_ledger.clone(),
     None,
     icrc_ledger_types::icrc1::account::Account {
-      owner: deposit_account_info.account.principal.clone(),
+      owner: deposit_account_info.owner.clone(),
       subaccount: Some(
-        deposit_account_info.account.sub_account
+        deposit_account_info.subaccount
+          .unwrap()
           .into_vec()
           .try_into()
           .expect("slice with incorrect length")
@@ -1418,14 +1423,14 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
       escrow_record: EscrowRecord {
         token: ogy_token_spec.clone(),
         token_id: "0".to_string(),
-        seller: Account::Account {
+        seller: Account {
           owner: nft_owner.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         lock_to_date: None,
-        buyer: Account::Account {
+        buyer: Account {
           owner: nft_buyer.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         amount: Nat::from(100_000_000_000 as u64),
         sale_id: Some(sale_id.clone()),
@@ -1504,7 +1509,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_full_fee_account_pourcentage(
   assert_eq!(
     owner_of,
     vec![
-      Some(Account3 {
+      Some(Account {
         owner: nft_buyer.clone(),
         subaccount: None,
       })
@@ -1561,9 +1566,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
     origyn_nft.clone(),
     nft_owner.clone(),
     SaleInfoRequest::FeeDepositInfo(
-      Some(Account::Account {
+      Some(Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       })
     )
   );
@@ -1574,9 +1579,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
         SaleInfoResponse::FeeDepositInfo(fee_deposit_info) => {
           println!("fee_deposit_info {:?}", fee_deposit_info);
           Icrc1Account {
-            owner: fee_deposit_info.account.principal,
+            owner: fee_deposit_info.owner,
             subaccount: Some(
-              fee_deposit_info.account.sub_account
+              fee_deposit_info.subaccount
+                .unwrap()
                 .into_vec()
                 .try_into()
                 .expect("slice with incorrect length")
@@ -1621,9 +1627,9 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
     nft_owner.clone(),
     ManageSaleRequest::FeeDeposit(FeeDepositRequest {
       token: ogy_token_spec.clone(),
-      account: Account::Account {
+      account: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1710,13 +1716,13 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
     SaleInfoRequest::EscrowInfo(EscrowReceipt {
       token: ldg_token_spec.clone(),
       token_id: "0".to_string(),
-      seller: Account::Account {
+      seller: Account {
         owner: nft_owner.clone(),
-        sub_account: None,
+        subaccount: None,
       },
-      buyer: Account::Account {
+      buyer: Account {
         owner: nft_buyer.clone(),
-        sub_account: None,
+        subaccount: None,
       },
       amount: Nat::from(100_000_000_000 as u64),
     })
@@ -1744,9 +1750,10 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
     ldg_ledger.clone(),
     None,
     icrc_ledger_types::icrc1::account::Account {
-      owner: deposit_account_info.account.principal.clone(),
+      owner: deposit_account_info.owner.clone(),
       subaccount: Some(
-        deposit_account_info.account.sub_account
+        deposit_account_info.subaccount
+          .unwrap()
           .into_vec()
           .try_into()
           .expect("slice with incorrect length")
@@ -1764,14 +1771,14 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
       escrow_record: EscrowRecord {
         token: ldg_token_spec.clone(),
         token_id: "0".to_string(),
-        seller: Account::Account {
+        seller: Account {
           owner: nft_owner.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         lock_to_date: None,
-        buyer: Account::Account {
+        buyer: Account {
           owner: nft_buyer.clone(),
-          sub_account: None,
+          subaccount: None,
         },
         amount: Nat::from(100_000_000_000 as u64),
         sale_id: Some(sale_id.clone()),
@@ -1848,7 +1855,7 @@ fn test_market_transfer_nft_origyn_fee_account_bid_different_token_full_fee_acco
   assert_eq!(
     owner_of,
     vec![
-      Some(Account3 {
+      Some(Account {
         owner: nft_buyer.clone(),
         subaccount: None,
       })
@@ -1932,7 +1939,7 @@ fn test_burned_tokens_list() {
         memo: None,
         from_subaccount: None,
         created_at_time: None,
-        to: Account3 {
+        to: Account {
           owner: origyn_nft.clone(),
           subaccount: None,
         },

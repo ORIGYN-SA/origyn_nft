@@ -117,10 +117,10 @@ module {
     return total;
   };
 
-  private func dev_fund() : { owner : Principal; sub_account : ?Blob } {
+  private func dev_fund() : MigrationTypes.Current.Account {
     {
       owner = Principal.fromText("cjrh3-ivpiy-uhwu3-fenuc-23mkg-vez2x-5dqbl-obt3c-2onzn-alaib-kae");
-      sub_account = null;
+      subaccount = null;
     };
   };
 
@@ -304,21 +304,21 @@ module {
 
       debug if (debug_channel.royalties) D.print("total_royalty =  " # debug_show (total_royalty));
 
-      let principal : [{ owner : Principal; sub_account : ?Blob }] = switch (Properties.getClassPropertyShared(this_item, "account")) {
+      let principal : [MigrationTypes.Current.Account] = switch (Properties.getClassPropertyShared(this_item, "account")) {
         case (null) {
           let #ic(tokenSpec) = request.token else {
             debug if (debug_channel.royalties) D.print("not an IC token spec so continuing " # debug_show (request.token));
             continue royaltyLoop;
           }; //we only support ic token specs for royalties
 
-          let _association_table : [(Text, f : (state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) -> [{ owner : Principal; sub_account : ?Blob }])] = [
+          let _association_table : [(Text, f : (state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) -> [MigrationTypes.Current.Account])] = [
             (Types.metadata.royalty_network, _build_network_account),
             (Types.metadata.royalty_node, _build_royalties_node_account),
             (Types.metadata.royalty_originator, _build_royalties_originator_account),
             (Types.metadata.royalty_broker, _build_royalties_broker_account),
           ];
 
-          let _current_royalty = Array.find<(Text, f : (state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) -> [{ owner : Principal; sub_account : ?Blob }])>(_association_table, func x = tag == x.0);
+          let _current_royalty = Array.find<(Text, f : (state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) -> [MigrationTypes.Current.Account])>(_association_table, func x = tag == x.0);
           switch (_current_royalty) {
             case (?val) { val.1 (state, request, tokenSpec) };
             case (null) { [dev_fund()] }; //dev fund
@@ -327,7 +327,7 @@ module {
         };
         case (?val) {
           switch (val.value) {
-            case (#Principal(val)) [NFTUtils.create_principal_with_no_subaccount(val)];
+            case (#Principal(val)) [{ owner = val; subaccount = null }];
             case (_) [dev_fund()]; //dev fund
           };
         };
@@ -336,19 +336,6 @@ module {
       debug if (debug_channel.royalties) D.print("fee_accounts_with_owner =  " # debug_show (request.fee_accounts_with_owner));
       switch (Array.find<(MigrationTypes.Current.FeeName, MigrationTypes.Current.Account)>(request.fee_accounts_with_owner, func((fee_name, acc)) { return fee_name == tag })) {
         case (?(fee_name, fee_accounts_owner)) {
-          let fee_accounts_set : { owner : Principal; sub_account : ?Blob } = switch (fee_accounts_owner) {
-            case (#account(fee_accounts_set)) {
-              fee_accounts_set;
-            };
-            case (#principal(p_account)) {
-              { owner = p_account; sub_account = null };
-            };
-            case (_) {
-              debug if (debug_channel.royalties) D.print("Process royalties - shouldnt go there : " # debug_show (fee_accounts_owner));
-              continue royaltyLoop;
-            };
-          };
-
           for (this_principal in principal.vals()) {
             let this_royalty = (total_royalty / principal.size());
             debug if (debug_channel.royalties) D.print("this_royalty =  " # debug_show (this_royalty));
@@ -369,20 +356,13 @@ module {
             };
 
             if (this_royalty > _fee) {
-              let send_account : { owner : Principal; sub_account : ?Blob } = this_principal;
-
-              let receiver_account = #account({
-                owner = send_account.owner;
-                sub_account = switch (send_account.sub_account) {
-                  case (null) null;
-                  case (?val) ?val;
-                };
-              });
+              let send_account : MigrationTypes.Current.Account = this_principal;
+              let receiver_account = send_account;
 
               var _escrow : Types.EscrowReceipt = {
                 request.escrow with
-                buyer = #account(fee_accounts_set);
-                seller = #account(send_account);
+                buyer = fee_accounts_owner;
+                seller = send_account;
                 amount = this_royalty;
                 token_id = Option.get(request.token_id, "");
                 token = switch (loaded_royalty) {
@@ -402,7 +382,7 @@ module {
                 };
               };
 
-              let fees_account_info : Types.SubAccountInfo = NFTUtils.get_fee_deposit_account_info(_escrow.buyer, state.canister());
+              let fees_account_info : MigrationTypes.Current.Account = NFTUtils.get_fee_deposit_account_info(_escrow.buyer, state.canister());
 
               let id = Metadata.add_transaction_record<system>(
                 state,
@@ -431,7 +411,7 @@ module {
                 seller = receiver_account;
                 sale_id = request.sale_id;
                 lock_to_date = null;
-                account_hash = ?fees_account_info.account.sub_account;
+                account_hash = fees_account_info.subaccount;
               };
 
               results.add((newReciept, true));
@@ -448,15 +428,9 @@ module {
             if (this_royalty > request.fee) {
               request.remaining -= this_royalty;
 
-              let send_account : { owner : Principal; sub_account : ?Blob } = this_principal;
+              let send_account : MigrationTypes.Current.Account = this_principal;
 
-              let receiver_account = #account({
-                owner = send_account.owner;
-                sub_account = switch (send_account.sub_account) {
-                  case (null) null;
-                  case (?val) ?val;
-                };
-              });
+              let receiver_account = send_account;
 
               let id = Metadata.add_transaction_record<system>(
                 state,
@@ -506,50 +480,35 @@ module {
     return (request.remaining, Buffer.toArray(results));
   };
 
-  private func _build_network_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [{
-    owner : Principal;
-    sub_account : ?Blob;
-  }] {
+  private func _build_network_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [MigrationTypes.Current.Account] {
     debug if (debug_channel.royalties) D.print("found the network" # debug_show (get_network_royalty_account(tokenSpec.canister, tokenSpec.id)));
     switch (state.state.collection_data.network) {
       case (null) [dev_fund()]; //dev fund
-      case (?val) [{
-        owner = val;
-        sub_account = ?Blob.fromArray(get_network_royalty_account(tokenSpec.canister, tokenSpec.id));
-      }];
+      case (?val) [{ owner = val; subaccount = null }];
     };
   };
 
-  private func _build_royalties_node_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [{
-    owner : Principal;
-    sub_account : ?Blob;
-  }] {
+  private func _build_royalties_node_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [MigrationTypes.Current.Account] {
     let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_node);
 
     switch (val) {
       case (#Option(null)) [dev_fund()]; //dev fund
-      case (#Principal(val)) [NFTUtils.create_principal_with_no_subaccount(val)];
+      case (#Principal(val)) [{ owner = val; subaccount = null }];
       case (_) [dev_fund()];
     };
   };
 
-  private func _build_royalties_originator_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [{
-    owner : Principal;
-    sub_account : ?Blob;
-  }] {
+  private func _build_royalties_originator_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [MigrationTypes.Current.Account] {
     let val = Metadata.get_system_var(request.metadata, Types.metadata.__system_originator);
 
     switch (val) {
       case (#Option(null)) [dev_fund()]; //dev fund
-      case (#Principal(val)) [NFTUtils.create_principal_with_no_subaccount(val)];
+      case (#Principal(val)) [{ owner = val; subaccount = null }];
       case (_) [dev_fund()];
     };
   };
 
-  private func _build_royalties_broker_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [{
-    owner : Principal;
-    sub_account : ?Blob;
-  }] {
+  private func _build_royalties_broker_account(state : StateAccess, request : ProcessRoyaltiesRequest, tokenSpec : Types.ICTokenSpec) : [MigrationTypes.Current.Account] {
     debug if (debug_channel.royalties) D.print("_build_royalties_broker_account : request.broker_id " # debug_show (request.broker_id) # " request.original_broker_id " # debug_show (request.original_broker_id));
 
     switch (request.broker_id, request.original_broker_id) {
@@ -576,13 +535,16 @@ module {
         };
       }; //dev fund
       case (?val, null) {
-        [MigrationTypes.Current.account_to_owner_subaccount(val)];
+        [val];
       };
-      case (null, ?val2) [NFTUtils.create_principal_with_no_subaccount(val2)];
+      case (null, ?val2) [{
+        owner = val2;
+        subaccount = null;
+      }];
       case (?val, ?val2) {
-        if (MigrationTypes.Current.account_to_principal(val) == val2) {
-          [MigrationTypes.Current.account_to_owner_subaccount(val)];
-        } else [MigrationTypes.Current.account_to_owner_subaccount(val), NFTUtils.create_principal_with_no_subaccount(val2)];
+        if (val.owner == val2) {
+          [val];
+        } else [val, { owner = val2; subaccount = null }];
       };
     };
 

@@ -25,8 +25,13 @@ import Option "mo:base/Option";
 import AccountIdentifier "mo:principalmo/AccountIdentifier";
 import TimerTool "mo:timer-tool";
 import Map9 "mo:map9/Map";
+import D "mo:base/Debug";
+import MapUtils "mo:map_7_0_0/utils";
+
+import hex "mo:encoding/Hex";
 
 import ICRC3 "mo:icrc3-mo";
+import ICRC1 "mo:icrc1-types";
 
 import Droute "mo:droute_client/Droute";
 
@@ -49,6 +54,8 @@ module {
   public let JSON = v0_1_6.JSON;
   public let Workspace = v0_1_6.Workspace;
 
+  public type Account = ICRC1.Account;
+
   public type CollectionData = v0_1_6.CollectionData;
 
   public type AllocationRecord = v0_1_6.AllocationRecord;
@@ -67,15 +74,15 @@ module {
     index : Nat;
     txn_type : {
       #auction_bid : {
-        buyer : Account;
+        buyer : ICRC1.Account;
         amount : Nat;
         token : TokenSpec;
         sale_id : Text;
         extensible : CandyTypes.CandyShared;
       };
       #mint : {
-        from : Account;
-        to : Account;
+        from : ICRC1.Account;
+        to : ICRC1.Account;
         //nyi: metadata hash
         sale : ?{
           token : TokenSpec;
@@ -84,8 +91,8 @@ module {
         extensible : CandyTypes.CandyShared;
       };
       #sale_ended : {
-        seller : Account;
-        buyer : Account;
+        seller : ICRC1.Account;
+        buyer : ICRC1.Account;
 
         token : TokenSpec;
         sale_id : ?Text;
@@ -93,9 +100,9 @@ module {
         extensible : CandyTypes.CandyShared;
       };
       #royalty_paid : {
-        seller : Account;
-        buyer : Account;
-        receiver : Account;
+        seller : ICRC1.Account;
+        buyer : ICRC1.Account;
+        receiver : ICRC1.Account;
         tag : Text;
         token : TokenSpec;
         sale_id : ?Text;
@@ -108,13 +115,13 @@ module {
         extensible : CandyTypes.CandyShared;
       };
       #owner_transfer : {
-        from : Account;
-        to : Account;
+        from : ICRC1.Account;
+        to : ICRC1.Account;
         extensible : CandyTypes.CandyShared;
       };
       #escrow_deposit : {
-        seller : Account;
-        buyer : Account;
+        seller : ICRC1.Account;
+        buyer : ICRC1.Account;
         token : TokenSpec;
         token_id : Text;
         amount : Nat; //Nat to support cycles
@@ -122,8 +129,8 @@ module {
         extensible : CandyTypes.CandyShared;
       };
       #escrow_withdraw : {
-        seller : Account;
-        buyer : Account;
+        seller : ICRC1.Account;
+        buyer : ICRC1.Account;
         token : TokenSpec;
         token_id : Text;
         amount : Nat; //Nat to support cycles
@@ -132,7 +139,7 @@ module {
         extensible : CandyTypes.CandyShared;
       };
       #deposit_withdraw : {
-        buyer : Account;
+        buyer : ICRC1.Account;
         token : TokenSpec;
         amount : Nat; //Nat to support cycles
         fee : Nat;
@@ -141,21 +148,21 @@ module {
       };
       #fee_deposit : {
         amount : Nat;
-        account : Account;
+        account : ICRC1.Account;
         extensible : CandyTypes.CandyShared;
         token : TokenSpec;
       };
       #fee_deposit_withdraw : {
         amount : Nat;
-        account : Account;
+        account : ICRC1.Account;
         extensible : CandyTypes.CandyShared;
         fee : Nat;
         token : TokenSpec;
         trx_id : TransactionID;
       };
       #sale_withdraw : {
-        seller : Account;
-        buyer : Account;
+        seller : ICRC1.Account;
+        buyer : ICRC1.Account;
         token : TokenSpec;
         token_id : Text;
         amount : Nat; //Nat to support cycles
@@ -182,7 +189,7 @@ module {
         extensible : CandyTypes.CandyShared;
       }; //nyi
       #burn : {
-        from : ?Account;
+        from : ?ICRC1.Account;
         extensible : CandyTypes.CandyShared;
       };
       #extensible : CandyTypes.CandyShared;
@@ -202,18 +209,6 @@ module {
   };
 
   public type HttpAccess = v0_1_6.HttpAccess;
-
-  public type Account = {
-    #principal : Principal;
-    #account : { owner : Principal; sub_account : ?Blob };
-    #account_id : Text;
-    #extensible : CandyTypes.CandyShared;
-  };
-
-  public let account_to_principal = v0_1_6.account_to_principal;
-  public let account_to_owner_subaccount = v0_1_6.account_to_owner_subaccount;
-  public let compare_account = v0_1_6.compare_account;
-
   public type TransactionID = v0_1_6.TransactionID;
 
   public type AskFeatureKey = {
@@ -297,10 +292,10 @@ module {
   public type BidFeatureMap = Map.Map<BidFeatureKey, BidFeature>;
   public type BidConfig = ?BidFeatureMap;
 
-  public type BidConfigShared = v0_1_6.BidConfigShared;
+  public type BidConfigShared = ?[BidFeature];
 
   public type BidFeature = {
-    #broker : Account;
+    #broker : ICRC1.Account;
     #fee_schema : Text;
     #fee_accounts : FeeAccountsParams;
     // #amm : AMMParams; //see ICRC-62: AMMs for Ledger Native Markets
@@ -331,10 +326,13 @@ module {
     return Buffer.toArray(feature_arr);
   };
 
-  public type BidRequest = v0_1_6.BidRequest;
+  public type BidRequest = {
+    escrow_record : EscrowRecord;
+    config : BidConfigShared;
+  };
   public type Royalty = v0_1_6.Royalty;
 
-  public func load_broker_bid_feature(_config : BidConfig) : ?Account {
+  public func load_broker_bid_feature(_config : BidConfig) : ?ICRC1.Account {
     let config = switch (_config) {
       case (?config) (config);
       case (_) (return null);
@@ -926,7 +924,7 @@ module {
 
   public type SalesConfig = {
     escrow_receipt : ?EscrowReceipt;
-    broker_id : ?Account;
+    broker_id : ?ICRC1.Account;
     pricing : PricingConfigShared;
   };
 
@@ -961,7 +959,7 @@ module {
       #not_started;
     };
     var notify_queue : ?Deque.Deque<(Principal, ?SubscriptionID)>;
-    var winner : ?Account;
+    var winner : ?ICRC1.Account;
   };
   public type SubscriptionID = v0_1_6.SubscriptionID;
   public type AskSubscriptionInfo = v0_1_6.AskSubscriptionInfo;
@@ -969,32 +967,41 @@ module {
   public type TokenSpecFilter = v0_1_6.TokenSpecFilter;
   public type ICTokenSpec = v0_1_6.ICTokenSpec;
   public type TokenSpec = v0_1_6.TokenSpec;
-  public type FeeDepositTrie = Map.Map<Account, Map.Map<TokenSpec, FeeDepositDetail>>;
+  public type FeeDepositTrie = Map.Map<ICRC1.Account, Map.Map<TokenSpec, FeeDepositDetail>>;
   public type FeeDepositDetail = {
     total_balance : Nat;
     locks : Map.Map<Text, Nat>; //locks for sale ids
   };
 
-  public type SalesSellerTrie = Map.Map<Account, SalesBuyerTrie>;
+  public type SalesSellerTrie = Map.Map<ICRC1.Account, SalesBuyerTrie>;
 
-  public type SalesBuyerTrie = Map.Map<Account, SalesTokenIDTrie>;
+  public type SalesBuyerTrie = Map.Map<ICRC1.Account, SalesTokenIDTrie>;
 
   public type SalesTokenIDTrie = Map.Map<Text, SalesLedgerTrie>;
 
   public type SalesLedgerTrie = Map.Map<TokenSpec, EscrowRecord>;
 
-  public type EscrowBuyerTrie = Map.Map<Account, EscrowSellerTrie>;
+  public type EscrowBuyerTrie = Map.Map<ICRC1.Account, EscrowSellerTrie>;
 
-  public type EscrowSellerTrie = Map.Map<Account, EscrowTokenIDTrie>;
+  public type EscrowSellerTrie = Map.Map<ICRC1.Account, EscrowTokenIDTrie>;
 
   public type EscrowTokenIDTrie = Map.Map<Text, EscrowLedgerTrie>;
 
   public type EscrowLedgerTrie = Map.Map<TokenSpec, EscrowRecord>;
-  public type EscrowRecord = v0_1_6.EscrowRecord;
+  public type EscrowRecord = {
+    amount : Nat;
+    buyer : ICRC1.Account;
+    seller : ICRC1.Account;
+    token_id : Text;
+    token : TokenSpec;
+    sale_id : ?Text; //locks the escrow to a specific sale
+    lock_to_date : ?Int; //locks the escrow to a timestamp
+    account_hash : ?Blob; //sub account the host holds the funds in
+  };
   public type EscrowReceipt = {
     amount : Nat; //Nat to support cycles
-    seller : Account;
-    buyer : Account;
+    seller : ICRC1.Account;
+    buyer : ICRC1.Account;
     token_id : Text;
     token : TokenSpec;
   };
@@ -1007,89 +1014,36 @@ module {
     return Text.hash("token_id" # x.0 # "library_id" # x.1);
   };
 
-  public let account_hash_uncompressed : (a : Account) -> Nat = v0_1_6.account_hash_uncompressed;
+  public func account_hash_uncompressed(a : ICRC1.Account) : Nat {
+    let account_id = AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a.owner, switch (a.subaccount) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
+    let accountBlob = switch (hex.decode(account_id)) {
+      case (#ok(item)) { Blob.fromArray(item) };
+      case (#err(err)) {
+        D.trap("Not a valid hex");
+      };
+    };
+    return MapUtils.hashBlob(accountBlob);
+  };
 
   public let token_hash_uncompressed : (a : TokenSpec) -> Nat = v0_1_6.token_hash_uncompressed;
 
-  public func account_hash(a : Account) : Nat32 {
-    let _a = account_to_owner_subaccount(a);
-    Text.hash(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(_a.owner, switch (_a.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })));
+  public func account_hash(a : ICRC1.Account) : Nat32 {
+    Text.hash(AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a.owner, switch (a.subaccount) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })));
   };
 
-  public func account_eq(a : Account, b : Account) : Bool {
-    switch (a) {
-      case (#principal(a_principal)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return a_principal == b_principal;
-          };
-          case (#account_id(b_account_id)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == b_account_id;
-          };
-          case (#account(b_account)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_principal, null)) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch (b_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#account_id(a_account_id)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal, null));
-          };
-          case (#account_id(b_account_id)) {
-            return a_account_id == b_account_id;
-          };
-          case (#account(b_account)) {
-            return a_account_id == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_account.owner, switch (b_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } }));
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#extensible(a_extensible)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return false;
-          };
-          case (#account_id(b_account_id)) {
-            return false;
-          };
-          case (#account(b_account_id)) {
-            return false;
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
-      case (#account(a_account)) {
-        switch (b) {
-          case (#principal(b_principal)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })) == AccountIdentifier.toText(AccountIdentifier.fromPrincipal(b_principal, null));
-          };
-          case (#account_id(b_account_id)) {
-            return AccountIdentifier.toText(AccountIdentifier.fromPrincipal(a_account.owner, switch (a_account.sub_account) { case (null) { null }; case (?val) { ?Blob.toArray(val) } })) == b_account_id;
-          };
-          case (#account(b_account)) {
-            return a_account.owner == b_account.owner and a_account.sub_account == b_account.sub_account;
-          };
-          case (#extensible(b_extensible)) {
-            //not implemented
-            return false;
-          };
-        };
-      };
+  public func account_eq(a : ICRC1.Account, b : ICRC1.Account) : Bool {
+    if (a.owner != b.owner) {
+      return false;
     };
+
+    if (a.subaccount != b.subaccount) {
+      return false;
+    };
+
+    return true;
   };
 
-  public let account_handler = (account_hash, account_eq) : Map.HashUtils<Account>;
+  public let account_handler = (account_hash, account_eq) : Map.HashUtils<ICRC1.Account>;
 
   public func token_hash(a : TokenSpec) : Nat32 {
     switch (a) {
@@ -1152,7 +1106,15 @@ module {
     found_asset_list : EscrowLedgerTrie;
   };
 
-  public let account_to_value = v0_1_6.account_to_value;
+  public func account_to_value(account : ICRC1.Account) : ICRC3.Value {
+    return #Array([
+      #Blob(Principal.toBlob(account.owner)),
+      switch (account.subaccount) {
+        case (null) return #Blob("" : Blob);
+        case (?subaccount) return #Blob(subaccount);
+      },
+    ]);
+  };
   public let tokenspec_to_value = v0_1_6.tokenspec_to_value;
   public let dutchparams_to_value = v0_1_6.dutchparams_to_value;
   public let ask_features_to_value = v0_1_6.ask_features_to_value;
@@ -1172,7 +1134,7 @@ module {
     var allocations : Map.Map<(Text, Text), AllocationRecord>;
     var canister_availible_space : Nat;
     var canister_allocated_storage : Nat;
-    var offers : Map.Map<Account, Map.Map<Account, Int>>;
+    var offers : Map.Map<ICRC1.Account, Map.Map<ICRC1.Account, Int>>;
     var nft_metadata : Map.Map<Text, CandyTypes.CandyShared>;
     var escrow_balances : EscrowBuyerTrie;
     var sales_balances : SalesSellerTrie;

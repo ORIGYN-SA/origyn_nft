@@ -56,7 +56,7 @@ module {
     debug if (debug_channel.withdraw_deposit) D.print("in deposit withdraw");
     debug if (debug_channel.withdraw_deposit) D.print("an deposit withdraw");
     debug if (debug_channel.withdraw_deposit) D.print(debug_show (withdraw));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) {
+    if (caller != state.canister() and caller != details.buyer.owner) {
       //cant withdraw for someone else
       return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - deposit - buyer and caller do not match", ?caller)));
     };
@@ -89,9 +89,9 @@ module {
             debug if (debug_channel.withdraw_deposit) D.print("returning amount " # debug_show (details.amount, token.fee));
 
             try {
-              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)) {
+              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, deposit_account.subaccount, caller)) {
                 case (#ok(val)) ?val;
-                case (#err(err)) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?deposit_account.account.sub_account, caller)), ?caller)));
+                case (#err(err)) return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_nft_origyn - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?deposit_account.subaccount, caller)), ?caller)));
 
               };
             } catch (e) {
@@ -146,7 +146,7 @@ module {
     debug if (debug_channel.withdraw_fee_deposit) D.print("in deposit withdraw");
     debug if (debug_channel.withdraw_fee_deposit) D.print("an deposit withdraw");
     debug if (debug_channel.withdraw_fee_deposit) D.print(debug_show (withdraw));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.account) == false) {
+    if (caller != state.canister() and caller != details.account.owner) {
       //cant withdraw for someone else
       debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw - buyer and caller do not match");
       return #err(#trappable(Types.errors(#unauthorized_access, "_withdraw_fee_deposit - withdraw - buyer and caller do not match", ?caller)));
@@ -196,11 +196,11 @@ module {
             debug if (debug_channel.withdraw_fee_deposit) D.print("returning amount " # debug_show (details.amount, token.fee));
 
             try {
-              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)) {
+              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, fee_deposit_account.subaccount, caller)) {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
-                  debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw_fee_deposit : deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)));
-                  return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.account.sub_account, caller)), ?caller)));
+                  debug if (debug_channel.withdraw_fee_deposit) D.print("withdraw_fee_deposit : deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.subaccount, caller)));
+                  return #err(#awaited(Types.errors(#escrow_withdraw_payment_failed, "withdraw_fee_deposit - deposit - ledger payment failed err branch " # err.flag_point # " " # debug_show ((details.withdraw_to, token, details.amount, ?fee_deposit_account.subaccount, caller)), ?caller)));
                 };
               };
             } catch (e) {
@@ -286,7 +286,7 @@ module {
 
     debug if (debug_channel.withdraw_escrow) D.print("an escrow withdraw");
     debug if (debug_channel.withdraw_escrow) D.print(debug_show (withdraw));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.buyer) == false) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match", ?caller)));
+    if (caller != state.canister() and caller != details.buyer.owner) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - escrow - buyer and caller do not match", ?caller)));
 
     debug if (debug_channel.withdraw_escrow) D.print("about to verify");
 
@@ -424,7 +424,7 @@ module {
             debug if (debug_channel.withdraw_escrow) D.print("returning amount " # debug_show (details.amount, token.fee));
 
             try {
-              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, ?account_info.account.sub_account, caller)) {
+              switch (await* checker.send_payment_minus_fee(details.withdraw_to, token, details.amount, account_info.subaccount, caller)) {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
                   Verify.handle_escrow_update_error(state, a_ledger, null, verified.found_asset, verified.found_asset_list);
@@ -487,7 +487,7 @@ module {
     debug if (debug_channel.withdraw_sale) D.print("withdrawing a sale");
     debug if (debug_channel.withdraw_sale) D.print(debug_show (details));
     debug if (debug_channel.withdraw_sale) D.print(debug_show (caller));
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show ((#principal(caller), details.seller)), ?caller)));
+    if (caller != state.canister() and caller != details.seller.owner) return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - sales- buyer and caller do not match" # debug_show ((#principal(caller), details.seller)), ?caller)));
 
     let verified = switch (Verify.verify_sales_reciept(state, details)) {
       case (#ok(verified)) verified;
@@ -623,7 +623,7 @@ module {
   public func _reject_offer<system>(state : StateAccess, withdraw : Types.WithdrawRequest, details : Types.RejectDescription, caller : Principal) : async* Star.Star<Types.ManageSaleResponse, Types.OrigynError> {
     // rejects and offer and sends the tokens back to the source
     debug if (debug_channel.withdraw_reject) D.print("an escrow reject");
-    if (caller != state.canister() and Types.account_eq(#principal(caller), details.seller) == false and ?caller != state.state.collection_data.network) {
+    if (caller != state.canister() and caller != details.seller.owner and ?caller != state.state.collection_data.network) {
       //cant withdraw for someone else
       debug if (debug_channel.withdraw_reject) D.print(debug_show ((caller, state.canister(), details.seller, state.state.collection_data.network)));
       return #err(#trappable(Types.errors(#unauthorized_access, "withdraw_nft_origyn - reject - unauthorized", ?caller)));
@@ -755,7 +755,7 @@ module {
 
               debug if (debug_channel.withdraw_reject) D.print("returning amount " # debug_show (verified.found_asset.escrow.amount, token.fee));
 
-              switch (await* checker.send_payment_minus_fee(details.buyer, token, verified.found_asset.escrow.amount, ?account_info.account.sub_account, caller)) {
+              switch (await* checker.send_payment_minus_fee(details.buyer, token, verified.found_asset.escrow.amount, account_info.subaccount, caller)) {
                 case (#ok(val)) ?val;
                 case (#err(err)) {
                   //put the escrow back

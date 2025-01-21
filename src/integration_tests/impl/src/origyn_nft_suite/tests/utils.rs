@@ -25,7 +25,7 @@ pub fn init_nft_with_premint_nft(
     pic,
     origyn_nft.clone(),
     Some(net_principal.clone()),
-    (nft_name.clone(), Account::Principal_(nft_owner.clone()))
+    (nft_name.clone(), Account { owner: nft_owner.clone(), subaccount: None })
   );
 
   println!("mint_return: {:?}", mint_return);

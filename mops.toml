@@ -26,9 +26,8 @@ star = "0.1.1"
 icrc3-mo = "0.2.6"
 cert = "https://github.com/nomeata/ic-certification#v0.1.3@c403ffec0a60f658a1009976c785aa567ff0da77"
 timer-tool = "0.0.3"
-
-# Migrations
 candy_0_1_10 = "https://github.com/icdevs/candy_library#v0.1.10@b3e83cb9e71d554c3094981f0b61904920354fa5"
 candy_0_1_12 = "https://github.com/icdevs/candy_library#v0.1.12@20db7a8a74258bb07c7d354ea477bf95121747a3"
 candy_0_2_0 = "https://github.com/icdevs/candy_library#0.2.0@4fc5aebec44355da94a4d3ebef87623e4545d89a"
 map7 = "https://github.com/ZhenyaUsenko/motoko-hash-map#v7.0.0@f0e25632e5da80118274e78ceeb5bec95f3c2b81"
+icrc1-types = "1.0.0"
