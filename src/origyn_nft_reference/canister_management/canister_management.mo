@@ -11,13 +11,14 @@ import Prim "mo:⛔";
 import Buffer "mo:base/Buffer";
 import { endsWith; size } "mo:base/Text";
 import { trap } "mo:base/Debug";
+import Debug "mo:base/Debug";
+import Error "mo:base/Error";
 
 import CyclesManager "mo:cycles-manager/CyclesManager";
 
 import Types "types";
 
 shared (installer) actor class CanistersManager() = this {
-
   type Error = Types.Error;
   type Canister = Types.Canister;
   type CanisterStatus = Types.CanisterStatus;
@@ -37,7 +38,7 @@ shared (installer) actor class CanistersManager() = this {
   stable var canisters_entries : [(Principal, Canister)] = [];
   stable var record_entries : [(Principal, [Record])] = [];
 
-// TODO: those consts could be needed if the canister would manage the cycles by itself (not using the CycleOps)
+  // TODO: it's posible that the canister after spawning another one just sends a request to cycle-ops to add the new canister into the list of tracked ones
   let CYCLE_MINTING_CANISTER = Principal.fromText("rkp4c-7iaaa-aaaaa-aaaca-cai");
   let ICP_LEDGER : Ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
   let management : Management = actor ("aaaaa-aa");
@@ -163,6 +164,8 @@ shared (installer) actor class CanistersManager() = this {
     #ok(());
   };
 
+  // FIXME: old
+  // TODO: add here the function to add the new created canister under the wing of cycles manager
   public shared ({ caller }) func deployCanister(
     args : DeployArgs
   ) : async Result.Result<Principal, Error> {
@@ -174,14 +177,9 @@ shared (installer) actor class CanistersManager() = this {
     if (args.cycle_amount + 100_000_000_000 >= Cycles.balance() or args.cycle_amount < 200_000_000_000) {
       return #err(#Insufficient_Cycles);
     };
-        Cycles.add<system>( 1_000_000_000_000);
 
-        let _canister_id = try {
-            (await management.create_canister({settings = null})).canister_id;
-        } catch (_) {            
-            return #err(#Insufficient_Cycles);            
-        };
-
+    Cycles.add<system>(args.cycle_amount + 100_000_000_000);
+    let _canister_id = (await management.create_canister({ settings = args.settings })).canister_id;
 
     canisters.put(
       _canister_id,
@@ -192,28 +190,78 @@ shared (installer) actor class CanistersManager() = this {
         wasm = if (args.preserve_wasm) { args.wasm } else { null };
       },
     );
+
     ignore do ? {
       if (args.wasm!.size() != 0) {
-        switch (args.deploy_arguments) {
+        Debug.print("Attempting to install code for canister: " # debug_show (_canister_id));
+
+        let install_result = switch (args.deploy_arguments) {
           case null {
-            ignore management.install_code({
-              arg = [];
-              wasm_module = args.wasm!;
-              mode = #install;
-              canister_id = _canister_id;
-            });
+            Debug.print("Installing with empty arg");
+            try {
+              await management.install_code({
+                arg = [];
+                wasm_module = args.wasm!;
+                mode = #install;
+                canister_id = _canister_id;
+              });
+              Debug.print("Code installed successfully");
+              #ok;
+            } catch (e) {
+              Debug.print("Error installing code: " # Error.message(e));
+              #err(e);
+            };
           };
           case (?_arg) {
-            ignore management.install_code({
-              arg = _arg;
-              wasm_module = args.wasm!;
-              mode = #install;
-              canister_id = _canister_id;
-            });
+            Debug.print("Installing with provided arg");
+            try {
+              await management.install_code({
+                arg = _arg;
+                wasm_module = args.wasm!;
+                mode = #install;
+                canister_id = _canister_id;
+              });
+              Debug.print("Code installed successfully");
+              #ok;
+            } catch (e) {
+              Debug.print("Error installing code: " # Error.message(e));
+              #err(e);
+            };
           };
         };
+
+        switch (install_result) {
+          case (#ok) { /* Installation successful */ };
+          case (#err(e)) { throw e };
+        };
+      } else {
+        Debug.print("Error: Wasm module is empty");
+        throw Error.reject("Wasm module is empty");
       };
     };
+
+    // ignore do ? {
+    //   if (args.wasm!.size() != 0) {
+    //     switch (args.deploy_arguments) {
+    //       case null {
+    //         ignore management.install_code({
+    //           arg = [];
+    //           wasm_module = args.wasm!;
+    //           mode = #install;
+    //           canister_id = _canister_id;
+    //         });
+    //       };
+    //       case (?_arg) {
+    //         ignore management.install_code({
+    //           arg = _arg;
+    //           wasm_module = args.wasm!;
+    //           mode = #install;
+    //           canister_id = _canister_id;
+    //         });
+    //       };
+    //     };
+    //   };
+    // };
     let record = {
       caller = caller;
       canister_id = _canister_id;
@@ -224,7 +272,7 @@ shared (installer) actor class CanistersManager() = this {
     switch (records.get(record.canister_id)) {
       case (null) { records.put(record.canister_id, [record]) };
       case (?r) {
-                let buffer = Buffer.fromArray<Record>(r);
+        let buffer = Buffer.fromArray<Record>(r);
         buffer.add(record);
         records.put(record.canister_id, Buffer.toArray(buffer));
       };
@@ -233,7 +281,7 @@ shared (installer) actor class CanistersManager() = this {
     #ok(_canister_id);
   };
 
-  public shared ({ caller }) func installWasm(args : InstallArgs) : async Result.Result<(), Error> {
+  public shared ({ caller }) func installWasm(args : InstallArgs) : async Result.Result<Principal, Error> {
     if (not TrieSet.mem<Principal>(owners, caller, Principal.hash(caller), Principal.equal)) {
       return #err(#Invalid_Caller);
     };
@@ -253,7 +301,7 @@ shared (installer) actor class CanistersManager() = this {
         records.put(record.canister_id, Buffer.toArray(buffer));
       };
     };
-    #ok(());
+    #ok(args.canister_id);
   };
 
   public shared ({ caller }) func updateCanisterSettings(args : UpdateSettingsArgs) : async Result.Result<(), Error> {
@@ -490,12 +538,12 @@ shared (installer) actor class CanistersManager() = this {
     record_entries := [];
   };
 
-// *****************************************************************
-// ** Cycles Management Section **
-// This section handles monitoring and topping up cycles for 
-// target canisters. It ensures canisters maintain a sufficient 
-// cycle balance to perform their operations.
-// *****************************************************************
+  // *****************************************************************
+  // ** Cycles Management Section **
+  // This section handles monitoring and topping up cycles for
+  // target canisters. It ensures canisters maintain a sufficient
+  // cycle balance to perform their operations.
+  // *****************************************************************
 
   // Initializes a cycles manager
   stable let cyclesManager = CyclesManager.init({
@@ -506,7 +554,7 @@ shared (installer) actor class CanistersManager() = this {
     defaultCyclesSettings = {
       quota = #fixedAmount(500_000_000_000);
     };
-    // In total 10 trillion cycles are allowed to be transferred every 24 hours 
+    // Allow an aggregate of 10 trillion cycles to be transferred every 24 hours
     aggregateSettings = {
       quota = #rate({
         maxAmount = 10_000_000_000_000;
@@ -520,11 +568,11 @@ shared (installer) actor class CanistersManager() = this {
   // @required - IMPORTANT!!!
   // Allows canisters to request cycles from this "battery canister" that implements
   // the cycles manager
-  public shared ({ caller }) func requestCycles(
-    cyclesRequested: Nat
-  ): async CyclesManager.TransferCyclesResult {
+  public shared ({ caller }) func cycles_manager_requestCycles(
+    cyclesRequested : Nat
+  ) : async CyclesManager.TransferCyclesResult {
     if (not isCanister(caller)) trap("Calling principal must be a canister");
-    
+
     let result = await* CyclesManager.transferCycles({
       cyclesManager;
       canister = caller;
@@ -533,13 +581,14 @@ shared (installer) actor class CanistersManager() = this {
     result;
   };
 
-    // @required - IMPORTANT!!!
+  // @required - IMPORTANT!!!
   // Allows canisters to send cycles from this "battery canister" that implements
   // the cycles manager
-  public shared func transferCycles(canisterToTopUp: CanisterId,
-    cyclesToTransfer: Nat
-  ): async CyclesManager.TransferCyclesResult {
-    
+  public shared func cycles_manager_transferCycles(
+    canisterToTopUp : CanisterId,
+    cyclesToTransfer : Nat,
+  ) : async CyclesManager.TransferCyclesResult {
+
     let result = await* CyclesManager.transferCycles({
       cyclesManager;
       canister = canisterToTopUp;
@@ -553,21 +602,27 @@ shared (installer) actor class CanistersManager() = this {
   //
   // IMPORTANT: Add authoriation for production implementation so that not just any canister
   // can add themself
-  public shared func addCanisterWith1TrillionPer24HoursLimit(canisterId: Principal) {
-    CyclesManager.addChildCanister(cyclesManager, canisterId, {
-      // This topup rule all1 Trillion every 24 hours
-      quota = ?(#rate({
-        maxAmount = 1_000_000_000_000;
-        durationInSeconds = 24 * 60 * 60;
-      }));
-    })
+  public shared func addCanisterWith1TrillionPer24HoursLimit(canisterId : Principal) {
+    CyclesManager.addChildCanister(
+      cyclesManager,
+      canisterId,
+      {
+        // This topup rule all1 Trillion every 24 hours
+        quota = ?(#rate({ maxAmount = 1_000_000_000_000; durationInSeconds = 24 * 60 * 60 }));
+      },
+    );
+  };
+
+  // **DO NOT USE IN PRODUCTION** - for developer debugging and testing purposes only
+  public func toText() : async Text {
+    let result = CyclesManager.toText(cyclesManager);
+    result;
   };
 
   func isCanister(p : Principal) : Bool {
     let principal_text = Principal.toText(p);
     // Canister principals have 27 characters
-    size(principal_text) == 27
-    and
+    size(principal_text) == 27 and
     // Canister principals end with "-cai"
     endsWith(principal_text, #text "-cai");
   };

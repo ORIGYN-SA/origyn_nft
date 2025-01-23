@@ -323,7 +323,6 @@ shared (deployer) actor class Nft_Canister() = this {
  *  Start of the management canister interface  *
  ************************************************/
 
-  // FIXME: fix here logs
   public shared (msg) func test_canister_creation() : async Result.Result<Principal, CanisterManagementTypes.Error> {
     // public shared (msg) func test_canister_creation() : async () {
 
@@ -372,15 +371,32 @@ shared (deployer) actor class Nft_Canister() = this {
       };
     };
 
-    // Return the result
-    return result;
+    // NOTE: code snippet with the top up
+    switch (result) {
+      case (#ok(principal)) {
+        Cycles.add(100_000_000_000);
+        let topup_result = await canisterManagerInstance.cycles_manager_transferCycles(principal, 100_000_000_000);
+        return #ok(principal);
+      };
+      case (#err(error)) {
+        // canistergeekLogger.logMessage(
+        //   "test_call_create_canister",
+        //   #Text("Failed to deploy canister: "),
+        //   ?msg.caller,
+        // );
+
+        // return #err(#Invalid_Caller);
+        return #err(error);
+      };
+    };
+
   };
 
   // FIXME: fix here logs
-  public shared (msg) func test_canister_top_up() : async Result.Result<Principal, CanisterManagementTypes.Error> {
+  public shared (msg) func test_canister_top_up(deployArgs : CanisterManagementTypes.DeployArgs) : async Result.Result<Principal, CanisterManagementTypes.Error> {
     // public shared (msg) func test_canister_creation() : async () {
 
-    Cycles.add(1_000_000_000_000);
+    Cycles.add(100_000_000_000_000);
     let canisterManagerInstance = await CanisterManagement.CanistersManager();
 
     let is_owner = await canisterManagerInstance.isOwner();
@@ -388,16 +404,16 @@ shared (deployer) actor class Nft_Canister() = this {
       return #err(#Invalid_Caller);
     };
 
-    // Define the canister deployment args
-    let deployArgs : CanisterManagementTypes.DeployArgs = {
-      name = "Test Canister";
-      description = "A canister created for testing purposes.";
-      settings = null; // Replace with specific canister settings if needed
-      deploy_arguments = null; // Provide deploy arguments if required
-      wasm = null; // Provide the Wasm binary as a [Nat8] array if needed
-      cycle_amount = 100_000_000_000; // Specify the cycles for deployment
-      preserve_wasm = false; // Set to true to preserve the Wasm for later use
-    };
+    // // Define the canister deployment args
+    // let deployArgs : CanisterManagementTypes.DeployArgs = {
+    //   name = "Test Canister";
+    //   description = "A canister created for testing purposes.";
+    //   settings = null; // Replace with specific canister settings if needed
+    //   deploy_arguments = null; // Provide deploy arguments if required
+    //   wasm = null; // Provide the Wasm binary as a [Nat8] array if needed
+    //   cycle_amount = 100_000_000_000; // Specify the cycles for deployment
+    //   preserve_wasm = false; // Set to true to preserve the Wasm for later use
+    // };
 
     canistergeekLogger.logMessage(
       "c",
@@ -406,20 +422,27 @@ shared (deployer) actor class Nft_Canister() = this {
     );
 
     // Call the deployCanister function
+    Cycles.add(100_000_000_000_000);
     let result = await canisterManagerInstance.deployCanister(deployArgs);
 
+    // return result;
+
+    // NOTE: code snippet with the top up
     switch (result) {
       case (#ok(principal)) {
-        let topup_result = await canisterManagerInstance.transferCycles(principal, 100_000_000_000);
+        // Cycles.add(100_000_000_000);
+        // let topup_result = await canisterManagerInstance.cycles_manager_transferCycles(principal, 100_000_000_000);
         return #ok(principal);
       };
       case (#err(error)) {
-        canistergeekLogger.logMessage(
-          "test_call_create_canister",
-          #Text("Failed to deploy canister: "),
-          ?msg.caller,
-        );
-        return #err(#No_Record);
+        // canistergeekLogger.logMessage(
+        //   "test_call_create_canister",
+        //   #Text("Failed to deploy canister: "),
+        //   ?msg.caller,
+        // );
+
+        // return #err(#Invalid_Caller);
+        return #err(error);
       };
     };
 

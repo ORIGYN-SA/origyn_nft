@@ -1,7 +1,73 @@
 import Time "mo:base/Time";
-import Result "mo:base/Result";
 
 module {
+  // Canister types
+
+  public type CanisterId = Principal;
+  public type WasmModule = [Nat8];
+
+  public type Canister = {
+    name : Text;
+    description : Text;
+    canister_id : Principal;
+    wasm : ?[Nat8];
+  };
+
+  public type canister_settings = {
+    freezing_threshold : ?Nat;
+    controllers : ?[Principal];
+    memory_allocation : ?Nat;
+    compute_allocation : ?Nat;
+  };
+
+  public type definite_canister_settings = {
+    controllers : [Principal];
+    compute_allocation : Nat;
+    memory_allocation : Nat;
+    freezing_threshold : Nat;
+  };
+
+  public type CanisterStatus = {
+    status : { #running; #stopping; #stopped };
+    settings : definite_canister_settings;
+    module_hash : ?Blob;
+    memory_size : Nat;
+    cycles : Nat;
+  };
+
+  public type UpdateSettingsArgs = {
+    canister_id : Principal;
+    settings : canister_settings;
+  };
+
+  public type DeployArgs = {
+    name : Text;
+    description : Text;
+    settings : ?canister_settings;
+    deploy_arguments : ?[Nat8];
+    wasm : ?[Nat8];
+    cycle_amount : Nat;
+    preserve_wasm : Bool;
+  };
+
+  public type InstallArgs = {
+    canister_id : Principal;
+    mode : { #install; #reinstall; #upgrade };
+    wasm_module : [Nat8];
+    arg : [Nat8];
+  };
+
+  // Canister manager types
+
+  public type CanisterManagerInterface = actor {
+    init : (owner : Principal, cycle_wasm : [Nat8]) -> async ();
+  };
+
+  // This canister status (canister manager)
+  public type Status = {
+    cycle_balance : Nat;
+    memory : Nat;
+  };
 
   public type Error = {
     #Invalid_Caller;
@@ -36,78 +102,8 @@ module {
     times : Time.Time;
   };
 
-  public type Canister = {
-    name : Text;
-    description : Text;
-    canister_id : Principal;
-    wasm : ?[Nat8];
-  };
-
-  public type Status = {
-    cycle_balance : Nat;
-    memory : Nat;
-  };
-
-  public type UpdateSettingsArgs = {
-    canister_id : Principal;
-    settings : canister_settings;
-  };
-
-  public type TransformArgs = {
-    icp_amount : Nat64; // e8s
-    to_canister_id : Principal;
-  };
-
-  public type Canister_Manager_Interface = actor {
-    init : (owner : Principal, cycle_wasm : [Nat8]) -> async ();
-  };
-
-  public type DeployArgs = {
-    name : Text;
-    description : Text;
-    settings : ?canister_settings;
-    deploy_arguments : ?[Nat8];
-    wasm : ?[Nat8];
-    cycle_amount : Nat;
-    preserve_wasm : Bool;
-  };
-
-  public type InstallArgs = {
-    canister_id : Principal;
-    mode : { #install; #reinstall; #upgrade };
-    wasm_module : [Nat8];
-    arg : [Nat8];
-  };
-
   public type CycleInterface = actor {
     withdraw_cycles : { canister_id : Principal } -> async ();
-  };
-
-  /// Management Types
-
-  public type CanisterId = Principal;
-  public type WasmModule = [Nat8];
-
-  public type canister_settings = {
-    freezing_threshold : ?Nat;
-    controllers : ?[Principal];
-    memory_allocation : ?Nat;
-    compute_allocation : ?Nat;
-  };
-
-  public type definite_canister_settings = {
-    controllers : [Principal];
-    compute_allocation : Nat;
-    memory_allocation : Nat;
-    freezing_threshold : Nat;
-  };
-
-  public type CanisterStatus = {
-    status : { #running; #stopping; #stopped };
-    settings : definite_canister_settings;
-    module_hash : ?Blob;
-    memory_size : Nat;
-    cycles : Nat;
   };
 
   public type Management = actor {
@@ -136,7 +132,6 @@ module {
       cycles : Nat;
       freezing_threshold : Nat;
     });
-
   };
 
   /// Ledger Types

@@ -11,10 +11,14 @@ use origyn_nft_reference::origyn_nft_reference_canister::{
     StageLibraryResult, SupportedStandard, TransferArgs, TransferResult, Value,
 };
 
-// FIXME: delete this one after testing
+use origyn_nft_reference::canister_manager::{CanisterManagementResult, DeployArgs};
+
+// Canister management methods
+// FIXME: delete those two after testing
 generate_update_call!(test_canister_creation);
 generate_update_call!(test_canister_top_up);
 
+// Origyn NFT methods
 generate_update_call!(stage_nft_origyn);
 generate_update_call!(stage_library_nft_origyn);
 generate_update_call!(manage_storage_nft_origyn);
@@ -59,68 +63,18 @@ generate_update_call!(sale_nft_origyn);
 
 pub mod test_canister_creation {
     use super::*;
+    use candid::Principal;
 
     pub type Args = ();
-    pub type Response = CanisterManagementResponse;
-
-    use candid::CandidType;
-    use candid::Nat;
-    use candid::Principal;
-    use serde::Deserialize;
-    // Result.Result<Principal, CanisterManagementTypes.Error>
-    #[derive(CandidType, Deserialize, Debug)]
-    pub enum CanisterManagementResponse {
-        #[serde(rename = "ok")]
-        Ok(Principal),
-        #[serde(rename = "err")]
-        Err(CanisterManagementError),
-    }
-
-    #[derive(CandidType, Deserialize, Debug)]
-    pub enum CanisterManagementError {
-        Invalid_Caller,
-        Nonexistent_Caller,
-        Invalid_CanisterId,
-        No_Wasm,
-        No_Record,
-        Insufficient_Cycles,
-        Ledger_Transfer_Failed(Nat),
-        Create_Canister_Failed(Nat),
-        Delete_Hub_Failed,
-    }
+    pub type Response = CanisterManagementResult<Principal>;
 }
 
 pub mod test_canister_top_up {
     use super::*;
-
-    pub type Args = ();
-    pub type Response = CanisterManagementResponse;
-
-    use candid::CandidType;
-    use candid::Nat;
     use candid::Principal;
-    use serde::Deserialize;
-    // Result.Result<Principal, CanisterManagementTypes.Error>
-    #[derive(CandidType, Deserialize, Debug)]
-    pub enum CanisterManagementResponse {
-        #[serde(rename = "ok")]
-        Ok(Principal),
-        #[serde(rename = "err")]
-        Err(CanisterManagementError),
-    }
 
-    #[derive(CandidType, Deserialize, Debug)]
-    pub enum CanisterManagementError {
-        Invalid_Caller,
-        Nonexistent_Caller,
-        Invalid_CanisterId,
-        No_Wasm,
-        No_Record,
-        Insufficient_Cycles,
-        Ledger_Transfer_Failed(Nat),
-        Create_Canister_Failed(Nat),
-        Delete_Hub_Failed,
-    }
+    pub type Args = DeployArgs;
+    pub type Response = CanisterManagementResult<Principal>;
 }
 
 pub mod stage_nft_origyn {
