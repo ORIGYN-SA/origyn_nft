@@ -17,6 +17,7 @@ use origyn_nft_reference::canister_manager::{CanisterManagementResult, DeployArg
 // FIXME: delete those two after testing
 generate_update_call!(test_canister_creation);
 generate_update_call!(test_canister_top_up);
+generate_update_call!(test_canister_delete);
 
 // Origyn NFT methods
 generate_update_call!(stage_nft_origyn);
@@ -74,6 +75,14 @@ pub mod test_canister_top_up {
     use candid::Principal;
 
     pub type Args = DeployArgs;
+    pub type Response = CanisterManagementResult<Principal>;
+}
+
+pub mod test_canister_delete {
+    use super::*;
+    use candid::Principal;
+
+    pub type Args = Principal;
     pub type Response = CanisterManagementResult<Principal>;
 }
 
@@ -351,6 +360,16 @@ pub mod client {
         args: test_canister_top_up::Args,
     ) -> test_canister_top_up::Response {
         crate::client::origyn_nft_reference::test_canister_top_up(pic, sender, canister_id, &args)
+    }
+
+    // FIXME: clean up after testing
+    pub fn test_canister_delete(
+        pic: &mut PocketIc,
+        canister_id: CanisterId,
+        sender: Principal,
+        args: test_canister_delete::Args,
+    ) -> test_canister_delete::Response {
+        crate::client::origyn_nft_reference::test_canister_delete(pic, sender, canister_id, &args)
     }
 
     pub fn stage_nft_origyn(
